@@ -1,5 +1,6 @@
 import { useGameStore } from './store/gameStore'
 import { LockScreen } from './components/lockscreen/LockScreen'
+import { Desktop } from './components/desktop/Desktop'
 
 export default function App() {
   const loggedIn = useGameStore((s) => s.loggedIn)
@@ -7,5 +8,5 @@ export default function App() {
 
   if (!loggedIn || !state) return <LockScreen />
 
-  return <div style={{ padding: 20 }}>바탕화면 준비 중 — {state.playerName}</div>
+  return <Desktop />
 }
