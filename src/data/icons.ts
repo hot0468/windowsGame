@@ -9,8 +9,9 @@ import type { IconName } from '../types/game'
  * 작은 크기(12~18px)에서 형태가 더 또렷한 UI 컨트롤은 flat-color-icons를 쓴다.
  */
 export const UI_ICONS = {
-  /** 창 닫기 버튼. */
-  windowClose: 'flat-color-icons:cancel',
+  // 창 캡션 버튼(최소화·최대화·닫기)은 아이콘이 아니라 CSS 도형으로 그린다.
+  // 윈도우 11의 캡션 글리프는 가는 단색 선이라 플랫 컬러 아이콘과 성격이 다르고,
+  // 닫기 hover 시 흰색으로 바뀌어야 하는데 다색 아이콘은 색을 덧칠할 수 없다. (Window.css 참조)
   /** 스탯창 타이틀 바 — 플레이어 본인. */
   statPanel: 'fluent-emoji-flat:bust-in-silhouette',
   /** 작업 표시줄 시작 버튼. */

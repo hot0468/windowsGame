@@ -112,14 +112,18 @@ export interface DesktopItem {
   icon: IconName
   /** 더블클릭 시 열리는 창의 종류. */
   kind: WindowKind
-  /** 창 가로 폭. 항목마다 내용 분량이 달라 개별로 둔다. maximized면 무시된다. */
+  /**
+   * 창 가로 폭. 항목마다 내용 분량이 달라 개별로 둔다.
+   * openMaximized로 열려도 복원했을 때의 폭이 되므로 반드시 의미 있는 값을 둔다.
+   */
   width: number
   /**
-   * true면 창이 작업 표시줄을 제외한 전체 화면으로 열린다(0,0 고정·드래그 불가).
+   * true면 창이 **열릴 때** 전체 화면 상태로 시작한다(작업 표시줄 제외).
+   * ⚠️ 초기값일 뿐이다 — 최대화 여부는 런타임 상태이므로(`OpenWindow.maximized`)
+   * 플레이어가 캡션 버튼으로 복원·재최대화할 수 있다.
    * 브라우저처럼 넓은 화면이 필요한 앱이 데이터에서 선언한다 — 컴포넌트에서 id로 분기하지 않는다.
-   * 폴더·휴지통 등도 나중에 같은 방식으로 켜면 된다.
    */
-  maximized?: boolean
+  openMaximized?: boolean
   /** kind가 'exe'일 때 실행할 활동 id. */
   activityId?: string
   /** kind가 'stub'일 때 창에 띄울 안내 문구. */

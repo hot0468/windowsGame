@@ -61,53 +61,106 @@
   align-items: center;
   gap: 8px;
   padding: 0 10px;
-  background: rgba(24, 32, 44, 0.92);
-  backdrop-filter: blur(12px);
-  color: #fff;
+  /* 윈도우 11 라이트 테마의 작업 표시줄은 밝은 반투명 아크릴이다. */
+  background: rgba(243, 243, 243, 0.85);
+  backdrop-filter: blur(24px) saturate(150%);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  color: #1a1a1a;
   font-size: 12px;
   /* LAYERS.TASKBAR — 모든 창 위. */
   z-index: 9000;
 }
 
+/* ── 작업 표시줄 정렬 결정 ──
+   윈도우 11은 시작 버튼+앱 아이콘을 가운데 정렬한다. 이 게임은 그 배치를 따르되
+   "완전한 가운데"가 아니라 **시작+창 목록 묶음만 가운데**로 둔다:
+   패널 버튼·시계는 윈도우에서도 우측 시스템 트레이에 고정되는 요소라 함께 가운데로
+   끌고 오면 오히려 윈도우와 달라진다.
+   좌우 트레이 폭이 다르면 묶음이 진짜 가운데에서 밀리므로,
+   왼쪽에 오른쪽 트레이와 같은 폭의 스페이서를 두어 광학적 중심을 맞춘다. */
+.taskbar-spacer,
+.taskbar-tray {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
 .taskbar-start {
   display: flex;
   align-items: center;
-  padding: 4px 10px;
+  justify-content: center;
+  width: 40px;
+  height: 36px;
+  padding: 0;
   background: none;
   border: none;
-  color: #fff;
+  border-radius: 5px;
+  color: #1a1a1a;
   cursor: default;
 }
 
+.taskbar-start:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* 시작 버튼과 함께 가운데에 놓이는 열린 창 목록. */
 .taskbar-items {
   display: flex;
-  gap: 6px;
-  flex: 1;
+  align-items: center;
+  gap: 4px;
+  flex: 0 1 auto;
   overflow: hidden;
 }
 
 .taskbar-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
+  gap: 8px;
+  padding: 0 10px;
+  height: 36px;
   border: none;
-  border-bottom: 2px solid #4a9fd8;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  border-radius: 5px;
+  /* 윈도우 11의 활성 창 표시는 밑줄이 아니라 아래쪽 짧은 인디케이터다.
+     border-bottom 대신 그라데이션으로 그려 폭을 짧게 만든다. */
+  background:
+    linear-gradient(#4a9fd8, #4a9fd8) bottom center / 16px 3px no-repeat,
+    rgba(0, 0, 0, 0.05);
+  color: #1a1a1a;
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .taskbar-item:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background:
+    linear-gradient(#4a9fd8, #4a9fd8) bottom center / 16px 3px no-repeat,
+    rgba(0, 0, 0, 0.1);
+}
+
+/* 최소화된 창: 화면에 없으므로 인디케이터를 짧고 흐리게 줄인다(윈도우 11과 같은 신호). */
+.taskbar-item-min {
+  background:
+    linear-gradient(rgba(74, 159, 216, 0.5), rgba(74, 159, 216, 0.5)) bottom center / 7px 3px
+      no-repeat,
+    transparent;
+}
+
+.taskbar-item-min:hover {
+  background:
+    linear-gradient(rgba(74, 159, 216, 0.5), rgba(74, 159, 216, 0.5)) bottom center / 7px 3px
+      no-repeat,
+    rgba(0, 0, 0, 0.06);
 }
 
 .taskbar-clock {
   text-align: right;
   line-height: 1.35;
+  padding: 0 4px;
+  color: #1a1a1a;
+  white-space: nowrap;
 }
 
 .taskbar-slot {
@@ -123,23 +176,23 @@
   align-items: center;
   gap: 2px;
   padding-right: 8px;
-  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .taskbar-panel {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
   background: transparent;
   cursor: pointer;
 }
 
 .taskbar-panel:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.08);
 }
 
 /* ── 날짜칸 ── */

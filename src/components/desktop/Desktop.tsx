@@ -23,11 +23,13 @@ export function Desktop() {
                 id: `${item.kind}-${item.id}`,
                 title: item.label,
                 icon: item.icon,
-                // 전체 화면 창은 항상 좌상단 고정, 나머지는 서로 겹치지 않게 순번만큼 어긋나게 배치한다.
-                x: item.maximized ? 0 : 120 + i * 28,
-                y: item.maximized ? 0 : 80 + i * 28,
+                // 창끼리 겹치지 않게 순번만큼 어긋나게 배치한다.
+                // 최대화 상태로 열리는 창도 이 좌표를 그대로 받는다 —
+                // 최대화 중에는 무시되지만 복원하면 여기로 돌아오므로 0,0을 주면 안 된다.
+                x: 120 + i * 28,
+                y: 80 + i * 28,
                 width: item.width,
-                maximized: item.maximized,
+                maximized: item.openMaximized,
                 kind: item.kind,
                 activityId: item.activityId,
                 message: item.stubMessage,

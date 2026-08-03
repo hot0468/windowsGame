@@ -44,8 +44,16 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - `Window`의 `onActivate` prop: 스토어에 등록되지 않은 창은 이 콜백으로 자체 z를 올린다. 넘기지 않으면 기존대로 `windowStore.focus(id)`를 부른다. (등록 안 된 창이 `focus`를 부르면 아무것도 갱신하지 못한 채 `topZ`만 소모시킨다)
 - 날짜/슬롯 표기와 날짜칸 배치 수치는 `src/data/calendar.ts`(`formatGameDate`, `CALENDAR_PANEL_LAYOUT`)가 단일 출처다. 작업 표시줄 시계와 날짜칸이 같은 함수를 쓴다
 - 건너뛰기 버튼은 **작업 표시줄이 아니라 날짜칸**에 있다. 라벨은 "오전/오후 건너뛰기" — `doSkip()`은 하루가 아니라 **한 슬롯**만 넘기므로 라벨도 슬롯 단위여야 한다. 실제 윈도우처럼 작업 표시줄에는 시계와 패널 버튼만 둔다
-- **전체 화면 창은 `DesktopItem.maximized` / `OpenWindow.maximized` 불리언 옵트인이다.** 컴포넌트에서 id로 분기하지 않는다 — 데이터에서 켜면 폴더·휴지통 등 어떤 항목도 같은 방식으로 전체 화면이 된다(현재 `browser`만 true). true면 `Window`가 x/y/width를 무시하고 `left:0, top:0, width=innerWidth, height=innerHeight-SHELL.TASKBAR_HEIGHT`로 그리며, **타이틀 바에 드래그 핸들러를 아예 붙이지 않는다**(포인터 캡처가 안 걸려 닫기 버튼도 그대로 동작하고, 클램핑 로직에 노출되지도 않는다). `.win-max` 클래스가 grab 커서를 없애고 `.win-body`의 `max-height: 60vh` 상한을 풀어 남은 높이를 채운다. 뷰포트 리사이즈 구독(`resize`)은 maximized 창에서만 건다
+- **창 상태(최소화·최대화)는 `windowStore`의 런타임 상태다.** `OpenWindow.maximized`/`minimized`는 필수 불리언이고, `restore: {x, y, width}`가 최대화 직전 좌표를 들고 있다(복원이 0,0으로 튀는 것을 막는 유일한 근거). 액션은 `minimize(id)` / `toggleMaximize(id)` / `activate(id)`. `toggleMaximize`는 최대화 시 현재 좌표를 `restore`에 저장하고, 복원 시 `...w.restore`를 펼쳐 되돌린다
+- **`DesktopItem.openMaximized`는 "열릴 때의 초기 상태"일 뿐이다**(구 `maximized`에서 개명 — 정적 플래그로 오해되어 인터넷 창이 복원 불가였다). 컴포넌트에서 id로 분기하지 않고 데이터에서 켠다(현재 `browser`만 true). 이 항목의 `width`는 **복원 시 폭**이 되므로 반드시 의미 있는 값을 둔다. `Desktop.tsx`는 최대화로 열리는 창에도 일반 좌표(`120+i*28`)를 넘긴다 — 최대화 중엔 무시되지만 복원 좌표가 되므로 0,0을 주면 안 된다
+- **최소화된 창은 렌더링하지 않되 목록에서 지우지 않는다.** `WindowManager`가 `.filter(w => !w.minimized)`로 거르고, 작업 표시줄 항목은 남아 복원 수단이 된다. 작업 표시줄 항목 클릭은 `focus`가 아니라 **`activate`**를 부른다(최소화면 복원+앞으로, 아니면 앞으로만 — 실제 윈도우 동작)
+- **전체 화면 창은** `Window`가 x/y/width를 무시하고 `left:0, top:0, width=innerWidth, height=innerHeight-SHELL.TASKBAR_HEIGHT`로 그리며, **타이틀 바에 드래그 핸들러를 아예 붙이지 않는다**(포인터 캡처가 안 걸려 캡션 버튼도 그대로 동작하고, 클램핑 로직에 노출되지도 않는다). `.win-max` 클래스가 grab 커서를 없애고 `.win-body`의 `max-height: 60vh` 상한을 풀어 남은 높이를 채운다. 뷰포트 리사이즈 구독(`resize`)은 maximized 창에서만 건다
 - **셸 골격 치수는 `src/data/shell.ts`의 `SHELL` 상수가 단일 출처다**(`TASKBAR_HEIGHT` 44, `TITLE_BAR_HEIGHT` 40). layers.ts와 같은 이유로 숫자를 흩뿌리지 않는다. CSS는 TS 상수를 못 읽으므로 `Desktop.css`(`.taskbar` height, `.desktop-icons` height)에 44px가 주석과 함께 중복돼 있다 — **바꿀 때 반드시 양쪽을 함께 고친다**
+- ⚠️ **캡션 버튼 포인터 캡처 회귀 (두 번 터진 버그).** 캡션 버튼 3종은 타이틀 바 안에 있고, 타이틀 바 `pointerdown`이 `setPointerCapture`를 걸면 `pointerup`이 버튼에 닿지 않아 **클릭이 성립하지 않는다**. `Window.tsx`의 `handlePointerDown`은 `.win-caption-btn`(세 버튼 공통 클래스) 하나로 걸러낸다 — **개별 클래스(`.win-close` 등)를 나열하지 말 것.** 나열하면 버튼을 추가할 때마다 같은 버그가 재발한다. 캡션 버튼을 새로 추가하면 반드시 `win-caption-btn` 클래스를 함께 붙인다
+- **캡션 버튼은 아이콘이 아니라 CSS 도형이다**(`.win-glyph-*`, `currentColor` 기반). 윈도우 11 캡션 글리프는 가는 단색 선이라 다색 플랫 아이콘과 성격이 다르고, 닫기 hover 시 흰색으로 덧칠해야 하는데 다색 아이콘은 색을 바꿀 수 없다. 그래서 `UI_ICONS.windowClose`는 제거됐다
+- **`Window`의 캡션 버튼은 콜백 유무로 켜진다:** `onClose`/`onMinimize`/`onToggleMaximize`를 넘긴 것만 그려진다. 스탯창·날짜칸은 셋 다 넘기지 않아 버튼이 하나도 없다 — 이 패널들은 windowStore에 없어 작업 표시줄에서 되돌릴 수단이 없으므로 최소화되면 영영 사라진다
+- **윈도우 11 시각 언어(맥스러움 제거):** 타이틀 바는 그라데이션 없는 플랫 단색(`#f3f3f3`)에 `font-weight: 400`, 높이는 `SHELL.TITLE_BAR_HEIGHT`(40px)로 고정(캡션 버튼이 꽉 채우려면 필요). 캡션 버튼은 `radius 0` · 폭 46px · 우상단 모서리 밀착(타이틀 바 오른쪽 패딩 0). hover는 최소화·최대화가 `#e5e5e5`, **닫기만 `#e81123` + 흰 글리프**. 창 배경 `#f9f9f9`, 테두리 `#e5e5e5`, 그림자는 은은한 2단(`0 2px 4px/.1` + `0 8px 20px/.14`). 작업 표시줄은 밝은 아크릴(`rgba(243,243,243,.85)` + blur)
+- **작업 표시줄 정렬:** 시작 버튼+창 목록만 가운데, 패널 버튼·시계는 우측 트레이에 고정(윈도우도 트레이는 우측이다). 좌측 `.taskbar-spacer`가 `.taskbar-tray`와 같은 `flex: 1 1 0`을 차지해 가운데 묶음을 광학적 중심에 맞춘다 — 스페이서를 지우면 묶음이 왼쪽으로 밀린다
 - ⚠️ `Window`는 스토어 창뿐 아니라 스탯창·날짜칸도 렌더링한다. 따라서 `.win` 셀렉터로 "열린 창"을 고르면 패널까지 걸린다(패널은 `onClose`가 없어 닫기 버튼도 없다). DOM 검증 시에는 타이틀 텍스트 등으로 구분할 것
 - 활동 창은 오후 슬롯일 때 생활비 차감을 경고한다. 오후 행동은 하루를 끝내며 `sleep()`이 생활비를 빼가는데, 이를 안 보여주면 "+42,780원" 표시 후 실제로는 적자가 되어 플레이어를 오도함
 
@@ -69,10 +77,10 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 ## 파일 맵
 - 진입: `index.html` → `src/main.tsx` → `src/App.tsx` (`loggedIn && state`로 잠금화면/바탕화면 분기)
 - 타입: `src/types/game.ts` — Stats, Activity, GameState 등 도메인 타입 전부
-- 데이터(수치): `src/data/` — activities(활동 5종, `onDesktop` 플래그), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합, `maximized` 옵트인), layers(`LAYERS` — z-order 상수), shell(`SHELL` — 작업표시줄·타이틀바 높이), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(엔딩 6종), statMeta(스탯별 아이콘·accent + 표시 순서), icons(`UI_ICONS` — 창·작업표시줄·잠금화면 아이콘 이름)
+- 데이터(수치): `src/data/` — activities(활동 5종, `onDesktop` 플래그), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합, `openMaximized` 옵트인), layers(`LAYERS` — z-order 상수), shell(`SHELL` — 작업표시줄·타이틀바 높이), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(엔딩 6종), statMeta(스탯별 아이콘·accent + 표시 순서), icons(`UI_ICONS` — 창·작업표시줄·잠금화면 아이콘 이름)
 - 아이콘: `src/icons/` — AppIcon(공용 렌더 컴포넌트), bootstrap(시작 시 addCollection), generated.ts(자동 생성, 수정 금지). 생성기는 `scripts/build-icon-subset.mjs`
-- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티), ending(티어 판정). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지). 총 **131개** 테스트(`src/systems`+`src/store`+`src/data`)
-- 상태: `src/store/` — gameStore(세이브+loggedIn), metaStore(도감·영구), windowStore(창·휘발), desktopPanelStore(스탯창·날짜칸 z, 휘발)
+- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티), ending(티어 판정). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지). 총 **146개** 테스트(`src/systems`+`src/store`+`src/data`)
+- 상태: `src/store/` — gameStore(세이브+loggedIn), metaStore(도감·영구), windowStore(창 목록 + 최소화/최대화 런타임 상태·휘발), desktopPanelStore(스탯창·날짜칸 z, 휘발)
 - UI: `src/components/window/`(Window·WindowManager), `desktop/`(Desktop·StatPanel·CalendarPanel·Taskbar), `lockscreen/`, `apps/`(ExeApp·StubApp·EndingModal)
 - 설정: `vite.config.ts`, `tsconfig.json`(+`.app`/`.node`), 전역 CSS `src/index.css`
 - 미구현(별도 계획 필요): 브라우저 본체/포털/사이트(바탕화면 아이콘은 있으나 stub 창만 뜸), 엔딩 도감 UI, 랜덤 이벤트, 폴더 앱·휴지통(`DesktopItem`으로 추가), 은행/대출

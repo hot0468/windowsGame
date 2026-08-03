@@ -44,14 +44,22 @@ describe('바탕화면 항목', () => {
     }
   })
 
-  it('브라우저는 전체 화면으로 열리도록 데이터에서 선언한다', () => {
+  it('브라우저는 전체 화면 상태로 열리도록 데이터에서 선언한다', () => {
     const browser = DESKTOP_ITEMS.find((i) => i.id === 'browser')
-    expect(browser!.maximized).toBe(true)
+    expect(browser!.openMaximized).toBe(true)
   })
 
-  it('전체 화면은 옵트인이다 — 나머지 항목은 기존 플로팅 동작을 유지한다', () => {
+  it('전체 화면으로 여는 항목도 복원용 폭을 갖는다', () => {
+    // openMaximized는 초기 상태일 뿐이라 플레이어가 복원할 수 있다.
+    // 그때 width가 0이면 창이 사라져 보이므로 반드시 의미 있는 값이어야 한다.
+    for (const item of DESKTOP_ITEMS.filter((i) => i.openMaximized)) {
+      expect(item.width).toBeGreaterThan(0)
+    }
+  })
+
+  it('전체 화면 열기는 옵트인이다 — 나머지 항목은 기존 플로팅 동작을 유지한다', () => {
     for (const item of DESKTOP_ITEMS.filter((i) => i.id !== 'browser')) {
-      expect(item.maximized).toBeFalsy()
+      expect(item.openMaximized).toBeFalsy()
     }
   })
 })

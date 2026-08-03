@@ -14,10 +14,11 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
     label: '인터넷',
     icon: 'fluent-emoji-flat:globe-with-meridians',
     kind: 'stub',
-    width: 320,
-    // 브라우저는 실제 윈도우처럼 작업 표시줄만 남기고 전체 화면으로 연다.
-    // (maximized면 width는 쓰이지 않지만, 나중에 복원 크기로 쓸 수 있도록 남겨 둔다.)
-    maximized: true,
+    // 최대화 상태로 열리지만 복원하면 이 폭으로 돌아온다.
+    width: 480,
+    // 브라우저는 실제 윈도우처럼 작업 표시줄만 남기고 전체 화면으로 "열린다".
+    // 이후 최대화 여부는 런타임 상태이므로 캡션 버튼으로 복원할 수 있다.
+    openMaximized: true,
     stubMessage: '인터넷은 아직 준비 중입니다. 다음 업데이트를 기다려 주세요.',
   },
 ]

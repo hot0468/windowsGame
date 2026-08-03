@@ -7,10 +7,14 @@ import { StubApp } from '../apps/StubApp'
 export function WindowManager() {
   const windows = useWindowStore((s) => s.windows)
   const close = useWindowStore((s) => s.close)
+  const minimize = useWindowStore((s) => s.minimize)
+  const toggleMaximize = useWindowStore((s) => s.toggleMaximize)
 
   return (
     <>
-      {windows.map((w) => (
+      {/* 최소화된 창은 그리지 않는다. 목록에서 지우지는 않으므로
+          작업 표시줄 항목은 남고 거기서 복원할 수 있다. */}
+      {windows.filter((w) => !w.minimized).map((w) => (
         <Window
           key={w.id}
           id={w.id}
@@ -22,6 +26,8 @@ export function WindowManager() {
           zIndex={w.zIndex}
           maximized={w.maximized}
           onClose={() => close(w.id)}
+          onMinimize={() => minimize(w.id)}
+          onToggleMaximize={() => toggleMaximize(w.id)}
         >
           {w.kind === 'exe' && w.activityId && (
             <ExeApp activityId={w.activityId} onDone={() => close(w.id)} />

@@ -1,5 +1,5 @@
 // 이 파일은 `npm run icons`(scripts/build-icon-subset.mjs)가 생성한다. 직접 수정하지 말 것.
-// src/에서 실제로 쓰는 아이콘 34개만 담은 축소 세트다 —
+// src/에서 실제로 쓰는 아이콘 33개만 담은 축소 세트다 —
 // 전체 세트(8천여 개)를 번들에 넣지 않기 위한 것이다.
 import type { IconifyJSON } from '@iconify/react/offline'
 
@@ -108,13 +108,10 @@ export const fluentEmojiFlat: IconifyJSON = {
   "height": 32
 }
 
-/** flat-color-icons — 사용 중인 2개 */
+/** flat-color-icons — 사용 중인 1개 */
 export const flatColorIcons: IconifyJSON = {
   "prefix": "flat-color-icons",
   "icons": {
-    "cancel": {
-      "body": "<path fill=\"#D50000\" d=\"M24 6C14.1 6 6 14.1 6 24s8.1 18 18 18s18-8.1 18-18S33.9 6 24 6m0 4c3.1 0 6 1.1 8.4 2.8L12.8 32.4C11.1 30 10 27.1 10 24c0-7.7 6.3-14 14-14m0 28c-3.1 0-6-1.1-8.4-2.8l19.6-19.6C36.9 18 38 20.9 38 24c0 7.7-6.3 14-14 14\"/>"
-    },
     "grid": {
       "body": "<path fill=\"#90CAF9\" d=\"M7 7v34h34V7zm32 8h-6V9h6zm-14 0V9h6v6zm6 2v6h-6v-6zm-8-2h-6V9h6zm0 2v6h-6v-6zm-8 6H9v-6h6zm0 2v6H9v-6zm2 0h6v6h-6zm6 8v6h-6v-6zm2 0h6v6h-6zm0-2v-6h6v6zm8-6h6v6h-6zm0-2v-6h6v6zM15 9v6H9V9zM9 33h6v6H9zm24 6v-6h6v6z\"/>"
     }
