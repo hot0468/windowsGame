@@ -22,7 +22,11 @@ export const CALENDAR_PANEL_LAYOUT: {
   top: number
   statPanelReserve: number
 } = {
-  width: 176,
+  /**
+   * 공용 Window의 `min-width: 200px`보다 작게 잡으면 실제 렌더 폭(200)과 어긋나
+   * 그만큼 스탯창을 침범한다. 최소 폭과 같은 값으로 맞춰 둔다.
+   */
+  width: 200,
   /** 스탯창과의 가로 간격. */
   gap: 12,
   /** 스탯창과 같은 높이에서 시작한다. */
