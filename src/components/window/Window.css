@@ -1,0 +1,60 @@
+.win {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  background: #f0f0f0;
+  border: 1px solid #8a8a8a;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  min-width: 200px;
+}
+
+.win-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: linear-gradient(#fdfdfd, #e8e8e8);
+  border-bottom: 1px solid #d0d0d0;
+  cursor: grab;
+  font-size: 13px;
+  font-weight: 600;
+  color: #202020;
+}
+
+.win-title:active {
+  cursor: grabbing;
+}
+
+.win-title-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.win-close {
+  border: none;
+  background: transparent;
+  width: 28px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  color: #333;
+}
+
+.win-close:hover {
+  background: #e81123;
+  color: #fff;
+}
+
+.win-body {
+  padding: 12px;
+  font-size: 13px;
+  color: #202020;
+  overflow-y: auto;
+  max-height: 60vh;
+}
