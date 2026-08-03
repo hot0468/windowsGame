@@ -1,20 +1,26 @@
+import { formatGameDate } from '../../data/calendar'
 import { UI_ICONS } from '../../data/icons'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
+import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { useWindowStore } from '../../store/windowStore'
+import type { DesktopPanelId } from '../../store/desktopPanelStore'
+import type { IconName } from '../../types/game'
 
-/** 게임 내 날짜를 3월 1일 기준으로 환산해 표시한다. */
-function formatGameDate(day: number): string {
-  const base = new Date(2026, 2, 1)
-  base.setDate(base.getDate() + day - 1)
-  return base.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })
-}
+/**
+ * 바탕화면 상시 패널을 다시 앞으로 가져오는 버튼 목록.
+ * 이 패널들은 일반 창에 가려지므로(바탕화면 요소이므로 정상), 이 버튼이 되찾는 수단이다.
+ */
+const PANEL_BUTTONS: { id: DesktopPanelId; label: string; icon: IconName }[] = [
+  { id: 'calendar', label: '날짜', icon: UI_ICONS.calendarPanel },
+  { id: 'stats', label: '스탯', icon: UI_ICONS.statPanel },
+]
 
 export function Taskbar() {
   const state = useGameStore((s) => s.state)
-  const doSkip = useGameStore((s) => s.doSkip)
   const windows = useWindowStore((s) => s.windows)
   const focus = useWindowStore((s) => s.focus)
+  const raise = useDesktopPanelStore((s) => s.raise)
 
   if (!state) return null
 
@@ -36,16 +42,22 @@ export function Taskbar() {
         ))}
       </div>
 
-      <button
-        className="taskbar-skip"
-        onClick={doSkip}
-        disabled={state.gameOver !== null}
-        title="아무것도 하지 않고 다음 시간대로 넘어갑니다"
-      >
-        <AppIcon name={UI_ICONS.skipTurn} size={14} />
-        넘기기
-      </button>
+      {/* 시계 왼쪽: 바탕화면 패널 되돌리기 버튼. 열린 창 목록과는 성격이 달라 구역을 나눈다. */}
+      <div className="taskbar-panels">
+        {PANEL_BUTTONS.map((panel) => (
+          <button
+            key={panel.id}
+            className="taskbar-panel"
+            onClick={() => raise(panel.id)}
+            title={`${panel.label}창을 맨 앞으로 가져옵니다`}
+            aria-label={`${panel.label}창을 맨 앞으로`}
+          >
+            <AppIcon name={panel.icon} size={16} />
+          </button>
+        ))}
+      </div>
 
+      {/* 실제 윈도우처럼 작업 표시줄에는 시계만 남긴다. 넘기기는 날짜칸으로 옮겼다. */}
       <div className="taskbar-clock">
         {formatGameDate(state.day)}
         <br />

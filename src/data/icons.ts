@@ -15,8 +15,12 @@ export const UI_ICONS = {
   statPanel: 'fluent-emoji-flat:bust-in-silhouette',
   /** 작업 표시줄 시작 버튼. */
   start: 'flat-color-icons:grid',
-  /** 턴 넘기기 버튼. */
+  /** 슬롯 건너뛰기 버튼. */
   skipTurn: 'fluent-emoji-flat:fast-forward-button',
+  /** 날짜칸 타이틀 바 + 작업 표시줄 날짜칸 버튼. */
+  calendarPanel: 'fluent-emoji-flat:spiral-calendar',
+  /** 준비 중인 앱의 안내 창. */
+  underConstruction: 'fluent-emoji-flat:construction',
   /** 오전 슬롯 표시. */
   slotMorning: 'fluent-emoji-flat:sun',
   /** 오후 슬롯 표시. */

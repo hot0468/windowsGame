@@ -5,6 +5,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.65);
+  /* LAYERS.ENDING — 작업 표시줄(9000)보다도 위, 최상단. src/data/layers.ts와 같은 값. */
   z-index: 9500;
 }
 

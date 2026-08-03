@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import type { IconName } from '../types/game'
+import { LAYERS } from '../data/layers'
+import type { IconName, WindowKind } from '../types/game'
 
 /** 열려 있는 창 하나. kind는 창 종류를 식별하는 키다. */
 export interface OpenWindow {
@@ -10,9 +11,11 @@ export interface OpenWindow {
   y: number
   width: number
   zIndex: number
-  /** 렌더링할 앱 종류. 'exe'는 activityId를 함께 쓴다. */
-  kind: 'exe' | 'ending'
+  /** 렌더링할 앱 종류. 'exe'는 activityId를, 'stub'은 message를 함께 쓴다. */
+  kind: WindowKind
   activityId?: string
+  /** kind가 'stub'일 때 보여줄 안내 문구. */
+  message?: string
 }
 
 interface WindowStore {
@@ -27,7 +30,8 @@ interface WindowStore {
 
 export const useWindowStore = create<WindowStore>((set, get) => ({
   windows: [],
-  topZ: 10,
+  /** 일반 창은 바탕화면 패널(스탯창·날짜칸)보다 위에서 시작한다. */
+  topZ: LAYERS.WINDOW_BASE,
 
   /** 이미 열린 창이면 새로 열지 않고 포커스만 올린다. */
   open: (win) => {

@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Window } from '../window/Window'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
+import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { getLivingCost, getNextTier } from '../../systems/economy'
+import { CALENDAR_PANEL_LAYOUT } from '../../data/calendar'
 import { UI_ICONS } from '../../data/icons'
 import { STAT_META, GROWTH_STAT_ORDER } from '../../data/statMeta'
 import { STAT_NAMES } from '../../types/game'
@@ -63,8 +65,13 @@ function GrowthCell({ statKey, value }: { statKey: GrowthStatKey; value: number 
 
 export function StatPanel() {
   const state = useGameStore((s) => s.state)
-  /** 스탯창은 windowStore에 등록되지 않으므로 위치를 직접 소유한다. 초기값은 우상단 고정 위치. */
-  const [pos, setPos] = useState(() => ({ x: window.innerWidth - 296, y: 16 }))
+  /** 스탯창은 windowStore에 등록되지 않으므로 위치와 z-index를 직접 소유한다. */
+  const [pos, setPos] = useState(() => ({
+    x: Math.max(8, window.innerWidth - CALENDAR_PANEL_LAYOUT.statPanelReserve),
+    y: CALENDAR_PANEL_LAYOUT.top,
+  }))
+  const zIndex = useDesktopPanelStore((s) => s.z.stats)
+  const raise = useDesktopPanelStore((s) => s.raise)
   if (!state) return null
 
   const { stats, day } = state
@@ -78,8 +85,9 @@ export function StatPanel() {
       x={pos.x}
       y={pos.y}
       width={280}
-      zIndex={8000}
+      zIndex={zIndex}
       onMove={(x, y) => setPos({ x, y })}
+      onActivate={() => raise('stats')}
     >
       {/* 1구역: 매 턴 변하고 상한이 의미 있는 자원 — 게이지로 한눈에 본다. */}
       <ResourceRow statKey="stamina" value={stats.stamina} max={stats.maxStamina} />

@@ -319,4 +319,27 @@ describe('skipSlot', () => {
     expect(after.day).toBe(2)
     expect(after.stats.money).toBe(before.stats.money - getLivingCost(1))
   })
+
+  // 날짜칸 버튼 라벨이 "오전/오후 건너뛰기"인 근거.
+  // 한 번 호출은 하루가 아니라 한 슬롯만 넘기므로 라벨도 슬롯 단위여야 한다.
+  it('오전에 넘기면 하루가 끝나지 않아 생활비가 차감되지 않는다', () => {
+    const before = createInitialState('t')
+    const after = skipSlot(before)
+    expect(after.day).toBe(1)
+    expect(after.slot).toBe('afternoon')
+    expect(after.stats.money).toBe(before.stats.money)
+  })
+
+  it('두 번 넘겨 하루를 통째로 보내면 생활비는 정확히 한 번만 빠진다', () => {
+    const before = createInitialState('t')
+    const after = skipSlot(skipSlot(before))
+    expect(after.day).toBe(2)
+    expect(after.slot).toBe('morning')
+    expect(after.stats.money).toBe(before.stats.money - getLivingCost(1))
+  })
+
+  it('게임오버 상태면 아무 일도 일어나지 않는다 (버튼 비활성화와 일치)', () => {
+    const before = stateWith({ gameOver: 'bankrupt' })
+    expect(skipSlot(before)).toBe(before)
+  })
 })

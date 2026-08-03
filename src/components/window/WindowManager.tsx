@@ -1,6 +1,7 @@
 import { useWindowStore } from '../../store/windowStore'
 import { Window } from './Window'
 import { ExeApp } from '../apps/ExeApp'
+import { StubApp } from '../apps/StubApp'
 
 /** 열린 창 목록을 종류에 따라 렌더링한다. */
 export function WindowManager() {
@@ -24,6 +25,7 @@ export function WindowManager() {
           {w.kind === 'exe' && w.activityId && (
             <ExeApp activityId={w.activityId} onDone={() => close(w.id)} />
           )}
+          {w.kind === 'stub' && w.message && <StubApp message={w.message} />}
         </Window>
       ))}
     </>

@@ -5,7 +5,13 @@
   overflow: hidden;
 }
 
+/* z-index 값의 단일 출처는 src/data/layers.ts다.
+   CSS에서 참조할 수 없으므로 여기에 같은 값을 두되, 바꿀 때는 반드시 양쪽을 함께 고친다.
+   쌓임 순서: 아이콘(10) < 바탕화면 패널(100) < 일반 창(1000+) < 작업 표시줄(9000) < 엔딩(9500) */
 .desktop-icons {
+  position: relative;
+  /* LAYERS.DESKTOP_ICON — 스탯창·날짜칸보다 아래여야 겹칠 때 패널이 보인다. */
+  z-index: 10;
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;
@@ -56,6 +62,7 @@
   backdrop-filter: blur(12px);
   color: #fff;
   font-size: 12px;
+  /* LAYERS.TASKBAR — 모든 창 위. */
   z-index: 9000;
 }
 
@@ -106,21 +113,93 @@
   gap: 4px;
 }
 
-.taskbar-skip {
+/* 시계 왼쪽의 바탕화면 패널 버튼 구역. 열린 창 목록과 성격이 달라
+   구분선으로 나눈다(실제 윈도우의 트레이 영역과 같은 위치). */
+.taskbar-panels {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  gap: 2px;
+  padding-right: 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.taskbar-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  font-size: 12px;
+  background: transparent;
   cursor: pointer;
 }
 
-.taskbar-skip:hover {
-  background: rgba(255, 255, 255, 0.28);
+.taskbar-panel:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ── 날짜칸 ── */
+
+.cal-date {
+  font-size: 14px;
+  font-weight: 700;
+  color: #202020;
+}
+
+.cal-day {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #666;
+}
+
+.cal-slot {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #202020;
+}
+
+/* 건너뛰기는 시간을 소모하는 행동이므로 무료 탐색(활동 창 열기)과 구분되어야 한다.
+   경고색 테두리·배경으로 "누르면 턴이 지나간다"를 시각적으로 알린다. */
+.cal-skip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid #e0a030;
+  border-radius: 4px;
+  background: #fdf3e0;
+  color: #8a5a00;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cal-skip:hover:not(:disabled) {
+  background: #f8e6c4;
+}
+
+.cal-skip:disabled {
+  border-color: #c8c8c8;
+  background: #ededed;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.cal-skip-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #777;
 }
 
 .stat-row {

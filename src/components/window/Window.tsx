@@ -19,6 +19,12 @@ interface WindowProps {
   onClose?: () => void
   /** 지정하면 드래그 시 store의 move 대신 이 콜백을 호출한다 (스탯창처럼 store에 등록되지 않은 창용). */
   onMove?: (x: number, y: number) => void
+  /**
+   * 지정하면 창을 누를 때 windowStore.focus 대신 이 콜백을 호출한다.
+   * 스토어에 등록되지 않은 창(스탯창·날짜칸)은 focus(id)가 아무것도 갱신하지 못하고
+   * topZ만 올려 다른 창의 z를 앞당겨 소모시키므로, 자체 z 관리 콜백을 받는다.
+   */
+  onActivate?: () => void
   children: ReactNode
 }
 
@@ -32,10 +38,13 @@ export function Window({
   zIndex,
   onClose,
   onMove,
+  onActivate,
   children,
 }: WindowProps) {
   const move = useWindowStore((s) => s.move)
-  const focus = useWindowStore((s) => s.focus)
+  const storeFocus = useWindowStore((s) => s.focus)
+  /** 스토어에 등록된 창은 store.focus, 그렇지 않은 창은 자체 콜백으로 앞으로 온다. */
+  const activate = onActivate ?? (() => storeFocus(id))
   /** 드래그 시작 시점의 커서-창 좌표 차이. 창이 커서로 순간이동하는 것을 막는다. */
   const offset = useRef({ dx: 0, dy: 0 })
 
@@ -44,7 +53,7 @@ export function Window({
     // onPointerDown도 함께 발생하므로, focus는 여기서 한 번만 호출하고
     // 컨테이너 쪽 핸들러에서는 이벤트 전파를 막아 중복 호출을 방지한다.
     e.stopPropagation()
-    focus(id)
+    activate()
     offset.current = { dx: e.clientX - x, dy: e.clientY - y }
     e.currentTarget.setPointerCapture(e.pointerId)
   }
@@ -74,7 +83,7 @@ export function Window({
   }
 
   return (
-    <div className="win" style={{ left: x, top: y, width, zIndex }} onPointerDown={() => focus(id)}>
+    <div className="win" style={{ left: x, top: y, width, zIndex }} onPointerDown={activate}>
       <div
         className="win-title"
         onPointerDown={handlePointerDown}

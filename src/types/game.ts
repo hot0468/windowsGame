@@ -92,6 +92,34 @@ export interface Activity {
   onDesktop?: boolean
 }
 
+/**
+ * windowStore가 렌더링할 창의 종류.
+ * 'exe'는 활동 실행 창(activityId 동반), 'ending'은 엔딩,
+ * 'stub'은 아직 구현되지 않은 앱의 안내 창이다.
+ */
+export type WindowKind = 'exe' | 'ending' | 'stub'
+
+/**
+ * 바탕화면에 놓이는 항목. 활동만이 바탕화면 항목인 것은 아니다 —
+ * 브라우저는 스탯도 턴도 건드리지 않으므로 Activity로 위장시키지 않는다.
+ *
+ * 추후 폴더·휴지통도 같은 타입으로 추가한다:
+ * 새 앱은 kind 'stub'으로 먼저 올리고, 구현되면 kind만 바꾸면 된다.
+ */
+export interface DesktopItem {
+  id: string
+  label: string
+  icon: IconName
+  /** 더블클릭 시 열리는 창의 종류. */
+  kind: WindowKind
+  /** 창 가로 폭. 항목마다 내용 분량이 달라 개별로 둔다. */
+  width: number
+  /** kind가 'exe'일 때 실행할 활동 id. */
+  activityId?: string
+  /** kind가 'stub'일 때 창에 띄울 안내 문구. */
+  stubMessage?: string
+}
+
 /** 물가 구간. day 이상일 때 해당 구간이 적용된다. */
 export interface EconomyTier {
   day: number

@@ -4,6 +4,9 @@ import type { Activity } from '../types/game'
  * 활동 정의. 수치 조정은 이 파일에서만 한다.
  * onDesktop이 true인 활동만 바탕화면에 아이콘으로 뜬다 —
  * 나머지는 정의를 보존한 채 숨겨 두고, 추후 브라우저/스케줄 시스템에서 재사용한다.
+ *
+ * 단, 바탕화면 항목이 곧 활동인 것은 아니다. 활동이 아닌 항목(브라우저·폴더 등)은
+ * `data/desktopItems.ts`가 관리하며, Desktop 컴포넌트는 그쪽의 DESKTOP_ITEMS만 순회한다.
  */
 export const ACTIVITIES: Activity[] = [
   {
@@ -53,6 +56,3 @@ export const ACTIVITIES: Activity[] = [
 export function findActivity(id: string): Activity | undefined {
   return ACTIVITIES.find((a) => a.id === id)
 }
-
-/** 바탕화면에 표시할 활동. 하드코딩 필터가 아니라 데이터 플래그로 결정한다. */
-export const DESKTOP_ACTIVITIES: Activity[] = ACTIVITIES.filter((a) => a.onDesktop)
