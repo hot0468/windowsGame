@@ -13,6 +13,8 @@ interface WindowProps {
   zIndex: number
   /** 없으면 닫기 버튼을 숨긴다 (스탯창처럼 상시 표시되는 창). */
   onClose?: () => void
+  /** 지정하면 드래그 시 store의 move 대신 이 콜백을 호출한다 (스탯창처럼 store에 등록되지 않은 창용). */
+  onMove?: (x: number, y: number) => void
   children: ReactNode
 }
 
@@ -25,6 +27,7 @@ export function Window({
   width,
   zIndex,
   onClose,
+  onMove,
   children,
 }: WindowProps) {
   const move = useWindowStore((s) => s.move)
@@ -55,7 +58,11 @@ export function Window({
     const maxY = Math.max(0, window.innerHeight - TASKBAR_HEIGHT - TITLE_BAR_HEIGHT)
     const nextX = Math.min(Math.max(0, e.clientX - offset.current.dx), maxX)
     const nextY = Math.min(Math.max(0, e.clientY - offset.current.dy), maxY)
-    move(id, nextX, nextY)
+    if (onMove) {
+      onMove(nextX, nextY)
+    } else {
+      move(id, nextX, nextY)
+    }
   }
 
   const handlePointerUp = (e: PointerEvent<HTMLDivElement>) => {

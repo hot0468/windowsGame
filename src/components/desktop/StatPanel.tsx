@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Window } from '../window/Window'
 import { useGameStore } from '../../store/gameStore'
 import { getLivingCost, getNextTier } from '../../systems/economy'
@@ -39,6 +40,8 @@ function StatRow({
 
 export function StatPanel() {
   const state = useGameStore((s) => s.state)
+  /** 스탯창은 windowStore에 등록되지 않으므로 위치를 직접 소유한다. 초기값은 우상단 고정 위치. */
+  const [pos, setPos] = useState(() => ({ x: window.innerWidth - 296, y: 16 }))
   if (!state) return null
 
   const { stats, day } = state
@@ -49,10 +52,11 @@ export function StatPanel() {
       id="stats"
       title={state.playerName}
       icon="👤"
-      x={window.innerWidth - 296}
-      y={16}
+      x={pos.x}
+      y={pos.y}
       width={280}
       zIndex={8000}
+      onMove={(x, y) => setPos({ x, y })}
     >
       <StatRow label="💪 체력" value={stats.stamina} max={stats.maxStamina} color="#43a047" />
       <StatRow label="🧠 지능" value={stats.intelligence} max={100} color="#1e88e5" />
