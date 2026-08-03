@@ -36,8 +36,9 @@
 
 .desktop-icon-glyph {
   display: block;
-  font-size: 32px;
-  margin-bottom: 4px;
+  margin: 0 auto 4px;
+  color: #fff;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
 }
 
 .taskbar {
@@ -58,7 +59,8 @@
 }
 
 .taskbar-start {
-  font-size: 18px;
+  display: flex;
+  align-items: center;
   padding: 4px 10px;
   background: none;
   border: none;
@@ -74,6 +76,9 @@
 }
 
 .taskbar-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 5px 12px;
   border: none;
   border-bottom: 2px solid #4a9fd8;
@@ -94,7 +99,16 @@
   line-height: 1.35;
 }
 
+.taskbar-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .taskbar-skip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 12px;
   border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 4px;
@@ -111,14 +125,19 @@
 .stat-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 7px;
 }
 
+.stat-icon {
+  flex: 0 0 auto;
+}
+
 .stat-label {
-  width: 52px;
+  width: 46px;
   font-size: 12px;
   color: #444;
+  white-space: nowrap;
 }
 
 .stat-bar {
@@ -146,6 +165,39 @@
 .stat-warn {
   color: #c62828;
   font-weight: 700;
+}
+
+/* 성장 스탯 9종을 3열로 압축한다. 게이지 없이 아이콘+이름+숫자만 담아
+   창 높이를 늘리지 않으면서 12종 전부를 한눈에 볼 수 있게 한다. */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px 6px;
+}
+
+.stat-cell {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 4px;
+  border-radius: 4px;
+  background: #e9e9e9;
+  font-size: 11px;
+  overflow: hidden;
+}
+
+.stat-cell-name {
+  flex: 1;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-cell-value {
+  font-weight: 700;
+  color: #202020;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-divider {

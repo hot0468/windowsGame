@@ -74,7 +74,7 @@ describe('migrateSave — 손상/부분 세이브 거부', () => {
   })
 
   it('복원된 스탯은 항상 모두 유한한 숫자다', () => {
-    const saved = { state: { ...createInitialState('t'), stats: { intelligence: 5 } } }
+    const saved = { state: { ...createInitialState('t'), stats: { knowledge: 5 } } }
     const stats = migrateSave(saved).state!.stats
     for (const v of Object.values(stats)) expect(Number.isFinite(v)).toBe(true)
   })

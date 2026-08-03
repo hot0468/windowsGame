@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { createInitialState, canRun, runActivity, skipSlot, MAX_STAMINA_CAP } from './turn'
+import {
+  createInitialState,
+  canRun,
+  runActivity,
+  skipSlot,
+  MAX_STAMINA_CAP,
+  GROWTH_STAT_CAP,
+  MENTAL_CAP,
+} from './turn'
 import { findActivity } from '../data/activities'
 import { getLivingCost } from './economy'
+import { GROWTH_STAT_KEYS } from '../types/game'
 import type { GameState } from '../types/game'
 
 const study = findActivity('study')!
@@ -55,7 +64,7 @@ describe('runActivity — 스탯 적용', () => {
   it('활동 효과를 스탯에 반영한다', () => {
     const before = createInitialState('t')
     const after = runActivity(before, study)
-    expect(after.stats.intelligence).toBe(before.stats.intelligence + 6)
+    expect(after.stats.knowledge).toBe(before.stats.knowledge + 6)
   })
 
   it('체력을 소모한다', () => {
@@ -66,9 +75,9 @@ describe('runActivity — 스탯 적용', () => {
 
   it('원본 상태를 변경하지 않는다', () => {
     const before = createInitialState('t')
-    const snapshot = before.stats.intelligence
+    const snapshot = before.stats.knowledge
     runActivity(before, study)
-    expect(before.stats.intelligence).toBe(snapshot)
+    expect(before.stats.knowledge).toBe(snapshot)
   })
 
   it('체력은 0 아래로 내려가지 않는다', () => {
@@ -132,6 +141,76 @@ describe('runActivity — 스탯 적용', () => {
   })
 })
 
+describe('스탯 상한', () => {
+  it('성장 스탯 9종은 999를 상한으로 한다', () => {
+    expect(GROWTH_STAT_CAP).toBe(999)
+    expect(GROWTH_STAT_KEYS).toHaveLength(9)
+  })
+
+  it('상한을 넘긴 성장 스탯은 999로 끌어내린다', () => {
+    const base = createInitialState('t').stats
+    const inflated = { ...base }
+    for (const key of GROWTH_STAT_KEYS) inflated[key] = 99999
+    const after = runActivity(stateWith({ stats: inflated }), study)
+    for (const key of GROWTH_STAT_KEYS) {
+      expect(after.stats[key]).toBe(GROWTH_STAT_CAP)
+    }
+  })
+
+  it('성장 스탯은 상한 직전에서 활동해도 999를 넘지 않는다', () => {
+    // 공부는 knowledge +6이므로 998에서 실행하면 1004가 되어야 하지만 상한에 걸린다.
+    const s = stateWith({ stats: { ...createInitialState('t').stats, knowledge: 998 } })
+    expect(runActivity(s, study).stats.knowledge).toBe(GROWTH_STAT_CAP)
+  })
+
+  it('성장 스탯은 0 아래로 내려가지 않는다', () => {
+    // 게임은 knowledge -1이다. 0에서 실행해도 음수가 되면 안 된다.
+    const s = stateWith({ stats: { ...createInitialState('t').stats, knowledge: 0 } })
+    expect(runActivity(s, findActivity('game')!).stats.knowledge).toBe(0)
+  })
+
+  it('신규 스탯 7종은 0에서 시작하고 어떤 활동으로도 오르지 않는다', () => {
+    // 스케줄 시스템 도입 전까지는 의도적으로 0에 머물러야 한다.
+    const newKeys = [
+      'sensitivity',
+      'reputation',
+      'morality',
+      'creativity',
+      'sociability',
+      'vocabulary',
+      'athletics',
+    ] as const
+    let s = createInitialState('t')
+    for (const key of newKeys) expect(s.stats[key]).toBe(0)
+    for (const activity of [study, work, exercise, findActivity('game')!, findActivity('social')!]) {
+      if (!canRun(s, activity)) continue
+      s = runActivity(s, activity)
+      for (const key of newKeys) expect(s.stats[key]).toBe(0)
+    }
+  })
+
+  it('멘탈 상한은 100으로 유지된다', () => {
+    expect(MENTAL_CAP).toBe(100)
+    // 게임은 멘탈 +18이다. 100에서 실행해도 상한을 넘으면 안 된다.
+    const s = stateWith({ stats: { ...createInitialState('t').stats, mental: 100 } })
+    expect(runActivity(s, findActivity('game')!).stats.mental).toBe(MENTAL_CAP)
+  })
+
+  it('멘탈 상한은 성장 스탯 상한과 별개다', () => {
+    expect(MENTAL_CAP).toBeLessThan(GROWTH_STAT_CAP)
+    const s = stateWith({ stats: { ...createInitialState('t').stats, mental: 9999 } })
+    expect(runActivity(s, study).stats.mental).toBe(MENTAL_CAP)
+  })
+
+  it('최대 체력 상한은 200으로 유지되어 성장 스탯 상한에 휩쓸리지 않는다', () => {
+    expect(MAX_STAMINA_CAP).toBe(200)
+    const s = stateWith({
+      stats: { ...createInitialState('t').stats, maxStamina: GROWTH_STAT_CAP, stamina: 100 },
+    })
+    expect(runActivity(s, study).stats.maxStamina).toBe(MAX_STAMINA_CAP)
+  })
+})
+
 describe('runActivity — 슬롯과 날짜 전환', () => {
   it('오전 활동 후 오후로 넘어가고 날짜는 그대로다', () => {
     const after = runActivity(createInitialState('t'), study)
@@ -177,11 +256,11 @@ describe('runActivity — 번아웃', () => {
 
   it('연속 실행하면 효율이 떨어져 스탯 상승폭이 줄어든다', () => {
     const fresh = createInitialState('t')
-    const firstGain = runActivity(fresh, study).stats.intelligence - fresh.stats.intelligence
+    const firstGain = runActivity(fresh, study).stats.knowledge - fresh.stats.knowledge
 
     const repeated = stateWith({ recentActivities: ['study', 'study', 'study'] })
     const repeatedGain =
-      runActivity(repeated, study).stats.intelligence - repeated.stats.intelligence
+      runActivity(repeated, study).stats.knowledge - repeated.stats.knowledge
 
     expect(repeatedGain).toBeLessThan(firstGain)
   })
@@ -226,7 +305,7 @@ describe('skipSlot', () => {
     const before = createInitialState('t')
     const after = skipSlot(before)
     expect(after.slot).toBe('afternoon')
-    expect(after.stats.intelligence).toBe(before.stats.intelligence)
+    expect(after.stats.knowledge).toBe(before.stats.knowledge)
   })
 
   it('활동 이력에 기록되지 않아 번아웃 연속이 끊긴다', () => {

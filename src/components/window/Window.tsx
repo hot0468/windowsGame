@@ -1,12 +1,15 @@
 import { useRef } from 'react'
 import type { PointerEvent, ReactNode } from 'react'
+import { X } from 'lucide-react'
 import { useWindowStore } from '../../store/windowStore'
+import type { IconComponent } from '../../types/game'
 import './Window.css'
 
 interface WindowProps {
   id: string
   title: string
-  icon: string
+  /** 타이틀 바 아이콘 컴포넌트 (lucide-react). */
+  icon: IconComponent
   x: number
   y: number
   width: number
@@ -21,7 +24,7 @@ interface WindowProps {
 export function Window({
   id,
   title,
-  icon,
+  icon: Icon,
   x,
   y,
   width,
@@ -77,11 +80,11 @@ export function Window({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
-        <span>{icon}</span>
+        <Icon size={14} className="win-title-icon" />
         <span className="win-title-text">{title}</span>
         {onClose && (
           <button className="win-close" onClick={onClose} aria-label="닫기">
-            ✕
+            <X size={14} />
           </button>
         )}
       </div>

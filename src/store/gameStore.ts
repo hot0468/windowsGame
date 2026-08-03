@@ -1,17 +1,14 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { canRun, createInitialState, runActivity, skipSlot } from '../systems/turn'
+import { INITIAL_STATS } from '../types/game'
 import type { Activity, GameState, Stats } from '../types/game'
 
-/** 세이브에 반드시 유한한 숫자로 들어 있어야 하는 스탯 키. */
-const REQUIRED_STAT_KEYS: (keyof Stats)[] = [
-  'stamina',
-  'maxStamina',
-  'intelligence',
-  'charm',
-  'mental',
-  'money',
-]
+/**
+ * 세이브에 반드시 유한한 숫자로 들어 있어야 하는 스탯 키.
+ * INITIAL_STATS에서 파생시켜, 스탯이 추가돼도 검증에서 빠지지 않게 한다.
+ */
+const REQUIRED_STAT_KEYS = Object.keys(INITIAL_STATS) as (keyof Stats)[]
 
 /**
  * 저장된 세이브를 검증해 안전한 GameState로 되돌린다.

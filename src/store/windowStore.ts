@@ -1,10 +1,11 @@
 import { create } from 'zustand'
+import type { IconComponent } from '../types/game'
 
 /** 열려 있는 창 하나. kind는 창 종류를 식별하는 키다. */
 export interface OpenWindow {
   id: string
   title: string
-  icon: string
+  icon: IconComponent
   x: number
   y: number
   width: number

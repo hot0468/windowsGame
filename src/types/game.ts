@@ -1,11 +1,68 @@
-/** 5대 스탯. maxStamina는 운동으로 영구 상승하는 성장 스탯이다. */
+import type { ComponentType, CSSProperties } from 'react'
+
+/**
+ * 12종 스탯.
+ * - 소모 자원: stamina(일일 소모/취침 회복), mental(0~100), money
+ * - 성장 스탯: maxStamina(운동으로 영구 상승, 상한 200) + GROWTH_STAT_KEYS 9종(상한 999)
+ */
 export interface Stats {
   stamina: number
   maxStamina: number
-  intelligence: number
-  charm: number
   mental: number
   money: number
+  /** 지식 */
+  knowledge: number
+  /** 매력 */
+  charm: number
+  /** 감수성 */
+  sensitivity: number
+  /** 평판 */
+  reputation: number
+  /** 도덕 */
+  morality: number
+  /** 창의력 */
+  creativity: number
+  /** 친화력 */
+  sociability: number
+  /** 어휘력 */
+  vocabulary: number
+  /** 운동 */
+  athletics: number
+}
+
+/**
+ * 999 상한을 공유하는 성장 스탯 키.
+ * maxStamina는 상한 규칙이 다르므로(200) 여기에 넣지 않는다.
+ */
+export const GROWTH_STAT_KEYS = [
+  'knowledge',
+  'charm',
+  'sensitivity',
+  'reputation',
+  'morality',
+  'creativity',
+  'sociability',
+  'vocabulary',
+  'athletics',
+] as const
+
+export type GrowthStatKey = (typeof GROWTH_STAT_KEYS)[number]
+
+/** 스탯 한국어 라벨. UI는 이 표만 참조한다. */
+export const STAT_NAMES: Record<keyof Stats, string> = {
+  stamina: '체력',
+  maxStamina: '최대 체력',
+  mental: '멘탈',
+  money: '소지금',
+  knowledge: '지식',
+  charm: '매력',
+  sensitivity: '감수성',
+  reputation: '평판',
+  morality: '도덕',
+  creativity: '창의력',
+  sociability: '친화력',
+  vocabulary: '어휘력',
+  athletics: '운동',
 }
 
 /** 활동이 스탯에 주는 변화량. 없는 키는 변화 없음. */
@@ -14,11 +71,22 @@ export type StatDelta = Partial<Record<keyof Stats, number>>
 /** 하루의 두 슬롯. */
 export type Slot = 'morning' | 'afternoon'
 
+/**
+ * 아이콘 컴포넌트 타입.
+ * lucide-react 아이콘을 데이터에서 직접 참조할 수 있게 최소 형태로만 정의한다.
+ * (data/가 lucide 타입에 강결합되지 않도록 구조적 타입으로 둔다)
+ */
+export type IconComponent = ComponentType<{
+  size?: number | string
+  className?: string
+  style?: CSSProperties
+}>
+
 /** 활동 정의. 수치는 전부 data/에만 존재한다. */
 export interface Activity {
   id: string
   label: string
-  icon: string
+  icon: IconComponent
   description: string
   /** 스탯 변화량. money는 알바비 배율이 적용된다. */
   effects: StatDelta
@@ -26,6 +94,8 @@ export interface Activity {
   requires?: Partial<Record<keyof Stats, number>>
   /** 알바비 배율(economy)을 money에 적용할지 여부. 알바 활동만 true. */
   scalesWithWage?: boolean
+  /** 바탕화면에 아이콘을 띄울지 여부. 나머지 활동은 정의만 보존된다. */
+  onDesktop?: boolean
 }
 
 /** 물가 구간. day 이상일 때 해당 구간이 적용된다. */
@@ -55,8 +125,16 @@ export interface GameState {
 export const INITIAL_STATS: Stats = {
   stamina: 100,
   maxStamina: 100,
-  intelligence: 10,
-  charm: 10,
   mental: 100,
   money: 300000,
+  knowledge: 10,
+  charm: 10,
+  // 신규 스탯은 모두 0에서 시작한다. 아직 이를 올리는 활동은 없다(스케줄 시스템에서 채울 예정).
+  sensitivity: 0,
+  reputation: 0,
+  morality: 0,
+  creativity: 0,
+  sociability: 0,
+  vocabulary: 0,
+  athletics: 0,
 }

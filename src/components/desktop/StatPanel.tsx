@@ -1,27 +1,34 @@
 import { useState } from 'react'
+import { User } from 'lucide-react'
 import { Window } from '../window/Window'
 import { useGameStore } from '../../store/gameStore'
 import { getLivingCost, getNextTier } from '../../systems/economy'
+import { STAT_META, GROWTH_STAT_ORDER } from '../../data/statMeta'
+import { STAT_NAMES } from '../../types/game'
+import type { GrowthStatKey, Stats } from '../../types/game'
 
-/** 스탯 하나를 게이지로 표시한다. max가 없으면 게이지 없이 숫자만 보여준다. */
-function StatRow({
-  label,
+/**
+ * 상한이 실제로 의미 있는 자원 스탯(체력·멘탈)만 게이지로 보여준다.
+ * 소지금은 상한이 없으므로 숫자만 표시한다.
+ */
+function ResourceRow({
+  statKey,
   value,
   max,
-  color,
   suffix = '',
   warn = false,
 }: {
-  label: string
+  statKey: keyof Stats
   value: number
   max?: number
-  color?: string
   suffix?: string
   warn?: boolean
 }) {
+  const { icon: Icon, color } = STAT_META[statKey]
   return (
     <div className="stat-row">
-      <span className="stat-label">{label}</span>
+      <Icon size={13} className="stat-icon" style={{ color }} />
+      <span className="stat-label">{STAT_NAMES[statKey]}</span>
       {max !== undefined && (
         <span className="stat-bar">
           <span
@@ -34,6 +41,21 @@ function StatRow({
         {value.toLocaleString('ko-KR')}
         {suffix}
       </span>
+    </div>
+  )
+}
+
+/**
+ * 성장 스탯 한 칸. 상한이 999라 게이지는 대부분 빈 막대로 보여 정보가 되지 않으므로,
+ * 아이콘 + 이름 + 숫자만 담은 컴팩트 셀로 만들어 그리드에 배치한다.
+ */
+function GrowthCell({ statKey, value }: { statKey: GrowthStatKey; value: number }) {
+  const { icon: Icon, color } = STAT_META[statKey]
+  return (
+    <div className="stat-cell" title={`${STAT_NAMES[statKey]} ${value}`}>
+      <Icon size={13} className="stat-icon" style={{ color }} />
+      <span className="stat-cell-name">{STAT_NAMES[statKey]}</span>
+      <span className="stat-cell-value">{value}</span>
     </div>
   )
 }
@@ -51,24 +73,32 @@ export function StatPanel() {
     <Window
       id="stats"
       title={state.playerName}
-      icon="👤"
+      icon={User}
       x={pos.x}
       y={pos.y}
       width={280}
       zIndex={8000}
       onMove={(x, y) => setPos({ x, y })}
     >
-      <StatRow label="💪 체력" value={stats.stamina} max={stats.maxStamina} color="#43a047" />
-      <StatRow label="🧠 지능" value={stats.intelligence} max={100} color="#1e88e5" />
-      <StatRow label="✨ 매력" value={stats.charm} max={100} color="#d81b60" />
-      <StatRow
-        label="😊 멘탈"
-        value={stats.mental}
-        max={100}
-        color="#fb8c00"
-        warn={stats.mental <= 20}
+      {/* 1구역: 매 턴 변하고 상한이 의미 있는 자원 — 게이지로 한눈에 본다. */}
+      <ResourceRow statKey="stamina" value={stats.stamina} max={stats.maxStamina} />
+      <ResourceRow statKey="mental" value={stats.mental} max={100} warn={stats.mental <= 20} />
+      <ResourceRow
+        statKey="money"
+        value={stats.money}
+        suffix="원"
+        warn={stats.money <= 100000}
       />
-      <StatRow label="💰 소지금" value={stats.money} suffix="원" warn={stats.money <= 100000} />
+      <ResourceRow statKey="maxStamina" value={stats.maxStamina} max={200} />
+
+      <hr className="stat-divider" />
+
+      {/* 2구역: 성장 스탯 9종. 3열 그리드로 압축해 창 높이를 억제한다. */}
+      <div className="stat-grid">
+        {GROWTH_STAT_ORDER.map((key) => (
+          <GrowthCell key={key} statKey={key} value={stats[key]} />
+        ))}
+      </div>
 
       <hr className="stat-divider" />
 

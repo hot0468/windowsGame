@@ -27,6 +27,11 @@
   cursor: grabbing;
 }
 
+.win-title-icon {
+  flex: 0 0 auto;
+  color: #1e88e5;
+}
+
 .win-title-text {
   flex: 1;
   white-space: nowrap;
@@ -35,13 +40,15 @@
 }
 
 .win-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: transparent;
   width: 28px;
   height: 22px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 13px;
   line-height: 1;
   color: #333;
 }

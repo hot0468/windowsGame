@@ -1,6 +1,6 @@
 import { getLivingCost, getWageMultiplier } from './economy'
 import { getBurnoutPenalty, pushActivity } from './burnout'
-import { INITIAL_STATS } from '../types/game'
+import { GROWTH_STAT_KEYS, INITIAL_STATS } from '../types/game'
 import type { Activity, GameState, Slot, Stats } from '../types/game'
 
 /** 취침 시 회복되는 체력 비율 (maxStamina 기준). */
@@ -17,6 +17,15 @@ const SLEEP_MENTAL_RECOVERY = 5
  * 체력이 자원으로서 기능하지 않게 된다.
  */
 export const MAX_STAMINA_CAP = 200
+
+/**
+ * 성장 스탯(지식·매력·감수성 등 9종)의 상한.
+ * maxStamina와 달리 엔딩 조건과 묶여 있지 않으므로, 장기 육성의 여유를 두고 999로 잡는다.
+ */
+export const GROWTH_STAT_CAP = 999
+
+/** 멘탈 상한. 소모 자원이므로 성장 스탯과 성격이 달라 0~100을 유지한다. */
+export const MENTAL_CAP = 100
 
 export function createInitialState(playerName: string): GameState {
   return {
@@ -39,19 +48,26 @@ export function canRun(state: GameState, activity: Activity): boolean {
   )
 }
 
-/** 체력은 0~maxStamina, 멘탈은 0~100으로 제한한다. maxStamina는 1~MAX_STAMINA_CAP. */
+/**
+ * 체력은 0~maxStamina, 멘탈은 0~MENTAL_CAP, maxStamina는 1~MAX_STAMINA_CAP,
+ * 성장 스탯 9종은 0~GROWTH_STAT_CAP으로 제한한다.
+ */
 function clampStats(stats: Stats): Stats {
   const maxStamina = Math.min(MAX_STAMINA_CAP, Math.max(1, Math.round(stats.maxStamina)))
-  return {
+  const clamped: Stats = {
     ...stats,
     maxStamina,
     // 체력 상한은 클램핑된 maxStamina를 기준으로 한다 — 원본 값을 쓰면 상한을 넘길 수 있다.
     stamina: Math.round(Math.min(Math.max(0, stats.stamina), maxStamina)),
-    intelligence: Math.max(0, Math.round(stats.intelligence)),
-    charm: Math.max(0, Math.round(stats.charm)),
-    mental: Math.round(Math.min(Math.max(0, stats.mental), 100)),
+    mental: Math.round(Math.min(Math.max(0, stats.mental), MENTAL_CAP)),
     money: Math.round(stats.money),
   }
+  // 성장 스탯은 상한 규칙이 같으므로 키 목록을 돌며 일괄 처리한다.
+  // 스탯이 추가돼도 여기를 고칠 필요가 없다.
+  for (const key of GROWTH_STAT_KEYS) {
+    clamped[key] = Math.min(GROWTH_STAT_CAP, Math.max(0, Math.round(stats[key])))
+  }
+  return clamped
 }
 
 /**

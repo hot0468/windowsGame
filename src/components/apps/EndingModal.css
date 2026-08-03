@@ -18,7 +18,9 @@
 }
 
 .ending-icon {
-  font-size: 52px;
+  display: block;
+  margin: 0 auto;
+  color: #1e88e5;
 }
 
 .ending-title {
@@ -29,6 +31,10 @@
 }
 
 .ending-unlocked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   font-size: 12px;
   color: #2e7d32;
   margin-bottom: 14px;
@@ -60,6 +66,24 @@
   color: #444;
   text-align: left;
   line-height: 1.7;
+}
+
+.ending-summary-head {
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #333;
+}
+
+.ending-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.ending-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .ending-buttons {

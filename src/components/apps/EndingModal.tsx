@@ -1,10 +1,25 @@
 import { useEffect, useState } from 'react'
+import { BookCheck } from 'lucide-react'
 import { checkAchievementEnding, getFailureEnding, hasHigherTier } from '../../systems/ending'
 import { useGameStore } from '../../store/gameStore'
 import { useMetaStore } from '../../store/metaStore'
 import { useWindowStore } from '../../store/windowStore'
+import { STAT_META } from '../../data/statMeta'
+import { STAT_NAMES } from '../../types/game'
+import type { Stats } from '../../types/game'
 import type { Ending } from '../../data/endings'
 import './EndingModal.css'
+
+/** 엔딩 요약에 표시할 스탯 한 항목. */
+function SummaryStat({ statKey, value }: { statKey: keyof Stats; value: string | number }) {
+  const { icon: Icon, color } = STAT_META[statKey]
+  return (
+    <span className="ending-stat">
+      <Icon size={13} style={{ color }} />
+      {STAT_NAMES[statKey]} {value}
+    </span>
+  )
+}
 
 export function EndingModal() {
   const state = useGameStore((s) => s.state)
@@ -42,31 +57,50 @@ export function EndingModal() {
     markEndingSeen(ending.id)
   }
 
+  const EndingIcon = ending.icon
+
   return (
     <div className="ending-overlay">
       <div className="ending-box">
-        <div className="ending-icon">{ending.icon}</div>
+        <EndingIcon size={52} className="ending-icon" />
         <div className="ending-title">
           {showFinal ? ending.title : `엔딩 도달: ${ending.title}`}
         </div>
-        <div className="ending-unlocked">✨ 엔딩 도감에 기록되었습니다</div>
+        <div className="ending-unlocked">
+          <BookCheck size={13} />
+          엔딩 도감에 기록되었습니다
+        </div>
 
         <p className="ending-text">{ending.text}</p>
 
         {showFinal ? (
           <>
             <div className="ending-summary">
-              {state.playerName} · {state.day}일차 종료
-              <br />
-              🧠 지능 {state.stats.intelligence} · ✨ 매력 {state.stats.charm} · 💪 최대 체력{' '}
-              {state.stats.maxStamina}
-              <br />
-              😊 멘탈 {state.stats.mental} · 💰 {state.stats.money.toLocaleString('ko-KR')}원
+              <div className="ending-summary-head">
+                {state.playerName} · {state.day}일차 종료
+              </div>
+              <div className="ending-stats">
+                <SummaryStat statKey="knowledge" value={state.stats.knowledge} />
+                <SummaryStat statKey="charm" value={state.stats.charm} />
+                <SummaryStat statKey="maxStamina" value={state.stats.maxStamina} />
+                <SummaryStat statKey="mental" value={state.stats.mental} />
+                <SummaryStat
+                  statKey="money"
+                  value={`${state.stats.money.toLocaleString('ko-KR')}원`}
+                />
+              </div>
             </div>
             <div className="ending-buttons">
               <button className="ending-btn ending-btn-primary" onClick={handleRestart}>
                 처음부터 다시
               </button>
+              {/* 성취 엔딩은 확인 후 지금 판으로 돌아갈 수 있어야 한다.
+                  실패 엔딩(파산·번아웃)은 이 버튼이 없어 강제 종료된다. */}
+              {!isFailure && (
+                <button className="ending-btn ending-btn-ghost" onClick={handleContinue}>
+                  닫고 계속하기
+                </button>
+              )}
             </div>
           </>
         ) : (

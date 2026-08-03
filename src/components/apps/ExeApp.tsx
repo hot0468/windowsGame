@@ -1,18 +1,24 @@
+import { AlertTriangle, Clock } from 'lucide-react'
 import { findActivity } from '../../data/activities'
+import { STAT_META } from '../../data/statMeta'
 import { useGameStore } from '../../store/gameStore'
 import { canRun } from '../../systems/turn'
 import { getBurnoutPenalty } from '../../systems/burnout'
 import { getLivingCost, getWageMultiplier } from '../../systems/economy'
+import { STAT_NAMES } from '../../types/game'
 import type { Stats } from '../../types/game'
 import './ExeApp.css'
 
-const STAT_LABELS: Record<keyof Stats, string> = {
-  stamina: '💪 체력',
-  maxStamina: '💪 최대 체력',
-  intelligence: '🧠 지능',
-  charm: '✨ 매력',
-  mental: '😊 멘탈',
-  money: '💰 소지금',
+/** 스탯 라벨 한 줄(아이콘 + 이름). 효과 목록에서 재사용한다. */
+function StatLabel({ statKey, note }: { statKey: keyof Stats; note?: string }) {
+  const { icon: Icon, color } = STAT_META[statKey]
+  return (
+    <span className="exe-effect-label">
+      <Icon size={13} style={{ color }} />
+      {STAT_NAMES[statKey]}
+      {note ? ` ${note}` : ''}
+    </span>
+  )
 }
 
 export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () => void }) {
@@ -50,7 +56,7 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
           const value = displayValue(statKey, raw)
           return (
             <div key={key} className="exe-effect">
-              <span>{STAT_LABELS[statKey]}</span>
+              <StatLabel statKey={statKey} />
               <span className={value >= 0 ? 'exe-plus' : 'exe-minus'}>
                 {value >= 0 ? '+' : ''}
                 {value.toLocaleString('ko-KR')}
@@ -60,7 +66,7 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
         })}
         {mentalPenalty > 0 && (
           <div className="exe-effect">
-            <span>😊 멘탈 (연속 페널티)</span>
+            <StatLabel statKey="mental" note="(연속 페널티)" />
             <span className="exe-minus">-{mentalPenalty}</span>
           </div>
         )}
@@ -68,23 +74,38 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
 
       {isBurnedOut && (
         <div className="exe-warn">
-          같은 일을 반복하고 있습니다. 효율이 {Math.round(efficiency * 100)}%로 떨어졌습니다.
+          <AlertTriangle size={14} className="exe-warn-icon" />
+          <span>
+            같은 일을 반복하고 있습니다. 효율이 {Math.round(efficiency * 100)}%로 떨어졌습니다.
+          </span>
         </div>
       )}
 
-      {!runnable && <div className="exe-warn">지금은 실행할 수 없습니다. 스탯이 부족합니다.</div>}
+      {!runnable && (
+        <div className="exe-warn">
+          <AlertTriangle size={14} className="exe-warn-icon" />
+          <span>지금은 실행할 수 없습니다. 스탯이 부족합니다.</span>
+        </div>
+      )}
 
       {state.slot === 'afternoon' && (
         <div className="exe-warn">
-          이 행동을 하면 하루가 끝나고 잠자리에 듭니다. 생활비{' '}
-          {getLivingCost(state.day).toLocaleString('ko-KR')}원이 차감됩니다. (체력·멘탈은 회복됩니다)
+          <AlertTriangle size={14} className="exe-warn-icon" />
+          <span>
+            이 행동을 하면 하루가 끝나고 잠자리에 듭니다. 생활비{' '}
+            {getLivingCost(state.day).toLocaleString('ko-KR')}원이 차감됩니다. (체력·멘탈은
+            회복됩니다)
+          </span>
         </div>
       )}
 
       <button className="exe-run" onClick={handleRun} disabled={!runnable}>
         실행하기
       </button>
-      <div className="exe-cost">⚠️ 1턴을 소모합니다</div>
+      <div className="exe-cost">
+        <Clock size={12} />
+        1턴을 소모합니다
+      </div>
     </div>
   )
 }

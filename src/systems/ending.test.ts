@@ -18,14 +18,14 @@ describe('checkAchievementEnding', () => {
 
   it('여러 조건을 동시에 채우면 상위 티어를 우선한다', () => {
     const result = checkAchievementEnding(
-      statsWith({ intelligence: 90, mental: 40, charm: 80 }),
+      statsWith({ knowledge: 90, mental: 40, charm: 80 }),
       [],
     )
     expect(result?.id).toBe('bigtech')
   })
 
   it('조건이 여러 개인 엔딩은 전부 충족해야 한다', () => {
-    const result = checkAchievementEnding(statsWith({ intelligence: 90, mental: 10 }), [])
+    const result = checkAchievementEnding(statsWith({ knowledge: 90, mental: 10 }), [])
     expect(result?.id).not.toBe('bigtech')
   })
 
@@ -35,7 +35,7 @@ describe('checkAchievementEnding', () => {
   })
 
   it('이미 본 엔딩을 건너뛰고 아래 티어를 반환한다', () => {
-    const stats = statsWith({ charm: 80, intelligence: 40 })
+    const stats = statsWith({ charm: 80, knowledge: 40 })
     const result = checkAchievementEnding(stats, ['influencer'])
     expect(result?.id).toBe('ordinary')
   })
@@ -60,12 +60,12 @@ describe('현실주의자 엔딩 기준', () => {
 
 describe('hasHigherTier', () => {
   it('최상위 엔딩은 상위가 없다', () => {
-    const top = checkAchievementEnding(statsWith({ intelligence: 90, mental: 40 }), [])!
+    const top = checkAchievementEnding(statsWith({ knowledge: 90, mental: 40 }), [])!
     expect(hasHigherTier(top)).toBe(false)
   })
 
   it('하위 엔딩은 상위가 있다', () => {
-    const low = checkAchievementEnding(statsWith({ intelligence: 40, charm: 40 }), [])!
+    const low = checkAchievementEnding(statsWith({ knowledge: 40, charm: 40 }), [])!
     expect(hasHigherTier(low)).toBe(true)
   })
 })
