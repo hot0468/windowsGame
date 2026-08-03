@@ -15,9 +15,19 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SRC = join(ROOT, 'src')
-// ph(Phosphor)는 단색 세트다 — HUD 전용. currentColor로 그려지므로 CSS에서 금색·아이보리로
-// 물들일 수 있고, 다색 플랫 아이콘(OS 크롬·바탕화면용)과 역할이 겹치지 않는다.
-const PREFIXES = ['fluent-emoji-flat', 'flat-color-icons', 'twemoji', 'ph']
+// 세트별 역할(자세한 규칙은 src/data/icons.ts 주석):
+//  - fluent-emoji-flat / flat-color-icons / twemoji: 다색 플랫 — OS 크롬·잠금화면·활동창.
+//  - devicon: 프로그램 로고 — 바탕화면 앱 아이콘 + 그 창의 타이틀 바 + 작업 표시줄 항목.
+//  - mdi-light: 단색 라인 — 작업 표시줄 트레이 글리프.
+//  - ph(Phosphor, regular): 단색 외곽선 — 게임 HUD 안(currentColor로 물들일 수 있다).
+const PREFIXES = [
+  'fluent-emoji-flat',
+  'flat-color-icons',
+  'twemoji',
+  'ph',
+  'devicon',
+  'mdi-light',
+]
 const OUT = join(SRC, 'icons', 'generated.ts')
 
 /** 설치된 아이콘 세트 원본을 읽는다. */

@@ -1,16 +1,18 @@
 /*
- * 게임 HUD 패널 (스탯창·날짜칸). OS 창과 의도적으로 다른 시각 언어를 쓴다.
- * 레퍼런스는 AAA 다크 판타지 RPG 상태창 — 온기 도는 근검정 표면, 아이보리 글자,
- * 샴페인 골드 단일 액센트, 네온·글로우 없음.
+ * 게임 HUD 패널 (스탯창·날짜칸).
+ * 레퍼런스는 **윈도우 11 위젯 / 깔끔한 SaaS 대시보드 카드** — 니어 화이트 아크릴 표면,
+ * 헤어라인 테두리, 부드러운 단일 고도 그림자, 잉크 글자, 액센트는 시스템 블루 하나.
+ * (2026-08-03 방향 전환: 다크 판타지 근검정 + 샴페인 골드 + 금테는 폐기했다.)
  *
  * ui-ux-pro-max 근거:
- *  - style `Dark Mode (OLED)`: 근검정 표면, "Text contrast 7:1+", "Minimal glow effects".
- *  - style `Modern Dark (Cinema Mobile)`: "avoid pure #000000", 헤어라인은 rgba로,
- *    "No solid grey borders (rgba only)".
- *  - ux `visual-hierarchy`: "hierarchy via size, spacing, contrast — not color alone".
- *  - typography `weight-hierarchy`: 라벨 500–600 / 본문 400.
+ *  - style `Executive Dashboard`: "clean layout with white space", 큰 KPI 숫자,
+ *    "card shadows for hierarchy" — 카드 한 겹으로 위계를 만들고 그 안을 더 쪼개지 않는다.
+ *  - style `Swiss Modernism 2.0`: "#FFFFFF/#F5F5F5 + single vibrant accent only",
+ *    "minimal decoration", 수학적 간격.
  *  - style `blur-purpose`: 블러는 "뒤에 무언가 있다"는 신호다 — HUD가 바탕화면 위에
- *    얹힌 층임을 드러내므로 목적에 맞는 사용이다.
+ *    얹힌 층임을 드러내므로 목적에 맞는 사용이다(장식이 아니다).
+ *  - style `elevation-consistent`: 그림자는 공용 --el-2 한 단만. 컴포넌트마다 새로 쓰지 않는다.
+ *  - ux `whitespace-balance`: 구역은 상자가 아니라 간격 + 헤어라인이 가른다.
  *
  * ⚠️ 위치는 인라인 style(left/top/width/z-index)이 지정한다.
  * z-index 값의 단일 출처는 src/data/layers.ts이며 여기서는 숫자를 쓰지 않는다.
@@ -25,139 +27,89 @@
   background: var(--hud-bg);
   -webkit-backdrop-filter: var(--hud-blur);
   backdrop-filter: var(--hud-blur);
-  /* 바깥 테두리는 거의 안 보이는 흰색 헤어라인 하나. 금색 프레임을 두르면
-     "장식된 상자"가 되어 레퍼런스의 절제가 깨진다 — 금은 안쪽에만 쓴다. */
+  /* 헤어라인 하나. 밝은 카드에서 테두리를 굵히거나 색을 넣는 순간 "위젯 프레임"이 아니라
+     "그려 넣은 상자"가 된다 — 윈도우 11의 1px 경계도 검정 8~9% 선 하나뿐이다. */
   border: 1px solid var(--hud-border);
-  /* 공용 고도 2단만. 액센트 글로우는 레퍼런스가 금지한 효과라 걷어냈고,
-     대신 안쪽 상단의 아주 옅은 림 라이트 한 겹으로 표면의 두께만 남긴다. */
-  box-shadow:
-    var(--el-2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  /* 공용 고도 2단(떠 있는 표면) 하나만. 밝은 표면 위 다중 그림자는 때가 탄 것처럼 보인다. */
+  box-shadow: var(--el-2);
   color: var(--hud-text);
   overflow: hidden;
 }
 
-/* 상단 금색 헤어라인. 예전의 2px 그라데이션 스트립(네온 띠)을 1px로 낮추고
-   양 끝을 투명하게 흐려 "판에 새긴 선"으로 만든다. 두꺼운 색 띠는 장식이지만
-   1px 금선은 프레임 디테일로 읽힌다 — 레퍼런스가 말하는 hairline frame detail. */
-.hud::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--hud-gold) 22%,
-    var(--hud-gold-hi) 50%,
-    var(--hud-gold) 78%,
-    transparent
-  );
-  opacity: 0.55;
-  pointer-events: none;
-}
-
+/* 헤더는 스탯창만 쓴다(제목이 플레이어 이름 = 실제 정보라서).
+   날짜칸은 headerIcon을 넘기지 않아 이 블록 자체가 렌더되지 않는다.
+   ⚠️ 배경 틴트를 주지 않는다 — 카드 안에 색 띠를 두르면 상자-속-상자가 되고
+   ux `whitespace-balance`가 말하는 "의도적 여백"이 아니라 칸막이가 된다.
+   구분은 아래쪽 헤어라인 하나로 충분하다. */
 .hud-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4) var(--sp-2);
-  background: var(--hud-head);
-  /* 구역 구분선은 회색이 아니라 금색 헤어라인이다(--hud-rule). */
+  padding: var(--sp-3) var(--sp-4);
   border-bottom: 1px solid var(--hud-rule);
 }
 
-/* 단색 Phosphor 글리프에 금색을 입힌다. 다색 플랫 아이콘이었다면 불가능한 일이고,
-   HUD를 단색 세트로 바꾼 가장 큰 이유다. baseline 정렬이라 살짝 내려 광학 정렬한다. */
+/* 헤더 글리프만 액센트다 — 카드 하나에 색 점 하나. 나머지 글리프는 잉크로 둔다
+   (ux `visual-hierarchy`: 색이 아니라 크기·간격으로 위계를 만든다).
+   단색 Phosphor라 currentColor로 물들일 수 있다(다색 플랫 아이콘이면 불가능). */
 .hud-head-icon {
   flex: 0 0 auto;
-  color: var(--hud-gold);
-  transform: translateY(2px);
+  color: var(--hud-accent);
 }
 
-/* HUD 제목은 OS 타이틀 바(400 weight)와 달리 자간을 벌린 아이보리 라벨이다. */
+/* 카드 제목. OS 타이틀 바(400)보다 한 단 무겁지만 자간은 벌리지 않는다 —
+   넓은 자간은 "게임 UI" 신호라 모던 시스템 카드와 어긋난다. */
 .hud-head-title {
-  margin: 0;
-  font-size: var(--fs-base);
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  color: var(--hud-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 바랜 영문 부제. 세리프를 여기와 구역 라벨의 영문에만 쓴다 —
-   ASCII 전용이라 한글 폴백(고딕)과 섞이지 않고 숫자 정렬에도 영향이 없다. */
-.hud-head-sub {
   flex: 1;
   min-width: 0;
-  font-family: var(--hud-serif);
-  font-size: var(--fs-xs);
-  font-style: italic;
-  letter-spacing: 0.06em;
-  color: var(--hud-text-3);
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--hud-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .hud-body {
-  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  padding: var(--sp-4);
   font-size: var(--fs-md);
   color: var(--hud-text-2);
   overflow-y: auto;
-  max-height: 60vh;
+  /* 상한을 60vh에서 70vh로 올렸다. 4px 게이지·넓어진 헤더 때문에 스탯창 본문이 471px가 되어
+     768px 높이 화면에서 60vh(461px)에 10px 걸려 스크롤바가 생겼다.
+     상한의 근거는 "작업 표시줄을 침범하지 않는 것"이다: 패널 상단 16px + 헤더 46px +
+     본문 0.7H ≤ H − 44px 는 H ≥ 353px에서 항상 성립하므로 70vh는 안전한 한도다.
+     (실측: 1280×900 · 1024×768 모두 스크롤 없음, 패널 하단 여유 190px 이상) */
+  max-height: 70vh;
 }
 
-/* ── 구역 라벨: "✳ 능력치 Status" ──
-   레퍼런스의 시그니처. 장식 글리프 + 한국어(아이보리) + 바랜 영문(세리프).
-   위쪽 금색 헤어라인이 구역을 가른다 — 칸막이 상자 대신 선 하나만 쓴다. */
+/* ── 구역 라벨 ──
+   작고 흐린 한국어 라벨 + 위쪽 헤어라인. 장식 글리프도 영문 부제도 없다.
+   typography `weight-hierarchy`: 라벨은 500~600, 본문은 400. */
 .hud-section {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-2);
   margin: var(--sp-4) 0 var(--sp-3);
   padding-top: var(--sp-3);
   border-top: 1px solid var(--hud-rule);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--hud-text-3);
 }
 
-/* 첫 구역 라벨은 헤더 바로 아래라 위쪽 여백도 구분선도 필요 없다. */
+/* 헤더 바로 아래(또는 패널 첫 줄) 구역 라벨은 위 여백도 구분선도 필요 없다. */
 .hud-body > .hud-section:first-child {
   margin-top: 0;
   padding-top: 0;
   border-top: none;
 }
 
-.hud-section-mark {
-  flex: 0 0 auto;
-  color: var(--hud-gold);
-  transform: translateY(1px);
-}
-
-.hud-section-ko {
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  color: var(--hud-text);
-}
-
-.hud-section-en {
-  font-family: var(--hud-serif);
-  font-size: var(--fs-xs);
-  font-style: italic;
-  letter-spacing: 0.08em;
-  color: var(--hud-text-3);
-}
-
-/* 어두운 표면 위 스크롤바. 기본 밝은 스크롤바는 이 패널에서 이물질처럼 보인다. */
+/* 밝은 표면에 맞춘 얇은 스크롤바. 기본 스크롤바는 카드 안에서 굵고 거칠다. */
 .hud-body::-webkit-scrollbar {
   width: 6px;
 }
 
 .hud-body::-webkit-scrollbar-thumb {
   border-radius: var(--r-sm);
-  background: rgba(201, 169, 106, 0.28);
+  background: rgba(0, 0, 0, 0.18);
 }

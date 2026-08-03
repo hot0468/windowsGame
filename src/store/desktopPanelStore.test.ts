@@ -11,7 +11,9 @@ function openWindow(id: string): number {
   useWindowStore.getState().open({
     id,
     title: id,
-    icon: 'flat-color-icons:grid',
+    // 아이콘 이름은 이 테스트의 관심사가 아니지만, 서브셋 생성기가 src/ 전체를 훑으므로
+    // 실제로 앱이 쓰는 이름을 써야 픽스처 하나 때문에 아이콘 세트가 통째로 번들에 들어오지 않는다.
+    icon: 'devicon:chrome',
     x: 0,
     y: 0,
     width: 300,

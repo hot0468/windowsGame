@@ -12,7 +12,10 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
   {
     id: 'browser',
     label: '인터넷',
-    icon: 'fluent-emoji-flat:globe-with-meridians',
+    // ⚠️ 프로그램 로고(devicon). 지구본 이모지는 "인터넷"이라는 개념 그림이지
+    // 설치된 브라우저 아이콘으로 읽히지 않는다. 창 타이틀 바·작업 표시줄 항목에도
+    // 같은 아이콘이 흘러가 앱 정체성이 세 자리에서 일치한다.
+    icon: 'devicon:chrome',
     // stub이었다가 구현되면서 kind만 바뀌었다 — 새 앱을 올리는 정해진 경로다.
     kind: 'browser',
     // 최대화 상태로 열리지만 복원하면 이 폭으로 돌아온다.

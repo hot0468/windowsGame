@@ -45,7 +45,11 @@ export const ACTIVITIES: Activity[] = [
   {
     id: 'social',
     label: '메신저',
-    icon: 'fluent-emoji-flat:speech-balloon',
+    // ⚠️ 바탕화면에 뜨는 항목이므로 **프로그램 로고**여야 한다(devicon).
+    // 말풍선 이모지는 "개념 그림"이지 설치된 앱의 아이콘으로 읽히지 않는다.
+    // 이 아이콘은 바탕화면 · 창 타이틀 바 · 작업 표시줄 항목에 그대로 흘러가
+    // 앱의 정체성을 한 벌로 유지한다(Desktop.tsx가 item.icon을 open()에 넘긴다).
+    icon: 'devicon:slack',
     description: '사람들과 어울린다. 돈은 좀 쓴다.',
     effects: { charm: 5, mental: 8, money: -20000, stamina: -10 },
     requires: { stamina: 10, money: 20000 },
