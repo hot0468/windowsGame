@@ -284,10 +284,17 @@
   overflow: hidden;
 }
 
+/*
+ * 폭을 100%로 두고 scaleX로 줄인다. transform은 레이아웃을 다시 계산하지 않는다.
+ * span은 기본이 inline이라 width·transform이 먹지 않는다 — block 지정이 필수다.
+ */
 .stat-fill {
+  display: block;
+  width: 100%;
   height: 100%;
   border-radius: 5px;
-  transition: width 0.25s ease;
+  transform-origin: left center;
+  transition: transform 200ms ease-out;
 }
 
 .stat-value {

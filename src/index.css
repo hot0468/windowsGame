@@ -13,6 +13,22 @@ body,
 }
 
 /*
+ * hover/press 상태 전환.
+ * 없으면 색이 즉시 튀어 싸구려처럼 보인다. 150ms는 "반응이 빠르다"고
+ * 느끼면서도 전환이 인지되는 구간이다(300ms를 넘기면 굼떠 보인다).
+ * 색과 그림자만 전환한다 — width/height를 전환하면 레이아웃 리플로우가 일어난다.
+ */
+button,
+.desktop-icon,
+.taskbar-item {
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    border-color 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+
+/*
  * 키보드 포커스 표시.
  * 없으면 Tab으로 이동할 때 지금 어디에 있는지 알 수 없다.
  * :focus-visible을 쓰므로 마우스 클릭에는 테두리가 뜨지 않는다(윈도우 동작과 동일).

@@ -33,9 +33,13 @@ function ResourceRow({
       <span className="stat-label">{STAT_NAMES[statKey]}</span>
       {max !== undefined && (
         <span className="stat-bar">
+          {/* width 대신 scaleX로 채운다 — width 전환은 매 프레임 레이아웃을 다시 계산시킨다. */}
           <span
             className="stat-fill"
-            style={{ width: `${Math.min(100, (value / max) * 100)}%`, background: accent }}
+            style={{
+              transform: `scaleX(${Math.min(1, value / max)})`,
+              background: accent,
+            }}
           />
         </span>
       )}
