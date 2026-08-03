@@ -33,3 +33,33 @@ export const UI_ICONS = {
   /** 턴 소모 안내. */
   turnCost: 'fluent-emoji-flat:alarm-clock',
 } as const satisfies Record<string, IconName>
+
+/**
+ * 게임 HUD(스탯창·날짜칸) 전용 **단색** 아이콘 이름.
+ *
+ * `UI_ICONS`와 나뉘어 있는 이유는 `--os-*`/`--hud-*` 토큰이 나뉜 이유와 같다.
+ * 같은 개념(날짜칸·스탯창·오전/오후)이라도 OS 크롬(작업 표시줄)에서는 다색 플랫 아이콘이,
+ * HUD 안에서는 단색 골드 글리프가 맞다. 한 벌로 합치면 둘 중 하나가 반드시 이질적이 된다.
+ *
+ * 세트는 Phosphor(`ph`) `-fill` 변형으로 통일한다:
+ *  - `currentColor`로 그려져 CSS에서 골드/아이보리로 물들일 수 있다(다색 플랫은 불가능).
+ *  - 12~16px에서 외곽선(regular) 변형은 획이 뭉개진다. 한 계층에 한 스타일만 쓰라는
+ *    ui-ux-pro-max "Filled vs Outline Discipline" / `icon-style-consistent` 규칙을 지켜
+ *    HUD 안의 모든 글리프를 `-fill`로 맞춘다.
+ */
+export const HUD_ICONS = {
+  /** 스탯창 머리 — 플레이어 본인. */
+  statPanel: 'ph:user-fill',
+  /** 날짜칸 머리. */
+  calendarPanel: 'ph:calendar-blank-fill',
+  /** 오전 슬롯. */
+  slotMorning: 'ph:sun-fill',
+  /** 오후 슬롯. */
+  slotAfternoon: 'ph:moon-fill',
+  /** 슬롯 건너뛰기 버튼. */
+  skipTurn: 'ph:fast-forward-fill',
+  /** 턴 소모 안내. */
+  turnCost: 'ph:hourglass-simple-fill',
+  /** 구역 라벨 앞의 장식 글리프(✳). 레퍼런스의 시그니처 디테일이다. */
+  sectionOrnament: 'ph:asterisk-simple-bold',
+} as const satisfies Record<string, IconName>

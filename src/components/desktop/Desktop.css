@@ -245,63 +245,69 @@
   background: rgba(0, 0, 0, 0.13);
 }
 
+
 /* ════════ 게임 HUD 패널 내부 ════════
-   컨테이너 크롬은 HudPanel.css가 담당한다. 여기는 스탯창·날짜칸의 내용물이다.
-   전부 어두운 유리 표면(--hud-bg) 위에 얹히므로 색은 --hud-* 토큰만 쓴다. */
+   컨테이너 크롬과 구역 라벨(.hud-section)은 HudPanel.css가 담당한다.
+   여기는 스탯창·날짜칸의 내용물이다.
 
-/* 구역 라벨. 얇은 구분선(hr)보다 강한 위계 신호이면서 높이는 한 줄만 먹는다.
-   typography `weight-hierarchy`: 라벨은 중간 굵기 + 자간 확대 + 낮은 명도. */
-.hud-section {
-  margin: var(--sp-3) 0 var(--sp-2);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: var(--hud-text-3);
-  text-transform: uppercase;
-}
-
-/* 첫 구역 라벨은 헤더 바로 아래라 위쪽 여백이 필요 없다. */
-.hud-body > .hud-section:first-child {
-  margin-top: 0;
-}
+   레퍼런스(AAA 다크 판타지 RPG 상태창)의 원칙 세 가지를 그대로 옮긴다:
+    1) 숫자가 주인공 — 값은 크게, 우측 정렬, tabular figure.
+       (typography `number-tabular`: "tabular figures for data columns to prevent layout shift")
+    2) 상자 금지 — 행을 감싸는 테두리·배경 칩이 없다. 구분은 간격과 헤어라인이 한다.
+       (ux `whitespace-balance`: 간격으로 묶고 나눈다)
+    3) 액센트는 샴페인 골드 하나 — 글리프·게이지·헤어라인에만, 그 밖은 전부 아이보리.
+       (ux `visual-hierarchy`: "hierarchy via size, spacing, contrast — not color alone") */
 
 /* ── 날짜칸 ── */
 
 .cal-date {
   /* 이 패널의 주인공. 타입 스케일 최상단을 준다. */
   font-size: var(--fs-2xl);
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
   color: var(--hud-text);
   font-variant-numeric: tabular-nums;
 }
 
+.cal-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
 .cal-day {
-  margin-top: var(--sp-1);
   font-size: var(--fs-sm);
+  letter-spacing: 0.04em;
   color: var(--hud-text-3);
   font-variant-numeric: tabular-nums;
 }
 
-/* 현재 슬롯(오전/오후)은 상태 칩으로 만든다 — 평문보다 "지금 이 상태"로 읽힌다. */
+/* 현재 슬롯(오전/오후) 칩. 예전에는 네온 파랑 배경 칩이었다 —
+   레퍼런스의 칩은 "금색 헤어라인 + 거의 투명한 배경"이라 표면을 찢지 않는다. */
 .cal-slot {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-1);
-  margin-top: var(--sp-3);
-  padding: var(--sp-1) var(--sp-2);
-  border: 1px solid var(--hud-accent-dim);
+  gap: 5px;
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--hud-gold-dim);
   border-radius: 999px;
-  background: rgba(76, 194, 255, 0.12);
-  font-size: var(--fs-sm);
-  font-weight: 600;
+  background: var(--hud-gold-wash);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: 0.06em;
   color: var(--hud-text);
 }
 
+/* 슬롯 글리프만 금색. 라벨 글자는 아이보리로 남겨 대비를 확보한다. */
+.cal-slot svg {
+  color: var(--hud-gold);
+}
+
 /* 건너뛰기는 시간을 소모하는 행동이므로 무료 탐색(활동 창 열기)과 구분되어야 한다.
-   어두운 표면에서는 밝은 경고 배경(#fdf3e0)이 유리 패널을 찢어놓으므로,
-   같은 경고 의미를 "테두리+글자만 경고색"으로 옮긴다.
+   어두운 표면에서는 밝은 경고 배경(#fdf3e0)이 패널을 찢어놓으므로,
+   같은 경고 의미를 "헤어라인 + 글자색"으로 옮긴다.
    아이콘이 함께 있으므로 ux `color-not-only`도 충족된다. */
 .cal-skip {
   display: flex;
@@ -309,32 +315,34 @@
   justify-content: center;
   gap: var(--sp-2);
   width: 100%;
-  min-height: 36px;
-  margin-top: var(--sp-3);
+  min-height: 34px;
   padding: var(--sp-2) var(--sp-3);
-  border: 1px solid rgba(255, 193, 77, 0.55);
-  border-radius: var(--r-md);
-  background: rgba(255, 193, 77, 0.12);
+  border: 1px solid var(--hud-gold-dim);
+  border-radius: var(--r-sm);
+  background: var(--hud-gold-wash);
   color: var(--hud-warn);
+  font-family: inherit;
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   cursor: pointer;
 }
 
 .cal-skip:hover:not(:disabled) {
-  background: rgba(255, 193, 77, 0.22);
-  border-color: rgba(255, 193, 77, 0.8);
+  border-color: var(--hud-gold);
+  background: rgba(201, 169, 106, 0.16);
+  color: var(--hud-gold-hi);
 }
 
 .cal-skip:active:not(:disabled) {
-  background: rgba(255, 193, 77, 0.3);
+  background: rgba(201, 169, 106, 0.24);
 }
 
-/* 비활성은 투명도가 아니라 색으로 죽인다 — 유리 위에서 opacity를 낮추면
+/* 비활성은 투명도가 아니라 색으로 죽인다 — 반투명 표면에서 opacity를 낮추면
    벽지가 비쳐 글자가 오히려 읽히지 않는다(ux `disabled-states`의 취지는 "명확한 구분"이다). */
 .cal-skip:disabled {
   border-color: var(--hud-border);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--hud-text-3);
   cursor: not-allowed;
 }
@@ -343,102 +351,140 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--sp-1);
+  gap: 5px;
   margin-top: var(--sp-2);
   font-size: var(--fs-xs);
+  letter-spacing: 0.02em;
   color: var(--hud-text-3);
 }
 
-/* ── 스탯창 ── */
+/* ── 스탯창: 자원 행 ── */
 
+/* 한 행 = 글리프+라벨+숫자 한 줄, 그 아래 게이지 한 줄.
+   레퍼런스의 "generous row height, no per-row borders"를 간격으로만 만든다. */
 .stat-row {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  margin-bottom: var(--sp-2);
+  margin-bottom: var(--sp-3);
 }
 
+.stat-row-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+
+/* 단색 Phosphor 글리프. 다색 플랫 아이콘이었다면 색을 입힐 수 없었다 —
+   HUD만 단색 세트로 바꾼 이유가 이 한 줄이다.
+   baseline 정렬 안에서 광학적으로 맞추려고 2px 내린다. */
 .stat-icon {
   flex: 0 0 auto;
+  color: var(--hud-gold);
+  transform: translateY(2px);
 }
 
 .stat-label {
-  width: 46px;
+  flex: 1;
   font-size: var(--fs-sm);
+  letter-spacing: 0.04em;
   color: var(--hud-text-2);
   white-space: nowrap;
 }
 
-/* 게이지 트랙. 안쪽 그림자로 "패인 홈"을 만들어 채움이 그 안에서 빛나 보이게 한다 —
-   평평한 회색 막대(#dcdcdc)가 값싸 보이던 원인이다. */
+/* 숫자가 주인공이다: 라벨보다 4단계 크고, 우측 정렬, tabular figure. */
+.stat-value {
+  font-size: var(--fs-lg);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--hud-text);
+}
+
+/* 단위("원")는 숫자가 아니라 주석이다 — 작고 흐리게 떨어뜨려 숫자만 남게 한다. */
+.stat-unit {
+  margin-left: 2px;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--hud-text-3);
+}
+
+.stat-warn {
+  color: var(--hud-danger);
+}
+
+/* 게이지 트랙. 레퍼런스의 XP 바처럼 아주 얇다(2px) —
+   두꺼운 막대는 숫자와 주목을 다투고, 안쪽 그림자를 넣으면 "홈이 파인 위젯"이 된다. */
 .stat-bar {
-  flex: 1;
-  height: 8px;
+  display: block;
+  position: relative;
+  height: 2px;
+  margin-top: 7px;
   background: var(--hud-track);
   border-radius: 999px;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
-  overflow: hidden;
 }
 
 /*
  * 폭을 100%로 두고 scaleX로 줄인다. transform은 레이아웃을 다시 계산하지 않는다.
  * span은 기본이 inline이라 width·transform이 먹지 않는다 — block 지정이 필수다.
- * 배경색과 글로우(box-shadow)는 StatPanel.tsx가 STAT_META.accent 하나에서 파생시켜
- * 인라인으로 넣는다(스탯별 색의 단일 출처는 statMeta.ts).
+ * 색은 CSS가 소유한다(예전에는 STAT_META.accent를 인라인으로 주입했다):
+ * 액센트가 하나뿐이라 스탯별 색을 나를 이유가 사라졌다.
+ * 오른쪽 끝을 --hud-gold-hi로 밝히면 채움 선단에 빛이 맺힌 것처럼 보인다 —
+ * box-shadow 글로우 없이 같은 인상을 만드는 방법이다(레퍼런스는 글로우를 금한다).
  */
 .stat-fill {
   display: block;
   width: 100%;
   height: 100%;
   border-radius: 999px;
+  background: linear-gradient(90deg, var(--hud-gold-deep), var(--hud-gold) 70%, var(--hud-gold-hi));
   transform-origin: left center;
   transition: transform 200ms ease-out;
 }
 
-.stat-value {
-  width: 62px;
-  text-align: right;
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--hud-text);
+/* 트랙 끝의 장식 마름모 = 레퍼런스의 "ornamental pointed end-cap".
+   채움의 선단이 아니라 **트랙의 종점**에 단다: 채움은 scaleX로 그리므로
+   그 자식은 함께 찌그러진다. 종점에 두면 왜곡이 없고 "목표 지점" 표시로도 읽힌다. */
+.stat-bar::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  top: -1.5px;
+  width: 5px;
+  height: 5px;
+  background: var(--hud-gold);
+  opacity: 0.45;
+  transform: rotate(45deg);
 }
 
-.stat-warn {
-  color: var(--hud-danger);
-  font-weight: 700;
-}
+/* ── 스탯창: 성장 스탯 ── */
 
-/* 성장 스탯 9종을 3열로 압축한다. 게이지 없이 아이콘+이름+숫자만 담아
-   창 높이를 늘리지 않으면서 12종 전부를 한눈에 볼 수 있게 한다. */
+/* 9종을 2열로 놓는다. 3열은 한 칸이 85px밖에 안 돼 숫자가 라벨에 짓눌렸다.
+   칸 사이 간격(가로 12 / 세로 2px + 행 높이)이 격자를 만들므로 테두리가 필요 없다. */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--sp-1);
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: var(--sp-3);
 }
 
-/* 유리 위의 셀은 불투명 회색(#e9e9e9)이 아니라 흰색 6% 틴트여야 한다 —
-   불투명 회색을 얹으면 유리가 아니라 종이 조각처럼 보인다.
-   (style `Modern Dark`: "No solid grey borders (rgba only)") */
+/* 상자 없는 행. 배경·테두리·radius 전부 제거했다 —
+   레퍼런스에는 셀 상자가 없고, 상자를 두르면 "칩 모음"으로 보여 촌스러워진다. */
 .stat-cell {
   display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-  padding: var(--sp-1);
-  border: 1px solid var(--hud-border);
-  border-radius: var(--r-sm);
-  background: var(--hud-cell);
+  align-items: baseline;
+  gap: 6px;
+  min-height: 24px;
   font-size: var(--fs-xs);
   overflow: hidden;
 }
 
-.stat-cell:hover {
-  background: var(--hud-cell-hi);
-  border-color: var(--hud-border-hi);
+/* 상자가 없으니 hover도 배경이 아니라 값의 색으로 알린다
+   (ux `state-clarity`: 상태는 구분되어야 하지만 스타일을 벗어나면 안 된다). */
+.stat-cell:hover .stat-cell-value {
+  color: var(--hud-gold-hi);
 }
 
 .stat-cell-name {
   flex: 1;
+  letter-spacing: 0.02em;
   color: var(--hud-text-3);
   white-space: nowrap;
   overflow: hidden;
@@ -446,16 +492,35 @@
 }
 
 .stat-cell-value {
-  font-weight: 700;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  letter-spacing: 0.01em;
   color: var(--hud-text);
   font-variant-numeric: tabular-nums;
+  transition: color 150ms ease-out;
 }
 
+/* ── 스탯창: 생계 ── */
+
+/* 라벨 왼쪽 / 숫자 오른쪽. 문장으로 흘려 쓰면 금액이 본문에 묻힌다 —
+   같은 패널의 다른 숫자와 같은 규칙(우측 정렬 tabular)으로 맞춘다. */
 .stat-note {
-  margin-top: var(--sp-3);
-  padding-top: var(--sp-3);
-  border-top: 1px solid var(--hud-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
   font-size: var(--fs-xs);
   color: var(--hud-text-3);
-  line-height: 1.6;
+}
+
+.stat-note-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.stat-note-num {
+  font-size: var(--fs-sm);
+  color: var(--hud-text-2);
+  font-variant-numeric: tabular-nums;
 }

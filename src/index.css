@@ -75,27 +75,45 @@
   --os-warn-border: #d68a1a;
   --os-warn-text: #6b4200;
 
-  /* ── 게임 HUD: 다크 글래스 오버레이 ──
-     style DB "Modern Dark (Cinema)" --bg-elevated/#0a0a0c 계열 + "Gaming" 팔레트
-     (background #0F0F23 / card #1E1C35 / foreground #E2E8F0 / muted #94A3B8)를 합친 값.
-     "Glassmorphism": backdrop blur 10–20px + 1px 밝은 테두리 + 대비 4.5:1 확인 필수. */
-  --hud-bg: rgba(13, 15, 30, 0.86); /* 벽지 위 어디서나 대비를 확보하는 최소 불투명도 */
-  --hud-bg-solid: #0d0f1e; /* backdrop-filter 미지원 시 폴백 */
-  --hud-head: rgba(30, 28, 53, 0.92); /* Gaming card #1E1C35 */
-  --hud-cell: rgba(255, 255, 255, 0.06);
-  --hud-cell-hi: rgba(255, 255, 255, 0.1);
-  --hud-track: rgba(255, 255, 255, 0.14); /* 게이지 트랙 */
-  --hud-border: rgba(255, 255, 255, 0.1); /* Cinema --border rgba(255 255 255/0.08) 근방 */
-  --hud-border-hi: rgba(255, 255, 255, 0.18);
-  --hud-text: #f1f5f9; /* 대비 16.0:1 on --hud-bg-solid */
-  --hud-text-2: #cbd5e1; /* 대비 11.0:1 */
-  --hud-text-3: #a5b3c6; /* 최소 보조. 4.5:1 이상 유지용 — #94A3B8보다 밝게 올림 */
-  --hud-accent: #4cc2ff; /* 윈도우 액센트의 다크용 밝은 변형 (color-dark-mode:
-                            "dark mode uses desaturated/lighter tonal variants") */
-  --hud-accent-dim: rgba(76, 194, 255, 0.35);
-  --hud-danger: #ff6b6b;
-  --hud-warn: #ffc14d;
-  --hud-blur: blur(18px) saturate(160%); /* DB 권장 10–20px 범위 */
+  /* ── 게임 HUD: 다크 판타지 오버레이 (샴페인 골드 단일 액센트) ──
+     레퍼런스는 AAA 다크 판타지 RPG 상태창이다: 온기가 도는 근검정 표면 + 아이보리 글자,
+     액센트는 뮤트한 샴페인 골드 **하나뿐**이고 네온도 글로우도 없다.
+
+     ui-ux-pro-max 근거:
+      - style `Dark Mode (OLED)`: 근검정 표면 + "Text contrast 7:1+" + "Minimal glow effects".
+        네온 액센트 권장은 따르지 않는다 — 레퍼런스가 명시적으로 금하는 부분이다.
+      - style `Modern Dark (Cinema Mobile)`: "avoid pure #000000", rgba 헤어라인,
+        "No solid grey borders (rgba only)".
+      - ux `visual-hierarchy`: "hierarchy via size, spacing, contrast — not color alone"
+        → 액센트를 하나로 줄이고 위계를 크기·간격으로 만든다.
+      - ux `color-accessible-pairs`: 아래 모든 텍스트 색은 --hud-bg-solid 기준 계산 후
+        반투명 표면 실측(헤드리스 크롬 픽셀)으로 재검증했다. */
+  /* 불투명도 0.94 · 웜 베이스. 0.86/차가운 베이스로 재보니 합성 픽셀이 rgb(19,23,27) —
+     벽지(파란 그라데이션)가 비쳐 "온기 도는 근검정"이 아니라 차가운 회색으로 읽혔다.
+     반투명 표면의 색은 토큰이 아니라 합성 결과가 정한다. */
+  --hud-bg: rgba(20, 17, 12, 0.94);
+  --hud-bg-solid: #14110c; /* backdrop-filter 미지원 시 폴백 */
+  --hud-head: rgba(29, 24, 17, 0.96); /* 머리 부분만 한 단 밝은 웜 톤 */
+  --hud-track: rgba(255, 255, 255, 0.09); /* 게이지 트랙 — 얇고 거의 안 보여야 한다 */
+  --hud-border: rgba(255, 255, 255, 0.07); /* 패널 바깥 테두리 */
+  --hud-rule: rgba(201, 169, 106, 0.14); /* 구역을 가르는 금색 헤어라인 */
+  --hud-text: #f4efe4; /* 아이보리. 대비 17.0:1 on --hud-bg-solid */
+  --hud-text-2: #d8d0c0; /* 본문 보조. 12.9:1 */
+  --hud-text-3: #a89e8c; /* 최소 보조(영문 부제·주석). 7.2:1 */
+  /* 단 하나의 액센트. #c9a96a 계열 — 8.5:1 on --hud-bg-solid이라 텍스트로도 안전하다. */
+  --hud-gold: #c9a96a;
+  --hud-gold-hi: #e2c68a; /* 게이지 선단·hover 등 "빛이 닿은" 지점 */
+  --hud-gold-deep: #8a7241; /* 게이지 밑동. 그라데이션의 어두운 쪽 */
+  --hud-gold-dim: rgba(201, 169, 106, 0.3); /* 칩 테두리 등 헤어라인 */
+  --hud-gold-wash: rgba(201, 169, 106, 0.08); /* 칩 배경 틴트 */
+  --hud-danger: #f08a7a; /* 골드와 같은 웜 계열로 톤을 맞춘 경고색. 7.9:1 */
+  --hud-warn: #d9b877; /* 골드의 사촌. 별도 색상환을 열지 않는다 */
+  --hud-blur: blur(20px) saturate(120%); /* 채도 과장을 줄여 "유리"보다 "석판"으로 읽히게 */
+  /* 영문 부제 전용 세리프. 네트워크 로딩 금지 조건 때문에 시스템 스택만 쓴다.
+     ASCII 부제(Status/Skills…)에만 적용한다 — 한글은 폴백이 고딕(맑은 고딕)이라
+     세리프를 지정하면 "폰트 로딩 실패"처럼 보이고, 숫자는 Georgia가 올드스타일
+     figure를 써서 표(tabular) 정렬이 깨진다. 그래서 숫자·한글은 Segoe UI를 유지한다. */
+  --hud-serif: Georgia, 'Times New Roman', serif;
 
   /* ── 게임 안의 웹사이트: NEVER 포털 (--nv-*) ──
      세 번째 시각 언어다. OS 크롬(--os-*)·HUD(--hud-*)와 섞지 않는 이유는 같다 —
@@ -140,7 +158,7 @@ body,
 button,
 .desktop-icon,
 .taskbar-item,
-.hud-cell {
+.stat-cell {
   transition:
     background-color 150ms ease-out,
     color 150ms ease-out,
@@ -166,9 +184,10 @@ button,
 }
 
 /* HUD는 어두운 표면이라 #0067c0 링이 배경에 묻힌다 —
-   다크용 밝은 액센트로 바꾼다(ux `focus-states`: 링은 두 테마 모두에서 보여야 한다). */
+   HUD의 단 하나뿐인 액센트(샴페인 골드의 밝은 변형)로 바꾼다.
+   ux `focus-states`: 링은 두 테마 모두에서 보여야 한다. */
 .hud :focus-visible {
-  outline-color: var(--hud-accent);
+  outline-color: var(--hud-gold-hi);
 }
 
 /*

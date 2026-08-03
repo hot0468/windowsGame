@@ -1,14 +1,16 @@
 /*
  * 게임 HUD 패널 (스탯창·날짜칸). OS 창과 의도적으로 다른 시각 언어를 쓴다.
+ * 레퍼런스는 AAA 다크 판타지 RPG 상태창 — 온기 도는 근검정 표면, 아이보리 글자,
+ * 샴페인 골드 단일 액센트, 네온·글로우 없음.
  *
  * ui-ux-pro-max 근거:
- *  - style `Glassmorphism`: backdrop-filter blur 10–20px, 반투명 배경,
- *    1px 밝은 테두리, "Text contrast 4.5:1 checked".
- *  - style `Modern Dark (Cinema Mobile)`: 어두운 표면 위 rgba(255,255,255,0.08) 헤어라인,
- *    "No solid grey borders (rgba only)", 액센트 글로우.
- *  - color `Gaming`: background #0F0F23 / card #1E1C35 / foreground #E2E8F0.
- *  - style `blur-purpose`: 블러는 "뒤에 무언가 있다"를 알리는 신호다 —
- *    HUD가 바탕화면 위에 얹힌 층임을 드러내므로 목적에 맞는 사용이다.
+ *  - style `Dark Mode (OLED)`: 근검정 표면, "Text contrast 7:1+", "Minimal glow effects".
+ *  - style `Modern Dark (Cinema Mobile)`: "avoid pure #000000", 헤어라인은 rgba로,
+ *    "No solid grey borders (rgba only)".
+ *  - ux `visual-hierarchy`: "hierarchy via size, spacing, contrast — not color alone".
+ *  - typography `weight-hierarchy`: 라벨 500–600 / 본문 400.
+ *  - style `blur-purpose`: 블러는 "뒤에 무언가 있다"는 신호다 — HUD가 바탕화면 위에
+ *    얹힌 층임을 드러내므로 목적에 맞는 사용이다.
  *
  * ⚠️ 위치는 인라인 style(left/top/width/z-index)이 지정한다.
  * z-index 값의 단일 출처는 src/data/layers.ts이며 여기서는 숫자를 쓰지 않는다.
@@ -17,79 +19,145 @@
   position: absolute;
   display: flex;
   flex-direction: column;
-  border-radius: var(--r-xl);
+  border-radius: var(--r-lg);
   /* 폴백: backdrop-filter가 없어도 대비가 무너지지 않도록 불투명 배경을 먼저 깐다. */
   background: var(--hud-bg-solid);
   background: var(--hud-bg);
   -webkit-backdrop-filter: var(--hud-blur);
   backdrop-filter: var(--hud-blur);
+  /* 바깥 테두리는 거의 안 보이는 흰색 헤어라인 하나. 금색 프레임을 두르면
+     "장식된 상자"가 되어 레퍼런스의 절제가 깨진다 — 금은 안쪽에만 쓴다. */
   border: 1px solid var(--hud-border);
-  /* 공용 고도 2단 + 액센트 림 라이트 한 겹.
-     림 라이트는 유리 표면의 광원 반사를 흉내내며, 어두운 패널이 벽지에 눌어붙지 않게 띄운다. */
+  /* 공용 고도 2단만. 액센트 글로우는 레퍼런스가 금지한 효과라 걷어냈고,
+     대신 안쪽 상단의 아주 옅은 림 라이트 한 겹으로 표면의 두께만 남긴다. */
   box-shadow:
     var(--el-2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   color: var(--hud-text);
   overflow: hidden;
 }
 
-/* 상단 액센트 스트립 — "게임 오버레이"를 한눈에 알리는 최소한의 장식.
-   Cyberpunk/HUD 스타일의 코너 브래킷 대신 1px 그라데이션 한 줄만 쓴다:
-   OS 위에 얹힌 층이라는 신호로 충분하고, 스캔라인·글리치는 대비를 해쳐
-   (style DB: HUD/Sci-Fi FUI "Accessibility ⚠ Poor") 본문 가독성 요구와 충돌한다. */
+/* 상단 금색 헤어라인. 예전의 2px 그라데이션 스트립(네온 띠)을 1px로 낮추고
+   양 끝을 투명하게 흐려 "판에 새긴 선"으로 만든다. 두꺼운 색 띠는 장식이지만
+   1px 금선은 프레임 디테일로 읽힌다 — 레퍼런스가 말하는 hairline frame detail. */
 .hud::before {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--hud-accent), transparent);
-  opacity: 0.85;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--hud-gold) 22%,
+    var(--hud-gold-hi) 50%,
+    var(--hud-gold) 78%,
+    transparent
+  );
+  opacity: 0.55;
   pointer-events: none;
 }
 
 .hud-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+  padding: var(--sp-3) var(--sp-4) var(--sp-2);
   background: var(--hud-head);
-  border-bottom: 1px solid var(--hud-border);
+  /* 구역 구분선은 회색이 아니라 금색 헤어라인이다(--hud-rule). */
+  border-bottom: 1px solid var(--hud-rule);
 }
 
+/* 단색 Phosphor 글리프에 금색을 입힌다. 다색 플랫 아이콘이었다면 불가능한 일이고,
+   HUD를 단색 세트로 바꾼 가장 큰 이유다. baseline 정렬이라 살짝 내려 광학 정렬한다. */
 .hud-head-icon {
   flex: 0 0 auto;
+  color: var(--hud-gold);
+  transform: translateY(2px);
 }
 
-/* HUD 제목은 OS 타이틀 바(400 weight)와 달리 굵고 자간을 벌린 라벨이다.
-   typography `weight-hierarchy`: 라벨은 500–600, 본문은 400. */
+/* HUD 제목은 OS 타이틀 바(400 weight)와 달리 자간을 벌린 아이보리 라벨이다. */
 .hud-head-title {
   margin: 0;
-  flex: 1;
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  letter-spacing: 0.06em;
   color: var(--hud-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* 바랜 영문 부제. 세리프를 여기와 구역 라벨의 영문에만 쓴다 —
+   ASCII 전용이라 한글 폴백(고딕)과 섞이지 않고 숫자 정렬에도 영향이 없다. */
+.hud-head-sub {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--hud-serif);
+  font-size: var(--fs-xs);
+  font-style: italic;
+  letter-spacing: 0.06em;
+  color: var(--hud-text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .hud-body {
-  padding: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4) var(--sp-4);
   font-size: var(--fs-md);
   color: var(--hud-text-2);
   overflow-y: auto;
   max-height: 60vh;
 }
 
-/* 어두운 표면 위 스크롤바. 기본 밝은 스크롤바는 유리 패널에서 이물질처럼 보인다. */
+/* ── 구역 라벨: "✳ 능력치 Status" ──
+   레퍼런스의 시그니처. 장식 글리프 + 한국어(아이보리) + 바랜 영문(세리프).
+   위쪽 금색 헤어라인이 구역을 가른다 — 칸막이 상자 대신 선 하나만 쓴다. */
+.hud-section {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: var(--sp-4) 0 var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--hud-rule);
+}
+
+/* 첫 구역 라벨은 헤더 바로 아래라 위쪽 여백도 구분선도 필요 없다. */
+.hud-body > .hud-section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.hud-section-mark {
+  flex: 0 0 auto;
+  color: var(--hud-gold);
+  transform: translateY(1px);
+}
+
+.hud-section-ko {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--hud-text);
+}
+
+.hud-section-en {
+  font-family: var(--hud-serif);
+  font-size: var(--fs-xs);
+  font-style: italic;
+  letter-spacing: 0.08em;
+  color: var(--hud-text-3);
+}
+
+/* 어두운 표면 위 스크롤바. 기본 밝은 스크롤바는 이 패널에서 이물질처럼 보인다. */
 .hud-body::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .hud-body::-webkit-scrollbar-thumb {
   border-radius: var(--r-sm);
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(201, 169, 106, 0.28);
 }

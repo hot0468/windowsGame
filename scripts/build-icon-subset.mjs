@@ -15,7 +15,9 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SRC = join(ROOT, 'src')
-const PREFIXES = ['fluent-emoji-flat', 'flat-color-icons', 'twemoji']
+// ph(Phosphor)는 단색 세트다 — HUD 전용. currentColor로 그려지므로 CSS에서 금색·아이보리로
+// 물들일 수 있고, 다색 플랫 아이콘(OS 크롬·바탕화면용)과 역할이 겹치지 않는다.
+const PREFIXES = ['fluent-emoji-flat', 'flat-color-icons', 'twemoji', 'ph']
 const OUT = join(SRC, 'icons', 'generated.ts')
 
 /** 설치된 아이콘 세트 원본을 읽는다. */

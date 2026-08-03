@@ -54,13 +54,21 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - **`Window`의 캡션 버튼은 콜백 유무로 켜진다:** `onClose`/`onMinimize`/`onToggleMaximize`를 넘긴 것만 그려진다. 스탯창·날짜칸은 셋 다 넘기지 않아 버튼이 하나도 없다 — 이 패널들은 windowStore에 없어 작업 표시줄에서 되돌릴 수단이 없으므로 최소화되면 영영 사라진다
 - **윈도우 11 시각 언어(맥스러움 제거):** 타이틀 바는 그라데이션 없는 플랫 단색(`#f3f3f3`)에 `font-weight: 400`, 높이는 `SHELL.TITLE_BAR_HEIGHT`(40px)로 고정(캡션 버튼이 꽉 채우려면 필요). 캡션 버튼은 `radius 0` · 폭 46px · 우상단 모서리 밀착(타이틀 바 오른쪽 패딩 0). hover는 최소화·최대화가 `#e5e5e5`, **닫기만 `#e81123` + 흰 글리프**. 창 배경 `#f9f9f9`, 테두리 `#e5e5e5`, 그림자는 은은한 2단(`0 2px 4px/.1` + `0 8px 20px/.14`). 작업 표시줄은 밝은 아크릴(`rgba(243,243,243,.85)` + blur)
 - **작업 표시줄 정렬:** 시작 버튼+창 목록만 가운데, 패널 버튼·시계는 우측 트레이에 고정(윈도우도 트레이는 우측이다). 좌측 `.taskbar-spacer`가 `.taskbar-tray`와 같은 `flex: 1 1 0`을 차지해 가운데 묶음을 광학적 중심에 맞춘다 — 스페이서를 지우면 묶음이 왼쪽으로 밀린다
-- ⚠️ **HUD 패널은 `Window` 크롬 예외다** (2026-08-03 변경). 스탯창·날짜칸은 더 이상 공용 `Window`를 쓰지 않고 `src/components/desktop/HudPanel.tsx`(+`HudPanel.css`)라는 전용 컨테이너를 쓴다. **사유:** 설계자 요구가 "이 둘은 OS 창이 아니라 게임 오버레이로 읽혀야 한다"인데, 윈도우 11 크롬(밝은 타이틀 바 `#f3f3f3` + 캡션 버튼 자리)을 유지한 채로는 그 인상을 만들 수 없다. HudPanel은 다크 글래스(`backdrop-filter: blur(18px) saturate(160%)` + `rgba(13,15,30,.86)` + 1px 밝은 테두리 + 상단 액센트 스트립)로 OS 창과 대비시킨다.
+- ⚠️ **HUD 패널은 `Window` 크롬 예외다** (2026-08-03 변경). 스탯창·날짜칸은 더 이상 공용 `Window`를 쓰지 않고 `src/components/desktop/HudPanel.tsx`(+`HudPanel.css`)라는 전용 컨테이너를 쓴다. **사유:** 설계자 요구가 "이 둘은 OS 창이 아니라 게임 오버레이로 읽혀야 한다"인데, 윈도우 11 크롬(밝은 타이틀 바 `#f3f3f3` + 캡션 버튼 자리)을 유지한 채로는 그 인상을 만들 수 없다.
+- ⚠️ **HUD 시각 언어 = AAA 다크 판타지 RPG 상태창** (2026-08-03 리스타일). 예전의 "다크 글래스 + 네온 파랑(#4cc2ff) + 게이지 글로우"는 촌스럽다는 지적을 받아 폐기했다. 현재 규칙:
+  - **액센트는 샴페인 골드(`--hud-gold` #c9a96a) 하나뿐이다.** 네온·`box-shadow` 글로우·스탯별 색 전부 금지. 우아함은 효과가 아니라 타이포그래피·간격·절제에서 나온다. 게이지 선단의 "빛"도 그림자가 아니라 그라데이션 끝을 `--hud-gold-hi`로 밝혀 만든다
+  - **이중 언어 구역 라벨이 시그니처다:** `HudPanel.tsx`가 내보내는 `<HudSection label="능력치" en="Attributes" />` = ✳ 글리프(골드) + 한국어(아이보리) + 바랜 영문(세리프). 마크업을 컴포넌트 밖에 다시 적지 않는다
+  - **세리프(`--hud-serif`)는 ASCII 영문 부제 전용이다.** 한글에 걸면 폴백이 고딕이라 "폰트 로딩 실패"로 보이고, 숫자에 걸면 Georgia의 올드스타일 figure가 tabular 정렬을 깬다. 숫자·한글은 Segoe UI + `tabular-nums`. **네트워크 폰트 로딩 금지**(오프라인 요구)
+  - **상자 금지.** 성장 스탯 9종은 테두리·배경 없는 2열 그리드다(구 3열 칩 그리드는 "칸막이 서랍"으로 읽혔다). 구분은 간격과 금색 헤어라인(`--hud-rule`)이 한다
+  - **숫자가 주인공이다.** 값은 라벨보다 크게(`--fs-lg`/`--fs-base`), 우측 정렬, `font-variant-numeric: tabular-nums`. 단위("원")는 작고 흐리게 떨어뜨린다
+  - 실측(1280×900, 헤드리스 크롬 픽셀): 텍스트 48개 최저 **6.66:1**, 골드 글리프 8.0:1, 포커스 링 `--hud-gold-hi` 11.0:1. 패널 크기 스탯창 280×499 / 날짜칸 200×241
   - **바뀐 것은 외형뿐이다.** 고정 위치(드래그 핸들러 미부착) · 캡션 버튼 없음 · `windowStore` 미등록 · `desktopPanelStore.raise()`로만 앞으로 오는 규칙은 전부 그대로다. z-order도 그대로(`DESKTOP_PANEL` 100 → `raise` 시 `DESKTOP_PANEL_RAISED` 8000+)
   - **DOM 셀렉터가 바뀌었다:** 이제 `.win`은 **열린 일반 창만** 고른다(패널이 더는 걸리지 않는다). HUD 패널은 `.hud`, 제목은 `.hud-head-title`이다. 예전처럼 타이틀 텍스트로 구분할 필요가 없다
   - `Window`의 `fixed` prop과 `.win-fixed` CSS는 남아 있으나 현재 사용처가 없다(앞으로 생길 고정 창용)
-- **디자인 토큰은 `src/index.css`의 `:root`가 단일 출처다** (2026-08-03 신설). 간격 `--sp-1..8`(4/8 리듬), 타입 `--fs-xs..3xl`(11/12/13/14/16/18/24/32), 모서리 `--r-sm..xl`, 고도 `--el-1/2/3`(3단만), OS 색 `--os-*`(윈도우 11 라이트), HUD 색 `--hud-*`(다크 글래스). **컴포넌트 CSS에 생 hex나 임의 px을 새로 적지 않는다** — 그림자를 컴포넌트마다 새로 쓰면 고도 척도가 무너진다(ui-ux-pro-max `elevation-consistent`).
+- **디자인 토큰은 `src/index.css`의 `:root`가 단일 출처다** (2026-08-03 신설). 간격 `--sp-1..8`(4/8 리듬), 타입 `--fs-xs..3xl`(11/12/13/14/16/18/24/32), 모서리 `--r-sm..xl`, 고도 `--el-1/2/3`(3단만), OS 색 `--os-*`(윈도우 11 라이트), HUD 색 `--hud-*`(다크 판타지 + 샴페인 골드 단일 액센트). **컴포넌트 CSS에 생 hex나 임의 px을 새로 적지 않는다** — 그림자를 컴포넌트마다 새로 쓰면 고도 척도가 무너진다(ui-ux-pro-max `elevation-consistent`).
   - 두 시각 언어를 **섞지 않는 것**이 "게임이 OS 위에 얹혀 있다"는 인상의 근거다: OS 크롬(창·작업표시줄·바탕화면·잠금화면·엔딩 모달)은 `--os-*`, HUD 패널 내부는 `--hud-*`만 쓴다
-  - HUD는 어두워서 `:focus-visible`의 기본 링(`--os-accent` #0067c0)이 묻힌다 → `index.css`에 `.hud :focus-visible { outline-color: var(--hud-accent) }`가 있다
+  - HUD는 어두워서 `:focus-visible`의 기본 링(`--os-accent` #0067c0)이 묻힌다 → `index.css`에 `.hud :focus-visible { outline-color: var(--hud-gold-hi) }`가 있다
+  - ⚠️ **반투명 표면의 색은 토큰이 아니라 합성 결과가 정한다.** HUD 배경을 `rgba(…, 0.86)`으로 두었더니 파란 벽지가 비쳐 합성 픽셀이 `rgb(19,23,27)` — "온기 도는 근검정"이 아니라 차가운 회색으로 읽혔다. 0.94 + 웜 베이스(`#14110c`)로 올려 `rgb(22,22,21)`을 얻었다. 색을 눈으로 판단하지 말고 스크린샷 픽셀을 읽어라
   - 대비는 실측으로 검증했다(헤드리스 크롬 스크린샷 픽셀). 반투명 표면 위 글자는 **계산이 아니라 픽셀을 읽어야** 한다 — 잠금화면 플레이스홀더가 눈으로는 멀쩡한데 3.97:1이었다(입력창 배경을 어두운 틴트로 바꿔 해결)
 - ⚠️ **브라우저는 사이트 컨테이너다** (2026-08-03 신설). `src/data/sites.ts`의 `SITES`가 사이트 단일 출처이고(id·가짜 URL·제목·아이콘·`render`·안내 문구·`bookmark` 플래그), `BrowserApp`은 **`site.render`로만 분기한다**(`'portal'` | `'construction'`). 사이트 id로 분기하는 순간 "데이터 한 줄 + 컴포넌트 하나"로 사이트를 늘리는 구조가 무너진다. 새 사이트 추가 = SITES에 항목 하나 + (새 종류라면) `render` 값 하나와 컴포넌트 하나
   - 즐겨찾기 줄은 `BOOKMARK_SITES`(= `bookmark: true` 필터)가 만든다 — 컴포넌트가 id를 나열하지 않는다. 알바몬·쇼핑·SNS·강의·은행 5종은 아직 내용이 없어 공용 `ConstructionSite` 한 컴포넌트를 공유한다(은행은 설계상 1차 제외라 그 사실을 문구로 밝힌다)
@@ -75,14 +83,17 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - 활동 창은 오후 슬롯일 때 생활비 차감을 경고한다. 오후 행동은 하루를 끝내며 `sleep()`이 생활비를 빼가는데, 이를 안 보여주면 "+42,780원" 표시 후 실제로는 적자가 되어 플레이어를 오도함
 
 ## 아이콘 (Iconify, 오프라인 전용)
-- 세트 3종을 오프라인 패키지로 설치: `@iconify-json/fluent-emoji-flat`(기본 — 윈도우 데스크톱 컨셉과 맞음), `@iconify-json/flat-color-icons`(작은 UI 컨트롤), `@iconify-json/twemoji`. **CDN 금지**
+- 세트 4종을 오프라인 패키지로 설치: `@iconify-json/fluent-emoji-flat`(기본 — 윈도우 데스크톱 컨셉과 맞음), `@iconify-json/flat-color-icons`(작은 UI 컨트롤), `@iconify-json/twemoji`, **`@iconify-json/ph`(Phosphor — HUD 전용 단색)**. **CDN 금지**
+- ⚠️ **아이콘 세트는 시각 언어별로 나뉜다** (2026-08-03 변경). **OS 크롬·바탕화면·잠금화면·활동창·엔딩 모달 = 다색 플랫**(fluent-emoji-flat / flat-color-icons). **게임 HUD 안(스탯창·날짜칸) = 단색 Phosphor `ph:*-fill`**. HUD는 액센트가 샴페인 골드 하나뿐이라 다색 아이콘이 들어오는 순간 절제가 무너지고, 단색 아이콘만이 `currentColor`로 금색을 입을 수 있다. `-fill` 변형으로 통일한다(12~16px에서 외곽선 변형은 획이 뭉개진다 — ui-ux-pro-max "Filled vs Outline Discipline")
+  - 데이터 출처도 둘로 나뉜다: 스탯은 `STAT_META[key].icon`(다색) / `.hudIcon`(단색), UI 골격은 `UI_ICONS`(다색) / **`HUD_ICONS`**(단색, `sectionOrnament` 포함). 같은 개념(날짜칸·오전/오후)이 두 벌인 것은 의도다 — 한 벌로 합치면 둘 중 하나가 반드시 이질적이 된다
+  - `STAT_META.accent`(스탯별 강조색)는 **제거됐다.** 레퍼런스가 단일 액센트라 게이지는 전부 `--hud-gold` 하나로 칠하며, 스탯 구분은 색이 아니라 글리프+한국어 라벨이 한다
 - 렌더는 `src/icons/AppIcon.tsx`의 `<AppIcon name size className style />`만 쓴다. 컴포넌트가 `@iconify/react`를 직접 import하지 않는다
 - `@iconify/react/offline` 엔트리를 쓴다 — 이 빌드에는 fetch/API 코드가 없어 이름을 못 찾아도 네트워크로 나가지 않는다
 - `src/icons/bootstrap.ts`가 `main.tsx`에서 App보다 먼저 import되어 `addCollection()`으로 아이콘 데이터를 등록한다
 - ⚠️ `@iconify-json/*`의 icons.json을 통째로 import하면 번들이 **20MB**가 된다(JSON은 트리셰이킹 안 됨). 그래서 `scripts/build-icon-subset.mjs`가 `src/`를 스캔해 실제 사용하는 아이콘만 `src/icons/generated.ts`로 추출한다(현재 31개, 번들 251KB). **`generated.ts`는 직접 수정 금지, 커밋 대상**
 - 아이콘 이름을 추가·변경하면 `npm run icons` 실행. `npm run build`/`npm run dev`가 자동 선행 실행하고, 존재하지 않는 이름이면 **빌드가 실패**한다(오타로 빈 아이콘이 조용히 나오는 것 방지)
-- 아이콘 이름은 데이터다: 스탯은 `src/data/statMeta.ts`의 `STAT_META`, UI 골격(창 닫기·작업표시줄·잠금화면 등)은 `src/data/icons.ts`의 `UI_ICONS`가 단일 출처. 한 컴포넌트 안에서만 쓰는 일회성 장식 아이콘만 예외로 그 컴포넌트에 둔다(예: `ExeApp.tsx`의 `WARN_ICON`)
-- `STAT_META.color`는 **`accent`로 이름이 바뀌었다.** 플랫 아이콘은 이미 다색이라 CSS `color`로 덧칠하면 원래 색을 망친다 → 아이콘에는 색을 입히지 않고, `accent`는 게이지 막대(`stat-fill`) 등 아이콘 외 요소에만 쓴다. CSS의 아이콘 `color`/`stroke-width` 선언도 같은 이유로 전부 제거했다
+- 아이콘 이름은 데이터다: 스탯은 `src/data/statMeta.ts`의 `STAT_META`, UI 골격(작업표시줄·잠금화면 등)은 `src/data/icons.ts`의 `UI_ICONS`/`HUD_ICONS`가 단일 출처. 한 컴포넌트 안에서만 쓰는 일회성 장식 아이콘만 예외로 그 컴포넌트에 둔다(예: `ExeApp.tsx`의 `WARN_ICON`)
+- **다색 플랫 아이콘에는 CSS `color`를 절대 입히지 않는다**(원래 색을 망치거나 아무 효과도 없다). 색을 입혀야 하는 자리에는 단색 세트(`ph`)를 쓴다 — 이것이 HUD를 Phosphor로 옮긴 이유다. HUD CSS는 `.stat-icon`/`.hud-head-icon`/`.hud-section-mark`에 `color: var(--hud-gold)`를 건다
 
 ## 기술 스택 (실제 설치·빌드 검증 완료)
 - React 19.2 / Vite 8.2 / TypeScript 7.0 / Zustand 5.0 / Vitest 4.1 / @iconify/react 6(아이콘)
