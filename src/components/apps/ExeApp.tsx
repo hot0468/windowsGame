@@ -2,7 +2,7 @@ import { findActivity } from '../../data/activities'
 import { useGameStore } from '../../store/gameStore'
 import { canRun } from '../../systems/turn'
 import { getBurnoutPenalty } from '../../systems/burnout'
-import { getWageMultiplier } from '../../systems/economy'
+import { getLivingCost, getWageMultiplier } from '../../systems/economy'
 import type { Stats } from '../../types/game'
 import './ExeApp.css'
 
@@ -73,6 +73,13 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
       )}
 
       {!runnable && <div className="exe-warn">지금은 실행할 수 없습니다. 스탯이 부족합니다.</div>}
+
+      {state.slot === 'afternoon' && (
+        <div className="exe-warn">
+          이 행동을 하면 하루가 끝나고 잠자리에 듭니다. 생활비{' '}
+          {getLivingCost(state.day).toLocaleString('ko-KR')}원이 차감됩니다. (체력·멘탈은 회복됩니다)
+        </div>
+      )}
 
       <button className="exe-run" onClick={handleRun} disabled={!runnable}>
         실행하기
