@@ -74,12 +74,8 @@ export function StatPanel() {
 
       <div className="stat-note">
         오늘 생활비 {getLivingCost(day).toLocaleString('ko-KR')}원
-        {nextTier && (
-          <>
-            <br />
-            {nextTier.day - day}일 후 {nextTier.living.toLocaleString('ko-KR')}원으로 인상
-          </>
-        )}
+        <br />
+        {nextTier.day - day}일 후 {nextTier.living.toLocaleString('ko-KR')}원으로 인상
       </div>
     </Window>
   )

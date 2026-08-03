@@ -45,7 +45,9 @@ export const ACHIEVEMENT_ENDINGS: Ending[] = [
     title: '현실주의자',
     icon: '💸',
     text: '통장 잔고가 든든하다. 꿈은 접었지만, 적어도 굶지는 않는다.',
-    condition: { money: 3000000 },
+    // 300만원은 물가 외삽 후 최대 도달 잔고(약 265만원)를 넘어 도달 불가였다.
+    // 180만원은 알바 특화 플레이 기준 34일차 도달 — 다른 성취 엔딩과 같은 구간이다.
+    condition: { money: 1800000 },
     tier: 2,
   },
   {

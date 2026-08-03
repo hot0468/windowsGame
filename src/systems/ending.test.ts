@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { checkAchievementEnding, hasHigherTier, getFailureEnding } from './ending'
+import { ACHIEVEMENT_ENDINGS } from '../data/endings'
 import { INITIAL_STATS } from '../types/game'
 import type { Stats } from '../types/game'
 
@@ -37,6 +38,23 @@ describe('checkAchievementEnding', () => {
     const stats = statsWith({ charm: 80, intelligence: 40 })
     const result = checkAchievementEnding(stats, ['influencer'])
     expect(result?.id).toBe('ordinary')
+  })
+})
+
+describe('현실주의자 엔딩 기준', () => {
+  it('조정된 기준으로 도달 가능하다', () => {
+    expect(checkAchievementEnding(statsWith({ money: 1800000 }), [])?.id).toBe('realist')
+  })
+
+  it('기준 미달이면 도달하지 않는다', () => {
+    expect(checkAchievementEnding(statsWith({ money: 1799999 }), [])?.id).not.toBe('realist')
+  })
+
+  it('물가 외삽 후 도달 가능한 최대 잔고 아래에 있다', () => {
+    // 시뮬레이션상 알바 특화 플레이의 최고 잔고는 약 265만원이다.
+    // 기준이 그보다 높으면 엔딩이 영영 도달 불가가 된다.
+    const realist = ACHIEVEMENT_ENDINGS.find((e) => e.id === 'realist')!
+    expect(realist.condition?.money).toBeLessThan(2650000)
   })
 })
 

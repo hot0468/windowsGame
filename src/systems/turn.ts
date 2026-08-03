@@ -9,6 +9,15 @@ const SLEEP_RECOVERY_RATIO = 0.6
 /** 취침 시 회복되는 멘탈. */
 const SLEEP_MENTAL_RECOVERY = 5
 
+/**
+ * 최대 체력 상한.
+ * 철인 엔딩 조건(maxStamina 200)과 같은 값이다 — 상한에 닿는 순간이 곧 엔딩 획득 시점이 되어,
+ * 그 너머로 무의미하게 성장하는 구간을 없앤다.
+ * 상한이 없으면 취침 회복량(maxStamina * SLEEP_RECOVERY_RATIO)도 함께 무한히 커져
+ * 체력이 자원으로서 기능하지 않게 된다.
+ */
+export const MAX_STAMINA_CAP = 200
+
 export function createInitialState(playerName: string): GameState {
   return {
     playerName,
@@ -30,12 +39,14 @@ export function canRun(state: GameState, activity: Activity): boolean {
   )
 }
 
-/** 체력은 0~maxStamina, 멘탈은 0~100으로 제한한다. 나머지는 0 하한만 둔다. */
+/** 체력은 0~maxStamina, 멘탈은 0~100으로 제한한다. maxStamina는 1~MAX_STAMINA_CAP. */
 function clampStats(stats: Stats): Stats {
+  const maxStamina = Math.min(MAX_STAMINA_CAP, Math.max(1, Math.round(stats.maxStamina)))
   return {
     ...stats,
-    maxStamina: Math.max(1, Math.round(stats.maxStamina)),
-    stamina: Math.round(Math.min(Math.max(0, stats.stamina), Math.max(1, stats.maxStamina))),
+    maxStamina,
+    // 체력 상한은 클램핑된 maxStamina를 기준으로 한다 — 원본 값을 쓰면 상한을 넘길 수 있다.
+    stamina: Math.round(Math.min(Math.max(0, stats.stamina), maxStamina)),
     intelligence: Math.max(0, Math.round(stats.intelligence)),
     charm: Math.max(0, Math.round(stats.charm)),
     mental: Math.round(Math.min(Math.max(0, stats.mental), 100)),

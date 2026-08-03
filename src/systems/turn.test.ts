@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { createInitialState, canRun, runActivity, skipSlot } from './turn'
+import { createInitialState, canRun, runActivity, skipSlot, MAX_STAMINA_CAP } from './turn'
 import { findActivity } from '../data/activities'
 import { getLivingCost } from './economy'
 import type { GameState } from '../types/game'
 
 const study = findActivity('study')!
 const work = findActivity('work')!
+const exercise = findActivity('exercise')!
 
 /** 테스트용 상태 생성 헬퍼. */
 const stateWith = (overrides: Partial<GameState>): GameState => ({
@@ -84,6 +85,42 @@ describe('runActivity — 스탯 적용', () => {
     })
     const after = runActivity(s, findActivity('game')!)
     expect(after.stats.stamina).toBe(100)
+  })
+
+  it('최대 체력은 상한을 넘지 않는다', () => {
+    const s = stateWith({
+      stats: { ...createInitialState('t').stats, maxStamina: MAX_STAMINA_CAP, stamina: 100 },
+    })
+    expect(runActivity(s, exercise).stats.maxStamina).toBe(MAX_STAMINA_CAP)
+  })
+
+  it('상한을 넘긴 세이브 값도 상한으로 끌어내린다', () => {
+    const s = stateWith({
+      stats: { ...createInitialState('t').stats, maxStamina: 9999, stamina: 100 },
+    })
+    expect(runActivity(s, study).stats.maxStamina).toBe(MAX_STAMINA_CAP)
+  })
+
+  it('운동을 아무리 반복해도 최대 체력이 상한을 넘지 않는다', () => {
+    let s = createInitialState('t')
+    for (let i = 0; i < 300; i++) {
+      s = canRun(s, exercise) ? runActivity(s, exercise) : skipSlot(s)
+      if (s.gameOver) break
+      expect(s.stats.maxStamina).toBeLessThanOrEqual(MAX_STAMINA_CAP)
+    }
+  })
+
+  it('상한이 철인 엔딩 조건과 같아 상한 도달이 곧 엔딩이다', () => {
+    expect(MAX_STAMINA_CAP).toBe(200)
+  })
+
+  it('체력은 상한을 넘긴 maxStamina가 아니라 클램핑된 값을 따른다', () => {
+    // maxStamina가 상한 위로 저장돼 있으면 체력도 그만큼 회복되면 안 된다.
+    const s = stateWith({
+      slot: 'afternoon',
+      stats: { ...createInitialState('t').stats, maxStamina: 9999, stamina: 9999 },
+    })
+    expect(runActivity(s, findActivity('game')!).stats.stamina).toBeLessThanOrEqual(MAX_STAMINA_CAP)
   })
 
   it('알바비에 물가 배율이 적용된다', () => {
