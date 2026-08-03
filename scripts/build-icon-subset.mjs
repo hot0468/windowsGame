@@ -16,17 +16,15 @@ import { fileURLToPath } from 'node:url'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SRC = join(ROOT, 'src')
 // 세트별 역할(자세한 규칙은 src/data/icons.ts 주석):
-//  - fluent-emoji-flat / flat-color-icons / twemoji: 다색 플랫 — OS 크롬·잠금화면·활동창.
 //  - devicon: 프로그램 로고 — 바탕화면 앱 아이콘 + 그 창의 타이틀 바 + 작업 표시줄 항목.
-//  - mdi-light: 단색 라인 — 작업 표시줄 트레이 글리프.
-//  - ph(Phosphor, regular): 단색 외곽선 — 게임 HUD 안(currentColor로 물들일 수 있다).
+//  - mdi-light: 단색 라인 — 작업 표시줄 트레이 글리프·잠금화면 아바타.
+//  - mdi(Material Design Icons): 단색 — 게임 HUD 안(currentColor로 물들일 수 있다).
+//  - fluent-color: 다색 **아이콘**(이모지가 아니다) — 포털 사이트 아이콘.
 const PREFIXES = [
-  'fluent-emoji-flat',
-  'flat-color-icons',
-  'twemoji',
-  'ph',
   'devicon',
   'mdi-light',
+  'mdi',
+  'fluent-color',
 ]
 const OUT = join(SRC, 'icons', 'generated.ts')
 

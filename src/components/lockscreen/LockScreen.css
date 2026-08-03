@@ -47,6 +47,8 @@
    유리 원반처럼 보이도록 1px 밝은 테두리를 더한다(style `Glassmorphism`). */
 .lock-avatar {
   box-sizing: content-box;
+  /* 단색 라인 글리프라 색을 입힐 수 있다. 벽지 위 흰 선이라 대비가 넉넉하다. */
+  color: #fff;
   padding: var(--sp-3);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.16);

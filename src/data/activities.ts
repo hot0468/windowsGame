@@ -12,7 +12,7 @@ export const ACTIVITIES: Activity[] = [
   {
     id: 'study',
     label: '공부',
-    icon: 'fluent-emoji-flat:open-book',
+    icon: 'fluent-color:book-open-24',
     description: '전공서를 펼친다. 머리는 아프지만 확실히 는다.',
     effects: { knowledge: 6, stamina: -15, mental: -5 },
     requires: { stamina: 15 },
@@ -20,7 +20,7 @@ export const ACTIVITIES: Activity[] = [
   {
     id: 'work',
     label: '알바',
-    icon: 'fluent-emoji-flat:briefcase',
+    icon: 'fluent-color:briefcase-24',
     description: '편의점 야간 근무. 돈은 들어온다.',
     effects: { money: 60000, stamina: -25, mental: -8 },
     requires: { stamina: 25 },
@@ -29,18 +29,39 @@ export const ACTIVITIES: Activity[] = [
   {
     id: 'exercise',
     label: '운동',
-    icon: 'fluent-emoji-flat:person-running',
-    description: '체력의 한계를 조금씩 밀어낸다.',
+    icon: 'fluent-color:sport-24',
+    description: '오늘 행동력을 태워 체력을 키운다.',
     effects: { maxStamina: 4, stamina: -20, mental: 3 },
     requires: { stamina: 20 },
   },
   {
     id: 'game',
     label: '게임',
-    icon: 'fluent-emoji-flat:video-game',
+    icon: 'fluent-color:puzzle-piece-24',
     description: '아무 생각 없이 논다. 멘탈이 회복된다.',
     effects: { mental: 18, stamina: -5, knowledge: -1 },
     requires: { stamina: 5 },
+  },
+  {
+    /*
+     * 헬스장 1일권. 운동보다 효과가 좋은 대신 **돈이 든다** —
+     * 회원권(gym-member)과 나눠 둔 이유는 그쪽은 이미 결제한 뒤라 갈 때 돈이 안 나가기 때문이다.
+     * 한 활동에 "가끔 돈이 든다"를 넣으면 밸런스 테스트가 볼 수 없는 분기가 생긴다.
+     */
+    id: 'gym-day',
+    label: '헬스장 (1일권)',
+    icon: 'fluent-color:sport-24',
+    description: '하루치를 끊고 운동한다.',
+    effects: { maxStamina: 6, stamina: -20, mental: 2, money: -15000 },
+    requires: { stamina: 20, money: 15000 },
+  },
+  {
+    id: 'gym-member',
+    label: '헬스장 (회원)',
+    icon: 'fluent-color:sport-24',
+    description: '회원권으로 간다. 추가 비용은 없다.',
+    effects: { maxStamina: 6, stamina: -20, mental: 2 },
+    requires: { stamina: 20 },
   },
   {
     id: 'social',
@@ -53,7 +74,10 @@ export const ACTIVITIES: Activity[] = [
     description: '사람들과 어울린다. 돈은 좀 쓴다.',
     effects: { charm: 5, mental: 8, money: -20000, stamina: -10 },
     requires: { stamina: 10, money: 20000 },
-    onDesktop: true,
+    // ⚠️ 바탕화면에서 내렸다(설계자 결정). 메신저는 이제 카톡 창(kind: 'chat')이고,
+    // 이 활동은 그 안의 [만나러 가기] 버튼이 실행한다 — 읽기는 무료, 만나는 것만 1턴.
+    // 정의를 지우지 않는 이유: 효과 수치와 밸런스 테스트가 이 활동을 참조한다.
+    onDesktop: false,
   },
 ]
 

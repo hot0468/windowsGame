@@ -21,7 +21,7 @@ export function ConstructionSite({ site, onGoHome }: { site: Site; onGoHome: () 
       </h1>
       <p className="nv-construction-text">{site.notice}</p>
       <button type="button" className="nv-construction-home" onClick={onGoHome}>
-        NEVER 홈으로
+        네이놈 홈으로
       </button>
     </div>
   )

@@ -1,6 +1,4 @@
 import type { ReactNode } from 'react'
-import { AppIcon } from '../../icons/AppIcon'
-import type { IconName } from '../../types/game'
 import './HudPanel.css'
 
 interface HudPanelProps {
@@ -13,12 +11,14 @@ interface HudPanelProps {
    */
   label: string
   /**
-   * 헤더에 그릴 단색 글리프.
-   * **넘기면 헤더(아이콘 + 제목 줄)가 그려지고, 생략하면 헤더 영역 자체가 없다.**
-   * 날짜 패널은 생략한다 — 설계자 요구로 타이틀 영역을 통째로 삭제했다.
+   * true면 헤더(제목 줄)를 그린다. 생략하면 헤더 영역 자체가 없다.
+   * 날짜 패널은 끈다 — 설계자 요구로 타이틀 영역을 통째로 삭제했다.
    * 스탯창은 제목이 플레이어 이름(= 실제 정보)이라 헤더를 유지한다.
+   *
+   * ⚠️ 예전에는 `headerIcon`(글리프 이름)이 이 역할을 겸했다. 설계자가 사람 모양 글리프를
+   * 빼면서 헤더까지 함께 사라지지 않도록 "무엇을 그리나"와 "그리나 마나"를 분리했다.
    */
-  headerIcon?: IconName
+  header?: boolean
   x: number
   y: number
   width: number
@@ -43,6 +43,10 @@ interface HudPanelProps {
  * style `Swiss Modernism 2.0`("single vibrant accent only", "minimal decoration"),
  * ux `visual-hierarchy`("hierarchy via size, spacing, contrast — not color alone").
  *
+ * ⚠️ **테두리 장식(PanelOrnament)은 걷어냈다**(설계자 지시). 파란 액자선과 모서리 갈고리가
+ * HUD를 무겁게 만들었다 — 구역을 가르는 회색 헤어라인(`.hud-section`)만 남긴다.
+ * 활동창·엔딩 모달의 장식은 그대로다.
+ *
  * `Window`와 달라지는 것은 **외형뿐**이다. 다음은 그대로 유지한다:
  *  - 고정 위치(드래그 핸들러 자체를 붙이지 않는다)
  *  - 캡션 버튼 없음(최소화되면 되돌릴 수단이 없으므로 애초에 만들지 않는다)
@@ -53,7 +57,7 @@ interface HudPanelProps {
 export function HudPanel({
   id,
   label,
-  headerIcon,
+  header = false,
   x,
   y,
   width,
@@ -68,12 +72,13 @@ export function HudPanel({
       // 고정 패널이라 드래그 핸들러를 붙이지 않는다. 누르면 앞으로만 온다.
       onPointerDown={onActivate}
       // 헤더가 있으면 그 제목이 이름이 되고, 없으면 label을 직접 이름으로 쓴다.
-      aria-labelledby={headerIcon ? `${id}-hud-title` : undefined}
-      aria-label={headerIcon ? undefined : label}
+      aria-labelledby={header ? `${id}-hud-title` : undefined}
+      aria-label={header ? undefined : label}
     >
-      {headerIcon && (
+      {header && (
         <header className="hud-head">
-          <AppIcon name={headerIcon} size={16} className="hud-head-icon" />
+          {/* 글리프 없이 제목만. 사람 모양 아이콘은 설계자가 걷어냈다 —
+              바로 옆이 플레이어 이름이라 아이콘이 같은 말을 한 번 더 하는 자리였다. */}
           <h2 className="hud-head-title" id={`${id}-hud-title`}>
             {label}
           </h2>
@@ -90,6 +95,10 @@ export function HudPanel({
  * 폐기했다 — 모던 대시보드의 구역 라벨은 색이 아니라 크기·간격·무게로 구분된다
  * (ux `visual-hierarchy`). 컴포넌트로 고정해 두 패널이 같은 모양을 쓰게 한다.
  */
-export function HudSection({ label }: { label: string }) {
+export function HudSection({ label }: { label?: string }) {
+  // 라벨을 생략하면 구분선만 남는다(설계자 요구: 스탯창 "생계" 구역은 제목 없이).
+  // 구분선까지 지우지 않는 이유는 그 위 구역과 붙어 한 덩어리로 읽히기 때문이다.
+  // 글자가 없으니 스크린 리더에는 아무것도 알리지 않는다 — 순수한 장식선이다.
+  if (!label) return <div className="hud-section hud-section-bare" aria-hidden="true" />
   return <div className="hud-section">{label}</div>
 }

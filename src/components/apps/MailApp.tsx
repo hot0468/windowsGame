@@ -1,0 +1,118 @@
+import { useState } from 'react'
+import { MAILBOX } from '../../data/messages'
+import { useGameStore } from '../../store/gameStore'
+import { selectChannel } from '../../systems/messages'
+import type { TimedMessage } from '../../systems/messages'
+import './MailApp.css'
+
+/**
+ * 메일 분류. 레퍼런스(아웃룩)의 폴더 트리 자리에 들어간다.
+ *
+ * ⚠️ **눌러서 실제로 걸러지는 것만 둔다.** 보낸 편지함·임시 보관함 같은 폴더는
+ * 게임에 대응하는 내용이 없어 빈 칸이 되므로 만들지 않는다 —
+ * 눌러도 아무 일이 없는 항목을 두지 않는다는 원칙은 브라우저 탭·페이저와 같다.
+ */
+const FOLDERS = [
+  { id: 'inbox', label: '받은 편지함' },
+  { id: 'ad', label: '광고' },
+] as const
+
+type FolderId = (typeof FOLDERS)[number]['id']
+
+/** 광고 판정. 제목의 [광고] 표기가 유일한 근거다(데이터에 이미 들어 있다). */
+function isAd(m: TimedMessage): boolean {
+  return (m.subject ?? '').includes('[광고]')
+}
+
+/**
+ * 아웃룩형 메일 창. 레퍼런스 그대로 **3단**이다: 폴더 / 목록 / 읽기 창.
+ *
+ * ⚠️ **읽기 전용이자 무료다.** 답장·삭제는 없다 — 게임에 그 행동이 없으므로
+ * 눌러도 아무 일이 없는 버튼을 두지 않는다. 메일은 정보 전달 창구이고,
+ * 실제 행동은 바탕화면 아이콘·브라우저에서 한다.
+ */
+export function MailApp() {
+  const state = useGameStore((s) => s.state)
+  const [folder, setFolder] = useState<FolderId>('inbox')
+  /** 선택된 메일. 목록 순서가 아니라 id로 잡는다 — 새 메일이 와도 선택이 밀리지 않는다. */
+  const [selected, setSelected] = useState<string | null>(null)
+
+  if (!state) return null
+
+  // 최신 메일이 위로 오게 뒤집는다. 편성표는 오래된 것부터 쌓인다.
+  const all = selectChannel(MAILBOX.id, state.day, state.slot).slice().reverse()
+  const mails = all.filter((m) => (folder === 'ad' ? isAd(m) : !isAd(m)))
+  const current = mails.find((m) => m.id === selected) ?? mails[0]
+
+  return (
+    <div className="mail">
+      <nav className="mail-folders" aria-label="메일 분류">
+        {FOLDERS.map((f) => {
+          const count = all.filter((m) => (f.id === 'ad' ? isAd(m) : !isAd(m))).length
+          return (
+            <button
+              key={f.id}
+              type="button"
+              className={`mail-folder${folder === f.id ? ' mail-folder-on' : ''}`}
+              aria-current={folder === f.id ? 'true' : undefined}
+              onClick={() => {
+                setFolder(f.id)
+                setSelected(null)
+              }}
+            >
+              <span className="mail-folder-label">{f.label}</span>
+              {/* 개수는 실제 메일 수다. 0이면 아예 표시하지 않는다 — 0 뱃지는 소음이다. */}
+              {count > 0 && <span className="mail-folder-count">{count}</span>}
+            </button>
+          )
+        })}
+      </nav>
+
+      <ul className="mail-list">
+        {mails.length === 0 && <li className="mail-empty">비어 있습니다.</li>}
+        {mails.map((m) => (
+          <li key={m.id}>
+            <button
+              type="button"
+              className={`mail-item${current?.id === m.id ? ' mail-item-on' : ''}`}
+              onClick={() => setSelected(m.id)}
+              aria-current={current?.id === m.id ? 'true' : undefined}
+            >
+              {/* 발신처 프로필 자리. 사진이 없으므로 첫 글자 타일을 둔다. */}
+              <span className="mail-avatar" aria-hidden="true">
+                {m.from.slice(0, 1)}
+              </span>
+              <span className="mail-item-body">
+                <span className="mail-item-top">
+                  <span className="mail-from">{m.from}</span>
+                  <span className="mail-time">{m.time}</span>
+                </span>
+                <span className="mail-subject">{m.subject ?? '(제목 없음)'}</span>
+                {/* 미리보기 한 줄 — 레퍼런스처럼 제목 아래 본문 앞부분을 흘린다. */}
+                <span className="mail-preview">{m.text}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {current ? (
+        <article className="mail-view">
+          <h3 className="mail-view-subject">{current.subject ?? '(제목 없음)'}</h3>
+          <p className="mail-view-from">
+            <span className="mail-avatar" aria-hidden="true">
+              {current.from.slice(0, 1)}
+            </span>
+            <span className="mail-view-meta">
+              <b>{current.from}</b>
+              <span>{current.time}</span>
+            </span>
+          </p>
+          <p className="mail-view-text">{current.text}</p>
+        </article>
+      ) : (
+        <p className="mail-empty mail-view">읽을 메일을 선택하세요.</p>
+      )}
+    </div>
+  )
+}

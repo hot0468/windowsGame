@@ -34,10 +34,23 @@
   box-shadow: var(--el-2);
   color: var(--hud-text);
   overflow: hidden;
+  /*
+   * 세로 스크롤바가 뜨지 않게 하는 근거 (설계자 요구: 스탯창에 스크롤 금지).
+   * 예전엔 본문에 `max-height: 70vh`를 걸었는데, 그건 화면 높이의 30%를 쓰지도 않으면서
+   * 버리는 값이라 900px 화면에서도 여유가 190px뿐이었고 조금만 줄이면 바로 스크롤이 났다.
+   * 지금은 **실제로 쓸 수 있는 세로 공간 전부**를 상한으로 준다:
+   *   패널 상단 여백 16px(= CALENDAR_PANEL_LAYOUT.top) + 작업 표시줄 44px(= SHELL.TASKBAR_HEIGHT)
+   *   + 바닥 숨 8px = 68px.
+   * ⚠️ 두 숫자의 단일 출처는 data/calendar.ts·data/shell.ts다. CSS가 TS 상수를 못 읽어
+   * 여기에 중복해 두었으므로 **바꿀 때 양쪽을 함께 고친다**(layers.ts와 같은 규칙).
+   * 헤더가 있는 스탯창도 맞도록 상한을 본문이 아니라 패널 전체에 건다 —
+   * .hud가 flex column이라 남는 높이는 .hud-body가 알아서 나눠 가진다.
+   */
+  max-height: calc(100vh - 68px);
 }
 
 /* 헤더는 스탯창만 쓴다(제목이 플레이어 이름 = 실제 정보라서).
-   날짜칸은 headerIcon을 넘기지 않아 이 블록 자체가 렌더되지 않는다.
+   날짜칸은 header를 넘기지 않아 이 블록 자체가 렌더되지 않는다.
    ⚠️ 배경 틴트를 주지 않는다 — 카드 안에 색 띠를 두르면 상자-속-상자가 되고
    ux `whitespace-balance`가 말하는 "의도적 여백"이 아니라 칸막이가 된다.
    구분은 아래쪽 헤어라인 하나로 충분하다. */
@@ -45,16 +58,11 @@
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
+  /* 안쪽 여백은 테두리 장식을 기준으로 잡는다: 장식선이 가장자리에서 5px 안에 있으므로
+     실제 "선과 글자 사이"는 여기서 6px을 뺀 값이다(20 → 14px).
+     16px일 때는 8px밖에 남지 않아 글자가 액자선에 붙어 보였다. */
+  padding: var(--sp-4) var(--sp-5);
   border-bottom: 1px solid var(--hud-rule);
-}
-
-/* 헤더 글리프만 액센트다 — 카드 하나에 색 점 하나. 나머지 글리프는 잉크로 둔다
-   (ux `visual-hierarchy`: 색이 아니라 크기·간격으로 위계를 만든다).
-   단색 Phosphor라 currentColor로 물들일 수 있다(다색 플랫 아이콘이면 불가능). */
-.hud-head-icon {
-  flex: 0 0 auto;
-  color: var(--hud-accent);
 }
 
 /* 카드 제목. OS 타이틀 바(400)보다 한 단 무겁지만 자간은 벌리지 않는다 —
@@ -63,8 +71,12 @@
   flex: 1;
   min-width: 0;
   margin: 0;
-  font-size: var(--fs-base);
-  font-weight: 600;
+  font-size: var(--fs-lg);
+  /* 플레이어 이름 = 게임의 주인공 이름이므로 포인트 폰트. 굵기 400 고정 이유는
+     Desktop.css의 .cal-date 주석 참조(합성 볼드 방지). 14→16px로 한 단 올린 것은
+     각진 서체가 14px에서 획이 뭉쳐 읽히기 때문이다. */
+  font-family: var(--font-point);
+  font-weight: 400;
   color: var(--hud-text);
   white-space: nowrap;
   overflow: hidden;
@@ -72,16 +84,15 @@
 }
 
 .hud-body {
-  padding: var(--sp-4);
+  /* 헤더와 같은 이유로 20px (위 .hud-head 주석 참조). */
+  padding: var(--sp-5);
   font-size: var(--fs-md);
   color: var(--hud-text-2);
+  /* 높이 상한은 .hud가 쥐고 있다(위 주석). 여기서는 flex 자식이 줄어들 수 있게만 열어 둔다.
+     overflow-y는 auto로 남긴다 — 화면이 패널보다 짧은 극단(세로 570px 미만)에서
+     스크롤을 없애면 스크롤 대신 **내용이 잘린다**. 안 보이는 것보다는 스크롤이 낫다. */
+  min-height: 0;
   overflow-y: auto;
-  /* 상한을 60vh에서 70vh로 올렸다. 4px 게이지·넓어진 헤더 때문에 스탯창 본문이 471px가 되어
-     768px 높이 화면에서 60vh(461px)에 10px 걸려 스크롤바가 생겼다.
-     상한의 근거는 "작업 표시줄을 침범하지 않는 것"이다: 패널 상단 16px + 헤더 46px +
-     본문 0.7H ≤ H − 44px 는 H ≥ 353px에서 항상 성립하므로 70vh는 안전한 한도다.
-     (실측: 1280×900 · 1024×768 모두 스크롤 없음, 패널 하단 여유 190px 이상) */
-  max-height: 70vh;
 }
 
 /* ── 구역 라벨 ──
@@ -95,6 +106,15 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--hud-text-3);
+}
+
+/* 라벨 없는 구분선.
+   ⚠️ **제목이 사라졌으면 제목이 차지하던 자리도 사라져야 한다**(설계자 지적).
+   라벨용 위 여백(padding-top)과 글자 높이를 그대로 두면 빈 줄 하나가 남아
+   "제목을 지웠다"가 아니라 "제목이 안 뜬다"로 읽힌다. 선 위아래 숨만 남긴다. */
+.hud-section-bare {
+  padding-top: 0;
+  margin: var(--sp-4) 0 var(--sp-3);
 }
 
 /* 헤더 바로 아래(또는 패널 첫 줄) 구역 라벨은 위 여백도 구분선도 필요 없다. */

@@ -1,7 +1,7 @@
 import { getLivingCost, getWageMultiplier } from './economy'
 import { getBurnoutPenalty, pushActivity } from './burnout'
 import { GROWTH_STAT_KEYS, INITIAL_STATS } from '../types/game'
-import type { Activity, GameState, Slot, Stats } from '../types/game'
+import type { Activity, GameState, GrowthStatKey, Slot, Stats } from '../types/game'
 
 /** 취침 시 회복되는 체력 비율 (maxStamina 기준). */
 const SLEEP_RECOVERY_RATIO = 0.6
@@ -23,6 +23,24 @@ export const MAX_STAMINA_CAP = 200
  * maxStamina와 달리 엔딩 조건과 묶여 있지 않으므로, 장기 육성의 여유를 두고 999로 잡는다.
  */
 export const GROWTH_STAT_CAP = 999
+
+/**
+ * 기본 상한을 따르지 않는 성장 스탯.
+ *
+ * 평판·도덕은 "얼마나 쌓았나"가 아니라 **평가 지표**라 0~100 척도가 더 자연스럽다
+ * (설계자 지시). 스탯창에서도 멘탈과 같은 자원 줄에 놓이므로 척도가 같아야 읽힌다.
+ * ⚠️ 어떤 엔딩 조건도 이 둘을 쓰지 않으므로 상한을 낮춰도 도달 불가능해지는 엔딩은 없다
+ * (`data/endings.ts` 확인함). 나중에 이 둘을 쓰는 엔딩을 추가하면 100 이하로 잡을 것.
+ */
+const GROWTH_STAT_CAP_OVERRIDES: Partial<Record<GrowthStatKey, number>> = {
+  reputation: 100,
+  morality: 100,
+}
+
+/** 해당 성장 스탯의 상한. UI도 이 함수를 써야 표시와 클램프가 어긋나지 않는다. */
+export function growthCap(key: GrowthStatKey): number {
+  return GROWTH_STAT_CAP_OVERRIDES[key] ?? GROWTH_STAT_CAP
+}
 
 /** 멘탈 상한. 소모 자원이므로 성장 스탯과 성격이 달라 0~100을 유지한다. */
 export const MENTAL_CAP = 100
@@ -52,7 +70,7 @@ export function canRun(state: GameState, activity: Activity): boolean {
  * 체력은 0~maxStamina, 멘탈은 0~MENTAL_CAP, maxStamina는 1~MAX_STAMINA_CAP,
  * 성장 스탯 9종은 0~GROWTH_STAT_CAP으로 제한한다.
  */
-function clampStats(stats: Stats): Stats {
+export function clampStats(stats: Stats): Stats {
   const maxStamina = Math.min(MAX_STAMINA_CAP, Math.max(1, Math.round(stats.maxStamina)))
   const clamped: Stats = {
     ...stats,
@@ -62,10 +80,10 @@ function clampStats(stats: Stats): Stats {
     mental: Math.round(Math.min(Math.max(0, stats.mental), MENTAL_CAP)),
     money: Math.round(stats.money),
   }
-  // 성장 스탯은 상한 규칙이 같으므로 키 목록을 돌며 일괄 처리한다.
-  // 스탯이 추가돼도 여기를 고칠 필요가 없다.
+  // 성장 스탯은 키 목록을 돌며 일괄 처리한다. 상한만 스탯별로 다를 수 있으므로
+  // growthCap()에 물어본다 — 스탯이 추가돼도 여기를 고칠 필요가 없다.
   for (const key of GROWTH_STAT_KEYS) {
-    clamped[key] = Math.min(GROWTH_STAT_CAP, Math.max(0, Math.round(stats[key])))
+    clamped[key] = Math.min(growthCap(key), Math.max(0, Math.round(stats[key])))
   }
   return clamped
 }
@@ -131,6 +149,43 @@ export function runActivity(state: GameState, activity: Activity): GameState {
     recentActivities: pushActivity(state.recentActivities, activity.id),
     gameOver: detectGameOver(stats),
   }
+}
+
+/**
+ * 광고 배너 클릭 보상. 하루 한 번, 100원.
+ *
+ * ⚠️ **턴을 소모하지 않는다.** "탐색은 무료"라는 규칙(설계 문서 2.3)은 그대로다 —
+ * 브라우저를 여는 것도, 배너를 누르는 것도 슬롯을 쓰지 않는다.
+ * 금액이 생활비(3만원~)의 0.3% 수준인 것도 의도다: 클릭이 생계 수단이 되면
+ * "일해서 번다"는 게임의 축이 무너진다. 소소한 습관 정도로만 둔다.
+ */
+export const AD_BONUS_MONEY = 100
+
+/** 오늘 아직 광고 보상을 받지 않았고 게임이 진행 중이면 true. */
+export function canClaimAdBonus(state: GameState): boolean {
+  return !state.gameOver && state.adBonusDay !== state.day
+}
+
+/** 보상을 받는다. 이미 받았거나 게임오버면 상태를 그대로 돌려준다(호출부에서 막지 않아도 안전). */
+export function claimAdBonus(state: GameState): GameState {
+  if (!canClaimAdBonus(state)) return state
+  return {
+    ...state,
+    stats: clampStats({ ...state.stats, money: state.stats.money + AD_BONUS_MONEY }),
+    adBonusDay: state.day,
+  }
+}
+
+/**
+ * 돈만 쓴다. **턴을 소모하지 않는다.**
+ *
+ * 헬스장 월결제처럼 "대화 중에 결제만 하는" 행동용이다. 활동(`runActivity`)으로 만들면
+ * 반드시 한 슬롯을 먹는데, 등록은 시간을 쓰는 일이 아니다.
+ * 잔액이 모자라면 아무것도 하지 않는다 — 마이너스 잔액은 파산 판정을 흐린다.
+ */
+export function spendMoney(state: GameState, amount: number): GameState {
+  if (state.gameOver || amount <= 0 || state.stats.money < amount) return state
+  return { ...state, stats: clampStats({ ...state.stats, money: state.stats.money - amount }) }
 }
 
 /** 아무 활동 없이 슬롯만 넘긴다. 'rest' 기록으로 번아웃 연속이 끊긴다. */

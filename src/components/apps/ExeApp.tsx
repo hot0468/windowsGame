@@ -11,7 +11,7 @@ import type { Stats } from '../../types/game'
 import './ExeApp.css'
 
 /** 이 창에서만 쓰는 일회성 경고 글리프. 여러 경고 문구가 공유한다. */
-const WARN_ICON = 'fluent-emoji-flat:warning'
+const WARN_ICON = 'fluent-color:warning-24'
 
 /** 스탯 라벨 한 줄(아이콘 + 이름). 효과 목록에서 재사용한다. */
 function StatLabel({ statKey, note }: { statKey: keyof Stats; note?: string }) {
@@ -97,7 +97,7 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
           <AppIcon name={WARN_ICON} size={15} className="exe-warn-icon" />
           <span>
             이 행동을 하면 하루가 끝나고 잠자리에 듭니다. 생활비{' '}
-            {getLivingCost(state.day).toLocaleString('ko-KR')}원이 차감됩니다. (체력·멘탈은
+            {getLivingCost(state.day).toLocaleString('ko-KR')}원이 차감됩니다. (행동력·멘탈은
             회복됩니다)
           </span>
         </div>

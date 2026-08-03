@@ -1,0 +1,245 @@
+/* 시작 메뉴에서 여는 시스템 도구 셋. OS 창이므로 --os-* 토큰만 쓴다. */
+.sys {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.sys-note {
+  margin: 0;
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--os-fill);
+  font-size: var(--fs-md);
+  color: var(--os-text-2);
+}
+
+.sys-row {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.sys-btn {
+  flex: 1 1 0;
+  min-height: 34px;
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-md);
+  background: var(--os-surface);
+  font: inherit;
+  font-weight: 600;
+  color: var(--os-text);
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.sys-btn:hover:not(:disabled) {
+  background: var(--os-fill);
+}
+
+/* ux `disabled-states`: 투명도 + 커서 + 의미론적 속성을 함께 준다. */
+.sys-btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.sys-label {
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+}
+
+/* 세이브 문자열은 길고 줄바꿈이 없다 — 등폭으로 두어야 잘린 부분을 눈으로 찾을 수 있다. */
+.sys-box {
+  width: 100%;
+  padding: var(--sp-2);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-md);
+  background: var(--os-surface);
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+  resize: vertical;
+}
+
+.sys-status {
+  min-height: 1.4em;
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--os-text-3);
+}
+
+/* ── 작업 관리자 ── */
+.sys-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-md);
+}
+
+.sys-table th {
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--os-border);
+  text-align: left;
+  font-weight: 600;
+  color: var(--os-text-3);
+}
+
+.sys-table td {
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--os-border);
+  color: var(--os-text);
+}
+
+.sys-empty {
+  color: var(--os-text-3);
+}
+
+.sys-kill {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--os-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--os-danger);
+  cursor: pointer;
+}
+
+.sys-kill:hover {
+  background: var(--os-fill);
+}
+
+.sys-head {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-base);
+  color: var(--os-text);
+}
+
+/* 라벨/값 두 열. dt·dd를 그리드로 묶으면 값이 세로로 정렬된다. */
+.sys-defs {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--sp-1) var(--sp-4);
+  margin: 0;
+  font-size: var(--fs-md);
+}
+
+.sys-defs dt {
+  color: var(--os-text-3);
+}
+
+.sys-defs dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--os-text);
+}
+
+/* ── 명령 프롬프트 ──
+   레퍼런스는 **어두운 탭 바 + 검은 콘솔**이다. 창 크롬도 어두워야 하므로
+   이 창만 bareTitle + dark로 열린다(WindowManager 참조).
+   --os-* 밖으로 나가는 유일한 창인데, 콘솔은 OS 안에서도 자기 색을 갖는 프로그램이라
+   예외로 둔다. */
+.cmd-app {
+  display: flex;
+  flex-direction: column;
+  min-height: min(420px, calc(100vh - 100px));
+  background: #0c0c0c;
+}
+
+/* 탭 줄이 곧 제목 표시줄이다 — 회색 OS 타이틀 바가 따로 없다. */
+.cmd-tabs {
+  display: flex;
+  align-items: flex-end;
+  flex: 0 0 auto;
+  height: 40px;
+  /* ⚠️ 오른쪽 138px = 캡션 버튼 3개(46px×3) 자리. 겹치면 탭이 버튼에 깔린다. */
+  padding: 0 138px 0 var(--sp-2);
+  background: #2b2b2b;
+}
+
+.cmd-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: 32px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  /* 활성 탭만 콘솔과 같은 검정 — 두 층이 이어져 보이는 근거다(브라우저 탭과 같은 규칙). */
+  background: #0c0c0c;
+  font-size: var(--fs-sm);
+  color: #e6e6e6;
+}
+
+/* 탭 아이콘. 콘솔 창을 뜻하는 작은 사각 — 아이콘 세트를 더 들이지 않는다. */
+.cmd-tab-glyph {
+  width: 12px;
+  height: 11px;
+  border: 1px solid #9a9a9a;
+  border-radius: 2px;
+}
+
+.cmd-tab-title {
+  white-space: nowrap;
+}
+
+.cmd-tab-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-2) 6px;
+  color: #cfcfcf;
+}
+
+.cmd {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: var(--sp-3);
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: var(--fs-base);
+  line-height: 1.35;
+  /* 검정 위 밝은 회색 — 순백은 눈이 부시고 대비가 과하다(콘솔의 관례). */
+  color: #cccccc;
+  overflow: hidden;
+}
+
+.cmd-out {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  /* 빈 줄도 높이를 갖게 한다 — 배너와 프롬프트 사이 한 줄이 실제 cmd의 간격이다. */
+  min-height: 0;
+}
+
+.cmd-out li {
+  min-height: 1.35em;
+}
+
+/* 프롬프트와 입력이 한 줄로 이어져 실제 콘솔처럼 보인다. */
+.cmd-form {
+  display: flex;
+  align-items: baseline;
+  flex: 0 0 auto;
+}
+
+.cmd-prompt {
+  flex: 0 0 auto;
+  white-space: pre;
+  color: #cccccc;
+}
+
+.cmd-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: #cccccc;
+  caret-color: #cccccc;
+}
+
+.cmd-input:focus {
+  outline: none;
+}

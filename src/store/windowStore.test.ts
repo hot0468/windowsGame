@@ -9,7 +9,7 @@ const reset = () =>
 const stub = (id: string, extra: Record<string, unknown> = {}) => ({
   id,
   title: id,
-  icon: 'fluent-emoji-flat:globe-with-meridians',
+  icon: 'fluent-color:globe-24',
   x: 0,
   y: 0,
   width: 320,

@@ -1,18 +1,27 @@
 import { DESKTOP_ITEMS } from '../../data/desktopItems'
 import { AppIcon } from '../../icons/AppIcon'
+import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
 import { WindowManager } from '../window/WindowManager'
 import { EndingModal } from '../apps/EndingModal'
 import { CalendarPanel } from './CalendarPanel'
 import { StatPanel } from './StatPanel'
 import { Taskbar } from './Taskbar'
+import { ToastHost } from './ToastHost'
 import './Desktop.css'
 
 export function Desktop() {
   const open = useWindowStore((s) => s.open)
+  /**
+   * 바탕화면 풍경은 슬롯을 따라간다(설계자 지시).
+   * 오전은 낮 하늘, 오후는 해 질 녘 — 게임에서 밤은 자동 취침이라 화면에 없으므로
+   * "하루가 저물어 간다"는 신호를 오후 배경이 대신 진다. 색은 CSS가 정하고
+   * 여기서는 어느 쪽인지만 알린다.
+   */
+  const slot = useGameStore((s) => s.state?.slot)
 
   return (
-    <div className="desktop">
+    <div className={`desktop ${slot === 'afternoon' ? 'desktop-dusk' : 'desktop-day'}`}>
       <div className="desktop-icons">
         {DESKTOP_ITEMS.map((item, i) => (
           <button
@@ -33,6 +42,8 @@ export function Desktop() {
                 kind: item.kind,
                 activityId: item.activityId,
                 message: item.stubMessage,
+                appId: item.appId,
+                folderId: item.folderId,
               })
             }
           >
@@ -48,6 +59,8 @@ export function Desktop() {
       <StatPanel />
       <WindowManager />
       <Taskbar />
+      {/* 알림은 작업 표시줄 위·엔딩 모달 아래에 뜬다. 턴이 넘어갈 때만 나타난다. */}
+      <ToastHost />
       <EndingModal />
     </div>
   )

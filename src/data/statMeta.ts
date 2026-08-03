@@ -26,24 +26,35 @@ export interface StatMeta {
 }
 
 export const STAT_META: Record<keyof Stats, StatMeta> = {
-  stamina: { icon: 'fluent-emoji-flat:beating-heart', hudIcon: 'ph:heartbeat' },
-  maxStamina: { icon: 'fluent-emoji-flat:flexed-biceps', hudIcon: 'ph:barbell' },
-  mental: { icon: 'fluent-emoji-flat:slightly-smiling-face', hudIcon: 'ph:smiley' },
-  money: { icon: 'fluent-emoji-flat:money-bag', hudIcon: 'ph:coins' },
-  knowledge: { icon: 'fluent-emoji-flat:brain', hudIcon: 'ph:brain' },
-  charm: { icon: 'fluent-emoji-flat:sparkles', hudIcon: 'ph:sparkle' },
-  sensitivity: { icon: 'fluent-emoji-flat:artist-palette', hudIcon: 'ph:palette' },
-  reputation: { icon: 'fluent-emoji-flat:megaphone', hudIcon: 'ph:megaphone' },
-  morality: { icon: 'fluent-emoji-flat:balance-scale', hudIcon: 'ph:scales' },
-  creativity: { icon: 'fluent-emoji-flat:light-bulb', hudIcon: 'ph:lightbulb-filament' },
-  sociability: { icon: 'fluent-emoji-flat:handshake', hudIcon: 'ph:handshake' },
-  vocabulary: { icon: 'fluent-emoji-flat:books', hudIcon: 'ph:books' },
-  athletics: { icon: 'fluent-emoji-flat:person-running', hudIcon: 'ph:person-simple-run' },
+  // ⚠️ stamina = 행동력, maxStamina = 체력이다(types/game.ts의 STAT_NAMES 주석 참조).
+  // 개명에 맞춰 글리프도 바꿨다 — 행동력에 심장, 체력에 팔 근육이면 이름과 그림이 어긋난다.
+  stamina: { icon: 'fluent-color:gauge-24', hudIcon: 'mdi:lightning-bolt-outline' },
+  maxStamina: { icon: 'fluent-color:heart-24', hudIcon: 'mdi:arm-flex-outline' },
+  mental: { icon: 'fluent-color:person-24', hudIcon: 'mdi:emoticon-happy-outline' },
+  money: { icon: 'fluent-color:coin-multiple-24', hudIcon: 'mdi:wallet-outline' },
+  knowledge: { icon: 'fluent-color:lightbulb-filament-24', hudIcon: 'mdi:brain' },
+  charm: { icon: 'fluent-color:premium-24', hudIcon: 'mdi:shimmer' },
+  sensitivity: { icon: 'fluent-color:paint-brush-24', hudIcon: 'mdi:palette-outline' },
+  reputation: { icon: 'fluent-color:megaphone-loud-24', hudIcon: 'mdi:bullhorn-outline' },
+  morality: { icon: 'fluent-color:shield-24', hudIcon: 'mdi:scale-balance' },
+  creativity: { icon: 'fluent-color:lightbulb-24', hudIcon: 'mdi:lightbulb-outline' },
+  sociability: { icon: 'fluent-color:people-24', hudIcon: 'mdi:handshake-outline' },
+  vocabulary: { icon: 'fluent-color:book-24', hudIcon: 'mdi:book-open-page-variant-outline' },
+  athletics: { icon: 'fluent-color:sport-24', hudIcon: 'mdi:run' },
+  gaming: { icon: 'fluent-color:puzzle-piece-24', hudIcon: 'mdi:gamepad-variant-outline' },
 }
 
 /**
- * 스탯창 성장 스탯 그리드의 표시 순서.
- * GROWTH_STAT_KEYS(지식·매력 → 신규 7종) 순서를 그대로 따르되,
- * 표시 순서를 바꾸고 싶을 때 상한 정의(types)를 건드리지 않도록 여기서 한 번 감싼다.
+ * 스탯창 성장 스탯 **그리드**의 표시 순서.
+ * GROWTH_STAT_KEYS 순서를 따르되, 표시 순서를 바꿀 때 상한 정의(types)를 건드리지
+ * 않도록 여기서 한 번 감싼다.
+ *
+ * ⚠️ **평판·도덕은 빠져 있다** — 설계자가 자원 줄(체력 아래)로 옮겼기 때문이다.
+ * 둘 다 여전히 성장 스탯(상한 999)이고 `GROWTH_STAT_KEYS`에도 그대로 있다.
+ * 이건 "어디에 그리나"의 문제라 표시용 목록에서만 뺀다 — 상한·클램프·엔딩 판정은 그대로다.
  */
-export const GROWTH_STAT_ORDER: GrowthStatKey[] = [...GROWTH_STAT_KEYS]
+const RESOURCE_ROW_STATS: GrowthStatKey[] = ['reputation', 'morality']
+
+export const GROWTH_STAT_ORDER: GrowthStatKey[] = GROWTH_STAT_KEYS.filter(
+  (k) => !RESOURCE_ROW_STATS.includes(k),
+)

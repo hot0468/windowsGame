@@ -6,7 +6,11 @@ import {
   skipSlot,
   MAX_STAMINA_CAP,
   GROWTH_STAT_CAP,
+  growthCap,
   MENTAL_CAP,
+  AD_BONUS_MONEY,
+  canClaimAdBonus,
+  claimAdBonus,
 } from './turn'
 import { findActivity } from '../data/activities'
 import { getLivingCost } from './economy'
@@ -142,18 +146,19 @@ describe('runActivity — 스탯 적용', () => {
 })
 
 describe('스탯 상한', () => {
-  it('성장 스탯 9종은 999를 상한으로 한다', () => {
+  it('성장 스탯 10종은 999를 상한으로 한다', () => {
     expect(GROWTH_STAT_CAP).toBe(999)
-    expect(GROWTH_STAT_KEYS).toHaveLength(9)
+    expect(GROWTH_STAT_KEYS).toHaveLength(10)
   })
 
-  it('상한을 넘긴 성장 스탯은 999로 끌어내린다', () => {
+  it('상한을 넘긴 성장 스탯은 각자의 상한으로 끌어내린다', () => {
+    // 평판·도덕만 100이고 나머지는 999다 — growthCap()이 스탯별 상한의 단일 출처다.
     const base = createInitialState('t').stats
     const inflated = { ...base }
     for (const key of GROWTH_STAT_KEYS) inflated[key] = 99999
     const after = runActivity(stateWith({ stats: inflated }), study)
     for (const key of GROWTH_STAT_KEYS) {
-      expect(after.stats[key]).toBe(GROWTH_STAT_CAP)
+      expect(after.stats[key]).toBe(growthCap(key))
     }
   })
 
@@ -163,13 +168,27 @@ describe('스탯 상한', () => {
     expect(runActivity(s, study).stats.knowledge).toBe(GROWTH_STAT_CAP)
   })
 
+  it('평판·도덕만 상한이 100이고 나머지 성장 스탯은 999다', () => {
+    // 표시(스탯창 게이지)와 클램프가 같은 growthCap()을 보므로 여기만 지키면 어긋나지 않는다.
+    expect(growthCap('reputation')).toBe(100)
+    expect(growthCap('morality')).toBe(100)
+    expect(growthCap('knowledge')).toBe(GROWTH_STAT_CAP)
+    // 상한 위로 저장돼 있어도 클램프가 끌어내린다.
+    const s = stateWith({
+      stats: { ...createInitialState('t').stats, reputation: 500, morality: 500 },
+    })
+    const after = runActivity(s, study).stats
+    expect(after.reputation).toBe(100)
+    expect(after.morality).toBe(100)
+  })
+
   it('성장 스탯은 0 아래로 내려가지 않는다', () => {
     // 게임은 knowledge -1이다. 0에서 실행해도 음수가 되면 안 된다.
     const s = stateWith({ stats: { ...createInitialState('t').stats, knowledge: 0 } })
     expect(runActivity(s, findActivity('game')!).stats.knowledge).toBe(0)
   })
 
-  it('신규 스탯 7종은 0에서 시작하고 어떤 활동으로도 오르지 않는다', () => {
+  it('신규 스탯 8종은 0에서 시작하고 어떤 활동으로도 오르지 않는다', () => {
     // 스케줄 시스템 도입 전까지는 의도적으로 0에 머물러야 한다.
     const newKeys = [
       'sensitivity',
@@ -179,6 +198,7 @@ describe('스탯 상한', () => {
       'sociability',
       'vocabulary',
       'athletics',
+      'gaming',
     ] as const
     let s = createInitialState('t')
     for (const key of newKeys) expect(s.stats[key]).toBe(0)
@@ -341,5 +361,43 @@ describe('skipSlot', () => {
   it('게임오버 상태면 아무 일도 일어나지 않는다 (버튼 비활성화와 일치)', () => {
     const before = stateWith({ gameOver: 'bankrupt' })
     expect(skipSlot(before)).toBe(before)
+  })
+})
+
+describe('광고 배너 보상', () => {
+  it('하루 한 번만 받을 수 있다', () => {
+    const s = createInitialState('t')
+    expect(canClaimAdBonus(s)).toBe(true)
+
+    const after = claimAdBonus(s)
+    expect(after.stats.money).toBe(s.stats.money + AD_BONUS_MONEY)
+    expect(canClaimAdBonus(after)).toBe(false)
+
+    // 두 번째 호출은 아무것도 바꾸지 않는다 — 호출부에서 막지 않아도 안전해야 한다.
+    expect(claimAdBonus(after)).toBe(after)
+  })
+
+  it('날이 바뀌면 다시 받을 수 있다', () => {
+    const claimed = claimAdBonus(createInitialState('t'))
+    expect(canClaimAdBonus({ ...claimed, day: claimed.day + 1 })).toBe(true)
+  })
+
+  it('턴을 소모하지 않는다 (탐색은 무료)', () => {
+    const s = createInitialState('t')
+    const after = claimAdBonus(s)
+    expect(after.day).toBe(s.day)
+    expect(after.slot).toBe(s.slot)
+    expect(after.recentActivities).toEqual(s.recentActivities)
+  })
+
+  it('게임오버 상태에서는 받을 수 없다', () => {
+    const s = { ...createInitialState('t'), gameOver: 'bankrupt' as const }
+    expect(canClaimAdBonus(s)).toBe(false)
+    expect(claimAdBonus(s)).toBe(s)
+  })
+
+  it('보상액이 하루 생활비를 흔들 만큼 크지 않다', () => {
+    // 클릭이 생계 수단이 되면 "일해서 번다"는 축이 무너진다. 1% 미만을 지킨다.
+    expect(AD_BONUS_MONEY).toBeLessThan(getLivingCost(1) * 0.01)
   })
 })

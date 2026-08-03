@@ -1,0 +1,69 @@
+import { MESSAGE_SCHEDULE, THREAD_LIMIT } from '../data/messages'
+import type { Message } from '../data/messages'
+import type { Slot } from '../types/game'
+
+/**
+ * 게임 시간(day, slot)을 0부터 세는 **턴 번호**로 바꾼다.
+ * 1일차 오전 = 0, 1일차 오후 = 1, 2일차 오전 = 2 …
+ *
+ * 메시지 편성표가 이 번호 하나로 색인되므로, 날짜와 슬롯을 따로 다루는 코드가
+ * 여기 말고는 생기지 않는다.
+ */
+export function turnIndex(day: number, slot: Slot): number {
+  return (day - 1) * 2 + (slot === 'afternoon' ? 1 : 0)
+}
+
+/** 편성표는 순환한다 — 날짜 제한이 없는 게임이라 유한한 대본은 언젠가 바닥난다. */
+function scheduleAt(turn: number): Message[] {
+  if (turn < 0) return []
+  return MESSAGE_SCHEDULE[turn % MESSAGE_SCHEDULE.length]
+}
+
+/**
+ * 그 턴에 찍히는 시각 문구.
+ *
+ * ⚠️ `Date`를 쓰지 않는다 — 창을 열 때마다 시각이 바뀌면 결정성이 깨지고,
+ * 게임 안의 시간(오전/오후 슬롯)과도 어긋난다. 오전은 09시대, 오후는 15시대로
+ * 턴 안의 순번만큼 분을 밀어 준다.
+ */
+export function messageTime(turn: number, indexInTurn: number): string {
+  const afternoon = turn % 2 === 1
+  const hour = afternoon ? 15 : 9
+  const minute = (indexInTurn * 17 + 8) % 60
+  return `${afternoon ? '오후' : '오전'} ${hour}:${String(minute).padStart(2, '0')}`
+}
+
+/** 대화창에 뿌릴 한 줄. 원본 메시지에 시각을 붙인 표시용 형태다. */
+export interface TimedMessage extends Message {
+  time: string
+}
+
+/** 이 턴에 **새로 도착하는** 메시지. 토스트가 이걸 띄운다. */
+export function selectIncoming(day: number, slot: Slot): Message[] {
+  return scheduleAt(turnIndex(day, slot))
+}
+
+/**
+ * 지금까지 이 채널(채팅방 또는 사서함)에 쌓인 메시지. 0턴부터 현재 턴까지 훑는다.
+ *
+ * 받은 메시지를 상태로 저장하지 않는 이유: 편성표가 결정적이라 (day, slot)만 있으면
+ * 언제든 같은 목록을 다시 만들 수 있다. 세이브에 메시지 배열을 넣으면 편성표를
+ * 고칠 때마다 기존 세이브와 어긋난다.
+ */
+export function selectChannel(channel: string, day: number, slot: Slot): TimedMessage[] {
+  const now = turnIndex(day, slot)
+  const out: TimedMessage[] = []
+  for (let t = 0; t <= now; t++) {
+    scheduleAt(t).forEach((m, i) => {
+      if (m.channel === channel) out.push({ ...m, time: messageTime(t, i) })
+    })
+  }
+  // 오래된 것부터 잘라 최근 것만 남긴다.
+  return out.slice(-THREAD_LIMIT)
+}
+
+/** 목록 창의 한 줄에 쓰는 마지막 메시지. 없으면 undefined. */
+export function lastMessage(channel: string, day: number, slot: Slot): TimedMessage | undefined {
+  const all = selectChannel(channel, day, slot)
+  return all[all.length - 1]
+}

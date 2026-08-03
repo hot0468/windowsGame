@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { LAYERS } from '../data/layers'
-import type { IconName, WindowKind } from '../types/game'
+import type { FolderId, IconName, WindowKind } from '../types/game'
 
 /** 최대화 이전의 좌표·크기. 복원할 때 이 값으로 되돌린다. */
 export interface RestoreBounds {
@@ -40,6 +40,12 @@ export interface OpenWindow {
   activityId?: string
   /** kind가 'stub'일 때 보여줄 안내 문구. */
   message?: string
+  /** kind가 'chat'(목록)/'mail'일 때 어느 앱을 열지. */
+  appId?: string
+  /** kind가 'thread'일 때 어느 채팅방을 열지. */
+  threadId?: string
+  /** kind가 'folder'일 때 어느 폴더를 열지. */
+  folderId?: FolderId
 }
 
 /**

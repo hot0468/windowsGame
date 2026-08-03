@@ -18,3 +18,15 @@
 | 2026-08-03 | 플레이 가능 코어 구현 완료 (Task 1~12) | src/ 전체 | 계획 2026-08-03-playable-core 실행 |
 | 2026-08-03 | 파일 맵·컨벤션·구현 중 결정 사항 반영 | skills/project-context | 다음 세션의 코드베이스 재탐색 방지 |
 | 2026-08-03 | 디자인 규칙 추가: UI 작업 전 ui-ux-pro-max 필수 로드 | CLAUDE.md, game-pipeline | 디자인 스킬을 설치했는데 참조하지 않고 감으로 스타일링한 문제 재발 방지 |
+| 2026-08-04 | 쇼핑·택배·인벤토리/이벤트 도감 추가, 카톡 일반/오픈 탭 분리, 일정 창 전체 높이화 | src/, project-context | 설계자 요청 배치 실행 |
+| 2026-08-03 | HUD 밝은 모던 리스타일 완료 + 폰트 3벌(Pretendard/Cafe24 Ohsquare/SF 함박눈) 도입 | src/index.css, HudPanel/Desktop/EndingModal CSS, index.html | 다크 판타지 방향 기각분 마무리, 설계자 폰트 지시 반영 |
+| 2026-08-03 | 브라우저 즐겨찾기 줄·별표·더보기 메뉴 추가, 스탯창 스크롤 제거·"생계" 제목 삭제 | BrowserApp, browserStore(신규), HudPanel, StatPanel | 설계자 지시 |
+| 2026-08-03 | 테두리 장식 추가 (HUD·게임 팝업·엔딩 모달, 브라우저 제외) | PanelOrnament(신규), Window/WindowManager, HudPanel, EndingModal | 설계자 지시. 외부 이미지 대신 인라인 SVG |
+| 2026-08-03 | HUD 아이콘 세트 ph → mdi 교체(`@iconify-json/ph` 제거), 구역 라벨 전부 삭제, 브라우저 탭 줄 추가 | statMeta, icons, StatPanel, BrowserApp, build-icon-subset | 설계자 지시 |
+| 2026-08-03 | 스탯 개명(행동력/체력), 평판·도덕 상한 100 + 자원 줄 이동, 트레이 버튼 토글화, 낮/해질녘 배경, 브라우저 흰 크롬·기본 즐겨찾기 제거 | turn.ts(growthCap), StatPanel, desktopPanelStore, Desktop, browserStore | 설계자 지시 |
+| 2026-08-03 | 주소창 입력 가능화(`resolveUrl`), NEVER 포털 모던 리스타일 | sites.ts, BrowserApp, NeverPortal.css | 설계자 지시 |
+| 2026-08-03 | NEVER→네이놈 개명, 로고 서체(SB 어그로), 검색창·퀵메뉴·뉴스 리스타일, 배너존 + 광고 보상(하루 1회 100원) | sites, banners(신규), news, turn.ts, gameStore, NeverPortal | 설계자 지시 |
+| 2026-08-04 | 메신저(카톡·너아무튼온)·아웃룩·토스트 알림 신설 | messages(데이터/시스템), toastStore, ChatApp, MailApp, ToastHost | 설계자 지시 |
+| 2026-08-04 | 시작 메뉴 + 시스템 도구 3종(저장·작업관리자·명령프롬프트), 스탯 `gaming` 추가 | startMenu, StartMenu, SystemApps, types/statMeta | 설계자 지시 |
+| 2026-08-04 | 스케줄러(예약 자동 실행) + 포털 검색 결과 + 브라우저 개발자 모드 | schedule(신규), search(신규), SchedulerApp, NeverPortal, BrowserApp | 설계자 지시 |
+| 2026-08-04 | `Window`에 `bareTitle`·`dark` 옵션, 열릴 때 위치 클램프. HUD 테두리 장식 제거 | Window, WindowManager, HudPanel | 레퍼런스 충실도 + 창이 작업표시줄 아래로 빠지던 문제 |

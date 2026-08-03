@@ -1,8 +1,21 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { canRun, createInitialState, runActivity, skipSlot } from '../systems/turn'
+import {
+  canRun,
+  claimAdBonus,
+  createInitialState,
+  runActivity,
+  skipSlot,
+  spendMoney,
+} from '../systems/turn'
 import { INITIAL_STATS } from '../types/game'
-import type { Activity, GameState, Stats } from '../types/game'
+import { findActivity } from '../data/activities'
+import { clearPlan, planWeekly, runPlans, setPlan } from '../systems/schedule'
+import { collect, order, recordEvent } from '../systems/delivery'
+import type { OfferOption } from '../data/messages'
+import type { ShopItem } from '../data/items'
+import type { SkippedPlan } from '../systems/schedule'
+import type { Activity, GameState, Slot, Stats } from '../types/game'
 
 /**
  * 세이브에 반드시 유한한 숫자로 들어 있어야 하는 스탯 키.
@@ -53,6 +66,13 @@ function reviveState(raw: unknown): GameState | null {
       : [],
     gameOver:
       saved.gameOver === 'bankrupt' || saved.gameOver === 'burnout' ? saved.gameOver : null,
+    // 옵셔널 필드는 형태만 확인하고 통과시킨다. 여기서 빠뜨리면 세이브를 되돌릴 때마다
+    // 예약·배송·도감이 조용히 사라진다(값 검증은 각 시스템이 이미 하고 있다).
+    adBonusDay: Number.isFinite(saved.adBonusDay) ? Number(saved.adBonusDay) : undefined,
+    plans: Array.isArray(saved.plans) ? saved.plans : undefined,
+    inventory: Array.isArray(saved.inventory) ? saved.inventory : undefined,
+    deliveries: Array.isArray(saved.deliveries) ? saved.deliveries : undefined,
+    events: Array.isArray(saved.events) ? saved.events : undefined,
   }
 }
 
@@ -80,6 +100,18 @@ export function selectPersistedState(state: GameState | null): { state: GameStat
   return { state: state?.gameOver ? null : state }
 }
 
+/**
+ * 턴이 넘어간 뒤의 공통 처리.
+ *
+ * **턴을 넘기는 모든 통로가 여기를 지난다** — 예약 실행(`runPlans`)과 택배 수령(`collect`)을
+ * 호출부마다 적어 두면 새 통로가 생길 때마다 하나씩 빠뜨린다.
+ */
+function afterTurn(next: GameState) {
+  const ran = runPlans(next)
+  const got = collect(ran.state)
+  return { state: got.state, skippedPlans: ran.skipped, arrivals: got.arrived }
+}
+
 interface GameStore {
   state: GameState | null
   /** 잠금화면을 통과했는지. 저장하지 않아 새로고침 시 잠금화면부터 시작한다. */
@@ -89,6 +121,44 @@ interface GameStore {
   logout: () => void
   doActivity: (activity: Activity) => void
   doSkip: () => void
+  /** 포털 광고 배너 보상(하루 한 번 100원). 턴은 소모하지 않는다. */
+  claimAdBonus: () => void
+  /**
+   * 세이브 문자열을 되돌려 넣는다. 성공하면 true.
+   *
+   * ⚠️ 형태만 확인하고 값은 믿지 않는다 — 손으로 고친 세이브가 들어올 수 있으므로
+   * 스탯은 다음 행동 때 `clampStats`가 어차피 상한으로 끌어내린다. 여기서 전부
+   * 검사하려 들면 규칙이 두 곳으로 갈라진다.
+   */
+  importSave: (raw: string) => boolean
+  /** 예약을 정한다(같은 슬롯이면 교체). 지난 슬롯에는 넣지 않는다. */
+  planActivity: (day: number, slot: Slot, activityId: string) => void
+  /** 예약을 지운다. */
+  unplan: (day: number, slot: Slot) => void
+  /**
+   * 오픈채팅의 제안을 받아들인다(헬스장 등).
+   *
+   * 세 가지가 한 동작으로 묶인다: 즉시 결제(`cost`) · 주간 예약(`weekly`) · 즉시 활동(`activityId`).
+   * 컴포넌트가 세 번 나눠 부르면 중간에 실패했을 때 절반만 적용된 상태가 남는다.
+   */
+  acceptOffer: (option: OfferOption) => void
+  /**
+   * 예약을 못 지킨 내역. **휘발**이다 — 알리고 나면 남길 이유가 없다.
+   * 조용히 사라지면 왜 안 됐는지 알 수 없으므로 밖으로 꺼내 둔다.
+   */
+  skippedPlans: SkippedPlan[]
+  clearSkipped: () => void
+  /**
+   * 물건을 산다. **턴은 소모하지 않고 돈만 나간다** — 물건은 다음 날 도착하고
+   * 효과도 그때 붙는다(`systems/delivery.ts`).
+   */
+  orderItem: (item: ShopItem) => void
+  /**
+   * 방금 도착한 택배. **휘발**이다 — 토스트를 띄우고 나면 남길 이유가 없다
+   * (`skippedPlans`와 같은 규칙). 보유 기록은 `state.inventory`가 들고 있다.
+   */
+  arrivals: ShopItem[]
+  clearArrivals: () => void
   markEndingSeen: (endingId: string) => void
   reset: () => void
 }
@@ -111,16 +181,115 @@ export const useGameStore = create<GameStore>()(
       /** 잠금화면으로 돌아간다. 세이브는 유지된다. */
       logout: () => set({ loggedIn: false }),
 
+      skippedPlans: [],
+      clearSkipped: () => set({ skippedPlans: [] }),
+
+      arrivals: [],
+      clearArrivals: () => set({ arrivals: [] }),
+
+      orderItem: (item) => {
+        const current = get().state
+        if (!current) return
+        const next = order(current, item)
+        if (next === current) return
+        set({ state: next })
+      },
+
+      acceptOffer: (option) => {
+        const current = get().state
+        if (!current) return
+        // 결제부터 한다 — 잔액이 모자라면 spendMoney가 상태를 그대로 돌려주므로
+        // 아래에서 그걸 확인해 예약·활동을 건너뛴다(외상으로 등록되면 안 된다).
+        let next = option.cost ? spendMoney(current, option.cost) : current
+        if (option.cost && next === current) return
+
+        if (option.weekly) {
+          next = {
+            ...recordEvent(next, 'gym-member'),
+            plans: planWeekly(
+              next.plans ?? [],
+              next.day,
+              option.weekly.weekday,
+              option.weekly.weeks,
+              option.weekly.activityId,
+            ),
+          }
+        }
+
+        if (option.activityId) {
+          const activity = findActivity(option.activityId)
+          if (activity && canRun(next, activity)) {
+            set(afterTurn(runActivity(next, activity)))
+            return
+          }
+          // 조건이 안 되면 결제도 예약도 하지 않는다 — 반쪽짜리 상태를 남기지 않는다.
+          if (activity) return
+        }
+
+        set({ state: next })
+      },
+
+      planActivity: (day, slot, activityId) => {
+        const current = get().state
+        if (!current) return
+        // 지난 슬롯에는 못 넣는다 — 과거를 예약하는 건 말이 안 된다.
+        const now = current.day * 2 + (current.slot === 'afternoon' ? 1 : 0)
+        if (day * 2 + (slot === 'afternoon' ? 1 : 0) < now) return
+        const planned = { ...current, plans: setPlan(current.plans ?? [], day, slot, activityId) }
+        set({ state: recordEvent(planned, 'first-plan') })
+      },
+
+      unplan: (day, slot) => {
+        const current = get().state
+        if (!current) return
+        set({ state: { ...current, plans: clearPlan(current.plans ?? [], day, slot) } })
+      },
+
+      /**
+       * ⚠️ 행동 뒤에는 **항상 예약을 흘려 보낸다**(`runPlans`).
+       * 턴을 넘기는 통로가 여기 둘(doActivity·doSkip)뿐이라 여기서만 부르면 빠짐이 없다.
+       * `turn.ts`가 예약을 모르는 것은 의도다 — 턴 규칙이 스케줄러를 모르게 두어야
+       * 밸런스 테스트가 스케줄러 없이도 성립한다.
+       */
       doActivity: (activity) => {
         const current = get().state
         if (!current || !canRun(current, activity)) return
-        set({ state: runActivity(current, activity) })
+        set(afterTurn(runActivity(current, activity)))
+      },
+
+      /**
+       * ⚠️ **이미 있는 세이브 검증기(`reviveState`)를 그대로 쓴다.**
+       * 여기서 따로 검사하면 규칙이 두 곳으로 갈라지고, 손으로 고친 세이브가
+       * 그쪽 구멍으로 들어온다 — NaN 스탯이 들어오면 게임오버 판정이 영영 안 걸린다.
+       */
+      importSave: (raw) => {
+        try {
+          const revived = reviveState(JSON.parse(raw))
+          if (!revived) return false
+          set({ state: revived })
+          return true
+        } catch {
+          return false
+        }
+      },
+
+      /**
+       * ⚠️ **브라우저가 게임 상태를 바꾸는 유일한 통로다.**
+       * 원칙은 그대로다 — 브라우저·사이트는 스탯을 직접 계산하지 않고, 하루 한 번
+       * 제한과 금액은 전부 `systems/turn.ts`가 정한다. 여기서는 순수 함수를 부르기만 한다.
+       */
+      claimAdBonus: () => {
+        const current = get().state
+        if (!current) return
+        const claimed = claimAdBonus(current)
+        // 보상을 못 받은 날(이미 받음)은 사건도 기록하지 않는다 — 누른 적이 있어야 사건이다.
+        set({ state: claimed === current ? current : recordEvent(claimed, 'first-ad') })
       },
 
       doSkip: () => {
         const current = get().state
         if (!current) return
-        set({ state: skipSlot(current) })
+        set(afterTurn(skipSlot(current)))
       },
 
       markEndingSeen: (endingId) => {

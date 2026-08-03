@@ -222,11 +222,97 @@
   transform: rotate(-45deg);
 }
 
+/*
+ * 테두리 장식은 타이틀 바를 비켜 본문 영역만 감싼다 — 타이틀 바는 윈도우 11 크롬이고
+ * 거기에 장식이 걸치면 OS 크롬을 게임이 침범한 꼴이 된다.
+ * ⚠️ 45px = SHELL.TITLE_BAR_HEIGHT(40) + 장식 여백(5). CSS가 TS 상수를 못 읽어
+ * 중복해 둔 값이므로 타이틀 바 높이를 바꾸면 여기도 함께 고친다(layers.ts와 같은 규칙).
+ * .win-body 안이 아니라 밖에 두는 이유: 본문은 스크롤 컨테이너라 안에 넣으면
+ * 장식이 내용과 함께 굴러 올라가 버린다.
+ */
+.win > .panel-ornament {
+  top: 45px;
+}
+
 .win-body {
-  padding: var(--sp-4);
+  /* 장식이 붙는 창(활동창·안내창)에서 액자선과 글자가 붙지 않도록 20px.
+     장식선이 5px 안쪽에 있으므로 실제 여백은 14px이다. */
+  padding: var(--sp-5);
   font-size: var(--fs-md);
   line-height: 1.55;
   color: var(--os-text);
   overflow-y: auto;
   max-height: 60vh;
+}
+
+/*
+ * 일정(스케줄러)은 달력이라 **세로로 커야 읽힌다**(설계자 지시: 화면에 거의 꽉 차게).
+ * `.win-body`의 60vh 상한이 걸리면 실제 높이와 무관하게 세로 스크롤바가 생기므로
+ * 이 창에서만 상한을 푼다 — 실제 높이는 `.sch`의 min-height가 정한다.
+ */
+/* 파일 탐색기도 같은 이유다 — 목록 창이라 세로로 커야 하고, 실제 높이는 `.ex`가 정한다. */
+.win-body:has(> .sch),
+.win-body:has(> .ex) {
+  max-height: none;
+}
+
+/*
+ * 제목 없는 타이틀 바(bareTitle). 캡션 버튼만 남고 앱 배경이 창 꼭대기까지 올라온다 —
+ * 레퍼런스(카톡·네이트온 PC)에는 회색 OS 타이틀 바가 보이지 않는다.
+ *
+ * 바를 **본문 위에 겹쳐** 띄우는 것이 핵심이다. 흐름에 그대로 두면 앱 색이 시작되기 전에
+ * 빈 띠가 한 줄 생겨 "타이틀 바를 지운" 인상이 나오지 않는다.
+ * 겹쳐도 드래그·더블클릭 최대화는 그대로 동작한다.
+ */
+.win-title-bare {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  background: transparent;
+  border-bottom: none;
+}
+
+/* 본문 패딩을 걷어내 앱이 창 가장자리까지 자기 색을 칠하게 한다.
+   캡션 버튼에 가리지 않도록 위쪽을 비우는 것은 **앱의 몫**이다 —
+   여기서 padding-top을 주면 앱 배경이 그만큼 위에서 잘려 타이틀 바가 다시 보인다. */
+.win-bare .win-body {
+  padding: 0;
+  /* 상한을 완전히 풀면 내용이 긴 창이 화면보다 커져 위치 보정으로도 담을 수 없다.
+     ⚠️ 44px = SHELL.TASKBAR_HEIGHT, 여기에 위아래 숨 56px을 더한 값이다. */
+  max-height: calc(100vh - 100px);
+}
+
+/*
+ * 어두운 창 크롬(dark). 명령 프롬프트처럼 **창 전체가 어두운 프로그램**용이다.
+ * 캡션 글리프를 밝은 색으로 뒤집지 않으면 어두운 바 위에서 보이지 않는다.
+ * 닫기 hover의 빨강만 그대로 둔다 — 어느 테마에서도 같은 뜻이기 때문이다.
+ */
+.win-dark {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.win-dark .win-caption-btn {
+  color: #e6e6e6;
+}
+
+.win-dark .win-minimize:hover,
+.win-dark .win-maximize:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.win-dark .win-minimize:active,
+.win-dark .win-maximize:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 복원 글리프의 앞쪽 사각형은 배경을 채워 뒤쪽 선을 가린다 —
+   어두운 크롬에서는 그 채움색도 어두워야 한다. */
+.win-dark .win-glyph-restore::after {
+  background: #2b2b2b;
+}
+
+.win-dark .win-maximize:hover .win-glyph-restore::after {
+  background: #3a3a3a;
 }

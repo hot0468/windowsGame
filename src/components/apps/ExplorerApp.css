@@ -1,0 +1,249 @@
+/*
+ * 파일 탐색기(아이템 인벤토리 · 이벤트 도감).
+ * OS 창이므로 --os-* 토큰만 쓴다. 실제 윈도우 11 탐색기와 같은 골격이다:
+ * 도구 모음 → 주소 표시줄 → (탐색 창 | 파일 목록) → 상태 표시줄.
+ */
+.ex {
+  display: flex;
+  flex-direction: column;
+  /* 탐색기는 목록을 보는 창이라 세로로 넉넉해야 한다. 화면이 짧으면 남는 만큼 쓴다. */
+  height: min(560px, calc(100vh - 160px));
+  margin: calc(var(--sp-5) * -1);
+  background: var(--os-surface);
+}
+
+.ex-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--os-line);
+  background: var(--os-chrome);
+}
+
+.ex-tool {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: 32px;
+  padding: 0 var(--sp-3);
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+  cursor: pointer;
+}
+
+.ex-tool:hover {
+  background: var(--os-hover);
+}
+
+/* 선택된 보기. 색만으로 알리지 않도록 배경 + 잉크색 + aria-pressed 셋을 함께 쓴다
+   (ux `color-not-only`, `nav-state-active`). */
+.ex-tool[aria-pressed='true'] {
+  background: var(--os-accent-wash);
+  color: var(--os-accent);
+  font-weight: 600;
+}
+
+.ex-address {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: var(--sp-2) var(--sp-3);
+  padding: 0 var(--sp-3);
+  height: 32px;
+  border: 1px solid var(--os-line);
+  border-radius: var(--r-sm);
+  background: var(--os-surface);
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+}
+
+.ex-path {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ex-main {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.ex-nav {
+  flex: 0 0 180px;
+  padding: var(--sp-2);
+  border-right: 1px solid var(--os-line);
+  overflow-y: auto;
+}
+
+.ex-nav-head {
+  margin: 0 0 var(--sp-1);
+  padding: 0 var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--os-text-3);
+}
+
+.ex-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  min-height: 32px;
+  padding: 0 var(--sp-2);
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font-size: var(--fs-sm);
+  text-align: left;
+  color: var(--os-text);
+  cursor: pointer;
+}
+
+.ex-nav-item:hover {
+  background: var(--os-hover);
+}
+
+.ex-nav-item-on {
+  background: var(--os-accent-wash);
+  font-weight: 600;
+}
+
+.ex-files {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--sp-3);
+  overflow: auto;
+}
+
+.ex-empty {
+  margin: var(--sp-8) auto 0;
+  max-width: 34ch;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  text-align: center;
+  color: var(--os-text-3);
+}
+
+.ex-grid {
+  display: grid;
+  /* 96px = 아이콘 40 + 두 줄 이름. 실제 탐색기의 '큰 아이콘' 간격에 맞춘 값이다. */
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ex-file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-3) var(--sp-1);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+.ex-file:hover {
+  background: var(--os-hover);
+}
+
+/* 선택된 파일. 윈도우 탐색기와 같은 연한 액센트 판 + 테두리. */
+.ex-file-on {
+  border-color: var(--os-accent-line);
+  background: var(--os-accent-wash);
+}
+
+.ex-file-name {
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+  text-align: center;
+  color: var(--os-text);
+  /* 이름이 길어도 두 줄까지만. 잘릴 때는 title 속성이 전문을 보여 준다
+     (ux `truncation-strategy`). */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* 아직 겪지 않은 사건. 색만으로 알리지 않도록 설명 문구도 힌트로 바뀐다. */
+.ex-file-locked,
+.ex-row-locked {
+  opacity: 0.45;
+}
+
+.ex-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.ex-table th {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--os-line);
+  font-weight: 600;
+  text-align: left;
+  color: var(--os-text-3);
+}
+
+.ex-table td {
+  padding: var(--sp-2) var(--sp-3);
+  color: var(--os-text);
+  white-space: nowrap;
+}
+
+/* 이름 칸만 아이콘과 글자를 나란히 놓는다. */
+.ex-table td:first-child {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.ex-table tbody tr {
+  cursor: pointer;
+}
+
+.ex-table tbody tr:hover {
+  background: var(--os-hover);
+}
+
+.ex-row-on {
+  background: var(--os-accent-wash);
+}
+
+/* 숫자 열은 자리수가 흔들리지 않게 tabular (ux `number-tabular`). */
+.ex-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ex-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 1px solid var(--os-line);
+  background: var(--os-chrome);
+  font-size: var(--fs-xs);
+  color: var(--os-text-2);
+}
+
+.ex-status-desc {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ex-status-hint {
+  color: var(--os-text-3);
+}

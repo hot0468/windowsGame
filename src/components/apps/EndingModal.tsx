@@ -6,6 +6,7 @@ import { useWindowStore } from '../../store/windowStore'
 import { UI_ICONS } from '../../data/icons'
 import { STAT_META } from '../../data/statMeta'
 import { AppIcon } from '../../icons/AppIcon'
+import { PanelOrnament } from '../PanelOrnament'
 import { STAT_NAMES } from '../../types/game'
 import type { Stats } from '../../types/game'
 import type { Ending } from '../../data/endings'
@@ -61,6 +62,7 @@ export function EndingModal() {
   return (
     <div className="ending-overlay">
       <div className="ending-box">
+        <PanelOrnament />
         <AppIcon name={ending.icon} size={52} className="ending-icon" />
         <div className="ending-title">
           {showFinal ? ending.title : `엔딩 도달: ${ending.title}`}

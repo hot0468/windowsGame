@@ -1,0 +1,221 @@
+/*
+ * 아웃룩형 메일 창. 레퍼런스 그대로 3단이다: 폴더 / 목록 / 읽기 창.
+ * 창 안의 내용이지만 OS 창이므로 --os-* 토큰만 쓴다.
+ */
+/* ⚠️ 일반 창의 본문 상한(60vh)은 문서형 창을 위한 값이라 메일 클라이언트에는 너무 낮다.
+   그대로 두면 창은 화면에 맞는데 내용만 넘쳐 세로 스크롤바가 생긴다.
+   Window.tsx에 prop을 늘리지 않으려고 브라우저와 같은 :has로 좁힌다. */
+.win-body:has(> .mail) {
+  max-height: calc(100vh - 140px);
+  /* 패딩을 음수 마진으로 되돌리던 방식은 **높이 계산을 어긋나게 한다** —
+     본문의 내용 상자는 패딩만큼 작아지는데 자식은 마진으로 그만큼 커져 40px이 넘친다.
+     여기서 패딩을 아예 없애는 편이 정확하다(브라우저 창과 같은 방식). */
+  padding: 0;
+}
+
+.mail {
+  display: flex;
+  /* 세로는 메신저 목록 창과 같은 값으로 맞춘다(설계자 지시).
+     ⚠️ 아웃룩은 타이틀 바가 있는 일반 창이라 그 40px을 더 빼야 한다. */
+  min-height: min(560px, calc(100vh - 140px));
+}
+
+/* ── 1단: 폴더 ── */
+.mail-folders {
+  flex: 0 0 132px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3) var(--sp-2);
+  border-right: 1px solid var(--os-border);
+  background: var(--os-surface-alt);
+}
+
+.mail-folder {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  border-radius: var(--r-md);
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-md);
+  text-align: left;
+  color: var(--os-text-2);
+  cursor: pointer;
+}
+
+.mail-folder:hover {
+  background: var(--os-fill);
+}
+
+/* 선택된 폴더. 색만으로 알리지 않는다 — aria-current가 같은 사실을 전한다. */
+.mail-folder-on {
+  background: var(--os-accent-wash);
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+.mail-folder-label {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mail-folder-count {
+  flex: 0 0 auto;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--os-text-3);
+}
+
+/* ── 2단: 목록 ── */
+.mail-list {
+  flex: 0 0 236px;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border-right: 1px solid var(--os-border);
+  list-style: none;
+  overflow-y: auto;
+}
+
+.mail-item {
+  display: flex;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-3);
+  border: none;
+  /* 왼쪽 굵은 선이 선택 표시 자리다. 투명하게 미리 잡아 둬 선택 시 글자가 밀리지 않는다. */
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--os-border);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mail-item:hover {
+  background: var(--os-fill);
+}
+
+.mail-item-on {
+  border-left-color: var(--os-accent);
+  background: var(--os-accent-wash);
+}
+
+/* 발신처 프로필 자리. 사진이 없으므로 첫 글자 타일을 둔다 —
+   회색 원을 비워 두면 "이미지 로딩 실패"로 읽힌다. */
+.mail-avatar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--os-accent);
+  color: #fff;
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.mail-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.mail-item-top {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+
+.mail-from {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-md);
+  color: var(--os-text-2);
+}
+
+.mail-time {
+  flex: 0 0 auto;
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+}
+
+/* 제목·미리보기는 한 줄로 자른다 — 길이가 제각각이면 줄 높이가 들쭉날쭉해진다. */
+.mail-subject {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+.mail-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+}
+
+/* ── 3단: 읽기 창 ── */
+.mail-view {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--sp-5);
+  overflow-y: auto;
+}
+
+.mail-view-subject {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--os-text);
+}
+
+.mail-view-from {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-4);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--os-border);
+}
+
+.mail-view-meta {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-md);
+  color: var(--os-text-3);
+}
+
+.mail-view-meta b {
+  color: var(--os-text);
+}
+
+.mail-view-text {
+  margin: 0;
+  line-height: 1.7;
+  color: var(--os-text-2);
+}
+
+.mail-empty {
+  margin: 0;
+  padding: var(--sp-6);
+  color: var(--os-text-3);
+}
+

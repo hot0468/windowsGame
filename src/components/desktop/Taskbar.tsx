@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { formatGameDate } from '../../data/calendar'
 import { UI_ICONS } from '../../data/icons'
 import { AppIcon } from '../../icons/AppIcon'
@@ -6,6 +7,7 @@ import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { useWindowStore } from '../../store/windowStore'
 import type { DesktopPanelId } from '../../store/desktopPanelStore'
 import type { IconName } from '../../types/game'
+import { StartMenu } from './StartMenu'
 
 /**
  * 바탕화면 상시 패널을 다시 앞으로 가져오는 버튼 목록.
@@ -20,11 +22,14 @@ const PANEL_BUTTONS: { id: DesktopPanelId; label: string; icon: IconName }[] = [
 ]
 
 export function Taskbar() {
+  /** 시작 메뉴 열림 상태. 화면 장식이라 스토어에 올리지 않는다. */
+  const [startOpen, setStartOpen] = useState(false)
   const state = useGameStore((s) => s.state)
   const windows = useWindowStore((s) => s.windows)
   /** 실제 윈도우처럼 최소화된 창이면 복원하고, 아니면 앞으로 가져온다. */
   const activate = useWindowStore((s) => s.activate)
-  const raise = useDesktopPanelStore((s) => s.raise)
+  const toggle = useDesktopPanelStore((s) => s.toggle)
+  const panelVisible = useDesktopPanelStore((s) => s.visible)
 
   if (!state) return null
 
@@ -39,9 +44,16 @@ export function Taskbar() {
 
       {/* 시작 버튼도 트레이와 같은 mdi-light 라인 글리프다 — 사유는 data/icons.ts 참조
           (다색 격자는 아크릴 위에서 1.03:1로 사실상 보이지 않았다). */}
-      <button className="taskbar-start" aria-label="시작">
+      <button
+        className={`taskbar-start${startOpen ? ' taskbar-start-on' : ''}`}
+        aria-label="시작"
+        aria-expanded={startOpen}
+        aria-haspopup="menu"
+        onClick={() => setStartOpen((v) => !v)}
+      >
         <AppIcon name={UI_ICONS.start} size={22} />
       </button>
+      {startOpen && <StartMenu onClose={() => setStartOpen(false)} />}
 
       <div className="taskbar-items">
         {windows.map((w) => (
@@ -51,9 +63,11 @@ export function Taskbar() {
             className={w.minimized ? 'taskbar-item taskbar-item-min' : 'taskbar-item'}
             onClick={() => activate(w.id)}
             title={w.minimized ? `${w.title} — 복원` : w.title}
+            /* 글자를 뺐으므로(설계자 지시) 접근성 이름은 aria-label이 진다 —
+               아이콘만 남은 버튼은 스크린 리더에 이름이 없다. */
+            aria-label={w.minimized ? `${w.title} — 복원` : w.title}
           >
-            <AppIcon name={w.icon} size={16} />
-            {w.title}
+            <AppIcon name={w.icon} size={20} />
           </button>
         ))}
       </div>
@@ -65,10 +79,19 @@ export function Taskbar() {
           {PANEL_BUTTONS.map((panel) => (
             <button
               key={panel.id}
-              className="taskbar-panel"
-              onClick={() => raise(panel.id)}
-              title={`${panel.label}창을 맨 앞으로 가져옵니다`}
-              aria-label={`${panel.label}창을 맨 앞으로`}
+              /* 토글이므로 켜진 상태가 눈에 보여야 한다 — 실제 윈도우 트레이 토글과 같다. */
+              className={
+                panelVisible[panel.id] ? 'taskbar-panel taskbar-panel-on' : 'taskbar-panel'
+              }
+              onClick={() => toggle(panel.id)}
+              /* 색만으로 상태를 알리지 않는다: aria-pressed와 문구가 함께 바뀐다. */
+              aria-pressed={panelVisible[panel.id]}
+              title={
+                panelVisible[panel.id] ? `${panel.label}창 숨기기` : `${panel.label}창 보이기`
+              }
+              aria-label={
+                panelVisible[panel.id] ? `${panel.label}창 숨기기` : `${panel.label}창 보이기`
+              }
             >
               {/* mdi-light는 획이 아주 가늘어 16px에서는 흐릿하다 — 트레이 글리프의
                   표준 크기(20px)로 그려 형태와 대비를 살린다. */}

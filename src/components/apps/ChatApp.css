@@ -1,0 +1,597 @@
+/*
+ * 메신저. 레퍼런스(카톡 PC / 네이트온) 골격을 그대로 따른다.
+ * 창 안의 내용이지만 OS 창이므로 --os-* 토큰만 쓴다.
+ *
+ * ⚠️ 목록 창은 **[세로 레일 + 목록 패널]** 이다. 예전에는 방 목록만 그렸는데,
+ * 레일과 패널 헤더는 장식이 아니라 골격이라 빼면 "앱"이 아니라 "목록 하나"가 된다.
+ */
+
+/* ── 목록 창 ── */
+.chat-app {
+  display: flex;
+  /* 목록 창은 세로로 길어야 메신저로 읽힌다(설계자 지시) — 방이 두세 개뿐이라도
+     짧은 창은 "대화 목록"이 아니라 "작은 상자"로 보인다. */
+  /* ⚠️ 고정 560px이 아니라 **화면에 남는 만큼과 비교해 작은 쪽**이다.
+     560을 그냥 박아 두면 화면이 짧을 때 창 본문(.win-body)의 상한을 넘겨
+     창 안에 세로 스크롤바가 생긴다 — 창은 이미 화면에 맞게 줄었는데 내용만 더 큰 상태다.
+     세 앱이 같은 값을 쓴다(ChatApp의 .chat-app/.chat, MailApp의 .mail).
+     ⚠️ 100px = 작업 표시줄 44 + 위아래 숨 56. Window.css의 .win-bare 상한과 같은 값이다. */
+  min-height: min(560px, calc(100vh - 100px));
+}
+
+.chat-rail {
+  flex: 0 0 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  /* ⚠️ 위쪽 48px = 캡션 버튼(타이틀 바 40px)을 비켜 나기 위한 여백.
+     bareTitle 창은 타이틀 바가 본문 위에 겹쳐 뜨므로 앱이 직접 자리를 비운다. */
+  padding: 48px 0 var(--sp-4);
+  background: var(--chat-rail-bg);
+}
+
+/* 위 묶음(프로필·채팅·더보기) / 아래 묶음(이모티콘·알림·설정)으로 갈린다 —
+   레퍼런스와 같은 배치다. */
+.chat-rail-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+.chat-rail-me,
+.chat-rail-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+  color: var(--chat-rail-fg);
+}
+
+/* 선택된 탭만 잉크색이 진하다 — 밝은 레일이라 배경 강조 없이 색만으로 충분하다. */
+.chat-rail-tab-on {
+  color: var(--chat-rail-fg-on);
+}
+
+.chat-rail-badge {
+  position: absolute;
+  top: -3px;
+  right: -6px;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--os-danger);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.chat-panel {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--os-surface);
+}
+
+.chat-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  /* 캡션 버튼 아래로 내려 앉는다(위 .chat-rail 주석 참조). */
+  padding: 48px var(--sp-4) var(--sp-3);
+}
+
+.chat-panel-title {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  color: var(--os-text);
+}
+
+.chat-panel-caret {
+  color: var(--os-text-2);
+}
+
+/* 헤더 오른쪽 도구 글리프 3종. 아직 열 화면이 없어 버튼이 아니라 표시다 —
+   버튼으로 만들어 두고 아무 일도 안 하는 것보다 낫다. */
+.chat-panel-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  color: var(--os-text-2);
+}
+
+/* 필터 칩 줄. 두 칩 모두 **실제로 목록을 거른다** — 장식 칩은 두지 않는다. */
+.chat-filters {
+  display: flex;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-4) var(--sp-3);
+}
+
+.chat-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: 32px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--os-border-strong);
+  border-radius: 999px;
+  background: var(--os-surface);
+  font: inherit;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--os-text);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+
+/* 선택된 칩. aria-pressed가 같은 사실을 스크린 리더에도 전한다. */
+.chat-chip-on {
+  border-color: transparent;
+  background: var(--os-text);
+  color: #fff;
+}
+
+/* 칩 안 글리프는 액센트색이다(레퍼런스의 파란 말풍선). 선택되면 흰색으로 넘어간다. */
+.chat-chip-icon {
+  color: var(--os-accent);
+}
+
+.chat-chip-on .chat-chip-icon {
+  color: #fff;
+}
+
+.chat-chip-badge {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--os-danger);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.chat-rows {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--os-border);
+  list-style: none;
+  overflow-y: auto;
+}
+
+.chat-rows-empty {
+  padding: var(--sp-5);
+  color: var(--os-text-3);
+}
+
+.chat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border: none;
+  border-top: 1px solid var(--os-border);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.chat-row:hover {
+  background: var(--os-fill);
+}
+
+.chat-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.chat-row-name {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--os-text);
+}
+
+/* 단톡 인원수. 1:1 방에는 없다. */
+.chat-row-count {
+  font-size: var(--fs-base);
+  font-weight: 400;
+  color: var(--os-text-3);
+}
+
+/* 미리보기는 **두 줄**까지 흘린다(레퍼런스와 같다). 한 줄로 자르면 대화 맥락이 안 보이고,
+   제한이 없으면 줄 높이가 방마다 달라져 목록이 들쭉날쭉해진다. */
+.chat-row-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: var(--fs-base);
+  line-height: 1.45;
+  color: var(--os-text-3);
+}
+
+/* 오른쪽 열: 시각 위, 안 읽은 수 아래. */
+.chat-row-side {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-2);
+}
+
+.chat-row-time {
+  font-size: var(--fs-md);
+  color: var(--os-text-3);
+  white-space: nowrap;
+}
+
+.chat-row-badge {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--os-danger);
+  color: #fff;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* ── 프로필 타일 ──
+   사진이 없으므로 이름 첫 글자를 얹은 색 타일을 둔다. */
+.chat-avatar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  /* 레퍼런스의 프로필은 원이 아니라 **모서리가 크게 둥근 사각**이다. */
+  border-radius: 16px;
+  background: var(--chat-avatar-bg);
+  color: var(--chat-avatar-fg);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.chat-avatar-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-md);
+}
+
+/* ── 대화창 ──
+   ⚠️ 레퍼런스에서는 **헤더까지 대화 배경과 같은 색**이다. 헤더만 흰색으로 두면
+   창이 위아래로 갈려 "말풍선이 흐르는 판" 하나로 읽히지 않는다.
+   흰색은 맨 아래 입력부에만 쓴다. */
+.chat {
+  display: flex;
+  flex-direction: column;
+  /* 목록 창과 같은 높이(설계자 지시). 나란히 뜨는 창끼리 높이가 제각각이면 어수선하다. */
+  /* ⚠️ 고정 560px이 아니라 **화면에 남는 만큼과 비교해 작은 쪽**이다.
+     560을 그냥 박아 두면 화면이 짧을 때 창 본문(.win-body)의 상한을 넘겨
+     창 안에 세로 스크롤바가 생긴다 — 창은 이미 화면에 맞게 줄었는데 내용만 더 큰 상태다.
+     세 앱이 같은 값을 쓴다(ChatApp의 .chat-app/.chat, MailApp의 .mail).
+     ⚠️ 100px = 작업 표시줄 44 + 위아래 숨 56. Window.css의 .win-bare 상한과 같은 값이다. */
+  min-height: min(560px, calc(100vh - 100px));
+  background: var(--chat-thread-bg);
+}
+
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  /* 위쪽 48px = 캡션 버튼(타이틀 바 40px)을 비켜 나기 위한 여백.
+     bareTitle 창은 타이틀 바가 본문 위에 겹쳐 뜨므로 앱이 직접 자리를 비운다. */
+  padding: 48px var(--sp-4) var(--sp-3);
+}
+
+.chat-head-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.chat-peer {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--os-text);
+}
+
+/* 인원수는 사람 글리프와 함께 이름 아래 줄에 붙는다(레퍼런스와 같은 배치). */
+.chat-members {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--fs-md);
+  color: var(--os-text-2);
+}
+
+/* 헤더 오른쪽 도구 글리프. 아직 열 화면이 없어 버튼이 아니라 표시다. */
+.chat-head-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  color: var(--os-text);
+}
+
+/* 대화 영역. 헤더와 같은 색이므로 경계선 없이 자연히 이어진다. */
+.chat-thread {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: 0;
+  padding: var(--sp-2) var(--sp-4) var(--sp-4);
+  list-style: none;
+  overflow-y: auto;
+}
+
+/* 날짜 구분선. 가운데 알약 하나 — 레퍼런스와 같은 형태다. */
+.chat-date {
+  align-self: center;
+  margin-bottom: var(--sp-2);
+  padding: 2px var(--sp-3);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+}
+
+.chat-line {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-row-line {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.chat-line-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.chat-from {
+  font-size: var(--fs-base);
+  color: var(--os-text);
+}
+
+/* 말풍선 + 시각. 시각은 풍선 오른쪽 아래에 붙는다(실제 메신저의 자리). */
+.chat-bubble-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-2);
+}
+
+/* ⚠️ 레퍼런스의 말풍선은 **네 모서리가 고르게 둥근** 흰 상자다.
+   한쪽 모서리만 각지게 깎는 스타일은 다른 메신저의 관례라 여기서는 쓰지 않는다. */
+.chat-bubble {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  background: #fff;
+  line-height: 1.5;
+  color: var(--os-text);
+}
+
+.chat-time {
+  flex: 0 0 auto;
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+  white-space: nowrap;
+}
+
+.chat-empty {
+  padding: var(--sp-4) 0;
+  color: var(--os-text-2);
+}
+
+/* 확정 행동 영역. 메시지 입력창이 있던 자리다 — 흰 바닥이라 대화 판과 확실히 갈리고,
+   "여기부터는 게임이 움직인다"가 드러난다. */
+.chat-action {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid var(--os-border);
+  background: var(--os-surface);
+}
+
+.chat-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-md);
+  color: var(--os-text-2);
+}
+
+.chat-effects b {
+  margin-left: var(--sp-1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 증감은 색만으로 알리지 않는다 — 부호(+/-)가 숫자에 함께 붙는다. */
+.chat-plus {
+  color: var(--os-success);
+}
+
+.chat-minus {
+  color: var(--os-danger);
+}
+
+.chat-btn {
+  width: 100%;
+  min-height: 36px;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--os-accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.chat-btn:hover:not(:disabled) {
+  background: var(--os-accent-hover);
+}
+
+.chat-btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.chat-note {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+  text-align: center;
+}
+
+/* ── 앱 색조 ──
+   두 메신저는 골격이 같고 성격이 다르다(사적 대화 vs 업무). 색조 하나로 가른다 —
+   레퍼런스도 카톡은 노란 계열, 네이트온은 파란 계열이다.
+   변수로 받아 두면 위 규칙들이 앱마다 갈라지지 않는다. */
+.chat-tone-warm {
+  /* ⚠️ 레일은 어두운 색이 아니라 **밝은 회색**이다(레퍼런스 실측).
+     예전에 검정으로 칠했더니 앱 전체가 무거워져 목록이 뒤로 물러났다. */
+  --chat-rail-bg: #f0f0f0;
+  --chat-rail-fg: #8b8b8b;
+  --chat-rail-fg-on: #1a1a1a;
+  --chat-thread-bg: #b2c7d9; /* 카톡 특유의 청회색 대화 배경 */
+  --chat-avatar-bg: #e0a800;
+  --chat-avatar-fg: #1a1a1a; /* 노란 면 위 검정 — 흰 글자는 대비가 모자란다 */
+  --chat-me-bg: #fae100;
+  --chat-me-fg: #1a1a1a;
+}
+
+.chat-tone-work {
+  /* ⚠️ 레퍼런스(네이트온)의 레일은 짙은 남보라 한 덩어리이고 글리프가 흰 계열이다 —
+     카톡의 밝은 회색 레일과 정반대다. 두 앱을 한눈에 가르는 가장 큰 요소다. */
+  --chat-rail-bg: #5a5ad2;
+  --chat-rail-fg: rgba(255, 255, 255, 0.62);
+  --chat-rail-fg-on: #fff;
+  --chat-thread-bg: #eef1f8;
+  --chat-avatar-bg: var(--os-accent);
+  --chat-avatar-fg: #fff;
+  --chat-me-bg: var(--os-accent);
+  --chat-me-fg: #fff;
+}
+
+/* ── 목록 창 골격 변형 (layout) ──
+   색조(tone)가 색을 갈랐다면 여기서는 **배치**가 갈린다. 두 레퍼런스가 실제로 다른 앱이라
+   헤더 구성·프로필 모양부터 다르다. */
+
+/* 제목·칩이 없는 골격(네이트온). 도구 글리프 줄만 남으므로 위 여백이 더 필요하다. */
+.chat-panel-head-plain {
+  padding: 48px var(--sp-4) var(--sp-3);
+}
+
+/* 프로필이 **원형**이다(카톡은 둥근 사각). 같은 목록이라도 이 하나로 인상이 갈린다. */
+.chat-layout-plain .chat-avatar {
+  border-radius: 50%;
+}
+
+/* 이름 옆 인원수가 브랜드색이다(레퍼런스의 파란 숫자). */
+.chat-layout-plain .chat-row-count {
+  color: var(--os-accent);
+  font-weight: 700;
+}
+
+/* 레일이 짙은 남보라 한 덩어리다 — 글리프는 흰 계열로 뒤집힌다. */
+.chat-layout-plain .chat-rail {
+  padding-top: 48px;
+}
+
+/* ── 오픈채팅 ── */
+.chat-open-tag {
+  flex: 0 0 auto;
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--os-fill);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--os-text-3);
+}
+
+/* 제안(offer). 확정 행동 영역 안에 들어가므로 흰 바닥 위에 놓인다. */
+.chat-offer-q {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+/* 선택지 하나. 라벨 + 조건을 두 줄로 세워 **누르기 전에 대가를 보여 준다** —
+   금액과 턴 소모를 감춘 채 누르게 하면 안 된다. */
+.chat-offer {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-md);
+  background: var(--os-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.chat-offer:hover:not(:disabled) {
+  background: var(--os-fill);
+}
+
+/* ux `disabled-states`: 투명도 + 커서 + 의미론적 속성을 함께 준다. */
+.chat-offer:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.chat-offer-label {
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+.chat-offer-desc {
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+}

@@ -1,4 +1,4 @@
-import { HudPanel, HudSection } from './HudPanel'
+import { HudPanel } from './HudPanel'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
@@ -11,7 +11,7 @@ import { CALENDAR_PANEL_LAYOUT, formatGameDate } from '../../data/calendar'
  * z-index는 desktopPanelStore로 관리한다.
  * 크롬은 공용 Window가 아니라 게임 HUD 컨테이너(HudPanel)를 쓴다 — 사유는 HudPanel.tsx 주석 참조.
  *
- * ⚠️ **타이틀 영역이 없다**(설계자 요구). `headerIcon`을 넘기지 않으면 HudPanel이
+ * ⚠️ **타이틀 영역이 없다**(설계자 요구). `header`를 넘기지 않으면 HudPanel이
  * 헤더를 아예 렌더하지 않는다. 제목 "날짜"는 화면에 그릴 정보가 아니었다 —
  * 날짜 자체가 바로 아래 24px로 적혀 있어 라벨이 같은 말을 반복했을 뿐이다.
  * 접근성 이름은 `label`이 계속 제공하고, 앞으로 가져오기는 패널 본문 클릭으로 동작한다.
@@ -24,6 +24,8 @@ export function CalendarPanel() {
   const doSkip = useGameStore((s) => s.doSkip)
   const zIndex = useDesktopPanelStore((s) => s.z.calendar)
   const raise = useDesktopPanelStore((s) => s.raise)
+  /* 작업 표시줄 버튼이 끄면 아예 그리지 않는다. 되돌리는 수단은 같은 버튼이다. */
+  const visible = useDesktopPanelStore((s) => s.visible.calendar)
 
   const { width, gap, top } = CALENDAR_PANEL_LAYOUT
   /** 스탯창 바로 왼쪽에 고정한다. 드래그로 옮길 수 없으므로 상태로 들고 있지 않는다. */
@@ -32,7 +34,7 @@ export function CalendarPanel() {
     y: top,
   }
 
-  if (!state) return null
+  if (!state || !visible) return null
 
   const isMorning = state.slot === 'morning'
   const slotIcon = isMorning ? HUD_ICONS.slotMorning : HUD_ICONS.slotAfternoon
@@ -41,7 +43,7 @@ export function CalendarPanel() {
     <HudPanel
       id="calendar"
       label="날짜"
-      /* headerIcon 없음 = 타이틀 영역 없음. 위 주석 참조. */
+      /* header 없음 = 타이틀 영역 없음. 위 주석 참조. */
       x={pos.x}
       y={pos.y}
       width={width}
@@ -60,9 +62,8 @@ export function CalendarPanel() {
         </span>
       </div>
 
-      {/* 건너뛰기는 무료 탐색이 아니라 시간을 소모하는 행동이다.
-          구역 라벨 아래 두어 "이 패널의 행동"임을 밝힌다. */}
-      <HudSection label="행동" />
+      {/* 구역 라벨도 구분선도 없다(설계자 지시). 아래가 버튼 하나뿐이라 무엇인지는
+          버튼 글자가 이미 말하고, 선을 그으면 없는 구역을 있는 척하게 된다. */}
       <button
         className="cal-skip"
         onClick={doSkip}
@@ -72,10 +73,6 @@ export function CalendarPanel() {
         <AppIcon name={HUD_ICONS.skipTurn} size={14} />
         {isMorning ? '오전' : '오후'} 건너뛰기
       </button>
-      <div className="cal-skip-note">
-        <AppIcon name={HUD_ICONS.turnCost} size={11} />
-        1턴 소모{!isMorning && ' · 하루가 끝납니다'}
-      </div>
     </HudPanel>
   )
 }

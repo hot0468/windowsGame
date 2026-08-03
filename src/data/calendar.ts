@@ -4,6 +4,24 @@
  */
 export const GAME_START_DATE = { year: 2026, month: 3, day: 1 } as const
 
+/** 게임 N일차 → 실제 달력 날짜. 날짜를 다루는 모든 화면이 이 함수를 쓴다. */
+export function dateOf(day: number): Date {
+  const d = new Date(GAME_START_DATE.year, GAME_START_DATE.month - 1, GAME_START_DATE.day)
+  d.setDate(d.getDate() + day - 1)
+  return d
+}
+
+/** 실제 달력 날짜 → 게임 N일차. `dateOf`의 역함수다. */
+export function dayOf(date: Date): number {
+  const base = new Date(GAME_START_DATE.year, GAME_START_DATE.month - 1, GAME_START_DATE.day)
+  return Math.round((date.getTime() - base.getTime()) / 86400000) + 1
+}
+
+/** 그 날의 요일(0=일 … 6=토). 헬스장 회원권처럼 "매주 목요일"을 다룰 때 쓴다. */
+export function weekdayOf(day: number): number {
+  return dateOf(day).getDay()
+}
+
 /** 게임 내 날짜를 "3월 5일 (목)" 형태의 한국어 표기로 환산한다. */
 export function formatGameDate(day: number): string {
   const base = new Date(GAME_START_DATE.year, GAME_START_DATE.month - 1, GAME_START_DATE.day)

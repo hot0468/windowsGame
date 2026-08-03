@@ -17,6 +17,8 @@
   background: var(--nv-bg);
 }
 
+/* 크롬은 도구 모음 줄 + 즐겨찾기 줄 두 층이다. 바깥은 층을 쌓기만 하고
+   가로 배치는 각 줄이 알아서 한다. */
 .browser-chrome {
   flex: 0 0 auto;
   /* 창을 복원해 페이지가 창보다 길어져도 주소창은 남아 있어야 한다. */
@@ -24,11 +26,77 @@
   top: 0;
   z-index: 1;
   display: flex;
+  flex-direction: column;
+  /* 크롬은 **흰색**이고 본문(--nv-bg, 살짝 회색)은 그보다 어둡다 —
+     이 밝기 차가 "브라우저가 사이트를 담고 있다"를 만든다(설계자 지시).
+     실제 크롬도 툴바가 흰색이고 페이지 배경이 그 아래에 깔린다. */
+  background: var(--os-surface);
+  border-bottom: 1px solid var(--os-border);
+}
+
+/* ── 탭 줄 ──
+   실제 크롬처럼 도구 모음보다 한 단 어두운 띠 위에 탭이 얹힌다.
+   활성 탭만 도구 모음과 **같은 색**이라 두 줄이 한 덩어리로 이어져 보인다 —
+   이 색 관계가 "탭이 툴바에 꽂혀 있다"는 크롬 특유의 인상을 만든다. */
+.browser-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 36px;
+  padding: var(--sp-1) var(--sp-2) 0;
+  background: var(--os-chrome-alt);
+}
+
+.browser-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  max-width: 240px;
+  height: 32px;
+  padding: 0 var(--sp-2) 0 var(--sp-3);
+  /* 위쪽만 둥글다. 아래는 도구 모음에 맞닿아야 하므로 각을 남긴다. */
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  /* 도구 모음과 같은 흰색이라 두 줄이 한 덩어리로 이어져 보인다. */
+  background: var(--os-surface);
+  font-size: var(--fs-sm);
+  color: var(--os-text);
+}
+
+.browser-tab-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 탭 닫기. 크롬과 같은 작은 원형 버튼이고, 마지막 탭이므로 창을 닫는다. */
+.browser-tab-close {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--os-text-2);
+  cursor: pointer;
+}
+
+.browser-tab-close:hover {
+  background: var(--os-border-strong);
+  color: var(--os-text);
+}
+
+.browser-toolbar {
+  display: flex;
   align-items: center;
   gap: var(--sp-1);
   padding: var(--sp-2) var(--sp-3);
-  background: var(--os-chrome);
-  border-bottom: 1px solid var(--os-border);
 }
 
 /* 윈도우 11 도구 모음 버튼과 같은 32px 정사각. 마우스 대상이므로 모바일의
@@ -88,6 +156,32 @@
   transform: translateX(-2px) rotate(-135deg);
 }
 
+/* 탭 닫기 ✕. 창 캡션 버튼과 같은 방식(선 두 개 교차)이다. */
+.browser-glyph-x {
+  position: relative;
+  width: 9px;
+  height: 9px;
+}
+
+.browser-glyph-x::before,
+.browser-glyph-x::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+}
+
+.browser-glyph-x::before {
+  transform: rotate(45deg);
+}
+
+.browser-glyph-x::after {
+  transform: rotate(-45deg);
+}
+
 /* 열린 고리 + 화살촉으로 그린 새로고침 표시. */
 .browser-glyph-reload {
   position: relative;
@@ -117,14 +211,21 @@
   min-width: 0;
   height: 32px;
   margin-left: var(--sp-2);
-  padding: 0 var(--sp-3);
-  border: 1px solid var(--os-border-strong);
+  /* 오른쪽 패딩은 별표 버튼이 대신 낸다 — 둘 다 주면 별표가 알약 안쪽으로 밀려 들어온다. */
+  padding: 0 var(--sp-1) 0 var(--sp-3);
+  /* 테두리 없이 회색 알약(설계자 지시). 크롬 옴니박스와 같은 방식이다 —
+     흰 툴바 위에서 채워진 회색만으로 "입력 칸"이 충분히 구분되고,
+     선을 함께 두르면 툴바에 상자가 하나 더 얹힌 것처럼 보인다. */
+  border: 1px solid transparent;
   border-radius: 16px;
-  background: var(--os-surface);
+  background: var(--os-fill);
 }
 
+/* 포커스는 테두리로 알린다 — 배경만 바꾸면 "입력 중"이라는 신호가 약하다.
+   투명 테두리를 미리 잡아 뒀으므로 폭이 변해 알약이 흔들리지 않는다. */
 .browser-addr:focus-within {
   border-color: var(--os-accent);
+  background: var(--os-surface);
 }
 
 .browser-addr-input {
@@ -136,11 +237,142 @@
   font-size: var(--fs-sm);
   /* 9.2:1 — 주소는 보조 정보지만 읽을 수 있어야 한다. */
   color: var(--os-text-2);
-  cursor: default;
 }
 
 .browser-addr-input:focus {
   outline: none;
+}
+
+/* ── 주소창 안 즐겨찾기 별표 ──
+   주소창 알약 안에 들어가므로 도구 모음 버튼(32px)보다 한 단 작은 원형이다. */
+.browser-star {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--os-text-2);
+  cursor: pointer;
+}
+
+.browser-star:hover:not(:disabled) {
+  background: var(--os-fill);
+}
+
+.browser-star:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+/* 즐겨찾기된 상태. mdi-light에는 채운 별이 없으므로 **색 + 배경 틴트**로 눌린 느낌을 만든다.
+   색만으로 알리지 않는다 — aria-pressed와 툴팁 문구가 함께 바뀐다(ux `color-not-only`). */
+.browser-star-on {
+  color: var(--os-accent);
+  background: var(--os-accent-wash);
+}
+
+/* ── 더보기 메뉴 ──
+   버튼과 메뉴를 함께 감싸 메뉴를 버튼 기준으로 띄운다. */
+.browser-more {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/* 바깥 클릭 감지판. 보이지 않고, 메뉴보다 한 단 아래에 깔린다. */
+.browser-menu-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+}
+
+.browser-menu {
+  position: absolute;
+  top: calc(100% + var(--sp-1));
+  right: 0;
+  z-index: 3;
+  min-width: 168px;
+  padding: var(--sp-1);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-lg);
+  background: var(--os-surface);
+  /* 떠 있는 표면이므로 공용 고도 2단. 컴포넌트마다 새 그림자를 쓰지 않는다
+     (style `elevation-consistent`). */
+  box-shadow: var(--el-2);
+}
+
+.browser-menu-item {
+  display: block;
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  border-radius: var(--r-md);
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--os-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.browser-menu-item:hover:not(:disabled) {
+  background: var(--os-fill);
+}
+
+.browser-menu-item:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+/* ── 즐겨찾기 줄 ──
+   주소창 아래 얇은 한 줄. 창이 좁아지면 줄바꿈 대신 가로로 스크롤한다 —
+   줄바꿈시키면 크롬 높이가 들쭉날쭉해져 페이지가 위아래로 튄다. */
+.browser-bookmarks {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 0 var(--sp-3) var(--sp-2);
+  overflow-x: auto;
+  /* 얇은 줄에서 기본 가로 스크롤바는 항목만큼 두껍다. 필요할 때만 얇게 보이게 한다. */
+  scrollbar-width: thin;
+}
+
+.browser-bookmark {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: 26px;
+  padding: 0 var(--sp-2);
+  border: none;
+  border-radius: var(--r-md);
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--os-text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.browser-bookmark:hover {
+  background: var(--os-fill);
+}
+
+/* 지금 보고 있는 사이트(ux `nav-state-active`). 배경 틴트 + 굵기로 표시하고
+   aria-current가 스크린 리더에도 같은 사실을 알린다. */
+.browser-bookmark-on {
+  background: var(--os-fill);
+  font-weight: 600;
+}
+
+.browser-bookmarks-empty {
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
 }
 
 .browser-page {
@@ -155,4 +387,38 @@
   padding: var(--sp-8);
   text-align: center;
   color: var(--nv-text-3);
+}
+
+/* ── 개발자 패널 ──
+   페이지 아래에 붙는 값 목록. 어두운 면 + 등폭이라 "웹페이지가 아니라 도구"로 읽힌다.
+   ⚠️ 이 창에서 --nv-*(사이트)도 --os-*(크롬)도 아닌 유일한 자리다 — 콘솔과 같은 이유로
+   자기 색을 갖는다. */
+.browser-dev {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px var(--sp-4);
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: #1e1e1e;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: var(--fs-sm);
+  /* 검정 위 밝은 회색 — 순백은 대비가 과하다(명령 프롬프트와 같은 값). */
+  color: #cccccc;
+  max-height: 132px;
+  overflow-y: auto;
+}
+
+.browser-dev dt {
+  color: #8fb7e0;
+}
+
+.browser-dev dd {
+  margin: 0;
+  word-break: break-all;
+}
+
+.browser-dev b {
+  color: #8fb7e0;
 }
