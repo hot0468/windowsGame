@@ -29,6 +29,11 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 | 체력 | `stamina`(일일 소모/취침 회복) / `maxStamina`(운동으로 영구 상승, 철인 엔딩 판정) 분리 |
 
 **전체 설계 문서:** `docs/superpowers/specs/2026-08-03-windows-desktop-life-sim-design.md`
+**구현 계획:** `docs/superpowers/plans/2026-08-03-playable-core.md` (Task 1~12 완료 = 완주 가능 코어)
+
+## 구현 중 확정된 추가 결정
+- 로그인 상태(`loggedIn`)는 세이브 존재 여부와 분리한다. 세이브만으로 화면을 분기하면 세이브가 있을 때 잠금화면에 도달할 수 없어 "이어하기"를 누를 수 없다. `loggedIn`은 `partialize`로 저장에서 제외 → 새로고침 시 항상 잠금화면부터 시작
+- 활동 창은 오후 슬롯일 때 생활비 차감을 경고한다. 오후 행동은 하루를 끝내며 `sleep()`이 생활비를 빼가는데, 이를 안 보여주면 "+42,780원" 표시 후 실제로는 적자가 되어 플레이어를 오도함
 
 ## 기술 스택 (실제 설치·빌드 검증 완료)
 - React 19.2 / Vite 8.2 / TypeScript 7.0 / Zustand 5.0 / Vitest 4.1
@@ -38,12 +43,21 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - ⚠️ `create-vite` v9는 비대화형 환경에서 취소됨 → 설정 파일 수동 구성함
 
 ## 파일 맵
-- 진입: `index.html` → `src/main.tsx` → `src/App.tsx`
-- 전역 CSS: `src/index.css`
-- 설정: `vite.config.ts`, `tsconfig.json`(+`.app`/`.node`)
-- 예정: `src/components/{window,desktop,lockscreen,apps}/`, `src/data/`, `src/store/`, `src/systems/`, `src/types/`
+- 진입: `index.html` → `src/main.tsx` → `src/App.tsx` (`loggedIn && state`로 잠금화면/바탕화면 분기)
+- 타입: `src/types/game.ts` — Stats, Activity, GameState 등 도메인 타입 전부
+- 데이터(수치): `src/data/` — activities(활동 5종), economy(물가 구간 6단계), endings(엔딩 6종)
+- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티), ending(티어 판정). 각각 `.test.ts` 동반, 총 57개 테스트
+- 상태: `src/store/` — gameStore(세이브+loggedIn), metaStore(도감·영구), windowStore(창·휘발)
+- UI: `src/components/window/`(Window·WindowManager), `desktop/`(Desktop·StatPanel·Taskbar), `lockscreen/`, `apps/`(ExeApp·EndingModal)
+- 설정: `vite.config.ts`, `tsconfig.json`(+`.app`/`.node`), 전역 CSS `src/index.css`
+- 미구현(별도 계획 필요): 브라우저/포털/사이트, 엔딩 도감 UI, 랜덤 이벤트, 폴더 앱, 은행/대출
 
 ## 코딩 컨벤션
 - 모든 게임 수치(스탯 변화량, 엔딩 조건, 활동 정의)는 컴포넌트에 하드코딩하지 않고 `src/data/` 데이터 파일로 분리
 - 모든 창 UI는 공용 Window 컴포넌트 위에 구현 (스탯창, 활동창, 팝업, 도감 전부)
 - 주석·UI 텍스트는 한국어
+- 스탯 키는 전 코드에서 통일: `stamina`, `maxStamina`, `intelligence`, `charm`, `mental`, `money`
+- `src/systems/`는 React import 금지, 상태 mutation 금지 — 새 객체를 반환한다
+- 창은 `windowStore.open()`으로 열고, 종류는 `OpenWindow.kind`(`'exe' | 'ending'`)로 구분
+- 스탯창처럼 스토어에 등록하지 않는 창은 `Window`에 `onMove` 콜백을 넘겨 위치를 직접 관리한다 (스토어의 `move`는 `windows` 배열에 있는 창만 갱신하므로 등록 안 하면 드래그가 무시됨)
+- `Window`에 `onClose`를 넘기지 않으면 닫기 버튼이 사라진다 (상시 표시 창용)
