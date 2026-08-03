@@ -27,9 +27,9 @@
   cursor: grabbing;
 }
 
+/* 플랫 컬러 아이콘은 자체 색을 가지므로 color로 덧칠하지 않는다. */
 .win-title-icon {
   flex: 0 0 auto;
-  color: #1e88e5;
 }
 
 .win-title-text {

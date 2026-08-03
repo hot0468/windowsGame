@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { BookCheck } from 'lucide-react'
 import { checkAchievementEnding, getFailureEnding, hasHigherTier } from '../../systems/ending'
 import { useGameStore } from '../../store/gameStore'
 import { useMetaStore } from '../../store/metaStore'
 import { useWindowStore } from '../../store/windowStore'
+import { UI_ICONS } from '../../data/icons'
 import { STAT_META } from '../../data/statMeta'
+import { AppIcon } from '../../icons/AppIcon'
 import { STAT_NAMES } from '../../types/game'
 import type { Stats } from '../../types/game'
 import type { Ending } from '../../data/endings'
@@ -12,10 +13,10 @@ import './EndingModal.css'
 
 /** 엔딩 요약에 표시할 스탯 한 항목. */
 function SummaryStat({ statKey, value }: { statKey: keyof Stats; value: string | number }) {
-  const { icon: Icon, color } = STAT_META[statKey]
+  const { icon } = STAT_META[statKey]
   return (
     <span className="ending-stat">
-      <Icon size={13} style={{ color }} />
+      <AppIcon name={icon} size={15} />
       {STAT_NAMES[statKey]} {value}
     </span>
   )
@@ -57,17 +58,15 @@ export function EndingModal() {
     markEndingSeen(ending.id)
   }
 
-  const EndingIcon = ending.icon
-
   return (
     <div className="ending-overlay">
       <div className="ending-box">
-        <EndingIcon size={52} className="ending-icon" />
+        <AppIcon name={ending.icon} size={52} className="ending-icon" />
         <div className="ending-title">
           {showFinal ? ending.title : `엔딩 도달: ${ending.title}`}
         </div>
         <div className="ending-unlocked">
-          <BookCheck size={13} />
+          <AppIcon name={UI_ICONS.endingUnlocked} size={14} />
           엔딩 도감에 기록되었습니다
         </div>
 

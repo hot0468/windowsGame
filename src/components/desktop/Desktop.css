@@ -34,11 +34,12 @@
   border-color: rgba(255, 255, 255, 0.4);
 }
 
+/* 플랫 컬러 아이콘이라 색은 아이콘 자체가 갖는다.
+   배경(바탕화면 그라데이션) 위에서 형태가 묻히지 않도록 그림자만 남긴다. */
 .desktop-icon-glyph {
   display: block;
   margin: 0 auto 4px;
-  color: #fff;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
 }
 
 .taskbar {

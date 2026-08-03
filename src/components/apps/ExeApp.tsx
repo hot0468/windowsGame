@@ -1,6 +1,7 @@
-import { AlertTriangle, Clock } from 'lucide-react'
 import { findActivity } from '../../data/activities'
+import { UI_ICONS } from '../../data/icons'
 import { STAT_META } from '../../data/statMeta'
+import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { canRun } from '../../systems/turn'
 import { getBurnoutPenalty } from '../../systems/burnout'
@@ -9,12 +10,15 @@ import { STAT_NAMES } from '../../types/game'
 import type { Stats } from '../../types/game'
 import './ExeApp.css'
 
+/** 이 창에서만 쓰는 일회성 경고 글리프. 여러 경고 문구가 공유한다. */
+const WARN_ICON = 'fluent-emoji-flat:warning'
+
 /** 스탯 라벨 한 줄(아이콘 + 이름). 효과 목록에서 재사용한다. */
 function StatLabel({ statKey, note }: { statKey: keyof Stats; note?: string }) {
-  const { icon: Icon, color } = STAT_META[statKey]
+  const { icon } = STAT_META[statKey]
   return (
     <span className="exe-effect-label">
-      <Icon size={13} style={{ color }} />
+      <AppIcon name={icon} size={15} />
       {STAT_NAMES[statKey]}
       {note ? ` ${note}` : ''}
     </span>
@@ -74,7 +78,7 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
 
       {isBurnedOut && (
         <div className="exe-warn">
-          <AlertTriangle size={14} className="exe-warn-icon" />
+          <AppIcon name={WARN_ICON} size={15} className="exe-warn-icon" />
           <span>
             같은 일을 반복하고 있습니다. 효율이 {Math.round(efficiency * 100)}%로 떨어졌습니다.
           </span>
@@ -83,14 +87,14 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
 
       {!runnable && (
         <div className="exe-warn">
-          <AlertTriangle size={14} className="exe-warn-icon" />
+          <AppIcon name={WARN_ICON} size={15} className="exe-warn-icon" />
           <span>지금은 실행할 수 없습니다. 스탯이 부족합니다.</span>
         </div>
       )}
 
       {state.slot === 'afternoon' && (
         <div className="exe-warn">
-          <AlertTriangle size={14} className="exe-warn-icon" />
+          <AppIcon name={WARN_ICON} size={15} className="exe-warn-icon" />
           <span>
             이 행동을 하면 하루가 끝나고 잠자리에 듭니다. 생활비{' '}
             {getLivingCost(state.day).toLocaleString('ko-KR')}원이 차감됩니다. (체력·멘탈은
@@ -103,7 +107,7 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
         실행하기
       </button>
       <div className="exe-cost">
-        <Clock size={12} />
+        <AppIcon name={UI_ICONS.turnCost} size={13} />
         1턴을 소모합니다
       </div>
     </div>

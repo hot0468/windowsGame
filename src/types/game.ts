@@ -1,5 +1,3 @@
-import type { ComponentType, CSSProperties } from 'react'
-
 /**
  * 12종 스탯.
  * - 소모 자원: stamina(일일 소모/취침 회복), mental(0~100), money
@@ -72,21 +70,17 @@ export type StatDelta = Partial<Record<keyof Stats, number>>
 export type Slot = 'morning' | 'afternoon'
 
 /**
- * 아이콘 컴포넌트 타입.
- * lucide-react 아이콘을 데이터에서 직접 참조할 수 있게 최소 형태로만 정의한다.
- * (data/가 lucide 타입에 강결합되지 않도록 구조적 타입으로 둔다)
+ * 아이콘 식별자. `"세트명:아이콘명"` 형태의 문자열이다 (예: `"fluent-emoji-flat:books"`).
+ * 아이콘 렌더링 라이브러리에 의존하지 않도록 타입은 문자열 별칭으로만 둔다 —
+ * 실제 아이콘 데이터 로딩은 `src/icons/bootstrap.ts`가, 이름 목록은 `src/data/`가 책임진다.
  */
-export type IconComponent = ComponentType<{
-  size?: number | string
-  className?: string
-  style?: CSSProperties
-}>
+export type IconName = string
 
 /** 활동 정의. 수치는 전부 data/에만 존재한다. */
 export interface Activity {
   id: string
   label: string
-  icon: IconComponent
+  icon: IconName
   description: string
   /** 스탯 변화량. money는 알바비 배율이 적용된다. */
   effects: StatDelta

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { UserCircle2 } from 'lucide-react'
+import { UI_ICONS } from '../../data/icons'
+import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import './LockScreen.css'
 
@@ -34,7 +35,7 @@ export function LockScreen() {
         })}
       </div>
 
-      <UserCircle2 size={72} className="lock-avatar" />
+      <AppIcon name={UI_ICONS.lockAvatar} size={72} className="lock-avatar" />
 
       {isNewGameMode ? (
         <>

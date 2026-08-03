@@ -1,15 +1,16 @@
 import { useRef } from 'react'
 import type { PointerEvent, ReactNode } from 'react'
-import { X } from 'lucide-react'
+import { UI_ICONS } from '../../data/icons'
+import { AppIcon } from '../../icons/AppIcon'
 import { useWindowStore } from '../../store/windowStore'
-import type { IconComponent } from '../../types/game'
+import type { IconName } from '../../types/game'
 import './Window.css'
 
 interface WindowProps {
   id: string
   title: string
-  /** 타이틀 바 아이콘 컴포넌트 (lucide-react). */
-  icon: IconComponent
+  /** 타이틀 바 아이콘 이름 (Iconify `"세트:이름"`). */
+  icon: IconName
   x: number
   y: number
   width: number
@@ -24,7 +25,7 @@ interface WindowProps {
 export function Window({
   id,
   title,
-  icon: Icon,
+  icon,
   x,
   y,
   width,
@@ -80,11 +81,11 @@ export function Window({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
-        <Icon size={14} className="win-title-icon" />
+        <AppIcon name={icon} size={16} className="win-title-icon" />
         <span className="win-title-text">{title}</span>
         {onClose && (
           <button className="win-close" onClick={onClose} aria-label="닫기">
-            <X size={14} />
+            <AppIcon name={UI_ICONS.windowClose} size={14} />
           </button>
         )}
       </div>

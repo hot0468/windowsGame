@@ -1,4 +1,3 @@
-import { BookOpen, Briefcase, Footprints, Gamepad2, MessageCircle } from 'lucide-react'
 import type { Activity } from '../types/game'
 
 /**
@@ -10,7 +9,7 @@ export const ACTIVITIES: Activity[] = [
   {
     id: 'study',
     label: '공부',
-    icon: BookOpen,
+    icon: 'fluent-emoji-flat:open-book',
     description: '전공서를 펼친다. 머리는 아프지만 확실히 는다.',
     effects: { knowledge: 6, stamina: -15, mental: -5 },
     requires: { stamina: 15 },
@@ -18,7 +17,7 @@ export const ACTIVITIES: Activity[] = [
   {
     id: 'work',
     label: '알바',
-    icon: Briefcase,
+    icon: 'fluent-emoji-flat:briefcase',
     description: '편의점 야간 근무. 돈은 들어온다.',
     effects: { money: 60000, stamina: -25, mental: -8 },
     requires: { stamina: 25 },
@@ -27,7 +26,7 @@ export const ACTIVITIES: Activity[] = [
   {
     id: 'exercise',
     label: '운동',
-    icon: Footprints,
+    icon: 'fluent-emoji-flat:person-running',
     description: '체력의 한계를 조금씩 밀어낸다.',
     effects: { maxStamina: 4, stamina: -20, mental: 3 },
     requires: { stamina: 20 },
@@ -35,7 +34,7 @@ export const ACTIVITIES: Activity[] = [
   {
     id: 'game',
     label: '게임',
-    icon: Gamepad2,
+    icon: 'fluent-emoji-flat:video-game',
     description: '아무 생각 없이 논다. 멘탈이 회복된다.',
     effects: { mental: 18, stamina: -5, knowledge: -1 },
     requires: { stamina: 5 },
@@ -43,7 +42,7 @@ export const ACTIVITIES: Activity[] = [
   {
     id: 'social',
     label: '메신저',
-    icon: MessageCircle,
+    icon: 'fluent-emoji-flat:speech-balloon',
     description: '사람들과 어울린다. 돈은 좀 쓴다.',
     effects: { charm: 5, mental: 8, money: -20000, stamina: -10 },
     requires: { stamina: 10, money: 20000 },

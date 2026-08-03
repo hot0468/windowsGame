@@ -1,4 +1,5 @@
-import { LayoutGrid, Moon, SkipForward, Sun } from 'lucide-react'
+import { UI_ICONS } from '../../data/icons'
+import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
 
@@ -18,24 +19,21 @@ export function Taskbar() {
   if (!state) return null
 
   const isMorning = state.slot === 'morning'
-  const SlotIcon = isMorning ? Sun : Moon
+  const slotIcon = isMorning ? UI_ICONS.slotMorning : UI_ICONS.slotAfternoon
 
   return (
     <div className="taskbar">
       <button className="taskbar-start" aria-label="시작">
-        <LayoutGrid size={18} />
+        <AppIcon name={UI_ICONS.start} size={20} />
       </button>
 
       <div className="taskbar-items">
-        {windows.map((w) => {
-          const Icon = w.icon
-          return (
-            <button key={w.id} className="taskbar-item" onClick={() => focus(w.id)}>
-              <Icon size={14} />
-              {w.title}
-            </button>
-          )
-        })}
+        {windows.map((w) => (
+          <button key={w.id} className="taskbar-item" onClick={() => focus(w.id)}>
+            <AppIcon name={w.icon} size={16} />
+            {w.title}
+          </button>
+        ))}
       </div>
 
       <button
@@ -44,7 +42,7 @@ export function Taskbar() {
         disabled={state.gameOver !== null}
         title="아무것도 하지 않고 다음 시간대로 넘어갑니다"
       >
-        <SkipForward size={14} />
+        <AppIcon name={UI_ICONS.skipTurn} size={14} />
         넘기기
       </button>
 
@@ -53,7 +51,7 @@ export function Taskbar() {
         <br />
         <span className="taskbar-slot">
           {state.day}일차 {isMorning ? '오전' : '오후'}
-          <SlotIcon size={12} />
+          <AppIcon name={slotIcon} size={13} />
         </span>
       </div>
     </div>

@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { User } from 'lucide-react'
 import { Window } from '../window/Window'
+import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { getLivingCost, getNextTier } from '../../systems/economy'
+import { UI_ICONS } from '../../data/icons'
 import { STAT_META, GROWTH_STAT_ORDER } from '../../data/statMeta'
 import { STAT_NAMES } from '../../types/game'
 import type { GrowthStatKey, Stats } from '../../types/game'
@@ -24,16 +25,16 @@ function ResourceRow({
   suffix?: string
   warn?: boolean
 }) {
-  const { icon: Icon, color } = STAT_META[statKey]
+  const { icon, accent } = STAT_META[statKey]
   return (
     <div className="stat-row">
-      <Icon size={13} className="stat-icon" style={{ color }} />
+      <AppIcon name={icon} size={15} className="stat-icon" />
       <span className="stat-label">{STAT_NAMES[statKey]}</span>
       {max !== undefined && (
         <span className="stat-bar">
           <span
             className="stat-fill"
-            style={{ width: `${Math.min(100, (value / max) * 100)}%`, background: color }}
+            style={{ width: `${Math.min(100, (value / max) * 100)}%`, background: accent }}
           />
         </span>
       )}
@@ -50,10 +51,10 @@ function ResourceRow({
  * 아이콘 + 이름 + 숫자만 담은 컴팩트 셀로 만들어 그리드에 배치한다.
  */
 function GrowthCell({ statKey, value }: { statKey: GrowthStatKey; value: number }) {
-  const { icon: Icon, color } = STAT_META[statKey]
+  const { icon } = STAT_META[statKey]
   return (
     <div className="stat-cell" title={`${STAT_NAMES[statKey]} ${value}`}>
-      <Icon size={13} className="stat-icon" style={{ color }} />
+      <AppIcon name={icon} size={15} className="stat-icon" />
       <span className="stat-cell-name">{STAT_NAMES[statKey]}</span>
       <span className="stat-cell-value">{value}</span>
     </div>
@@ -73,7 +74,7 @@ export function StatPanel() {
     <Window
       id="stats"
       title={state.playerName}
-      icon={User}
+      icon={UI_ICONS.statPanel}
       x={pos.x}
       y={pos.y}
       width={280}
