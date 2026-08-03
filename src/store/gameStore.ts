@@ -24,7 +24,14 @@ function reviveState(raw: unknown): GameState | null {
   const defaults = createInitialState(
     typeof saved.playerName === 'string' && saved.playerName.trim() ? saved.playerName : '이름없음',
   )
-  const stats: Stats = { ...defaults.stats, ...(saved.stats ?? {}) }
+  // 개명 전 세이브 호환: intelligence는 knowledge의 옛 이름이다.
+  // 매핑 없이 기본값을 덮으면 그 스탯 진행만 조용히 초기화된다.
+  const savedStats = { ...(saved.stats ?? {}) } as Partial<Stats> & { intelligence?: number }
+  if (savedStats.knowledge === undefined && Number.isFinite(savedStats.intelligence)) {
+    savedStats.knowledge = savedStats.intelligence
+  }
+  delete savedStats.intelligence
+  const stats: Stats = { ...defaults.stats, ...savedStats }
 
   // 스탯이 하나라도 유한한 숫자가 아니면 세이브를 신뢰할 수 없다.
   const statsValid = REQUIRED_STAT_KEYS.every((key) => Number.isFinite(stats[key]))

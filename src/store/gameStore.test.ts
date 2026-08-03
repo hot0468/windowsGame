@@ -25,6 +25,27 @@ describe('migrateSave — 정상 세이브', () => {
     const saved = { state: { ...createInitialState('t'), gameOver: 'bankrupt' as const } }
     expect(migrateSave(saved).state?.gameOver).toBe('bankrupt')
   })
+
+  it('개명 전 세이브의 intelligence를 knowledge로 넘겨받는다', () => {
+    // 스탯 개명(지능→지식) 이전 세이브: knowledge가 없고 intelligence만 있다.
+    const { knowledge: _drop, ...rest } = INITIAL_STATS
+    const legacyStats = { ...rest, intelligence: 55 }
+    const saved = { state: { ...createInitialState('t'), stats: legacyStats } }
+    const result = migrateSave(saved as never)
+    expect(result.state?.stats.knowledge).toBe(55)
+    expect('intelligence' in (result.state?.stats ?? {})).toBe(false)
+  })
+
+  it('두 키가 공존하면 새 키(knowledge)를 우선한다', () => {
+    const saved = {
+      state: {
+        ...createInitialState('t'),
+        stats: { ...INITIAL_STATS, knowledge: 70, intelligence: 55 },
+      },
+    }
+    const result = migrateSave(saved as never)
+    expect(result.state?.stats.knowledge).toBe(70)
+  })
 })
 
 describe('migrateSave — 손상/부분 세이브 거부', () => {
