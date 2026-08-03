@@ -18,6 +18,7 @@
   align-content: flex-start;
   gap: 6px;
   padding: 12px;
+  /* 44px = SHELL.TASKBAR_HEIGHT (src/data/shell.ts). CSS는 TS 상수를 못 읽으므로 중복해 둔다. */
   height: calc(100% - 44px);
   width: 200px;
 }
@@ -53,6 +54,8 @@
   left: 0;
   right: 0;
   bottom: 0;
+  /* 44px = SHELL.TASKBAR_HEIGHT (src/data/shell.ts) — 전체 화면 창이 이 값만큼 아래를 비운다.
+     바꿀 때 반드시 shell.ts와 함께 고친다. */
   height: 44px;
   display: flex;
   align-items: center;

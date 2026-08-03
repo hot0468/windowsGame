@@ -20,6 +20,7 @@ export function WindowManager() {
           y={w.y}
           width={w.width}
           zIndex={w.zIndex}
+          maximized={w.maximized}
           onClose={() => close(w.id)}
         >
           {w.kind === 'exe' && w.activityId && (

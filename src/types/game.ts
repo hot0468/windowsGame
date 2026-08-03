@@ -112,8 +112,14 @@ export interface DesktopItem {
   icon: IconName
   /** 더블클릭 시 열리는 창의 종류. */
   kind: WindowKind
-  /** 창 가로 폭. 항목마다 내용 분량이 달라 개별로 둔다. */
+  /** 창 가로 폭. 항목마다 내용 분량이 달라 개별로 둔다. maximized면 무시된다. */
   width: number
+  /**
+   * true면 창이 작업 표시줄을 제외한 전체 화면으로 열린다(0,0 고정·드래그 불가).
+   * 브라우저처럼 넓은 화면이 필요한 앱이 데이터에서 선언한다 — 컴포넌트에서 id로 분기하지 않는다.
+   * 폴더·휴지통 등도 나중에 같은 방식으로 켜면 된다.
+   */
+  maximized?: boolean
   /** kind가 'exe'일 때 실행할 활동 id. */
   activityId?: string
   /** kind가 'stub'일 때 창에 띄울 안내 문구. */

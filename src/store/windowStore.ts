@@ -11,6 +11,11 @@ export interface OpenWindow {
   y: number
   width: number
   zIndex: number
+  /**
+   * true면 작업 표시줄을 제외한 전체 화면으로 그린다.
+   * x/y/width는 무시되고 드래그도 걸리지 않으므로 move()가 이 창을 건드릴 일이 없다.
+   */
+  maximized?: boolean
   /** 렌더링할 앱 종류. 'exe'는 activityId를, 'stub'은 message를 함께 쓴다. */
   kind: WindowKind
   activityId?: string

@@ -3,6 +3,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* 전체 화면 창에서는 본문이 늘어나므로 위쪽에 붙지 않고 가운데에 놓인다.
+     일반 창에서는 높이가 내용에 맞춰지므로 center여도 그대로 위에 붙는다. */
+  justify-content: center;
   gap: 10px;
   padding: 10px 4px 4px;
   text-align: center;

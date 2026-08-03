@@ -27,6 +27,40 @@
   cursor: grabbing;
 }
 
+/* 전체 화면 창(SHELL.maximized).
+   높이·좌표는 Window.tsx가 인라인 style로 지정한다(뷰포트 리사이즈를 따라가야 하므로).
+   여기서는 전체 화면일 때만 달라지는 외형만 다룬다.
+   ⚠️ 작업 표시줄 높이 44px의 단일 출처는 src/data/shell.ts의 SHELL.TASKBAR_HEIGHT다. */
+.win-max {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+}
+
+/* 끌 수 없는 창이므로 잡을 수 있다는 신호(grab 커서)를 주지 않는다. */
+.win-max .win-title {
+  cursor: default;
+}
+
+.win-max .win-title:active {
+  cursor: default;
+}
+
+/* 전체 화면 창의 본문은 60vh 상한 대신 남은 높이를 전부 채운다.
+   내용이 적어도 위쪽 작은 상자에 갇히지 않도록 자식을 세로로 늘린다. */
+.win-max .win-body {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.win-max .win-body > * {
+  flex: 1 1 auto;
+}
+
 /* 플랫 컬러 아이콘은 자체 색을 가지므로 color로 덧칠하지 않는다. */
 .win-title-icon {
   flex: 0 0 auto;

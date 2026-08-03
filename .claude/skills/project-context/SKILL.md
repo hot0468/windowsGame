@@ -44,6 +44,9 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - `Window`의 `onActivate` prop: 스토어에 등록되지 않은 창은 이 콜백으로 자체 z를 올린다. 넘기지 않으면 기존대로 `windowStore.focus(id)`를 부른다. (등록 안 된 창이 `focus`를 부르면 아무것도 갱신하지 못한 채 `topZ`만 소모시킨다)
 - 날짜/슬롯 표기와 날짜칸 배치 수치는 `src/data/calendar.ts`(`formatGameDate`, `CALENDAR_PANEL_LAYOUT`)가 단일 출처다. 작업 표시줄 시계와 날짜칸이 같은 함수를 쓴다
 - 건너뛰기 버튼은 **작업 표시줄이 아니라 날짜칸**에 있다. 라벨은 "오전/오후 건너뛰기" — `doSkip()`은 하루가 아니라 **한 슬롯**만 넘기므로 라벨도 슬롯 단위여야 한다. 실제 윈도우처럼 작업 표시줄에는 시계와 패널 버튼만 둔다
+- **전체 화면 창은 `DesktopItem.maximized` / `OpenWindow.maximized` 불리언 옵트인이다.** 컴포넌트에서 id로 분기하지 않는다 — 데이터에서 켜면 폴더·휴지통 등 어떤 항목도 같은 방식으로 전체 화면이 된다(현재 `browser`만 true). true면 `Window`가 x/y/width를 무시하고 `left:0, top:0, width=innerWidth, height=innerHeight-SHELL.TASKBAR_HEIGHT`로 그리며, **타이틀 바에 드래그 핸들러를 아예 붙이지 않는다**(포인터 캡처가 안 걸려 닫기 버튼도 그대로 동작하고, 클램핑 로직에 노출되지도 않는다). `.win-max` 클래스가 grab 커서를 없애고 `.win-body`의 `max-height: 60vh` 상한을 풀어 남은 높이를 채운다. 뷰포트 리사이즈 구독(`resize`)은 maximized 창에서만 건다
+- **셸 골격 치수는 `src/data/shell.ts`의 `SHELL` 상수가 단일 출처다**(`TASKBAR_HEIGHT` 44, `TITLE_BAR_HEIGHT` 40). layers.ts와 같은 이유로 숫자를 흩뿌리지 않는다. CSS는 TS 상수를 못 읽으므로 `Desktop.css`(`.taskbar` height, `.desktop-icons` height)에 44px가 주석과 함께 중복돼 있다 — **바꿀 때 반드시 양쪽을 함께 고친다**
+- ⚠️ `Window`는 스토어 창뿐 아니라 스탯창·날짜칸도 렌더링한다. 따라서 `.win` 셀렉터로 "열린 창"을 고르면 패널까지 걸린다(패널은 `onClose`가 없어 닫기 버튼도 없다). DOM 검증 시에는 타이틀 텍스트 등으로 구분할 것
 - 활동 창은 오후 슬롯일 때 생활비 차감을 경고한다. 오후 행동은 하루를 끝내며 `sleep()`이 생활비를 빼가는데, 이를 안 보여주면 "+42,780원" 표시 후 실제로는 적자가 되어 플레이어를 오도함
 
 ## 아이콘 (Iconify, 오프라인 전용)
@@ -66,9 +69,9 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 ## 파일 맵
 - 진입: `index.html` → `src/main.tsx` → `src/App.tsx` (`loggedIn && state`로 잠금화면/바탕화면 분기)
 - 타입: `src/types/game.ts` — Stats, Activity, GameState 등 도메인 타입 전부
-- 데이터(수치): `src/data/` — activities(활동 5종, `onDesktop` 플래그), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합), layers(`LAYERS` — z-order 상수), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(엔딩 6종), statMeta(스탯별 아이콘·accent + 표시 순서), icons(`UI_ICONS` — 창·작업표시줄·잠금화면 아이콘 이름)
+- 데이터(수치): `src/data/` — activities(활동 5종, `onDesktop` 플래그), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합, `maximized` 옵트인), layers(`LAYERS` — z-order 상수), shell(`SHELL` — 작업표시줄·타이틀바 높이), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(엔딩 6종), statMeta(스탯별 아이콘·accent + 표시 순서), icons(`UI_ICONS` — 창·작업표시줄·잠금화면 아이콘 이름)
 - 아이콘: `src/icons/` — AppIcon(공용 렌더 컴포넌트), bootstrap(시작 시 addCollection), generated.ts(자동 생성, 수정 금지). 생성기는 `scripts/build-icon-subset.mjs`
-- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티), ending(티어 판정). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지). 총 **123개** 테스트(`src/systems`+`src/store`+`src/data`)
+- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티), ending(티어 판정). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지). 총 **131개** 테스트(`src/systems`+`src/store`+`src/data`)
 - 상태: `src/store/` — gameStore(세이브+loggedIn), metaStore(도감·영구), windowStore(창·휘발), desktopPanelStore(스탯창·날짜칸 z, 휘발)
 - UI: `src/components/window/`(Window·WindowManager), `desktop/`(Desktop·StatPanel·CalendarPanel·Taskbar), `lockscreen/`, `apps/`(ExeApp·StubApp·EndingModal)
 - 설정: `vite.config.ts`, `tsconfig.json`(+`.app`/`.node`), 전역 CSS `src/index.css`

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { DESKTOP_ITEMS } from './desktopItems'
 import { ACTIVITIES, findActivity } from './activities'
+import { SHELL } from './shell'
 
 describe('바탕화면 항목', () => {
   it('onDesktop 활동이 빠짐없이 항목으로 올라간다', () => {
@@ -41,5 +42,28 @@ describe('바탕화면 항목', () => {
       expect(item.icon).toMatch(/^[a-z0-9-]+:[a-z0-9-]+$/)
       expect(item.width).toBeGreaterThan(0)
     }
+  })
+
+  it('브라우저는 전체 화면으로 열리도록 데이터에서 선언한다', () => {
+    const browser = DESKTOP_ITEMS.find((i) => i.id === 'browser')
+    expect(browser!.maximized).toBe(true)
+  })
+
+  it('전체 화면은 옵트인이다 — 나머지 항목은 기존 플로팅 동작을 유지한다', () => {
+    for (const item of DESKTOP_ITEMS.filter((i) => i.id !== 'browser')) {
+      expect(item.maximized).toBeFalsy()
+    }
+  })
+})
+
+describe('셸 레이아웃 수치', () => {
+  it('작업 표시줄 높이는 CSS(.taskbar height)와 같은 44px다', () => {
+    // Desktop.css의 .taskbar height / .desktop-icons height와 짝이다. 함께 바꿔야 한다.
+    expect(SHELL.TASKBAR_HEIGHT).toBe(44)
+  })
+
+  it('타이틀 바가 작업 표시줄에 완전히 가려지지 않도록 두 값 모두 양수다', () => {
+    expect(SHELL.TITLE_BAR_HEIGHT).toBeGreaterThan(0)
+    expect(SHELL.TASKBAR_HEIGHT).toBeGreaterThan(0)
   })
 })

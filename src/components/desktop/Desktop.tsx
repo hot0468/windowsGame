@@ -23,10 +23,11 @@ export function Desktop() {
                 id: `${item.kind}-${item.id}`,
                 title: item.label,
                 icon: item.icon,
-                // 창이 서로 겹치지 않도록 순번만큼 어긋나게 배치한다.
-                x: 120 + i * 28,
-                y: 80 + i * 28,
+                // 전체 화면 창은 항상 좌상단 고정, 나머지는 서로 겹치지 않게 순번만큼 어긋나게 배치한다.
+                x: item.maximized ? 0 : 120 + i * 28,
+                y: item.maximized ? 0 : 80 + i * 28,
                 width: item.width,
+                maximized: item.maximized,
                 kind: item.kind,
                 activityId: item.activityId,
                 message: item.stubMessage,
