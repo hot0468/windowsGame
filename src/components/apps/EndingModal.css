@@ -1,20 +1,30 @@
+/* 엔딩 모달. 게임의 결말을 보여주는 유일한 화면이므로
+   OS 창보다 한 단 높은 고도(--el-3)와 넓은 여백을 쓴다. */
+
 .ending-overlay {
   position: fixed;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.65);
+  /* 스크림은 뒤의 UI를 확실히 눌러야 한다(권장 40–60% 검정).
+     블러를 함께 걸어 바탕화면이 "뒤로 물러난 층"으로 읽히게 한다
+     (style `blur-purpose`: 블러는 배경 비활성화의 신호다). */
+  background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   /* LAYERS.ENDING — 작업 표시줄(9000)보다도 위, 최상단. src/data/layers.ts와 같은 값. */
   z-index: 9500;
 }
 
 .ending-box {
   width: 420px;
-  padding: 28px;
-  border-radius: 12px;
-  background: #f7f7f7;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  padding: var(--sp-8) var(--sp-6) var(--sp-6);
+  border-radius: var(--r-xl);
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  /* 화면을 가로막는 표면 = 고도 3단. 컴포넌트별 임의 그림자를 쓰지 않는다. */
+  box-shadow: var(--el-3);
   text-align: center;
 }
 
@@ -23,98 +33,126 @@
   margin: 0 auto;
 }
 
+/* 이 화면의 최상위 제목. 타입 스케일 상단(24px) + 700.
+   같은 화면 안에서 24 → 14 → 12로 세 단계 위계를 만든다. */
 .ending-title {
-  margin: 10px 0 6px;
-  font-size: 22px;
+  margin: var(--sp-3) 0 var(--sp-1);
+  font-size: var(--fs-2xl);
   font-weight: 700;
-  color: #1a1a1a;
+  letter-spacing: -0.01em;
+  color: var(--os-text);
 }
 
 .ending-unlocked {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  font-size: 12px;
-  color: #2e7d32;
-  margin-bottom: 14px;
+  gap: var(--sp-1);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--os-success);
+  margin-bottom: var(--sp-4);
 }
 
 .ending-text {
-  margin-bottom: 16px;
-  font-size: 14px;
-  line-height: 1.8;
-  color: #333;
+  margin-bottom: var(--sp-4);
+  font-size: var(--fs-base);
+  /* 본문 행간은 1.5–1.75가 권장 구간이다(typography `line-height`).
+     1.8은 문단이 흩어져 보이므로 1.7로 내린다. */
+  line-height: 1.7;
+  color: var(--os-text-2);
   text-align: left;
 }
 
 .ending-hint {
-  margin-bottom: 16px;
-  padding: 9px;
-  background: #e3f2fd;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #1565c0;
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-3);
+  background: #eaf3fb;
+  border: 1px solid rgba(0, 103, 192, 0.2);
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm);
+  color: #0b4f92;
+  text-align: left;
+  line-height: 1.5;
 }
 
 .ending-summary {
-  margin-bottom: 18px;
-  padding: 12px;
-  background: #ececec;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #444;
+  margin-bottom: var(--sp-5);
+  padding: var(--sp-3);
+  background: var(--os-fill);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
   text-align: left;
   line-height: 1.7;
 }
 
 .ending-summary-head {
-  margin-bottom: 6px;
+  margin-bottom: var(--sp-2);
   font-weight: 600;
-  color: #333;
+  color: var(--os-text);
 }
 
 .ending-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: var(--sp-1) var(--sp-3);
+  font-variant-numeric: tabular-nums;
 }
 
 .ending-stat {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--sp-1);
 }
 
 .ending-buttons {
   display: flex;
-  gap: 10px;
+  gap: var(--sp-2);
 }
 
 .ending-btn {
   flex: 1;
-  padding: 11px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  /* 최소 터치 타깃(ux `touch-target-size`). */
+  min-height: 40px;
+  padding: var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  font-size: var(--fs-base);
   font-weight: 600;
   cursor: pointer;
 }
 
+/* 화면당 주요 행동 하나(style `primary-action`). 나머지는 시각적으로 종속시킨다. */
 .ending-btn-primary {
-  background: #1e88e5;
+  background: var(--os-accent);
+  box-shadow: var(--el-1);
   color: #fff;
 }
 
 .ending-btn-primary:hover {
-  background: #1565c0;
+  background: var(--os-accent-hover);
 }
 
+.ending-btn-primary:active {
+  background: var(--os-accent-press);
+  box-shadow: none;
+}
+
+/* 보조 행동은 채우지 않고 테두리만 준다 — 회색 채움(#d8d8d8)은
+   비활성 버튼과 구분되지 않아 오히려 혼란스러웠다. */
 .ending-btn-ghost {
-  background: #d8d8d8;
-  color: #333;
+  background: var(--os-surface);
+  border-color: var(--os-border-strong);
+  color: var(--os-text-2);
 }
 
 .ending-btn-ghost:hover {
-  background: #c4c4c4;
+  background: var(--os-fill);
+  border-color: rgba(0, 0, 0, 0.24);
+}
+
+.ending-btn-ghost:active {
+  background: #e6e6e6;
 }

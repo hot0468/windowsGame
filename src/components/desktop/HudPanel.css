@@ -1,0 +1,95 @@
+/*
+ * 게임 HUD 패널 (스탯창·날짜칸). OS 창과 의도적으로 다른 시각 언어를 쓴다.
+ *
+ * ui-ux-pro-max 근거:
+ *  - style `Glassmorphism`: backdrop-filter blur 10–20px, 반투명 배경,
+ *    1px 밝은 테두리, "Text contrast 4.5:1 checked".
+ *  - style `Modern Dark (Cinema Mobile)`: 어두운 표면 위 rgba(255,255,255,0.08) 헤어라인,
+ *    "No solid grey borders (rgba only)", 액센트 글로우.
+ *  - color `Gaming`: background #0F0F23 / card #1E1C35 / foreground #E2E8F0.
+ *  - style `blur-purpose`: 블러는 "뒤에 무언가 있다"를 알리는 신호다 —
+ *    HUD가 바탕화면 위에 얹힌 층임을 드러내므로 목적에 맞는 사용이다.
+ *
+ * ⚠️ 위치는 인라인 style(left/top/width/z-index)이 지정한다.
+ * z-index 값의 단일 출처는 src/data/layers.ts이며 여기서는 숫자를 쓰지 않는다.
+ */
+.hud {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-xl);
+  /* 폴백: backdrop-filter가 없어도 대비가 무너지지 않도록 불투명 배경을 먼저 깐다. */
+  background: var(--hud-bg-solid);
+  background: var(--hud-bg);
+  -webkit-backdrop-filter: var(--hud-blur);
+  backdrop-filter: var(--hud-blur);
+  border: 1px solid var(--hud-border);
+  /* 공용 고도 2단 + 액센트 림 라이트 한 겹.
+     림 라이트는 유리 표면의 광원 반사를 흉내내며, 어두운 패널이 벽지에 눌어붙지 않게 띄운다. */
+  box-shadow:
+    var(--el-2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: var(--hud-text);
+  overflow: hidden;
+}
+
+/* 상단 액센트 스트립 — "게임 오버레이"를 한눈에 알리는 최소한의 장식.
+   Cyberpunk/HUD 스타일의 코너 브래킷 대신 1px 그라데이션 한 줄만 쓴다:
+   OS 위에 얹힌 층이라는 신호로 충분하고, 스캔라인·글리치는 대비를 해쳐
+   (style DB: HUD/Sci-Fi FUI "Accessibility ⚠ Poor") 본문 가독성 요구와 충돌한다. */
+.hud::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--hud-accent), transparent);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.hud-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+  background: var(--hud-head);
+  border-bottom: 1px solid var(--hud-border);
+}
+
+.hud-head-icon {
+  flex: 0 0 auto;
+}
+
+/* HUD 제목은 OS 타이틀 바(400 weight)와 달리 굵고 자간을 벌린 라벨이다.
+   typography `weight-hierarchy`: 라벨은 500–600, 본문은 400. */
+.hud-head-title {
+  margin: 0;
+  flex: 1;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--hud-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-body {
+  padding: var(--sp-3);
+  font-size: var(--fs-md);
+  color: var(--hud-text-2);
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+/* 어두운 표면 위 스크롤바. 기본 밝은 스크롤바는 유리 패널에서 이물질처럼 보인다. */
+.hud-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.hud-body::-webkit-scrollbar-thumb {
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.18);
+}

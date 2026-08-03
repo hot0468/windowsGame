@@ -54,7 +54,14 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - **`Window`의 캡션 버튼은 콜백 유무로 켜진다:** `onClose`/`onMinimize`/`onToggleMaximize`를 넘긴 것만 그려진다. 스탯창·날짜칸은 셋 다 넘기지 않아 버튼이 하나도 없다 — 이 패널들은 windowStore에 없어 작업 표시줄에서 되돌릴 수단이 없으므로 최소화되면 영영 사라진다
 - **윈도우 11 시각 언어(맥스러움 제거):** 타이틀 바는 그라데이션 없는 플랫 단색(`#f3f3f3`)에 `font-weight: 400`, 높이는 `SHELL.TITLE_BAR_HEIGHT`(40px)로 고정(캡션 버튼이 꽉 채우려면 필요). 캡션 버튼은 `radius 0` · 폭 46px · 우상단 모서리 밀착(타이틀 바 오른쪽 패딩 0). hover는 최소화·최대화가 `#e5e5e5`, **닫기만 `#e81123` + 흰 글리프**. 창 배경 `#f9f9f9`, 테두리 `#e5e5e5`, 그림자는 은은한 2단(`0 2px 4px/.1` + `0 8px 20px/.14`). 작업 표시줄은 밝은 아크릴(`rgba(243,243,243,.85)` + blur)
 - **작업 표시줄 정렬:** 시작 버튼+창 목록만 가운데, 패널 버튼·시계는 우측 트레이에 고정(윈도우도 트레이는 우측이다). 좌측 `.taskbar-spacer`가 `.taskbar-tray`와 같은 `flex: 1 1 0`을 차지해 가운데 묶음을 광학적 중심에 맞춘다 — 스페이서를 지우면 묶음이 왼쪽으로 밀린다
-- ⚠️ `Window`는 스토어 창뿐 아니라 스탯창·날짜칸도 렌더링한다. 따라서 `.win` 셀렉터로 "열린 창"을 고르면 패널까지 걸린다(패널은 `onClose`가 없어 닫기 버튼도 없다). DOM 검증 시에는 타이틀 텍스트 등으로 구분할 것
+- ⚠️ **HUD 패널은 `Window` 크롬 예외다** (2026-08-03 변경). 스탯창·날짜칸은 더 이상 공용 `Window`를 쓰지 않고 `src/components/desktop/HudPanel.tsx`(+`HudPanel.css`)라는 전용 컨테이너를 쓴다. **사유:** 설계자 요구가 "이 둘은 OS 창이 아니라 게임 오버레이로 읽혀야 한다"인데, 윈도우 11 크롬(밝은 타이틀 바 `#f3f3f3` + 캡션 버튼 자리)을 유지한 채로는 그 인상을 만들 수 없다. HudPanel은 다크 글래스(`backdrop-filter: blur(18px) saturate(160%)` + `rgba(13,15,30,.86)` + 1px 밝은 테두리 + 상단 액센트 스트립)로 OS 창과 대비시킨다.
+  - **바뀐 것은 외형뿐이다.** 고정 위치(드래그 핸들러 미부착) · 캡션 버튼 없음 · `windowStore` 미등록 · `desktopPanelStore.raise()`로만 앞으로 오는 규칙은 전부 그대로다. z-order도 그대로(`DESKTOP_PANEL` 100 → `raise` 시 `DESKTOP_PANEL_RAISED` 8000+)
+  - **DOM 셀렉터가 바뀌었다:** 이제 `.win`은 **열린 일반 창만** 고른다(패널이 더는 걸리지 않는다). HUD 패널은 `.hud`, 제목은 `.hud-head-title`이다. 예전처럼 타이틀 텍스트로 구분할 필요가 없다
+  - `Window`의 `fixed` prop과 `.win-fixed` CSS는 남아 있으나 현재 사용처가 없다(앞으로 생길 고정 창용)
+- **디자인 토큰은 `src/index.css`의 `:root`가 단일 출처다** (2026-08-03 신설). 간격 `--sp-1..8`(4/8 리듬), 타입 `--fs-xs..3xl`(11/12/13/14/16/18/24/32), 모서리 `--r-sm..xl`, 고도 `--el-1/2/3`(3단만), OS 색 `--os-*`(윈도우 11 라이트), HUD 색 `--hud-*`(다크 글래스). **컴포넌트 CSS에 생 hex나 임의 px을 새로 적지 않는다** — 그림자를 컴포넌트마다 새로 쓰면 고도 척도가 무너진다(ui-ux-pro-max `elevation-consistent`).
+  - 두 시각 언어를 **섞지 않는 것**이 "게임이 OS 위에 얹혀 있다"는 인상의 근거다: OS 크롬(창·작업표시줄·바탕화면·잠금화면·엔딩 모달)은 `--os-*`, HUD 패널 내부는 `--hud-*`만 쓴다
+  - HUD는 어두워서 `:focus-visible`의 기본 링(`--os-accent` #0067c0)이 묻힌다 → `index.css`에 `.hud :focus-visible { outline-color: var(--hud-accent) }`가 있다
+  - 대비는 실측으로 검증했다(헤드리스 크롬 스크린샷 픽셀). 반투명 표면 위 글자는 **계산이 아니라 픽셀을 읽어야** 한다 — 잠금화면 플레이스홀더가 눈으로는 멀쩡한데 3.97:1이었다(입력창 배경을 어두운 틴트로 바꿔 해결)
 - 활동 창은 오후 슬롯일 때 생활비 차감을 경고한다. 오후 행동은 하루를 끝내며 `sleep()`이 생활비를 빼가는데, 이를 안 보여주면 "+42,780원" 표시 후 실제로는 적자가 되어 플레이어를 오도함
 
 ## 아이콘 (Iconify, 오프라인 전용)
@@ -81,13 +88,13 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - 아이콘: `src/icons/` — AppIcon(공용 렌더 컴포넌트), bootstrap(시작 시 addCollection), generated.ts(자동 생성, 수정 금지). 생성기는 `scripts/build-icon-subset.mjs`
 - 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티), ending(티어 판정). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지). 총 **146개** 테스트(`src/systems`+`src/store`+`src/data`)
 - 상태: `src/store/` — gameStore(세이브+loggedIn), metaStore(도감·영구), windowStore(창 목록 + 최소화/최대화 런타임 상태·휘발), desktopPanelStore(스탯창·날짜칸 z, 휘발)
-- UI: `src/components/window/`(Window·WindowManager), `desktop/`(Desktop·StatPanel·CalendarPanel·Taskbar), `lockscreen/`, `apps/`(ExeApp·StubApp·EndingModal)
-- 설정: `vite.config.ts`, `tsconfig.json`(+`.app`/`.node`), 전역 CSS `src/index.css`
+- UI: `src/components/window/`(Window·WindowManager — OS 창 크롬), `desktop/`(Desktop·**HudPanel**·StatPanel·CalendarPanel·Taskbar), `lockscreen/`, `apps/`(ExeApp·StubApp·EndingModal)
+- 설정: `vite.config.ts`, `tsconfig.json`(+`.app`/`.node`), 전역 CSS `src/index.css`(**디자인 토큰 `:root` 단일 출처**)
 - 미구현(별도 계획 필요): 브라우저 본체/포털/사이트(바탕화면 아이콘은 있으나 stub 창만 뜸), 엔딩 도감 UI, 랜덤 이벤트, 폴더 앱·휴지통(`DesktopItem`으로 추가), 은행/대출
 
 ## 코딩 컨벤션
 - 모든 게임 수치(스탯 변화량, 엔딩 조건, 활동 정의)는 컴포넌트에 하드코딩하지 않고 `src/data/` 데이터 파일로 분리
-- 모든 창 UI는 공용 Window 컴포넌트 위에 구현 (스탯창, 활동창, 팝업, 도감 전부)
+- 창 UI는 공용 `Window` 컴포넌트 위에 구현한다 (활동창·stub·도감 등 **OS 창으로 읽혀야 하는 것 전부**). **예외는 HUD 패널(스탯창·날짜칸) 하나뿐이며 `HudPanel`을 쓴다** — 사유는 위 참조
 - 주석·UI 텍스트는 한국어
 - 스탯 키는 전 코드에서 통일: `stamina`, `maxStamina`, `mental`, `money`, `knowledge`, `charm`, `sensitivity`, `reputation`, `morality`, `creativity`, `sociability`, `vocabulary`, `athletics` (구 `intelligence`는 `knowledge`로 개명됨)
 - `src/systems/`는 React import 금지, 상태 mutation 금지 — 새 객체를 반환한다

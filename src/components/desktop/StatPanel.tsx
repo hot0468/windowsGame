@@ -1,4 +1,4 @@
-import { Window } from '../window/Window'
+import { HudPanel } from './HudPanel'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
@@ -39,6 +39,9 @@ function ResourceRow({
             style={{
               transform: `scaleX(${Math.min(1, value / max)})`,
               background: accent,
+              /* 게이지 글로우. 색상값은 statMeta의 accent 하나에서만 파생시켜
+                 CSS에 스탯별 색을 다시 적지 않는다(단일 출처 유지). */
+              boxShadow: `0 0 8px ${accent}`,
             }}
           />
         </span>
@@ -58,7 +61,7 @@ function ResourceRow({
 function GrowthCell({ statKey, value }: { statKey: GrowthStatKey; value: number }) {
   const { icon } = STAT_META[statKey]
   return (
-    <div className="stat-cell" title={`${STAT_NAMES[statKey]} ${value}`}>
+    <div className="stat-cell hud-cell" title={`${STAT_NAMES[statKey]} ${value}`}>
       <AppIcon name={icon} size={15} className="stat-icon" />
       <span className="stat-cell-name">{STAT_NAMES[statKey]}</span>
       <span className="stat-cell-value">{value}</span>
@@ -84,7 +87,7 @@ export function StatPanel() {
   const nextTier = getNextTier(day)
 
   return (
-    <Window
+    <HudPanel
       id="stats"
       title={state.playerName}
       icon={UI_ICONS.statPanel}
@@ -92,10 +95,11 @@ export function StatPanel() {
       y={pos.y}
       width={280}
       zIndex={zIndex}
-      fixed
       onActivate={() => raise('stats')}
     >
-      {/* 1구역: 매 턴 변하고 상한이 의미 있는 자원 — 게이지로 한눈에 본다. */}
+      {/* 1구역: 매 턴 변하고 상한이 의미 있는 자원 — 게이지로 한눈에 본다.
+          구역 라벨은 hr보다 강한 구분 신호다(ux `visual-hierarchy`: 크기·간격·대비로 위계를 만든다). */}
+      <div className="hud-section">자원</div>
       <ResourceRow statKey="stamina" value={stats.stamina} max={stats.maxStamina} />
       <ResourceRow statKey="mental" value={stats.mental} max={100} warn={stats.mental <= 20} />
       <ResourceRow
@@ -106,7 +110,7 @@ export function StatPanel() {
       />
       <ResourceRow statKey="maxStamina" value={stats.maxStamina} max={200} />
 
-      <hr className="stat-divider" />
+      <div className="hud-section">능력치</div>
 
       {/* 2구역: 성장 스탯 9종. 3열 그리드로 압축해 창 높이를 억제한다. */}
       <div className="stat-grid">
@@ -115,13 +119,11 @@ export function StatPanel() {
         ))}
       </div>
 
-      <hr className="stat-divider" />
-
       <div className="stat-note">
         오늘 생활비 {getLivingCost(day).toLocaleString('ko-KR')}원
         <br />
         {nextTier.day - day}일 후 {nextTier.living.toLocaleString('ko-KR')}원으로 인상
       </div>
-    </Window>
+    </HudPanel>
   )
 }

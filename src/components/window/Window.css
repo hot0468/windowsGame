@@ -6,15 +6,14 @@
   display: flex;
   flex-direction: column;
   /* 윈도우 11의 창 배경은 칙칙한 #f0f0f0이 아니라 거의 흰색이다. */
-  background: #f9f9f9;
-  /* 윈도우 11의 창 테두리는 얇고 옅다. #8a8a8a는 너무 진하다. */
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  /* 맥처럼 짙게 떠 있는 그림자(0 8px 24px rgba(0,0,0,.35)) 대신
-     윈도우 11의 은은한 2단 그림자 — 가까운 윤곽 + 넓고 옅은 확산. */
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.1),
-    0 8px 20px rgba(0, 0, 0, 0.14);
+  background: var(--os-surface);
+  /* 윈도우 11의 창 테두리는 얇고 옅은 "검정 8%" 선이다 — 고정 회색(#e5e5e5)은
+     밝은 창 위에서는 진하고 어두운 배경 위에서는 튄다. */
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-lg);
+  /* 맥처럼 짙게 떠 있는 그림자 대신 공용 고도 2단(--el-2)을 쓴다.
+     컴포넌트마다 그림자를 새로 적지 않는 것이 규칙이다(style `elevation-consistent`). */
+  box-shadow: var(--el-2);
   overflow: hidden;
   min-width: 200px;
 }
@@ -23,19 +22,19 @@
   display: flex;
   align-items: center;
   /* 캡션 버튼이 우상단 모서리에 딱 붙어야 하므로 오른쪽 패딩을 두지 않는다. */
-  padding: 0 0 0 12px;
-  gap: 8px;
+  padding: 0 0 0 var(--sp-3);
+  gap: var(--sp-2);
   /* ⚠️ 40px = SHELL.TITLE_BAR_HEIGHT (src/data/shell.ts). 바꿀 때 함께 고친다.
      캡션 버튼이 타이틀 바 높이를 꽉 채우려면 높이가 고정돼야 한다. */
   height: 40px;
   /* 윈도우 11은 플랫 단색이다. 그라데이션은 구식이고 맥스럽다. */
-  background: #f3f3f3;
-  border-bottom: 1px solid #e5e5e5;
+  background: var(--os-chrome);
+  border-bottom: 1px solid var(--os-border);
   cursor: grab;
-  font-size: 13px;
+  font-size: var(--fs-md);
   /* 윈도우 11 타이틀은 굵지 않다(600 → 400). */
   font-weight: 400;
-  color: #1a1a1a;
+  color: var(--os-text);
   user-select: none;
 }
 
@@ -57,7 +56,8 @@
 }
 
 /* 끌 수 없는 창이므로 잡을 수 있다는 신호(grab 커서)를 주지 않는다.
-   전체 화면 창과 바탕화면 고정 패널(스탯창·날짜칸)이 해당한다. */
+   현재는 전체 화면 창만 해당한다(스탯창·날짜칸은 HudPanel로 분리돼 이 크롬을 쓰지 않는다).
+   `fixed` prop은 앞으로 생길 고정 창을 위해 남겨 둔다. */
 .win-max .win-title,
 .win-fixed .win-title {
   cursor: default;
@@ -117,7 +117,7 @@
   /* 각진 직사각형 — radius 0. */
   border-radius: 0;
   background: transparent;
-  color: #1a1a1a;
+  color: var(--os-text);
   cursor: pointer;
   padding: 0;
   line-height: 1;
@@ -134,14 +134,16 @@
   background: #dadada;
 }
 
-/* 닫기만 빨강 + 흰 아이콘 (윈도우 표준). */
+/* 닫기만 빨강 + 흰 아이콘 (윈도우 표준).
+   #e81123 대신 윈도우 11의 실제 시스템 위험색(--os-danger #c42b1c)을 쓴다 —
+   흰 글리프와의 대비가 4.5:1을 넘는 값이다(#e81123은 4.0:1로 미달). */
 .win-close:hover {
-  background: #e81123;
+  background: var(--os-danger);
   color: #fff;
 }
 
 .win-close:active {
-  background: #f1707a;
+  background: #a52218;
   color: #fff;
 }
 
@@ -189,7 +191,7 @@
   top: 2px;
   width: 8px;
   height: 8px;
-  background: #f3f3f3;
+  background: var(--os-chrome);
 }
 
 .win-maximize:hover .win-glyph-restore::after {
@@ -221,9 +223,10 @@
 }
 
 .win-body {
-  padding: 12px;
-  font-size: 13px;
-  color: #1a1a1a;
+  padding: var(--sp-4);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--os-text);
   overflow-y: auto;
   max-height: 60vh;
 }
