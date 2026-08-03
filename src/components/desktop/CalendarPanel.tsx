@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Window } from '../window/Window'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
@@ -18,11 +17,11 @@ export function CalendarPanel() {
   const raise = useDesktopPanelStore((s) => s.raise)
 
   const { width, gap, top } = CALENDAR_PANEL_LAYOUT
-  /** 초기 위치: 스탯창 바로 왼쪽. 스탯창 폭 + 여백만큼 더 왼쪽으로 밀어 둔다. */
-  const [pos, setPos] = useState(() => ({
+  /** 스탯창 바로 왼쪽에 고정한다. 드래그로 옮길 수 없으므로 상태로 들고 있지 않는다. */
+  const pos = {
     x: Math.max(8, window.innerWidth - CALENDAR_PANEL_LAYOUT.statPanelReserve - width - gap),
     y: top,
-  }))
+  }
 
   if (!state) return null
 
@@ -38,7 +37,7 @@ export function CalendarPanel() {
       y={pos.y}
       width={width}
       zIndex={zIndex}
-      onMove={(x, y) => setPos({ x, y })}
+      fixed
       onActivate={() => raise('calendar')}
     >
       <div className="cal-date">{formatGameDate(state.day)}</div>

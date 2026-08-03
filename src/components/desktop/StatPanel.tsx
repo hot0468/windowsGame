@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Window } from '../window/Window'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
@@ -65,11 +64,14 @@ function GrowthCell({ statKey, value }: { statKey: GrowthStatKey; value: number 
 
 export function StatPanel() {
   const state = useGameStore((s) => s.state)
-  /** 스탯창은 windowStore에 등록되지 않으므로 위치와 z-index를 직접 소유한다. */
-  const [pos, setPos] = useState(() => ({
+  /**
+   * 스탯창은 windowStore에 등록되지 않으므로 z-index를 직접 소유한다.
+   * 위치는 우상단 고정이며 드래그로 옮길 수 없으므로 상태로 들고 있지 않는다.
+   */
+  const pos = {
     x: Math.max(8, window.innerWidth - CALENDAR_PANEL_LAYOUT.statPanelReserve),
     y: CALENDAR_PANEL_LAYOUT.top,
-  }))
+  }
   const zIndex = useDesktopPanelStore((s) => s.z.stats)
   const raise = useDesktopPanelStore((s) => s.raise)
   if (!state) return null
@@ -86,7 +88,7 @@ export function StatPanel() {
       y={pos.y}
       width={280}
       zIndex={zIndex}
-      onMove={(x, y) => setPos({ x, y })}
+      fixed
       onActivate={() => raise('stats')}
     >
       {/* 1구역: 매 턴 변하고 상한이 의미 있는 자원 — 게이지로 한눈에 본다. */}

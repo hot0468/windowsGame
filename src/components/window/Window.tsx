@@ -21,6 +21,11 @@ interface WindowProps {
    * 끌리면 클램핑 로직에 걸려 화면이 어긋난다). 뷰포트 크기가 바뀌면 따라서 늘어난다.
    */
   maximized?: boolean
+  /**
+   * true면 드래그로 옮길 수 없다. 바탕화면에 고정된 스탯창·날짜칸처럼
+   * 위치가 정해진 패널용. 최대화 창과 마찬가지로 잡을 수 있다는 신호(grab 커서)도 주지 않는다.
+   */
+  fixed?: boolean
   /** 없으면 닫기 버튼을 숨긴다 (스탯창처럼 상시 표시되는 창). */
   onClose?: () => void
   /**
@@ -51,6 +56,7 @@ export function Window({
   width,
   zIndex,
   maximized = false,
+  fixed = false,
   onClose,
   onMinimize,
   onToggleMaximize,
@@ -121,6 +127,9 @@ export function Window({
     e.currentTarget.releasePointerCapture(e.pointerId)
   }
 
+  /** 전체 화면 창과 고정 패널은 위치가 정해져 있어 드래그하지 않는다. */
+  const immovable = maximized || fixed
+
   /** 전체 화면이면 x/y/width 대신 뷰포트를 채우고, 작업 표시줄 높이만 아래로 비워 둔다. */
   const style: CSSProperties = maximized
     ? {
@@ -134,17 +143,18 @@ export function Window({
 
   return (
     <div
-      className={maximized ? 'win win-max' : 'win'}
+      className={`win${maximized ? ' win-max' : ''}${fixed ? ' win-fixed' : ''}`}
       style={style}
       onPointerDown={activate}
     >
       <div
         className="win-title"
-        // 전체 화면 창은 끌 수 없다 — 핸들러를 아예 붙이지 않아 포인터 캡처도 걸리지 않는다.
+        // 전체 화면 창과 고정 패널은 끌 수 없다 — 핸들러를 아예 붙이지 않아 포인터 캡처도 걸리지 않는다.
         // (캡션 버튼 클릭은 캡처가 없으므로 그대로 성립한다.)
-        onPointerDown={maximized ? undefined : handlePointerDown}
-        onPointerMove={maximized ? undefined : handlePointerMove}
-        onPointerUp={maximized ? undefined : handlePointerUp}
+        // 컨테이너의 onPointerDown이 살아 있으므로 눌렀을 때 앞으로 오는 동작은 유지된다.
+        onPointerDown={immovable ? undefined : handlePointerDown}
+        onPointerMove={immovable ? undefined : handlePointerMove}
+        onPointerUp={immovable ? undefined : handlePointerUp}
         // 실제 윈도우처럼 타이틀 바 더블클릭으로도 최대화/복원을 토글한다.
         // 캡션 버튼 위의 더블클릭까지 토글되면 최소화를 두 번 누를 때 엉뚱하게 최대화되므로 제외한다.
         onDoubleClick={

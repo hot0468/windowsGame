@@ -56,12 +56,15 @@
   box-shadow: none;
 }
 
-/* 끌 수 없는 창이므로 잡을 수 있다는 신호(grab 커서)를 주지 않는다. */
-.win-max .win-title {
+/* 끌 수 없는 창이므로 잡을 수 있다는 신호(grab 커서)를 주지 않는다.
+   전체 화면 창과 바탕화면 고정 패널(스탯창·날짜칸)이 해당한다. */
+.win-max .win-title,
+.win-fixed .win-title {
   cursor: default;
 }
 
-.win-max .win-title:active {
+.win-max .win-title:active,
+.win-fixed .win-title:active {
   cursor: default;
 }
 
