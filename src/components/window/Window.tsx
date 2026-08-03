@@ -33,6 +33,10 @@ export function Window({
   const offset = useRef({ dx: 0, dy: 0 })
 
   const handlePointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    // 타이틀 바 pointerdown이 컨테이너로 버블링되어 container의
+    // onPointerDown도 함께 발생하므로, focus는 여기서 한 번만 호출하고
+    // 컨테이너 쪽 핸들러에서는 이벤트 전파를 막아 중복 호출을 방지한다.
+    e.stopPropagation()
     focus(id)
     offset.current = { dx: e.clientX - x, dy: e.clientY - y }
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -41,8 +45,16 @@ export function Window({
   const handlePointerMove = (e: PointerEvent<HTMLDivElement>) => {
     if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
     // 창이 화면 밖으로 완전히 사라지지 않도록 가둔다.
-    const nextX = Math.min(Math.max(0, e.clientX - offset.current.dx), window.innerWidth - 80)
-    const nextY = Math.min(Math.max(0, e.clientY - offset.current.dy), window.innerHeight - 60)
+    // MIN_VISIBLE_WIDTH: 창을 오른쪽 끝까지 끌어도 화면에 남아 있어야 하는 최소 가로 폭.
+    const MIN_VISIBLE_WIDTH = width
+    // TASKBAR_HEIGHT: 화면 하단에 고정된 작업 표시줄(추후 작업)의 높이. 타이틀 바가 그 아래로 가려지면 안 된다.
+    const TASKBAR_HEIGHT = 44
+    // TITLE_BAR_HEIGHT: 타이틀 바 자체 높이(패딩 포함, 여유값). 최소한 타이틀 바는 작업 표시줄 위에서 항상 잡을 수 있어야 한다.
+    const TITLE_BAR_HEIGHT = 40
+    const maxX = Math.max(0, window.innerWidth - MIN_VISIBLE_WIDTH)
+    const maxY = Math.max(0, window.innerHeight - TASKBAR_HEIGHT - TITLE_BAR_HEIGHT)
+    const nextX = Math.min(Math.max(0, e.clientX - offset.current.dx), maxX)
+    const nextY = Math.min(Math.max(0, e.clientY - offset.current.dy), maxY)
     move(id, nextX, nextY)
   }
 
@@ -51,11 +63,7 @@ export function Window({
   }
 
   return (
-    <div
-      className="win"
-      style={{ left: x, top: y, width, zIndex }}
-      onPointerDown={() => focus(id)}
-    >
+    <div className="win" style={{ left: x, top: y, width, zIndex }} onPointerDown={() => focus(id)}>
       <div
         className="win-title"
         onPointerDown={handlePointerDown}
