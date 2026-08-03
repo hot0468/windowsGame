@@ -1,6 +1,7 @@
 import { ACTIVITIES } from '../../data/activities'
 import { useWindowStore } from '../../store/windowStore'
 import { WindowManager } from '../window/WindowManager'
+import { EndingModal } from '../apps/EndingModal'
 import { StatPanel } from './StatPanel'
 import { Taskbar } from './Taskbar'
 import './Desktop.css'
@@ -38,6 +39,7 @@ export function Desktop() {
       <StatPanel />
       <WindowManager />
       <Taskbar />
+      <EndingModal />
     </div>
   )
 }
