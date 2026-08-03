@@ -25,7 +25,8 @@ describe('바탕화면 항목', () => {
   it('브라우저는 활동이 아니다 — 가짜 활동으로 등록되지 않았다', () => {
     const browser = DESKTOP_ITEMS.find((i) => i.id === 'browser')
     expect(browser).toBeDefined()
-    expect(browser!.kind).toBe('stub')
+    // stub으로 먼저 올렸다가 구현되면서 전용 kind로 바뀌었다.
+    expect(browser!.kind).toBe('browser')
     expect(browser!.activityId).toBeUndefined()
     // 활동 목록에 browser가 섞이면 번아웃 이력·엔딩 판정에 없는 id가 들어간다.
     expect(findActivity('browser')).toBeUndefined()

@@ -21,7 +21,7 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 | 스탯 | 12종. 소모 자원: `stamina`/`maxStamina`, `mental`(0~100), `money`. 성장 스탯 9종(상한 999): `knowledge`, `charm`, `sensitivity`, `reputation`, `morality`, `creativity`, `sociability`, `vocabulary`, `athletics` |
 | 엔딩 | 멀티 엔딩 6종(대기업 합격/인플루언서/철인/현실주의자/번아웃/평범). 스탯 조합 판정 |
 | 엔딩 공개 | 비공개. 엔딩 도감에 한 번 본 엔딩만 해금 |
-| 활동 선택 | (전환 중) 바탕화면에는 메신저 + 인터넷(준비 중 stub)만 노출. 활동 5종 정의는 `data/activities.ts`에 보존, 추후 브라우저/스케줄 시스템에서 선택하게 할 예정 |
+| 활동 선택 | (전환 중) 바탕화면에는 메신저 + 인터넷(NEVER 포털 동작)만 노출. 활동 5종 정의는 `data/activities.ts`에 보존, 추후 브라우저 사이트(알바몬 등)에서 선택하게 할 예정 |
 | 행동 비용 | **탐색 무료**, 확정 행동만 1턴 소모 |
 | 날짜 제한 | **없음.** 대신 ①매일 생활비 차감(0→파산) ②10일 주기 물가 인상(뉴스 예고) ③번아웃 누적 |
 | 알바비 | 물가보다 느리게 인상 → 고소득 알바 전환 압박 = 스탯 투자 이유 |
@@ -62,6 +62,16 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
   - 두 시각 언어를 **섞지 않는 것**이 "게임이 OS 위에 얹혀 있다"는 인상의 근거다: OS 크롬(창·작업표시줄·바탕화면·잠금화면·엔딩 모달)은 `--os-*`, HUD 패널 내부는 `--hud-*`만 쓴다
   - HUD는 어두워서 `:focus-visible`의 기본 링(`--os-accent` #0067c0)이 묻힌다 → `index.css`에 `.hud :focus-visible { outline-color: var(--hud-accent) }`가 있다
   - 대비는 실측으로 검증했다(헤드리스 크롬 스크린샷 픽셀). 반투명 표면 위 글자는 **계산이 아니라 픽셀을 읽어야** 한다 — 잠금화면 플레이스홀더가 눈으로는 멀쩡한데 3.97:1이었다(입력창 배경을 어두운 틴트로 바꿔 해결)
+- ⚠️ **브라우저는 사이트 컨테이너다** (2026-08-03 신설). `src/data/sites.ts`의 `SITES`가 사이트 단일 출처이고(id·가짜 URL·제목·아이콘·`render`·안내 문구·`bookmark` 플래그), `BrowserApp`은 **`site.render`로만 분기한다**(`'portal'` | `'construction'`). 사이트 id로 분기하는 순간 "데이터 한 줄 + 컴포넌트 하나"로 사이트를 늘리는 구조가 무너진다. 새 사이트 추가 = SITES에 항목 하나 + (새 종류라면) `render` 값 하나와 컴포넌트 하나
+  - 즐겨찾기 줄은 `BOOKMARK_SITES`(= `bookmark: true` 필터)가 만든다 — 컴포넌트가 id를 나열하지 않는다. 알바몬·쇼핑·SNS·강의·은행 5종은 아직 내용이 없어 공용 `ConstructionSite` 한 컴포넌트를 공유한다(은행은 설계상 1차 제외라 그 사실을 문구로 밝힌다)
+  - 뒤로/앞으로 이력은 **`BrowserApp`의 로컬 `useState`**다. 스토어에 올리지 않는 이유: 창 하나의 휘발 상태라 볼 다른 컴포넌트가 없고, 스토어에 두면 창 id별로 나눠 담고 닫을 때 지우는 코드가 새로 필요하다. 다만 인덱스 계산은 off-by-one이 나기 쉬워 순수 함수 `src/systems/browserHistory.ts`로 분리해 테스트한다(`navigate`는 앞으로 이력을 자르고, 같은 사이트 재클릭은 이력을 늘리지 않는다)
+  - 새로 고침은 페이지 컨테이너의 `key`를 바꿔 다시 마운트시킨다(사이트의 로컬 상태 초기화 = 새로고침)
+  - 주소창은 **표시 전용**이다(읽기 전용 input). 자유 입력 검색은 설계 문서 6장의 1차 제외 항목이라 검색창도 장식이며 항상 "검색 결과가 없습니다"로 끝난다. 실시간 검색어는 `siteId`가 있으면 이동, 없으면 같은 안내로 끝난다
+  - **탐색은 무료라는 규칙을 코드로 지킨다:** 브라우저와 하위 사이트는 `gameStore`를 **읽기만** 한다(현재 `state.day` 하나). 액션 호출 금지 — 여기서 스탯을 건드리면 게임의 핵심 규칙이 깨진다
+- **뉴스 영역이 게임의 알림 창구다**(설계 문서 3.4). 정적 기사·광고 풀과 실검은 `src/data/news.ts`, 오늘 띄울 목록은 순수 선택자 `src/systems/news.ts`의 `selectNews({ day })`가 만든다. 첫 항목은 항상 `getNextTier(day)`에서 파생된 물가 인상 예고(스탯창과 같은 함수를 본다)이고, 나머지는 **날짜를 오프셋 삼아 풀을 회전**시킨다. `Math.random` 금지 — systems는 결정적이어야 하고, 무료로 다시 굴릴 수 있는 무작위는 정보가 아니라 소음이다
+- **`--nv-*`는 세 번째 시각 언어다**(`index.css`). OS 크롬(`--os-*`) / HUD(`--hud-*`) / **브라우저 안의 웹페이지(`--nv-*`)**. 브라우저 크롬은 창의 일부이므로 `--os-*`, 그 안의 사이트는 `--nv-*`만 쓴다 — 섞으면 "브라우저가 사이트를 담고 있다"는 인상이 사라진다. `--nv-green-bright`(#03c75a, 2.25:1)는 **장식 전용**이고 텍스트에는 `--nv-green`(#0b7a3b, 5.4:1)을 쓴다
+- 브라우저 창만 `.win-body`의 본문 패딩을 걷어낸다: `BrowserApp.css`의 `.win-body:has(> .browser) { padding: 0 }`. 크롬이 창 가장자리에 붙어야 하는데 `Window.tsx`에 prop을 늘리지 않기 위한 선택이다
+- 브라우저 도구 모음 글리프(뒤로·앞으로·새로 고침)도 캡션 버튼과 같은 이유로 **CSS 도형**이다 — 가는 단색 선이라 다색 플랫 아이콘과 성격이 다르고 disabled에서 `currentColor`로 함께 흐려져야 한다
 - 활동 창은 오후 슬롯일 때 생활비 차감을 경고한다. 오후 행동은 하루를 끝내며 `sleep()`이 생활비를 빼가는데, 이를 안 보여주면 "+42,780원" 표시 후 실제로는 적자가 되어 플레이어를 오도함
 
 ## 아이콘 (Iconify, 오프라인 전용)
@@ -84,13 +94,13 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 ## 파일 맵
 - 진입: `index.html` → `src/main.tsx` → `src/App.tsx` (`loggedIn && state`로 잠금화면/바탕화면 분기)
 - 타입: `src/types/game.ts` — Stats, Activity, GameState 등 도메인 타입 전부
-- 데이터(수치): `src/data/` — activities(활동 5종, `onDesktop` 플래그), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합, `openMaximized` 옵트인), layers(`LAYERS` — z-order 상수), shell(`SHELL` — 작업표시줄·타이틀바 높이), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(엔딩 6종), statMeta(스탯별 아이콘·accent + 표시 순서), icons(`UI_ICONS` — 창·작업표시줄·잠금화면 아이콘 이름)
+- 데이터(수치): `src/data/` — activities(활동 5종, `onDesktop` 플래그), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합, `openMaximized` 옵트인), **sites**(`SITES`·`BOOKMARK_SITES`·`HOME_SITE_ID`·`findSite` — 브라우저가 이동할 사이트 단일 출처), **news**(`NEWS_POOL`·`NEWS_VISIBLE_COUNT`·`TRENDING_TERMS` — 포털 뉴스/실검 정적 콘텐츠), layers(`LAYERS` — z-order 상수), shell(`SHELL` — 작업표시줄·타이틀바 높이), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(엔딩 6종), statMeta(스탯별 아이콘·accent + 표시 순서), icons(`UI_ICONS` — 창·작업표시줄·잠금화면 아이콘 이름)
 - 아이콘: `src/icons/` — AppIcon(공용 렌더 컴포넌트), bootstrap(시작 시 addCollection), generated.ts(자동 생성, 수정 금지). 생성기는 `scripts/build-icon-subset.mjs`
-- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티), ending(티어 판정). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지). 총 **146개** 테스트(`src/systems`+`src/store`+`src/data`)
+- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티), ending(티어 판정), **news**(오늘의 뉴스 선택 — 날짜 결정적), **browserHistory**(뒤로/앞으로 이력 계산). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지). 총 **177개** 테스트(`src/systems`+`src/store`+`src/data`)
 - 상태: `src/store/` — gameStore(세이브+loggedIn), metaStore(도감·영구), windowStore(창 목록 + 최소화/최대화 런타임 상태·휘발), desktopPanelStore(스탯창·날짜칸 z, 휘발)
-- UI: `src/components/window/`(Window·WindowManager — OS 창 크롬), `desktop/`(Desktop·**HudPanel**·StatPanel·CalendarPanel·Taskbar), `lockscreen/`, `apps/`(ExeApp·StubApp·EndingModal)
+- UI: `src/components/window/`(Window·WindowManager — OS 창 크롬), `desktop/`(Desktop·**HudPanel**·StatPanel·CalendarPanel·Taskbar), `lockscreen/`, `apps/`(ExeApp·StubApp·EndingModal·**BrowserApp**), `apps/sites/`(**NeverPortal**·**ConstructionSite** — 브라우저 안에 뜨는 웹페이지들)
 - 설정: `vite.config.ts`, `tsconfig.json`(+`.app`/`.node`), 전역 CSS `src/index.css`(**디자인 토큰 `:root` 단일 출처**)
-- 미구현(별도 계획 필요): 브라우저 본체/포털/사이트(바탕화면 아이콘은 있으나 stub 창만 뜸), 엔딩 도감 UI, 랜덤 이벤트, 폴더 앱·휴지통(`DesktopItem`으로 추가), 은행/대출
+- 미구현(별도 계획 필요): 사이트 **내용**(알바몬 지원·쇼핑 구매·SNS·강의 — 지금은 공용 준비 중 페이지), 엔딩 도감 UI, 랜덤 이벤트(뉴스 클릭 발동 자리는 비어 있음), 폴더 앱·휴지통(`DesktopItem`으로 추가), 은행/대출(설계상 1차 제외)
 
 ## 코딩 컨벤션
 - 모든 게임 수치(스탯 변화량, 엔딩 조건, 활동 정의)는 컴포넌트에 하드코딩하지 않고 `src/data/` 데이터 파일로 분리
@@ -98,6 +108,6 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - 주석·UI 텍스트는 한국어
 - 스탯 키는 전 코드에서 통일: `stamina`, `maxStamina`, `mental`, `money`, `knowledge`, `charm`, `sensitivity`, `reputation`, `morality`, `creativity`, `sociability`, `vocabulary`, `athletics` (구 `intelligence`는 `knowledge`로 개명됨)
 - `src/systems/`는 React import 금지, 상태 mutation 금지 — 새 객체를 반환한다
-- 창은 `windowStore.open()`으로 열고, 종류는 `OpenWindow.kind`(`'exe' | 'ending'`)로 구분
+- 창은 `windowStore.open()`으로 열고, 종류는 `OpenWindow.kind`(`'exe' | 'ending' | 'stub' | 'browser'`)로 구분
 - 스탯창처럼 스토어에 등록하지 않는 창은 `Window`에 `onMove` 콜백을 넘겨 위치를 직접 관리한다 (스토어의 `move`는 `windows` 배열에 있는 창만 갱신하므로 등록 안 하면 드래그가 무시됨)
 - `Window`에 `onClose`를 넘기지 않으면 닫기 버튼이 사라진다 (상시 표시 창용)

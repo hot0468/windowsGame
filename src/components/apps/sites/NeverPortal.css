@@ -1,0 +1,277 @@
+/*
+ * NEVER 포털 홈.
+ * 브라우저 크롬(--os-*)과 달리 이 안은 "웹페이지"이므로 --nv-* 토큰만 쓴다.
+ * 배치 근거: landing DB "Marketplace / Directory" — 검색이 CTA, 그 아래 카테고리,
+ * 그 아래 목록. 세로 리듬은 --sp-* 사다리(4/8)만 쓴다(ux `spacing-scale`).
+ */
+.nv {
+  /* ux `container-width`/`line-length-control`: 최대화된 창은 1920px까지 넓어지는데
+     본문을 끝까지 늘리면 한 줄이 200자를 넘어 읽을 수 없다. */
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--sp-8) var(--sp-6);
+  color: var(--nv-text);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+}
+
+/* 시각적으로만 숨기는 라벨. ux `input-labels`: 플레이스홀더만으로는 라벨이 될 수 없다. */
+.nv-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ── 히어로: 로고 + 검색 ── */
+.nv-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-5);
+}
+
+.nv-logo {
+  margin: 0;
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+  /* 큰 글자라 3:1이면 충분하지만 5.4:1로 잡아 본문 기준도 넘긴다. */
+  color: var(--nv-green);
+  letter-spacing: 0.14em;
+  /* letter-spacing이 마지막 글자 뒤에도 붙어 광학적으로 왼쪽으로 치우친다. */
+  text-indent: 0.14em;
+}
+
+.nv-search {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 520px;
+  /* 국내 포털의 인장 같은 두꺼운 초록 테두리. 장식이므로 밝은 초록을 쓴다
+     (--nv-green-bright는 2.25:1이라 텍스트에는 쓰지 않는다). */
+  border: 3px solid var(--nv-green-bright);
+  border-radius: var(--r-lg);
+  background: var(--nv-surface);
+  box-shadow: var(--el-1);
+}
+
+.nv-search:focus-within {
+  border-color: var(--nv-green);
+}
+
+.nv-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 44px;
+  padding: 0 var(--sp-4);
+  border: none;
+  border-radius: var(--r-lg) 0 0 var(--r-lg);
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-lg);
+  color: var(--nv-text);
+}
+
+.nv-search-input::placeholder {
+  /* 6.0:1 — 플레이스홀더도 읽을 수 있어야 한다(ux `contrast-readability`). */
+  color: var(--nv-text-3);
+}
+
+.nv-search-input:focus {
+  outline: none;
+}
+
+.nv-search-btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 44px;
+  border: none;
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.nv-search-btn:hover {
+  background: var(--nv-surface-alt);
+}
+
+/* 결과 안내는 자리를 늘 차지한다 — 나타났다 사라지며 아래 내용을 밀면
+   레이아웃이 튄다(ux `content-jumping`). */
+.nv-search-notice {
+  min-height: 1.4em;
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--nv-text-3);
+}
+
+/* ── 즐겨찾기(서비스 바로가기) ── */
+.nv-bookmarks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2);
+  margin: var(--sp-6) 0;
+  padding: var(--sp-3) var(--sp-2);
+  border-top: 1px solid var(--nv-border);
+  border-bottom: 1px solid var(--nv-border);
+}
+
+.nv-bookmark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  min-width: 84px;
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  border-radius: var(--r-lg);
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-md);
+  color: var(--nv-text-2);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.nv-bookmark:hover {
+  background: var(--nv-surface);
+  color: var(--nv-green);
+  box-shadow: var(--el-1);
+}
+
+/* ── 뉴스 / 실시간 검색어 ──
+   auto-fit은 뷰포트가 아니라 컨테이너 폭에 반응한다 — 창을 복원해 480px로 줄여도
+   미디어 쿼리 없이 한 줄로 접힌다(창 크기 ≠ 뷰포트 크기이므로 이 편이 옳다). */
+.nv-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+.nv-card {
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+  border: 1px solid var(--nv-border);
+  border-radius: var(--r-lg);
+  background: var(--nv-surface);
+  box-shadow: var(--el-1);
+}
+
+.nv-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 2px solid var(--nv-green-bright);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--nv-text);
+}
+
+.nv-news,
+.nv-trending {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nv-news-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+  font-size: var(--fs-base);
+}
+
+.nv-news-item + .nv-news-item {
+  border-top: 1px solid var(--nv-border);
+}
+
+.nv-news-text {
+  color: var(--nv-text-2);
+}
+
+/* 게임 상태에서 온 예고는 분위기 기사와 달리 반드시 읽혀야 한다 —
+   굵기와 색을 함께 올린다(ux `visual-hierarchy`: 색만으로 위계를 만들지 않는다). */
+.nv-news-notice .nv-news-text {
+  font-weight: 600;
+  color: var(--nv-text);
+}
+
+.nv-tag {
+  flex: 0 0 auto;
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.nv-tag-notice {
+  background: var(--nv-green);
+  color: var(--nv-surface); /* 5.4:1 */
+}
+
+.nv-tag-ad {
+  background: var(--nv-ad-bg);
+  color: var(--nv-ad); /* 6.0:1 */
+}
+
+.nv-trending li + li {
+  border-top: 1px solid var(--nv-border);
+}
+
+.nv-trending-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-2);
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-base);
+  text-align: left;
+  color: var(--nv-text-2);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.nv-trending-item:hover {
+  background: var(--nv-surface-alt);
+  color: var(--nv-green-strong);
+}
+
+.nv-rank {
+  flex: 0 0 auto;
+  width: 20px;
+  /* 숫자 폭이 달라도 글자가 밀리지 않게 한다(typography `number-tabular`). */
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: center;
+  color: var(--nv-text-3);
+}
+
+.nv-rank-top {
+  color: var(--nv-green);
+}
+
+.nv-trending-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

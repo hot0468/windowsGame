@@ -95,9 +95,9 @@ export interface Activity {
 /**
  * windowStore가 렌더링할 창의 종류.
  * 'exe'는 활동 실행 창(activityId 동반), 'ending'은 엔딩,
- * 'stub'은 아직 구현되지 않은 앱의 안내 창이다.
+ * 'browser'는 가짜 웹 브라우저, 'stub'은 아직 구현되지 않은 앱의 안내 창이다.
  */
-export type WindowKind = 'exe' | 'ending' | 'stub'
+export type WindowKind = 'exe' | 'ending' | 'stub' | 'browser'
 
 /**
  * 바탕화면에 놓이는 항목. 활동만이 바탕화면 항목인 것은 아니다 —

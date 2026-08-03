@@ -1,5 +1,6 @@
 import { useWindowStore } from '../../store/windowStore'
 import { Window } from './Window'
+import { BrowserApp } from '../apps/BrowserApp'
 import { ExeApp } from '../apps/ExeApp'
 import { StubApp } from '../apps/StubApp'
 
@@ -33,6 +34,7 @@ export function WindowManager() {
             <ExeApp activityId={w.activityId} onDone={() => close(w.id)} />
           )}
           {w.kind === 'stub' && w.message && <StubApp message={w.message} />}
+          {w.kind === 'browser' && <BrowserApp />}
         </Window>
       ))}
     </>

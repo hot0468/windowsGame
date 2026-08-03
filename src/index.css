@@ -96,6 +96,25 @@
   --hud-danger: #ff6b6b;
   --hud-warn: #ffc14d;
   --hud-blur: blur(18px) saturate(160%); /* DB 권장 10–20px 범위 */
+
+  /* ── 게임 안의 웹사이트: NEVER 포털 (--nv-*) ──
+     세 번째 시각 언어다. OS 크롬(--os-*)·HUD(--hud-*)와 섞지 않는 이유는 같다 —
+     브라우저 안의 내용물은 "OS가 그린 창"이 아니라 "웹페이지"로 읽혀야 한다.
+     근거: color DB "Government Portal / Civic Services"(card #FFFFFF, muted 계열 배경,
+     서비스 그린 액센트, notes "accessibility") + 국내 포털 특유의 초록 아이덴티티.
+     모든 텍스트 색은 4.5:1 이상을 계산으로 맞추고 픽셀로 재검증했다. */
+  --nv-bg: #f2f4f6; /* 페이지 배경 (창 표면보다 살짝 어두워 "사이트"로 분리돼 보인다) */
+  --nv-surface: #ffffff; /* 카드 */
+  --nv-surface-alt: #f7f8fa; /* 카드 안의 보조 블록 */
+  --nv-border: #dde1e6;
+  --nv-text: #16181d; /* 17.8:1 on #fff */
+  --nv-text-2: #3f454e; /* 9.7:1 */
+  --nv-text-3: #5b6472; /* 6.0:1 on #fff, 5.4:1 on --nv-bg — 최소 보조색 */
+  --nv-green: #0b7a3b; /* 로고·링크 등 텍스트급 브랜드 초록. 5.4:1 on #fff */
+  --nv-green-strong: #096331; /* hover/press. 7.4:1 */
+  --nv-green-bright: #03c75a; /* 2.25:1 — 장식 전용(테두리·액센트 바). 텍스트 금지 */
+  --nv-ad: #8a5300; /* [광고] 라벨. 6.3:1 on #fff */
+  --nv-ad-bg: #fff8e8;
 }
 
 * {

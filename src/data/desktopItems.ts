@@ -13,13 +13,13 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
     id: 'browser',
     label: '인터넷',
     icon: 'fluent-emoji-flat:globe-with-meridians',
-    kind: 'stub',
+    // stub이었다가 구현되면서 kind만 바뀌었다 — 새 앱을 올리는 정해진 경로다.
+    kind: 'browser',
     // 최대화 상태로 열리지만 복원하면 이 폭으로 돌아온다.
     width: 480,
     // 브라우저는 실제 윈도우처럼 작업 표시줄만 남기고 전체 화면으로 "열린다".
     // 이후 최대화 여부는 런타임 상태이므로 캡션 버튼으로 복원할 수 있다.
     openMaximized: true,
-    stubMessage: '인터넷은 아직 준비 중입니다. 다음 업데이트를 기다려 주세요.',
   },
 ]
 
