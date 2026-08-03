@@ -11,3 +11,34 @@ body,
   font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
   user-select: none;
 }
+
+/*
+ * 키보드 포커스 표시.
+ * 없으면 Tab으로 이동할 때 지금 어디에 있는지 알 수 없다.
+ * :focus-visible을 쓰므로 마우스 클릭에는 테두리가 뜨지 않는다(윈도우 동작과 동일).
+ */
+:focus-visible {
+  outline: 2px solid #0067c0;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* 닫기 버튼은 빨간 배경 위에 뜨므로 흰 테두리라야 보인다. */
+.win-close:focus-visible {
+  outline-color: #fff;
+  outline-offset: -3px;
+}
+
+/*
+ * 모션 최소화 설정을 켠 사용자에게는 전환 효과를 끈다.
+ * 전정 장애가 있는 사용자에게 움직임은 어지럼증을 유발할 수 있다.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
