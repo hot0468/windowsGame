@@ -10,6 +10,12 @@ import { Taskbar } from './Taskbar'
 import { ToastHost } from './ToastHost'
 import './Desktop.css'
 
+/** 왼쪽 열은 프로그램, 오른쪽 열은 폴더. 순서는 `DESKTOP_ITEMS`가 정한다. */
+const ICON_COLUMNS = [
+  DESKTOP_ITEMS.filter((i) => i.kind !== 'folder'),
+  DESKTOP_ITEMS.filter((i) => i.kind === 'folder'),
+]
+
 export function Desktop() {
   const open = useWindowStore((s) => s.open)
   /**
@@ -22,8 +28,14 @@ export function Desktop() {
 
   return (
     <div className={`desktop ${slot === 'afternoon' ? 'desktop-dusk' : 'desktop-day'}`}>
+      {/* 아이콘은 **열 단위로 나눈다**(설계자 지시: 폴더는 아웃룩 옆). 한 덩어리를
+          flex-wrap에 맡기면 라벨이 두 줄인 항목 하나가 열 용량을 바꿔 배치가 흔들린다. */}
       <div className="desktop-icons">
-        {DESKTOP_ITEMS.map((item, i) => (
+        {ICON_COLUMNS.map((column, c) => (
+          <div className="desktop-column" key={c}>
+        {column.map((item) => {
+          const i = DESKTOP_ITEMS.indexOf(item)
+          return (
           <button
             key={item.id}
             className="desktop-icon"
@@ -50,6 +62,9 @@ export function Desktop() {
             <AppIcon name={item.icon} size={38} className="desktop-icon-glyph" />
             {item.label}
           </button>
+          )
+        })}
+          </div>
         ))}
       </div>
 
