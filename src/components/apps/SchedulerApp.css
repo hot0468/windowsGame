@@ -5,10 +5,12 @@
   flex-direction: column;
   gap: var(--sp-3);
   /* **화면 높이를 거의 다 쓴다**(설계자 지시). 140px = 타이틀 바 40 + 본문 패딩 40 +
-     작업 표시줄 44 + 위아래 숨 16. 고정 px을 박으면 짧은 화면에서 창이 화면 밖으로
-     밀려 위치 보정으로도 담기지 않는다.
+     작업 표시줄 44 + 위아래 숨 16.
+     ⚠️ **`min-height`가 아니라 `height`다.** min-height로 두면 6주 격자의 최소 높이
+     (셀 62px × 6 + 여백)가 그보다 클 때 창이 화면 밖으로 밀려 나간다 —
+     짧은 화면(600px대)에서 85px이 잘렸다. height로 못 박아야 넘치지 않는다.
      ⚠️ `.win-body`의 60vh 상한도 함께 풀어야 한다(Window.css `:has(> .sch)`). */
-  min-height: calc(100vh - 140px);
+  height: calc(100vh - 140px);
 }
 
 .sch-head {
@@ -84,8 +86,12 @@
   color: var(--os-text-3);
 }
 
+/* 남는 높이를 전부 먹되, 모자라면 **격자만** 스크롤한다.
+   min-height: 0이 없으면 flex 자식이 콘텐츠 아래로 줄지 않아 창이 다시 넘친다. */
 .sch-grid {
   flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .sch-cell {
@@ -279,4 +285,62 @@
   margin: 0;
   font-size: var(--fs-sm);
   color: var(--os-text-3);
+}
+
+/*
+ * 예약 취소 확인(alertdialog). 활동 피커와 같은 판을 쓰되 목록이 없어 좁다.
+ * ux `confirmation-dialogs`: 되돌릴 수 없는 삭제 앞에는 확인을 둔다.
+ */
+.sch-confirm {
+  width: 280px;
+  padding: var(--sp-4);
+}
+
+.sch-confirm-head {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-xs);
+  color: var(--os-text-3);
+}
+
+.sch-confirm-body {
+  margin: 0 0 var(--sp-4);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+.sch-confirm-btns {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.sch-confirm-btns button {
+  /* ux `touch-target-size`: 최소 44px. */
+  flex: 1;
+  min-height: 44px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sch-confirm-keep {
+  border: 1px solid var(--os-border);
+  background: var(--os-surface);
+  color: var(--os-text);
+}
+
+.sch-confirm-keep:hover {
+  background: var(--os-hover);
+}
+
+/* ux `destructive-emphasis`: 되돌릴 수 없는 쪽은 위험색으로, 기본값이 아닌 자리에. */
+.sch-confirm-drop {
+  border: none;
+  background: var(--os-danger);
+  color: #fff;
+}
+
+.sch-confirm-drop:hover {
+  filter: brightness(1.08);
 }

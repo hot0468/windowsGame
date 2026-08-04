@@ -47,6 +47,12 @@ export function SchedulerApp() {
   const [monthOffset, setMonthOffset] = useState(0)
   /** 활동을 고르는 중인 슬롯. null이면 고르는 중이 아니다. */
   const [picking, setPicking] = useState<{ day: number; slot: Slot } | null>(null)
+  /**
+   * 취소를 확인받는 중인 예약. **한 번의 오클릭으로 예약이 사라지면 안 된다**(설계자 지시).
+   * `window.confirm`을 쓰지 않는 이유: 브라우저 기본 대화상자는 이 가짜 OS 위에
+   * 진짜 크롬 UI를 띄워 컨셉을 깬다. 활동 피커와 같은 오버레이 패턴을 쓴다.
+   */
+  const [removing, setRemoving] = useState<{ day: number; slot: Slot } | null>(null)
 
   if (!state) return null
 
@@ -134,7 +140,9 @@ export function SchedulerApp() {
                       className={`sch-slot${plan ? ' sch-slot-on' : ''}`}
                       disabled={past}
                       onClick={() =>
-                        plan ? unplan(c.day, slot) : setPicking({ day: c.day, slot })
+                        plan
+                          ? setRemoving({ day: c.day, slot })
+                          : setPicking({ day: c.day, slot })
                       }
                       title={
                         past
@@ -239,6 +247,50 @@ export function SchedulerApp() {
                   </section>
                 )
               })}
+            </div>
+          </div>
+        </>
+      )}
+
+      {removing && (
+        <>
+          <div className="sch-scrim" onClick={() => setRemoving(null)} />
+          <div
+            className="sch-picker sch-confirm"
+            role="alertdialog"
+            aria-label="예약 취소 확인"
+            onKeyDown={(e) => e.key === 'Escape' && setRemoving(null)}
+          >
+            <p className="sch-confirm-head">
+              {(() => {
+                const plan = findPlan(plans, removing.day, removing.slot)
+                const activity = plan && ACTIVITIES.find((a) => a.id === plan.activityId)
+                return `${removing.day}일차 ${removing.slot === 'morning' ? '오전' : '오후'} · ${
+                  activity?.label ?? plan?.activityId ?? '예약'
+                }`
+              })()}
+            </p>
+            <p className="sch-confirm-body">이 예약을 정말 취소하시겠습니까?</p>
+            <div className="sch-confirm-btns">
+              {/* 기본 초점은 **덜 위험한 쪽**에 둔다 — Enter를 눌러 취소돼 버리면 안 된다. */}
+              <button
+                type="button"
+                className="sch-confirm-keep"
+                autoFocus
+                onClick={() => setRemoving(null)}
+              >
+                그대로 두기
+              </button>
+              <button
+                type="button"
+                className="sch-confirm-drop"
+                onClick={() => {
+                  unplan(removing.day, removing.slot)
+                  setRemoving(null)
+                }}
+              >
+                예약 취소
+              </button>
             </div>
           </div>
         </>
