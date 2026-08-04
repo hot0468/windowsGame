@@ -1,4 +1,13 @@
 /*
+ * 본문 폰트 Pretendard. npm 패키지에서 직접 불러와 번들에 포함시킨다(CDN 아님).
+ * 아이콘과 같은 오프라인 규칙을 따른다 — 네트워크가 없거나 느려도 첫 화면이 흔들리지 않고,
+ * CDN이 죽어도 게임은 그대로 뜬다.
+ * dynamic-subset은 unicode-range로 쪼개져 있어 브라우저가 실제로 쓰는 글자 범위만 내려받는다
+ * (전체 2MB를 항상 받는 통짜 파일보다 실사용 전송량이 작다).
+ */
+@import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
+
+/*
  * ── 디자인 토큰 (단일 출처) ──
  * 근거: ui-ux-pro-max DB
  *  - ux `spacing-scale`: "Use 4pt/8dp incremental spacing system" → --sp-* 를 4의 배수로만 정의.
@@ -20,7 +29,7 @@
  */
 @font-face {
   font-family: 'Cafe24Anemone';
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/Cafe24Ohsquare.woff')
+  src: url('./assets/fonts/Cafe24Ohsquare.woff')
     format('woff');
   font-weight: normal;
   font-display: swap;
@@ -32,7 +41,7 @@
  */
 @font-face {
   font-family: 'Aggravo';
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/SBAggroL.woff')
+  src: url('./assets/fonts/SBAggroL.woff')
     format('woff');
   font-weight: 300;
   font-display: swap;
@@ -40,7 +49,7 @@
 
 @font-face {
   font-family: 'Aggravo';
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/SBAggroM.woff')
+  src: url('./assets/fonts/SBAggroM.woff')
     format('woff');
   font-weight: 500;
   font-display: swap;
@@ -48,7 +57,7 @@
 
 @font-face {
   font-family: 'Aggravo';
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/SBAggroB.woff')
+  src: url('./assets/fonts/SBAggroB.woff')
     format('woff');
   font-weight: 700;
   font-display: swap;
@@ -57,8 +66,7 @@
 /* 날짜 전용 서체 (SF 함박눈). 날짜칸의 날짜 한 줄에만 쓴다. */
 @font-face {
   font-family: 'SfHambakneun';
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2106@1.1/SF_HambakSnow.woff')
-    format('woff');
+  src: url('./assets/fonts/SF_HambakSnow.woff') format('woff');
   font-weight: normal;
   font-display: swap;
 }
@@ -66,7 +74,7 @@
 :root {
   /*
    * 폰트 두 벌.
-   *  --font-base  본문 전부. Pretendard(index.html에서 CDN 로드) → 시스템 폰트 폴백.
+   *  --font-base  본문 전부. Pretendard(이 파일 상단에서 npm 패키지로 번들) → 시스템 폰트 폴백.
    *  --font-point 게임이 자기 목소리를 내는 자리에만. 한 벌짜리 굵은 디스플레이 서체라
    *               본문·숫자에 쓰면 tabular 정렬이 깨지고 위계가 뭉갠다.
    * ⚠️ **포인트 폰트는 게임 요소에만 쓴다** — OS 크롬(잠금화면 시계·작업 표시줄·창 타이틀)은

@@ -88,9 +88,9 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
   - ⚠️ **반투명 표면의 색은 토큰이 아니라 합성 결과가 정한다.** HUD는 `rgba(252,252,253,0.9)` 아크릴이라 파란 벽지가 비쳐 실제 표면은 순백이 아니다. 색을 눈으로 판단하지 말고 스크린샷 픽셀을 읽어라(위 "검증 도구" 절)
   - 대비는 실측으로 검증했다(헤드리스 크롬 스크린샷 픽셀). 반투명 표면 위 글자는 **계산이 아니라 픽셀을 읽어야** 한다 — 잠금화면 플레이스홀더가 눈으로는 멀쩡한데 3.97:1이었다(입력창 배경을 어두운 틴트로 바꿔 해결)
 - ⚠️ **폰트는 두 벌이고 경계가 곧 OS/게임의 경계다** (2026-08-03 신설, 설계자 지시).
-  `--font-base` = **Pretendard**(index.html에서 jsDelivr CDN `<link>`, 가변 dynamic-subset) →
-  Segoe UI·Malgun Gothic 폴백. `--font-point` = **Cafe24 Ohsquare**(index.css `@font-face`,
-  family 이름은 지시대로 `Cafe24Anemone`, `font-display: swap`).
+  `--font-base` = **Pretendard**(npm 패키지 `pretendard`, index.css 상단 `@import`로 번들,
+  가변 dynamic-subset) → Segoe UI·Malgun Gothic 폴백. `--font-point` = **Cafe24 Ohsquare**
+  (index.css `@font-face`, family 이름은 지시대로 `Cafe24Anemone`, `font-display: swap`).
   `--font-date` = **SF 함박눈**(`SfHambakneun`, 같은 방식) — **`.cal-date`(날짜칸 날짜) 한 줄 전용**.
   `--font-point`와 따로 둔 이유는 이 자리가 다른 포인트 자리와 성격이 달라서다: 하나로 묶으면
   한쪽을 바꿀 때 나머지가 딸려간다.
@@ -100,7 +100,11 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
   - 한 벌짜리 서체라 적용 자리는 **반드시 `font-weight: 400`**으로 못 박는다. 600/700을 주면
     브라우저가 합성 볼드를 그려 각진 획이 뭉갠다. `font-variant-numeric: tabular-nums`도
     이 서체엔 없으니 걷어낸다(고정 폭이 필요한 곳은 스탯 값이고 거기엔 안 쓴다)
-  - ⚠️ **폰트만 네트워크를 탄다.** 아이콘의 오프라인 규칙(CDN 금지, 서브셋 생성)은 그대로다
+  - ⚠️ **폰트도 아이콘과 같은 오프라인 규칙이다** (2026-08-04 전환). 전에는 CDN을 탔으나
+    jsDelivr가 죽거나 느리면 첫 화면이 흔들리고 오프라인에선 아예 안 떠서 전부 번들로 옮겼다.
+    Pretendard는 npm 패키지, 디스플레이 서체 4종(Cafe24 Ohsquare·SB 어그로 L/M/B·SF 함박눈)은
+    `src/assets/fonts/*.woff`에 직접 넣고 상대 경로로 참조한다.
+    **새 폰트를 CDN `<link>`나 `url(https://...)`로 추가하지 말 것** — 받아서 번들에 넣는다
   - ⚠️ Pretendard는 Segoe UI보다 획이 얇아 **같은 색이 더 낮은 대비로 합성된다.**
     교체 실측에서 `--hud-text-3`가 5.53→4.55:1로 떨어져 `#585e68`→`#4e545e`로 내렸다
     (실측 최저 5.21:1). 폰트를 바꾸면 색도 다시 재야 한다
