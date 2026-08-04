@@ -34,7 +34,7 @@ describe('browserHistory', () => {
 
   it('뒤로 간 상태에서 새로 이동하면 앞으로 이력이 잘린다', () => {
     let h = navigate(createHistory('never'), 'shopping')
-    h = navigate(h, 'sns')
+    h = navigate(h, 'twitter')
     h = goBack(h) // shopping
     h = navigate(h, 'bank')
     expect(h.entries).toEqual(['never', 'shopping', 'bank'])
@@ -56,7 +56,7 @@ describe('browserHistory', () => {
 
   it('원본을 변형하지 않는다 (systems 규칙)', () => {
     const h = createHistory('never')
-    const moved = navigate(h, 'sns')
+    const moved = navigate(h, 'twitter')
     expect(h.entries).toEqual(['never'])
     expect(h.index).toBe(0)
     expect(moved).not.toBe(h)

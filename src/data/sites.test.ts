@@ -37,7 +37,6 @@ describe('사이트 목록', () => {
     // ⚠️ 이 목록은 **브라우저 즐겨찾기가 아니다**(그쪽은 browserStore가 들고, 기본값이 없다).
     // 포털 홈의 바로가기 줄이며, 사이트가 늘면 여기도 함께 늘어난다.
     expect(BOOKMARK_SITES.map((s) => s.id)).toEqual([
-      'sns',
       'slowcampus',
       'youtube',
       'twitter',

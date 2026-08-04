@@ -98,15 +98,6 @@ export const SITES: Site[] = [
     },
   },
   {
-    id: 'sns',
-    url: 'https://sns.neinom.com',
-    title: 'SNS',
-    icon: 'fluent-color:people-chat-24',
-    render: 'construction',
-    notice: '인간관계 활동과 랜덤 이벤트는 준비 중입니다.',
-    bookmark: true,
-  },
-  {
     // ⚠️ 예전의 '강의'가 이 항목이다(설계자 지시로 슬로우캠퍼스로 통합).
     // id를 'lecture'로 남기지 않은 이유: 표시 이름과 완전히 갈라지면 코드에서 헷갈린다.
     // 별도로 있던 slowcampus 항목은 지웠다 — 같은 것이 두 개일 이유가 없다.
@@ -131,6 +122,10 @@ export const SITES: Site[] = [
     bookmark: true,
   },
   {
+    // ⚠️ 예전에 따로 있던 'sns' 사이트를 이 항목이 흡수했다(설계자 지시).
+    // 슬로우캠퍼스가 '강의'를 흡수한 것과 같은 이유 — 같은 것이 둘이면 즐겨찾기 줄과
+    // 퀵메뉴에서 어느 쪽을 눌러야 할지 알 수 없다. `activities.ts`의 'sns' 활동은
+    // 그대로 남는다: 그건 사이트가 아니라 **행동**이고 스케줄러에서도 쓰인다.
     id: 'twitter',
     url: 'https://www.twiter.com',
     title: '트위터',
