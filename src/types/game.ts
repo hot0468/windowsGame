@@ -187,6 +187,21 @@ export interface DesktopItem {
   folderId?: FolderId
 }
 
+/**
+ * 바탕화면 아이콘의 격자 좌표.
+ *
+ * **왜 픽셀이 아니라 칸인가:** 실제 윈도우의 "격자에 맞춤"과 같은 이유다.
+ * 픽셀로 저장하면 창을 줄였다 늘일 때 아이콘이 조금씩 밀려 결국 배치가 무너지고,
+ * 화면이 좁아졌을 때 "지금 몇 칸까지 있나"를 판정할 근거도 없어진다.
+ * 격자 수치와 변환 규칙은 `data/shell.ts`의 `DESKTOP_GRID`와 `systems/desktopGrid.ts`에 있다.
+ */
+export interface GridCell {
+  /** 0부터 시작하는 열 번호(왼쪽부터). */
+  col: number
+  /** 0부터 시작하는 행 번호(위부터). */
+  row: number
+}
+
 /** 물가 구간. day 이상일 때 해당 구간이 적용된다. */
 export interface EconomyTier {
   day: number

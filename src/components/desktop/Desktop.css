@@ -46,28 +46,27 @@
 /* z-index 값의 단일 출처는 src/data/layers.ts다.
    CSS에서 참조할 수 없으므로 여기에 같은 값을 두되, 바꿀 때는 반드시 양쪽을 함께 고친다.
    쌓임 순서: 아이콘(10) < 바탕화면 패널(100) < 일반 창(1000+) < 작업 표시줄(9000) < 엔딩(9500) */
+/*
+ * 아이콘 판. **격자 전체**를 덮는다 — 아이콘을 화면 어디로든 끌어다 놓을 수 있어야 하므로
+ * 예전의 200px 폭 flex 열 배치(.desktop-column)는 사라졌다.
+ * 좌표는 JS가 계산해 인라인 style(left/top)로 준다: 격자 수치의 단일 출처는
+ * src/data/shell.ts의 DESKTOP_GRID이고, 여기에 같은 숫자를 또 적으면 두 벌이 된다.
+ */
 .desktop-icons {
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  /* 44px = SHELL.TASKBAR_HEIGHT (src/data/shell.ts). CSS는 TS 상수를 못 읽으므로 중복해 둔다.
+     아이콘이 작업 표시줄 아래로 들어가지 않는다는 규칙의 시각적 근거다
+     (칸 수 계산도 systems/desktopGrid.ts에서 같은 값을 뺀다 — 바꿀 때 함께 고친다). */
+  bottom: 44px;
   /* LAYERS.DESKTOP_ICON — 스탯창·날짜칸보다 아래여야 겹칠 때 패널이 보인다. */
   z-index: 10;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp-1);
-  padding: var(--sp-3);
-  /* 44px = SHELL.TASKBAR_HEIGHT (src/data/shell.ts). CSS는 TS 상수를 못 읽으므로 중복해 둔다. */
-  height: calc(100% - 44px);
-  width: 200px;
-}
-
-/* 열 하나. 폭을 고정해 라벨이 두 줄이 되어도 옆 열이 밀리지 않는다. */
-.desktop-column {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  width: 96px;
 }
 
 .desktop-icon {
+  position: absolute;
   width: 84px;
   padding: var(--sp-2) var(--sp-1);
   border: 1px solid transparent;
@@ -78,6 +77,18 @@
   line-height: 1.35;
   text-align: center;
   cursor: pointer;
+  /* 끌 때 라벨이 파랗게 잡히면 "글자를 긁는 중"으로 보인다.
+     touch-action: none은 터치에서 드래그가 스크롤 제스처로 가로채이는 것을 막는다. */
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  /*
+   * ⚠️ 라벨은 두 줄까지를 전제로 한다. 한 칸은 80px이고 두 줄짜리 아이콘은 92px이라
+   * 이미 12px 넘치는데(실제 윈도우도 칸이 내용보다 우선이다), 세 줄이 되면 아래 칸의
+   * **그림까지** 침범한다. line-clamp를 걸지 않은 이유는 이 버튼 안에 블록 SVG와 글자가
+   * 함께 있어 -webkit-box가 그림까지 한 줄로 세기 때문이다 —
+   * 대신 라벨 길이는 데이터(`DESKTOP_ITEMS.label`) 쪽에서 지킨다.
+   */
   /*
    * 벽지 위 흰 글씨의 가독성.
    * ux `color-contrast`(4.5:1)는 배경이 사진/그라데이션이면 계산이 불가능하므로,
@@ -98,12 +109,61 @@
   background: rgba(255, 255, 255, 0.24);
 }
 
+/* 끄는 중인 아이콘. 커서를 실시간으로 따라가며(ux `gesture-feedback`) 다른 아이콘 위로 뜬다.
+   z-index는 판 안에서만 겨루므로 1이면 충분하다(바깥 쌓임 순서는 .desktop-icons가 쥔다). */
+.desktop-icon-dragging {
+  z-index: 1;
+  cursor: grabbing;
+  /* 반투명으로 "들려 있다"를 알린다. 0.2 밑으로 내리지 않는다(ux `opacity-threshold`). */
+  opacity: 0.75;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
 /* 플랫 컬러 아이콘이라 색은 아이콘 자체가 갖는다.
    배경(바탕화면 그라데이션) 위에서 형태가 묻히지 않도록 그림자만 남긴다. */
 .desktop-icon-glyph {
   display: block;
   margin: 0 auto var(--sp-1);
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+  /* 브라우저 기본 이미지 드래그(고스트 이미지)를 막는다 — 포인터 드래그와 겹치면
+     아이콘이 두 개로 보이고 pointermove가 끊긴다. */
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+/*
+ * 기본 배치로 되돌리는 버튼. **아이콘을 한 번이라도 옮겼을 때만** 나타난다
+ * (컴포넌트에서 조건부 렌더 — 사유는 Desktop.tsx 주석 참조).
+ *
+ * 바탕화면 왼쪽 아래에 둔다: 아이콘은 위에서부터 채워지므로 여기가 가장 늦게 가려지고,
+ * 오른쪽은 HUD 패널 자리다. 벽지 위에 뜨므로 아이콘 라벨과 같은 해법 대신
+ * 반투명 판 + 흰 글자로 대비를 확보한다(ux `color-contrast`).
+ */
+.desktop-restore {
+  position: absolute;
+  left: var(--sp-3);
+  bottom: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.42);
+  color: #fff;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: background-color 150ms ease-out;
+}
+
+.desktop-restore:hover {
+  background: rgba(0, 0, 0, 0.58);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.desktop-restore:active {
+  background: rgba(0, 0, 0, 0.7);
 }
 
 .taskbar {

@@ -35,6 +35,45 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - 로그인 상태(`loggedIn`)는 세이브 존재 여부와 분리한다. 세이브만으로 화면을 분기하면 세이브가 있을 때 잠금화면에 도달할 수 없어 "이어하기"를 누를 수 없다. `loggedIn`은 `partialize`로 저장에서 제외 → 새로고침 시 항상 잠금화면부터 시작
 - 아이콘은 **Iconify 아이콘을 문자열 이름으로 참조**한다(`"세트:이름"`, 예: `"fluent-color:book-24"`). `Activity.icon`/`Ending.icon`/`OpenWindow.icon`/`Window` prop의 타입은 `IconName`(= string, `src/types/game.ts`). **이모지 문자열도 이모지 아이콘 세트도 금지.** 자세한 규칙은 아래 "아이콘" 절 참조
 - 스탯 한국어 라벨은 `src/types/game.ts`의 `STAT_NAMES`만 참조한다. 컴포넌트에 라벨을 다시 적지 않는다
+- ⚠️ **바탕화면 아이콘은 격자에 절대 배치되고, 끌어서 옮길 수 있다** (2026-08-04 신설, 설계자 지시:
+  "그리드 설정은 그대로 두고 드래그로 옮기게"). 모델은 실제 윈도우의 **"아이콘 자동 정렬 끔 +
+  격자에 맞춤 켬"**이다 — 어디로든 끌어다 놓으면 가장 가까운 칸에 붙는다.
+  - **구 `ICON_COLUMNS`(Desktop.tsx 안의 상수)와 `.desktop-column` flex 열은 사라졌다.**
+    기본 배치는 `src/data/desktopIcons.ts`의 **`DEFAULT_ICON_CELLS`**(+`DESKTOP_ICON_ORDER`)가 갖는다 —
+    배치는 콘텐츠이므로 `src/data/`에 있어야 한다. 규칙은 그대로다: **왼쪽 열 프로그램 / 오른쪽 열 폴더**
+  - 격자 수치는 `data/shell.ts`의 **`DESKTOP_GRID`**가 단일 출처다: 여백 12(`--sp-3`) ·
+    칸 90×80 · 아이콘 폭 84 · 드래그 임계 4px. 90/80은 예전 flex 배치의 **실측값**이다
+    (열 폭 86+4, 한 줄 라벨 아이콘 높이 76+4). 전부 4의 배수라 `spacing-scale`을 지킨다.
+    좌표는 JS가 계산해 인라인 `left/top`으로 준다 — CSS에 같은 숫자를 또 적지 않는다
+  - 계산은 전부 순수 함수 `src/systems/desktopGrid.ts`(+테스트 25개): `gridSize`(뷰포트→칸 수) ·
+    `cellOrigin` · `snapToCell` · `clampCell` · `nearestFreeCell` · `resolveLayout`.
+    ⚠️ **`resolveLayout`이 "저장된 칸이 지금 화면에 없다"를 흡수한다** — 1920에서 12열에 둔 아이콘을
+    1024에서 열면 그 칸이 없어 화면 밖에 그려지고, 그러면 다시 잡을 수도 열 수도 없다.
+    클램프 후 겹침이 생기므로 해소가 뒤따른다. **사용자가 옮긴 칸이 남의 기본 칸을 이긴다**(2단계 배치)
+  - ⚠️ **점유된 칸에 놓으면 맞바꾸지 않고 가장 가까운 빈 칸으로 민다.** 맞바꾸면 내가 건드리지도 않은
+    아이콘이 화면 반대편으로 날아간다 — 직접 조작의 약속은 "내가 잡은 것만 움직인다"이고 실제 윈도우도 그렇다.
+    거리는 **칸이 아니라 픽셀**로 잰다(칸이 90×80이라 칸 거리로 재면 눈에 더 가까운 위아래 대신 좌우가 뽑힌다)
+  - 위치는 **`src/store/desktopIconStore.ts`**(persist, 키 `windows-game-desktop-icons`)에 남는다.
+    ⚠️ **`gameStore`에 넣지 않는다** — `reset()`이 비우므로 새 판을 시작하면 아이콘이 전부 제자리로 튄다.
+    아이콘 위치는 판이 아니라 사람에게 속한 취향이다(`browserStore`와 같은 판단).
+    **옮긴 아이콘만** 저장한다 — 전부 저장하면 나중에 기본 배치를 바꿔도 아무에게도 반영되지 않는다
+  - ⚠️ **드래그 임계값 4px이 더블클릭을 지킨다**(ux `drag-threshold`). 없으면 더블클릭 중의 손떨림이
+    드래그로 잡혀 창이 열리는 대신 아이콘이 옆 칸으로 튄다. 윈도우의 SM_CXDRAG와 같은 값·같은 축별 판정이다.
+    드래그 직후 300ms 동안은 더블클릭을 무시한다(놓자마자 두 번 눌리면 옮기려던 것이 열린다)
+  - **포인터 캡처는 아이콘 버튼 자기 자신에 건다.** `Window` 타이틀 바가 자식 캡션 버튼의 pointerup을
+    훔쳐 클릭이 죽었던 회귀와 다르다 — 캡처 대상과 클릭 대상이 같은 요소면 click/dblclick은 그대로 성립한다
+    (CDP로 실측 확인)
+  - **되돌리는 길은 `아이콘 위치 초기화` 버튼**(`.desktop-restore`, 바탕화면 왼쪽 아래)이고
+    **옮긴 적이 있을 때만 나타난다**. 없으면 흩뜨린 사람에게 localStorage를 비우는 것 말고 길이 없다
+    (ux `gesture-alternative`·`undo-support`). 오른쪽 클릭 메뉴를 만들지 않은 이유: 항목 하나를 위해
+    열기·닫기·바깥 클릭·키보드 이동을 새로 만들어야 하고 그 메뉴의 존재도 따로 알려야 한다.
+    버튼은 필요해진 순간에만 나타나 스스로를 설명하고, **기본 화면은 예전과 픽셀 단위로 같게** 남는다
+  - **키보드로도 열린다**(`onKeyDown` Enter/Space, 신설). 마우스는 더블클릭이지만 키보드에는 "더블"이 없다.
+    `onClick`을 쓰지 않는 이유: 한 번 클릭으로 열리면 드래그로 잡을 수 없다
+  - 실측(1264×805 CDP): 기본 배치는 7개 중 6개가 픽셀 동일(세로 편차 ≤0.75px, 1.35 줄 높이의 반올림 누적).
+    **`이벤트 도감`만 16.38px 위로 올라간다** — 위 칸의 두 줄 라벨(`아이템 인벤토리`)이 더 이상 아래 아이콘을
+    밀지 않기 때문이고, 그것이 곧 "격자가 위치를 쥔다"는 뜻이다(행 간격을 96으로 올려 이 하나를 지키면
+    대신 왼쪽 열 4개가 16~64px씩 내려간다 — 총 이동량이 훨씬 크다)
 - **바탕화면 항목 ≠ 활동.** 바탕화면 아이콘은 `src/data/desktopItems.ts`의 `DESKTOP_ITEMS`(타입 `DesktopItem`)가 단일 출처다. 활동 기반 항목은 `Activity.onDesktop` 플래그에서 자동 파생되고(id 하드코딩 필터 금지), 브라우저처럼 **스탯도 턴도 건드리지 않는 항목은 활동으로 위장시키지 않는다** — 가짜 활동을 만들면 번아웃 이력·엔딩 판정·밸런스 테스트에 없는 id가 섞인다. 폴더·휴지통도 여기에 추가한다. (구 `DESKTOP_ACTIVITIES`는 제거됨)
 - 창 종류는 `WindowKind`(`'exe' | 'ending' | 'stub'`). `'stub'`은 미구현 앱의 "준비 중" 안내 창(`StubApp`)이며 `OpenWindow.message`를 함께 쓴다. 새 앱은 stub으로 먼저 올리고 구현되면 kind만 바꾼다
 - 상한은 `src/systems/turn.ts`의 명명 상수: `MAX_STAMINA_CAP`(200) / `MENTAL_CAP`(100) / `GROWTH_STAT_CAP`(999). `clampStats`는 `GROWTH_STAT_KEYS`를 순회하므로 성장 스탯 추가 시 `types/game.ts`만 고치면 된다
@@ -246,8 +285,10 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - 폴더 UI는 `components/apps/ExplorerApp.tsx` **하나**다(인벤토리·도감 공용). 다른 것은
   목록을 만드는 방법뿐이라 나누면 탐색 창·주소줄·보기 전환이 두 벌이 된다.
   인벤토리는 **가진 것만**, 도감은 **안 겪은 것도 흐리게** 보여 준다(빈 칸이 있어야 채울 마음이 생긴다).
-- ⚠️ 바탕화면 폴더 2개는 `DESKTOP_ITEMS` **배열 맨 앞**에 있다 — 순서가 곧 배치이고,
-  설계자 요구가 "바탕화면 상단"이다.
+- ⚠️ 바탕화면 폴더 2개는 `DESKTOP_ITEMS`에서 **폴더 열의 맨 앞**을 차지한다(설계자 요구:
+  "바탕화면 상단", "폴더는 아웃룩 옆"). 2026-08-04부터 **배열 순서가 곧 좌표는 아니다** —
+  기본 배치는 `data/desktopIcons.ts`의 `DEFAULT_ICON_CELLS`가 갖고, 배열 순서는
+  그 안의 행 번호와 겹침이 생겼을 때의 우선순위만 정한다.
 
 ### 시작 메뉴
 바탕화면 = **게임 세계의 앱**(메신저·브라우저·메일·일정), 시작 메뉴 = **게임 바깥의 도구**
@@ -293,10 +334,10 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 ## 파일 맵
 - 진입: `index.html` → `src/main.tsx` → `src/App.tsx` (`loggedIn && state`로 잠금화면/바탕화면 분기)
 - 타입: `src/types/game.ts` — Stats, Activity, GameState 등 도메인 타입 전부
-- 데이터(수치): `src/data/` — **items**(`SHOP_ITEMS`·`fakeSize` — 쇼핑 물건), **events**(`EVENTS` — 이벤트 도감 정의), activities(활동 **15종** + `ACTIVITY_CATEGORIES`(묶음 라벨·순서) + `activitiesOf`/`activitiesUnlockedBy`, `onDesktop` 플래그 — 현재 전부 false), **startMenu**(`START_MENU_ITEMS` — 시작 메뉴 항목), **messages**(`CHAT_APPS`·`THREADS`·`MAILBOX`·`MESSAGE_SCHEDULE` — 메신저/메일 콘텐츠), **banners**(`BANNERS` — 포털 배너존), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합, `openMaximized` 옵트인), **sites**(`SITES`·`BOOKMARK_SITES`·`HOME_SITE_ID`·`findSite`·`resolveUrl` — 브라우저가 이동할 사이트 단일 출처. `activityId`가 사이트↔활동을 잇는다), **media**(`BOOKS`·`FILMS`·`WRITING_PROMPTS`·`findShowtime` — 미디북스·시집이·아점의 콘텐츠), **news**(`NEWS_POOL`·`NEWS_VISIBLE_COUNT`·`TRENDING_TERMS` — 포털 뉴스/실검 정적 콘텐츠), layers(`LAYERS` — z-order 상수), shell(`SHELL` — 작업표시줄·타이틀바 높이), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(엔딩 6종), statMeta(스탯별 `icon`(다색)·`hudIcon`(단색) + 표시 순서), icons(`UI_ICONS` — OS 크롬 / `HUD_ICONS` — HUD 전용 단색 / `BROWSER_ICONS` — 브라우저 도구 모음 단색)
+- 데이터(수치): `src/data/` — **items**(`SHOP_ITEMS`·`fakeSize` — 쇼핑 물건), **events**(`EVENTS` — 이벤트 도감 정의), activities(활동 **15종** + `ACTIVITY_CATEGORIES`(묶음 라벨·순서) + `activitiesOf`/`activitiesUnlockedBy`, `onDesktop` 플래그 — 현재 전부 false), **startMenu**(`START_MENU_ITEMS` — 시작 메뉴 항목), **messages**(`CHAT_APPS`·`THREADS`·`MAILBOX`·`MESSAGE_SCHEDULE` — 메신저/메일 콘텐츠), **banners**(`BANNERS` — 포털 배너존), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합, `openMaximized` 옵트인), **desktopIcons**(`DEFAULT_ICON_CELLS`·`DESKTOP_ICON_ORDER` — 아이콘 **기본 격자 배치**. 구 `Desktop.tsx`의 `ICON_COLUMNS`가 여기로 옮겨왔다), **sites**(`SITES`·`BOOKMARK_SITES`·`HOME_SITE_ID`·`findSite`·`resolveUrl` — 브라우저가 이동할 사이트 단일 출처. `activityId`가 사이트↔활동을 잇는다), **media**(`BOOKS`·`FILMS`·`WRITING_PROMPTS`·`findShowtime` — 미디북스·시집이·아점의 콘텐츠), **news**(`NEWS_POOL`·`NEWS_VISIBLE_COUNT`·`TRENDING_TERMS` — 포털 뉴스/실검 정적 콘텐츠), layers(`LAYERS` — z-order 상수), shell(`SHELL` — 작업표시줄·타이틀바 높이 + **`DESKTOP_GRID`** — 바탕화면 아이콘 격자 수치·드래그 임계값), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(엔딩 6종), statMeta(스탯별 `icon`(다색)·`hudIcon`(단색) + 표시 순서), icons(`UI_ICONS` — OS 크롬 / `HUD_ICONS` — HUD 전용 단색 / `BROWSER_ICONS` — 브라우저 도구 모음 단색)
 - 아이콘: `src/icons/` — AppIcon(공용 렌더 컴포넌트), bootstrap(시작 시 addCollection), generated.ts(자동 생성, 수정 금지). 생성기는 `scripts/build-icon-subset.mjs`
-- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티), ending(티어 판정), **news**(오늘의 뉴스 선택 — 날짜 결정적), **browserHistory**(뒤로/앞으로 이력 계산), **messages**(턴별 메시지 편성 — 결정적), **search**(포털 검색), **schedule**(예약 실행), **delivery**(쇼핑·배송·사건 기록. ⚠️ `owns`/`inventoryOf`는 **turn.ts로 옮겨졌고 여기서 재수출**한다 — `canRun`이 보유를 봐야 해서 두면 순환이 된다). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지) + `data/activities.test.ts`(성장 스탯 10종 전부에 육성 경로가 있는지 목록 순회로 검사). 총 **269개** 테스트(`src/systems`+`src/store`+`src/data`)
-- 상태: `src/store/` — gameStore(세이브+loggedIn), metaStore(도감·영구), windowStore(창 목록 + 최소화/최대화 런타임 상태·휘발), desktopPanelStore(스탯창·날짜칸 z, 휘발), **browserStore**(즐겨찾기 id 목록 + 개발자 모드·영구, 기본 즐겨찾기 없음), **toastStore**(우하단 알림·휘발)
+- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티), ending(티어 판정), **news**(오늘의 뉴스 선택 — 날짜 결정적), **browserHistory**(뒤로/앞으로 이력 계산), **messages**(턴별 메시지 편성 — 결정적), **search**(포털 검색), **schedule**(예약 실행), **desktopGrid**(바탕화면 아이콘 격자 스냅·빈 칸 찾기·경계 클램프), **delivery**(쇼핑·배송·사건 기록. ⚠️ `owns`/`inventoryOf`는 **turn.ts로 옮겨졌고 여기서 재수출**한다 — `canRun`이 보유를 봐야 해서 두면 순환이 된다). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지) + `data/activities.test.ts`(성장 스탯 10종 전부에 육성 경로가 있는지 목록 순회로 검사). 총 **294개** 테스트(`src/systems`+`src/store`+`src/data`)
+- 상태: `src/store/` — gameStore(세이브+loggedIn), metaStore(도감·영구), windowStore(창 목록 + 최소화/최대화 런타임 상태·휘발), desktopPanelStore(스탯창·날짜칸 z, 휘발), **desktopIconStore**(바탕화면 아이콘 격자 위치·영구, 옮긴 것만 저장), **browserStore**(즐겨찾기 id 목록 + 개발자 모드·영구, 기본 즐겨찾기 없음), **toastStore**(우하단 알림·휘발)
 - UI: `src/components/`(**PanelOrnament** — 테두리 장식. ⚠️ HUD에서는 제거됐고 활동창·안내창·엔딩 모달만 쓴다), `window/`(Window·WindowManager — OS 창 크롬), `desktop/`(Desktop·HudPanel·StatPanel·CalendarPanel·Taskbar·**StartMenu**·**ToastHost**), `lockscreen/`, `apps/`(ExeApp·StubApp·EndingModal·BrowserApp·**ChatApp**(목록+대화)·**MailApp**·**SystemApps**(저장/작업관리자/명령프롬프트)·**SchedulerApp**·**ExplorerApp**(인벤토리·도감)), `apps/sites/`(NeverPortal·**ShopSite**·ConstructionSite·**ActivityCommit**(사이트 공용 확정 패널)·**LibrarySite**(미디북스)·**CinemaSite**(시집이)·**PublishSite**(아점)), `apps/activityPreview.ts`(활동 증감 미리보기 — 활동 창과 사이트 확정 패널이 공유)
 - 설정: `vite.config.ts`, `tsconfig.json`(+`.app`/`.node`), 전역 CSS `src/index.css`(**디자인 토큰 `:root` 단일 출처**)
 - 미구현(별도 계획 필요): 사이트 **내용**(알바몬 지원·SNS·슬로우캠퍼스·너튜브·트위터 — 지금은 공용 준비 중 페이지. **쇼핑·미디북스·시집이·아점은 구현됨**), **솔리테어**(시작 메뉴 항목만 있고 창은 없다 — `kind: 'solitaire'`가 예약돼 있다), 엔딩 도감 UI, **랜덤 이벤트**(정의는 `data/events.ts`에 있고 발생 지점만 없다 — 도감 화면은 이미 동작한다), 휴지통, 은행/대출(설계상 1차 제외)
