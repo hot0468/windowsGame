@@ -26,6 +26,29 @@ export interface Book {
   genre: string
   /** 목록에 그대로 보이는 한 줄 소개. 고르기 전에 판단 근거가 있어야 한다. */
   blurb: string
+  /**
+   * 표지 배경.
+   * 경고: **이미지가 아니라 그라데이션이다**(영화 포스터 · 너튜브 썸네일과 같은 규칙).
+   * 외부 이미지 API를 쓰지 않는 것이 이 프로젝트의 오프라인 규칙이다.
+   */
+  cover: string
+  /** 카테고리 탭이 거르는 값. */
+  category: string
+  /** 별점. 경고: 정적 값이다 - Math.random을 쓰면 새로 그릴 때마다 바뀐다. */
+  rating: number
+  /** 별점 참여 수. */
+  ratings: number
+  /** 표지 왼쪽 위 배지. 없으면 안 붙는다. */
+  badge?: string
+}
+
+/** 미디북스 홈의 큰 배너 하나. */
+export interface BookBanner {
+  id: string
+  title: string
+  sub: string
+  tag: string
+  gradient: string
 }
 
 /** 시집이의 상영 회차 하나. */
@@ -127,6 +150,10 @@ export const BOOKS: Book[] = [
     title: '조용한 편의점',
     author: '백은서',
     genre: '소설',
+    category: '소설',
+    rating: 4.8,
+    ratings: 5017,
+    badge: '독점', cover: 'linear-gradient(160deg, #37474f 0%, #78909c 100%)',
     blurb: '새벽 세 시에만 문을 여는 편의점 이야기. 손님은 늘 한 명이다.',
   },
   {
@@ -134,6 +161,10 @@ export const BOOKS: Book[] = [
     title: '미움받을 용기는 어디서 사나요',
     author: '정하윤',
     genre: '에세이',
+    category: '에세이/시',
+    rating: 4.7,
+    ratings: 4711,
+    cover: 'linear-gradient(160deg, #6d4c41 0%, #bcaaa4 100%)',
     blurb: '용기를 낸 사람들의 후기를 모았다. 절반은 환불을 원했다.',
   },
   {
@@ -141,6 +172,10 @@ export const BOOKS: Book[] = [
     title: '퇴근길에 우주가 열렸다',
     author: '서지완',
     genre: 'SF',
+    category: '소설',
+    rating: 4.6,
+    ratings: 2257,
+    cover: 'linear-gradient(160deg, #1a237e 0%, #5c6bc0 100%)',
     blurb: '2호선 어느 출구에 웜홀이 생긴다. 사람들은 일단 줄을 선다.',
   },
   {
@@ -148,6 +183,10 @@ export const BOOKS: Book[] = [
     title: '나는 왜 매번 장바구니만 채우는가',
     author: '문태경',
     genre: '사회',
+    category: '인문사회',
+    rating: 4.5,
+    ratings: 3122,
+    cover: 'linear-gradient(160deg, #ad1457 0%, #f06292 100%)',
     blurb: '결제 버튼 앞에서 멈추는 마음에 대한 200페이지짜리 변명.',
   },
   {
@@ -155,6 +194,10 @@ export const BOOKS: Book[] = [
     title: '하루 한 장, 잔고 명상',
     author: '오세림',
     genre: '자기계발',
+    category: '자기계발',
+    rating: 4.3,
+    ratings: 1889,
+    cover: 'linear-gradient(160deg, #00695c 0%, #4db6ac 100%)',
     blurb: '통장을 보며 호흡을 고르는 법. 3장부터 호흡이 가빠진다.',
   },
   {
@@ -162,9 +205,221 @@ export const BOOKS: Book[] = [
     title: '할머니의 오래된 냉장고',
     author: '윤가경',
     genre: '에세이',
+    category: '에세이/시',
+    rating: 5.0,
+    ratings: 942,
+    badge: '신간', cover: 'linear-gradient(160deg, #f9a825 0%, #fff59d 100%)',
     blurb: '열 때마다 다른 것이 나온다. 유통기한은 아무도 확인하지 않는다.',
   },
+  {
+    id: 'detective',
+    title: '탐정 없는 마을',
+    author: '한도윤',
+    genre: '추리',
+    category: '소설',
+    rating: 4.9,
+    ratings: 6110,
+    badge: '독점', cover: 'linear-gradient(160deg, #263238 0%, #546e7a 100%)',
+    blurb: '사건은 매주 일어나는데 아무도 조사하지 않는다.',
+  },
+  {
+    id: 'salary',
+    title: '월급이 사라지는 열두 가지 경로',
+    author: '문태경',
+    genre: '경제',
+    category: '경영/경제',
+    rating: 4.4,
+    ratings: 2530,
+    cover: 'linear-gradient(160deg, #1565c0 0%, #64b5f6 100%)',
+    blurb: '통장을 추적한 1년의 기록. 결론은 이미 알고 있다.',
+  },
+  {
+    id: 'deadline',
+    title: '마감은 언제나 어제였다',
+    author: '정하윤',
+    genre: '에세이',
+    category: '에세이/시',
+    rating: 4.6,
+    ratings: 3388,
+    cover: 'linear-gradient(160deg, #bf360c 0%, #ff8a65 100%)',
+    blurb: '미루는 사람들의 변명을 시간순으로 정리했다.',
+  },
+  {
+    id: 'moss',
+    title: '이끼가 자라는 방',
+    author: '백은서',
+    genre: '소설',
+    category: '소설',
+    rating: 4.7,
+    ratings: 1704,
+    cover: 'linear-gradient(160deg, #2e7d32 0%, #a5d6a7 100%)',
+    blurb: '한 달간 비운 방에서 자란 것에 대한 기록.',
+  },
+  {
+    id: 'nomap',
+    title: '지도 없이 걷는 법',
+    author: '오세림',
+    genre: '자기계발',
+    category: '자기계발',
+    rating: 4.2,
+    ratings: 1420,
+    cover: 'linear-gradient(160deg, #4527a0 0%, #9575cd 100%)',
+    blurb: '길을 잃는 데도 요령이 있다고 주장하는 책.',
+  },
+  {
+    id: 'noise',
+    title: '소음의 지도',
+    author: '서지완',
+    genre: '인문',
+    category: '인문사회',
+    rating: 4.5,
+    ratings: 2011,
+    cover: 'linear-gradient(160deg, #424242 0%, #9e9e9e 100%)',
+    blurb: '도시의 소리를 지도로 그렸다. 조용한 곳은 두 군데뿐이었다.',
+  },
+  {
+    id: 'lastbus',
+    title: '막차의 사람들',
+    author: '한도윤',
+    genre: '소설',
+    category: '소설',
+    rating: 4.8,
+    ratings: 4503,
+    badge: '단독', cover: 'linear-gradient(160deg, #01579b 0%, #4fc3f7 100%)',
+    blurb: '같은 시간, 같은 자리에 앉는 사람 일곱 명의 이야기.',
+  },
+  {
+    id: 'invest',
+    title: '연말 투자 불패의 법칙',
+    author: '문태경',
+    genre: '경제',
+    category: '경영/경제',
+    rating: 3.9,
+    ratings: 880,
+    cover: 'linear-gradient(160deg, #f57f17 0%, #ffd54f 100%)',
+    blurb: '제목만 믿고 산 사람들의 후기가 부록으로 붙어 있다.',
+  },
+  {
+    id: 'winterletter',
+    title: '겨울에 쓴 편지는 봄에 도착한다',
+    author: '윤가경',
+    genre: '에세이',
+    category: '에세이/시',
+    rating: 4.9,
+    ratings: 2660,
+    cover: 'linear-gradient(160deg, #4a148c 0%, #ba68c8 100%)',
+    blurb: '부치지 못한 편지들만 모아 묶었다.',
+  },
+  {
+    id: 'kitchen',
+    title: '작은 부엌의 기술',
+    author: '오세림',
+    genre: '실용',
+    category: '자기계발',
+    rating: 4.4,
+    ratings: 1330,
+    cover: 'linear-gradient(160deg, #d84315 0%, #ffab91 100%)',
+    blurb: '두 걸음 안에서 끝나는 요리들.',
+  },
+  {
+    id: 'archive',
+    title: '버리지 못한 것들의 기록',
+    author: '백은서',
+    genre: '에세이',
+    category: '에세이/시',
+    rating: 4.6,
+    ratings: 1907,
+    cover: 'linear-gradient(160deg, #5d4037 0%, #a1887f 100%)',
+    blurb: '상자 열두 개를 열면서 쓴 열두 편의 글.',
+  },
+  {
+    id: 'silence',
+    title: '침묵하는 회의실',
+    author: '정하윤',
+    genre: '경영',
+    category: '경영/경제',
+    rating: 4.1,
+    ratings: 1155,
+    cover: 'linear-gradient(160deg, #006064 0%, #4dd0e1 100%)',
+    blurb: '아무도 말하지 않는 이유를 여덟 가지로 분류했다.',
+  },
+  {
+    id: 'starfall',
+    title: '별이 떨어지는 속도',
+    author: '서지완',
+    genre: 'SF',
+    category: '소설',
+    rating: 4.7,
+    ratings: 3204,
+    badge: '신간', cover: 'linear-gradient(160deg, #311b92 0%, #7986cb 100%)',
+    blurb: '하늘에서 떨어진 것을 주운 사람은 신고 의무가 있다.',
+  },
+  {
+    id: 'rewrite',
+    title: '다시 쓰는 이력서',
+    author: '한도윤',
+    genre: '자기계발',
+    category: '자기계발',
+    rating: 4.3,
+    ratings: 2088,
+    cover: 'linear-gradient(160deg, #37474f 0%, #b0bec5 100%)',
+    blurb: '지운 문장이 남긴 자리에 대하여.',
+  },
 ]
+
+/** 미디북스 홈 상단 배너. */
+export const BOOK_BANNERS: BookBanner[] = [
+  {
+    id: 'bb1',
+    tag: '단독 선출간',
+    title: '미디북스 단독 선출간',
+    sub: '포인트북 오늘 마감 · 30%↓ 특가 세트',
+    gradient: 'linear-gradient(135deg, #4a148c 0%, #7b1fa2 60%, #ab47bc 100%)',
+  },
+  {
+    id: 'bb2',
+    tag: '작가 특집',
+    title: '한도윤 작가 대표작',
+    sub: '탐정 없는 마을 · 막차의 사람들',
+    gradient: 'linear-gradient(135deg, #90a4ae 0%, #cfd8dc 100%)',
+  },
+  {
+    id: 'bb3',
+    tag: '신작 오픈',
+    title: '누군가 그녀를 읽었다',
+    sub: '대여 특가 OPEN · 추가 할인 쿠폰',
+    gradient: 'linear-gradient(135deg, #0d47a1 0%, #1976d2 100%)',
+  },
+]
+
+/** 이벤트 줄에 거는 짧은 배너. */
+export const BOOK_EVENTS: BookBanner[] = [
+  {
+    id: 'be1',
+    tag: '이벤트',
+    title: '드라마 원작 이후',
+    sub: '원작 소설만 모아 10년치',
+    gradient: 'linear-gradient(135deg, #37474f 0%, #607d8b 100%)',
+  },
+  {
+    id: 'be2',
+    tag: '기획전',
+    title: '문학의 스릴러 대전',
+    sub: '이 계절에 어울리는 긴장',
+    gradient: 'linear-gradient(135deg, #b71c1c 0%, #e57373 100%)',
+  },
+  {
+    id: 'be3',
+    tag: '연재',
+    title: '1만원 대여 특가',
+    sub: '완결작만 골라 담기',
+    gradient: 'linear-gradient(135deg, #e65100 0%, #ffb74d 100%)',
+  },
+]
+
+/** 카테고리 탭. 첫 항목 '추천'은 거르지 않는다. */
+export const BOOK_CATEGORIES = ['추천', '소설', '인문사회', '경영/경제', '자기계발', '에세이/시']
+
 
 export const FILMS: Film[] = [
   {
