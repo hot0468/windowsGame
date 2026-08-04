@@ -105,8 +105,15 @@ describe('문화 사이트 콘텐츠', () => {
     for (const id of ids) expect(findShowtime(id)).toBeDefined()
   })
 
-  it('모든 영화에 상영 회차가 있다 (고를 수 없는 영화 방지)', () => {
+  it('예매 가능한 영화에는 상영 회차가 있다 (고를 수 없는 영화 방지)', () => {
+    // ⚠️ 개봉 예정작(soon)은 회차가 **없는 것이 정상**이다 — 아직 안 나온 영화다.
+    // 대신 예정작에는 D-day가 반드시 있어야 한다. 없으면 화면에 빈 배지가 뜬다.
     for (const film of FILMS) {
+      if (film.section === 'soon') {
+        expect(film.showtimes).toEqual([])
+        expect(film.dday).toBeGreaterThan(0)
+        continue
+      }
       expect(film.showtimes.length).toBeGreaterThan(0)
       for (const s of film.showtimes) expect(s.time).toMatch(/^\d{2}:\d{2}$/)
     }

@@ -39,6 +39,12 @@ export interface Showtime {
 }
 
 /** 시집이의 상영작 하나. */
+/**
+ * 극장 홈의 세 구역.
+ * `soon`(개봉 예정작)만 **회차가 없다** — 아직 안 나온 영화는 예매할 수 없다.
+ */
+export type FilmSection = 'now' | 'soon' | 'arte'
+
 export interface Film {
   id: string
   title: string
@@ -48,8 +54,21 @@ export interface Film {
   /** 상영 시간(분). */
   runtime: number
   tagline: string
+  section: FilmSection
+  /**
+   * 포스터 배경.
+   * ⚠️ **이미지가 아니라 그라데이션이다**(너튜브 썸네일·광고 배너와 같은 규칙).
+   * 외부 이미지 API를 쓰지 않는 것이 이 프로젝트의 오프라인 규칙이고,
+   * 게임 세계의 영화라 실제 포스터가 있을 수도 없다.
+   */
+  poster: string
+  /** 개봉까지 남은 날. `soon`에만 있다(D-7 같은 배지). */
+  dday?: number
   showtimes: Showtime[]
 }
+
+/** 히어로 배너에 거는 영화. 홈에서 가장 큰 자리라 데이터가 정한다. */
+export const MAIN_FILM_ID = 'odyssey'
 
 /** 아점의 글감 하나. */
 export interface WritingPrompt {
@@ -112,6 +131,8 @@ export const FILMS: Film[] = [
     rating: '15세',
     runtime: 141,
     tagline: '그해 겨울, 아무도 정시에 퇴근하지 못했다.',
+    section: 'now',
+    poster: 'linear-gradient(160deg, #1b2a41 0%, #4a6fa5 60%, #9bb8d9 100%)',
     showtimes: [
       { id: 'winter-1', time: '09:20', screen: '2관', seats: 47 },
       { id: 'winter-2', time: '14:10', screen: '2관', seats: 12 },
@@ -125,6 +146,8 @@ export const FILMS: Film[] = [
     rating: '12세',
     runtime: 108,
     tagline: '주간 야간 심야. 하루가 세 번 온다.',
+    section: 'now',
+    poster: 'linear-gradient(160deg, #f2b705 0%, #e8622c 100%)',
     showtimes: [
       { id: 'parttime-1', time: '10:50', screen: '4관', seats: 61 },
       { id: 'parttime-2', time: '15:30', screen: '4관', seats: 28 },
@@ -138,6 +161,8 @@ export const FILMS: Film[] = [
     rating: '청소년 관람불가',
     runtime: 126,
     tagline: '수신을 거부해도 벨은 울린다.',
+    section: 'now',
+    poster: 'linear-gradient(160deg, #2b0d0f 0%, #7a1f26 70%, #c0392b 100%)',
     showtimes: [
       { id: 'call-1', time: '13:00', screen: '1관', seats: 33 },
       { id: 'call-2', time: '18:20', screen: '1관', seats: 7 },
@@ -151,10 +176,162 @@ export const FILMS: Film[] = [
     rating: '전체 관람가',
     runtime: 97,
     tagline: '두 정거장이면 될 거리를 3년 동안 돌아왔다.',
+    section: 'now',
+    poster: 'linear-gradient(160deg, #f4c7c3 0%, #b98ec4 55%, #6b5b95 100%)',
     showtimes: [
       { id: 'longway-1', time: '11:35', screen: '3관', seats: 44 },
       { id: 'longway-2', time: '16:45', screen: '2관', seats: 19 },
       { id: 'longway-3', time: '20:15', screen: '4관', seats: 5 },
+    ],
+  },
+  /* ── 현재 상영작 5번째 ── */
+  {
+    id: 'lunchbox',
+    title: '도시락 특공대',
+    genre: '가족',
+    rating: '전체 관람가',
+    runtime: 102,
+    tagline: '반찬 하나로 뭉친 사람들.',
+    section: 'now',
+    poster: 'linear-gradient(160deg, #7cb342 0%, #c0ca33 55%, #fdd835 100%)',
+    showtimes: [
+      { id: 'lunchbox-1', time: '10:15', screen: '5관', seats: 88 },
+      { id: 'lunchbox-2', time: '14:50', screen: '5관', seats: 41 },
+      { id: 'lunchbox-3', time: '18:00', screen: '2관', seats: 16 },
+    ],
+  },
+
+  /* ── 개봉 예정작. 회차가 없다 = 예매할 수 없다. ── */
+  {
+    id: 'odyssey',
+    title: '오디세이',
+    genre: '어드벤처',
+    rating: '15세',
+    runtime: 172,
+    tagline: '집으로 가는 길이 가장 멀었다.',
+    section: 'soon',
+    poster: 'linear-gradient(160deg, #10151c 0%, #2f4858 55%, #86a3b8 100%)',
+    dday: 1,
+    showtimes: [],
+  },
+  {
+    id: 'whale',
+    title: '사랑의 하츄핑: 고래보석의 전설',
+    genre: '애니메이션',
+    rating: '전체 관람가',
+    runtime: 105,
+    tagline: '바다 밑에도 약속은 있다.',
+    section: 'soon',
+    poster: 'linear-gradient(160deg, #26c6da 0%, #7e57c2 100%)',
+    dday: 1,
+    showtimes: [],
+  },
+  {
+    id: 'jackass',
+    title: '잭애스: 베스트 앤드 라스트',
+    genre: '코미디',
+    rating: '청소년 관람불가',
+    runtime: 92,
+    tagline: '마지막이라니까 더 심해졌다.',
+    section: 'soon',
+    poster: 'linear-gradient(160deg, #37474f 0%, #ff7043 100%)',
+    dday: 1,
+    showtimes: [],
+  },
+  {
+    id: 'okmadam',
+    title: '오케이 마담2',
+    genre: '액션',
+    rating: '15세',
+    runtime: 108,
+    tagline: '이번엔 배 위에서.',
+    section: 'soon',
+    poster: 'linear-gradient(160deg, #1565c0 0%, #42a5f5 60%, #b3e5fc 100%)',
+    dday: 7,
+    showtimes: [],
+  },
+  {
+    id: 'highway',
+    title: '명탐정 코란: 하이웨이의 타종',
+    genre: '애니메이션',
+    rating: '12세',
+    runtime: 109,
+    tagline: '고속도로 위에서 시계가 멈춘다.',
+    section: 'soon',
+    poster: 'linear-gradient(160deg, #0d47a1 0%, #ef5350 100%)',
+    dday: 7,
+    showtimes: [],
+  },
+
+  /* ── 아르떼(예술영화). 하루 두 회차만 돈다 — 실제 예술영화관과 같다. ── */
+  {
+    id: 'again',
+    title: '비긴 어게인',
+    genre: '음악',
+    rating: '15세',
+    runtime: 104,
+    tagline: '노래 한 곡이면 다시 시작할 수 있다고 믿었다.',
+    section: 'arte',
+    poster: 'linear-gradient(160deg, #ffb300 0%, #f4511e 100%)',
+    showtimes: [
+      { id: 'again-1', time: '11:00', screen: '아르떼관', seats: 24 },
+      { id: 'again-2', time: '19:10', screen: '아르떼관', seats: 8 },
+    ],
+  },
+  {
+    id: 'emptyhouse',
+    title: '빈집의 연인들',
+    genre: '드라마',
+    rating: '15세',
+    runtime: 93,
+    tagline: '아무도 살지 않는 집에서 두 사람이 마주친다.',
+    section: 'arte',
+    poster: 'linear-gradient(160deg, #6d4c41 0%, #a1887f 100%)',
+    showtimes: [
+      { id: 'emptyhouse-1', time: '13:20', screen: '아르떼관', seats: 31 },
+      { id: 'emptyhouse-2', time: '20:40', screen: '아르떼관', seats: 14 },
+    ],
+  },
+  {
+    id: 'hokum',
+    title: '호컴',
+    genre: '스릴러',
+    rating: '15세',
+    runtime: 107,
+    tagline: '거짓말은 늘 사실보다 정교하다.',
+    section: 'arte',
+    poster: 'linear-gradient(160deg, #1a1a1a 0%, #7b1fa2 100%)',
+    showtimes: [
+      { id: 'hokum-1', time: '12:30', screen: '아르떼관', seats: 19 },
+      { id: 'hokum-2', time: '21:00', screen: '아르떼관', seats: 27 },
+    ],
+  },
+  {
+    id: 'contempt',
+    title: '경멸',
+    genre: '드라마',
+    rating: '15세',
+    runtime: 104,
+    tagline: '한 문장이 결혼을 끝냈다.',
+    section: 'arte',
+    poster: 'linear-gradient(160deg, #fdd835 0%, #e53935 55%, #1e88e5 100%)',
+    showtimes: [
+      { id: 'contempt-1', time: '14:00', screen: '아르떼관', seats: 22 },
+      { id: 'contempt-2', time: '18:50', screen: '아르떼관', seats: 11 },
+    ],
+  },
+  {
+    id: 'unnamed',
+    title: '미명',
+    genre: 'SF',
+    rating: '15세',
+    runtime: 64,
+    tagline: '해가 뜨기 직전의 도시를 64분 동안 본다.',
+    section: 'arte',
+    poster: 'linear-gradient(160deg, #311b92 0%, #00acc1 100%)',
+    showtimes: [
+      { id: 'unnamed-1', time: '10:40', screen: '아르떼관', seats: 35 },
+      { id: 'unnamed-2', time: '17:30', screen: '아르떼관', seats: 29 },
     ],
   },
 ]
