@@ -13,6 +13,7 @@ export type SiteRender =
   | 'library'
   | 'cinema'
   | 'publish'
+  | 'tube'
 
 /** 가짜 브라우저가 이동할 수 있는 사이트 하나. */
 export interface Site {
@@ -125,8 +126,8 @@ export const SITES: Site[] = [
     // 가져가면서 화면 글리프로 옮겼다 — 사이트 아이콘은 탭 파비콘·퀵메뉴·즐겨찾기
     // 세 자리에 흐르는 **정체성**이라 두 사이트가 같은 아이콘을 쓰면 구분이 사라진다.
     icon: 'fluent-color:content-view-24',
-    render: 'construction',
-    notice: '영상 시청으로 멘탈을 회복하는 기능은 준비 중입니다.',
+    render: 'tube',
+    notice: '보고 싶은 영상을 고르세요.',
     bookmark: true,
   },
   {
