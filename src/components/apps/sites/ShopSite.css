@@ -9,7 +9,7 @@
   position: relative;
   margin-bottom: var(--sp-5);
   padding-bottom: var(--sp-4);
-  border-bottom: 1px solid var(--nv-line);
+  border-bottom: 1px solid var(--nv-border);
 }
 
 .shop-title {
@@ -74,7 +74,7 @@
   grid-template-rows: 1fr auto;
   gap: var(--sp-3) var(--sp-4);
   padding: var(--sp-4);
-  border: 1px solid var(--nv-line);
+  border: 1px solid var(--nv-border);
   border-radius: var(--r-lg);
   background: var(--nv-surface);
 }
@@ -127,7 +127,7 @@
   justify-content: space-between;
   gap: var(--sp-3);
   padding-top: var(--sp-3);
-  border-top: 1px solid var(--nv-line);
+  border-top: 1px solid var(--nv-border);
 }
 
 .shop-price {
@@ -156,7 +156,7 @@
 
 /* ux `disabled-states`: 투명도 + 커서로 함께 알린다. 색만으로 알리지 않는다. */
 .shop-btn:disabled {
-  background: var(--nv-line);
+  background: var(--nv-border);
   color: var(--nv-text-3);
   cursor: default;
 }

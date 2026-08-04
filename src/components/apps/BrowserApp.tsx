@@ -13,8 +13,11 @@ import {
   goForward,
   navigate,
 } from '../../systems/browserHistory'
+import { CinemaSite } from './sites/CinemaSite'
 import { ConstructionSite } from './sites/ConstructionSite'
+import { LibrarySite } from './sites/LibrarySite'
 import { NeverPortal } from './sites/NeverPortal'
+import { PublishSite } from './sites/PublishSite'
 import { ShopSite } from './sites/ShopSite'
 import './BrowserApp.css'
 
@@ -24,8 +27,13 @@ import './BrowserApp.css'
  * 사이트는 `src/data/sites.ts`가 단일 출처이며 이 컴포넌트는 `site.render`로만 분기한다 —
  * 사이트 id로 분기하기 시작하면 "데이터 한 줄 + 컴포넌트 하나"로 사이트를 늘리는 구조가 무너진다.
  *
- * **탐색은 무료다**(설계 문서 2.3). 이 컴포넌트와 하위 사이트는 게임 스토어를 읽기만 하고
- * 어떤 액션도 호출하지 않는다 — 턴도 스탯도 움직이지 않는다.
+ * **탐색은 무료다**(설계 문서 2.3). 이 컴포넌트는 게임 스토어를 읽기만 한다 —
+ * 주소를 치고 이력을 오가고 사이트를 둘러보는 어떤 동작도 턴이나 스탯을 움직이지 않는다.
+ *
+ * ⚠️ **하위 사이트에는 상태를 바꾸는 자리가 셋 있다**: 포털 배너존의 광고 보상(턴 없음),
+ * 쇼핑의 주문(턴 없음), 그리고 미디북스·시집이·보스타입의 **확정 버튼**(1턴).
+ * 마지막 것이 브라우저를 활동 실행의 세 번째 통로로 만든다 — 규칙은 그대로다.
+ * 둘러보는 동안은 무료이고, 버튼을 누르는 그 한 번만 턴을 쓴다.
  */
 export function BrowserApp({ onClose }: { onClose?: () => void }) {
   // 이력은 이 창 하나의 휘발 상태다. 스토어에 올리면 창 id별로 나눠 담고
@@ -291,6 +299,11 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         {!site && <p className="browser-error">페이지를 찾을 수 없습니다.</p>}
         {site?.render === 'portal' && <NeverPortal onNavigate={goToSite} />}
         {site?.render === 'shop' && <ShopSite />}
+        {/* 활동을 실행하는 사이트 3종. 둘러보기는 여전히 무료이고,
+            각 사이트 안의 확정 버튼(ActivityCommit) 하나만 1턴을 쓴다. */}
+        {site?.render === 'library' && <LibrarySite site={site} />}
+        {site?.render === 'cinema' && <CinemaSite site={site} />}
+        {site?.render === 'publish' && <PublishSite site={site} />}
         {site?.render === 'construction' && (
           <ConstructionSite site={site} onGoHome={() => goToSite(HOME_SITE_ID)} />
         )}

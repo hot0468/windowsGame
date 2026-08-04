@@ -6,7 +6,13 @@ import type { IconName } from '../types/game'
  * 새 사이트를 추가하는 비용을 "데이터 한 줄 + 컴포넌트 하나"로 묶어 두기 위한 키다 —
  * BrowserApp이 사이트 id로 분기하는 순간 이 구조의 장점이 사라진다.
  */
-export type SiteRender = 'portal' | 'construction' | 'shop'
+export type SiteRender =
+  | 'portal'
+  | 'construction'
+  | 'shop'
+  | 'library'
+  | 'cinema'
+  | 'publish'
 
 /** 가짜 브라우저가 이동할 수 있는 사이트 하나. */
 export interface Site {
@@ -19,6 +25,15 @@ export interface Site {
   render: SiteRender
   /** render가 'construction'일 때 안내할 문구. 사이트마다 이유가 다르므로 데이터로 둔다. */
   notice?: string
+  /**
+   * 이 사이트의 확정 버튼이 실행하는 활동 id(`data/activities.ts`).
+   *
+   * ⚠️ **브라우저가 활동 실행의 세 번째 통로다**(①카톡 [만나러 가기] ②스케줄러 예약 ③여기).
+   * 활동을 여기에 다시 정의하지 않고 **id로만 가리킨다** — 수치를 사이트에 적으면
+   * 밸런스 테스트가 보지 못하는 두 번째 출처가 생긴다(카톡 [만나러 가기]와 같은 규칙).
+   * 실제로 있는 활동인지는 `sites.test.ts`가 목록을 순회하며 지킨다.
+   */
+  activityId?: string
   /** 포털 홈 **퀵메뉴**(원형 아이콘 줄)에 노출할지 여부. 순서는 배열 순서를 따른다. */
   bookmark?: boolean
   /**
@@ -106,7 +121,10 @@ export const SITES: Site[] = [
     id: 'youtube',
     url: 'https://www.nutube.com',
     title: '너튜브',
-    icon: 'fluent-color:video-24',
+    // ⚠️ 예전에는 'fluent-color:video-24'였다. 극장 사이트(시집이)가 필름 글리프를
+    // 가져가면서 화면 글리프로 옮겼다 — 사이트 아이콘은 탭 파비콘·퀵메뉴·즐겨찾기
+    // 세 자리에 흐르는 **정체성**이라 두 사이트가 같은 아이콘을 쓰면 구분이 사라진다.
+    icon: 'fluent-color:content-view-24',
     render: 'construction',
     notice: '영상 시청으로 멘탈을 회복하는 기능은 준비 중입니다.',
     bookmark: true,
@@ -118,6 +136,39 @@ export const SITES: Site[] = [
     icon: 'fluent-color:chat-multiple-24',
     render: 'construction',
     notice: '타임라인과 평판 시스템은 준비 중입니다.',
+    bookmark: true,
+  },
+  /*
+   * ── 활동을 실행하는 사이트 3종 (2026-08-04 신설) ──
+   * 셋 다 규칙이 같다: **둘러보기는 무료이고, 확정 버튼 하나만 1턴을 쓴다.**
+   * 목록을 넘기고 고르는 동안에는 게임 상태를 읽기만 한다.
+   */
+  {
+    id: 'midibooks',
+    url: 'https://www.midibooks.com',
+    title: '미디북스',
+    icon: 'fluent-color:library-24',
+    render: 'library',
+    activityId: 'reading',
+    bookmark: true,
+  },
+  {
+    id: 'sizibi',
+    url: 'https://www.sizibi.com',
+    title: '시집이',
+    // 극장 예매 사이트다. 필름 글리프는 여기가 가져간다(너튜브 항목 주석 참조).
+    icon: 'fluent-color:video-24',
+    render: 'cinema',
+    activityId: 'movie',
+    bookmark: true,
+  },
+  {
+    id: 'bostype',
+    url: 'https://www.bostype.com',
+    title: '보스타입',
+    icon: 'fluent-color:notebook-24',
+    render: 'publish',
+    activityId: 'writing',
     bookmark: true,
   },
   {

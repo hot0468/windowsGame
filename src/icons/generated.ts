@@ -1,5 +1,5 @@
 // 이 파일은 `npm run icons`(scripts/build-icon-subset.mjs)가 생성한다. 직접 수정하지 말 것.
-// src/에서 실제로 쓰는 아이콘 101개만 담은 축소 세트다 —
+// src/에서 실제로 쓰는 아이콘 103개만 담은 축소 세트다 —
 // 전체 세트(8천여 개)를 번들에 넣지 않기 위한 것이다.
 import type { IconifyJSON } from '@iconify/react/offline'
 
@@ -190,7 +190,7 @@ export const mdi: IconifyJSON = {
   "height": 24
 }
 
-/** fluent-color — 사용 중인 48개 */
+/** fluent-color — 사용 중인 50개 */
 export const fluentColor: IconifyJSON = {
   "prefix": "fluent-color",
   "icons": {
@@ -259,6 +259,11 @@ export const fluentColor: IconifyJSON = {
       "width": 24,
       "height": 24
     },
+    "content-view-24": {
+      "body": "<g fill=\"none\"><path fill=\"url(#SVGxTUYr5Nd)\" d=\"M3 6.25A3.25 3.25 0 0 1 6.25 3h11.5A3.25 3.25 0 0 1 21 6.25v11.5A3.25 3.25 0 0 1 17.75 21H6.25A3.25 3.25 0 0 1 3 17.75z\"/><path fill=\"url(#SVGoiz13yCB)\" d=\"M6 8.25c0-.966.784-1.75 1.75-1.75h8.5c.966 0 1.75.784 1.75 1.75v1.5a1.75 1.75 0 0 1-1.75 1.75h-8.5A1.75 1.75 0 0 1 6 9.75zM6.75 13a.75.75 0 0 0 0 1.5h4.5a.75.75 0 0 0 0-1.5zM6 16.75a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75M15.25 13a1.75 1.75 0 0 0-1.75 1.75v1c0 .966.784 1.75 1.75 1.75h1A1.75 1.75 0 0 0 18 15.75v-1A1.75 1.75 0 0 0 16.25 13z\"/><defs><linearGradient id=\"SVGxTUYr5Nd\" x1=\"9.429\" x2=\"16.325\" y1=\"3\" y2=\"20.03\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#b3e0ff\"/><stop offset=\"1\" stop-color=\"#8cd0ff\"/></linearGradient><linearGradient id=\"SVGoiz13yCB\" x1=\"6\" x2=\"20.135\" y1=\"6.5\" y2=\"11.741\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#0094f0\"/><stop offset=\"1\" stop-color=\"#2764e7\"/></linearGradient></defs></g>",
+      "width": 24,
+      "height": 24
+    },
     "document-folder-24": {
       "body": "<g fill=\"none\"><path fill=\"url(#SVGdFie5cDw)\" d=\"M8 6.25A2.25 2.25 0 0 1 10.25 4h7.5A2.25 2.25 0 0 1 20 6.25v8.5A2.25 2.25 0 0 1 17.75 17h-7.5A2.25 2.25 0 0 1 8 14.75z\"/><path fill=\"url(#SVGXYfMve6h)\" d=\"M8 6.25A2.25 2.25 0 0 1 10.25 4h7.5A2.25 2.25 0 0 1 20 6.25v8.5A2.25 2.25 0 0 1 17.75 17h-7.5A2.25 2.25 0 0 1 8 14.75z\"/><path fill=\"url(#SVGCfFQgeqH)\" d=\"M4 4.25A2.25 2.25 0 0 1 6.25 2h9a2.25 2.25 0 0 1 2.25 2.25v10.5A2.25 2.25 0 0 1 15.25 17h-9A2.25 2.25 0 0 1 4 14.75z\"/><path fill=\"url(#SVGBFc5OckO)\" d=\"M5.25 8A2.25 2.25 0 0 0 3 10.25v8.5A3.25 3.25 0 0 0 6.25 22h11.5A3.25 3.25 0 0 0 21 18.75v-1.5A2.25 2.25 0 0 0 18.75 15h-2.846a.75.75 0 0 1-.55-.24l-5.61-6.04A2.25 2.25 0 0 0 8.097 8z\"/><defs><linearGradient id=\"SVGdFie5cDw\" x1=\"21.8\" x2=\"23.639\" y1=\"19.5\" y2=\"5.773\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#bb45ea\"/><stop offset=\"1\" stop-color=\"#9c6cfe\"/></linearGradient><linearGradient id=\"SVGXYfMve6h\" x1=\"20\" x2=\"17\" y1=\"8.5\" y2=\"8.5\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".338\" stop-color=\"#5750e2\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#5750e2\"/></linearGradient><linearGradient id=\"SVGBFc5OckO\" x1=\"6.857\" x2=\"6.857\" y1=\"8\" y2=\"27.091\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".241\" stop-color=\"#ffd638\"/><stop offset=\".637\" stop-color=\"#fab500\"/><stop offset=\".985\" stop-color=\"#ca6407\"/></linearGradient><radialGradient id=\"SVGCfFQgeqH\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(8.775 -11.5 18.53666 14.14428 8.05 14)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".228\" stop-color=\"#2764e7\"/><stop offset=\".685\" stop-color=\"#5cd1ff\"/><stop offset=\"1\" stop-color=\"#6ce0ff\"/></radialGradient></defs></g>",
       "width": 24,
@@ -311,6 +316,11 @@ export const fluentColor: IconifyJSON = {
     },
     "laptop-24": {
       "body": "<g fill=\"none\"><path fill=\"url(#SVGxtLF0bjI)\" d=\"M6.254 16L12 15.469l5.754.531h.065a1 1 0 0 1 .35.064l3.126 1.172c.423.158.704.562.705 1.014H2c0-.451.28-.855.702-1.013l3.128-1.173A1 1 0 0 1 6.181 16z\"/><path fill=\"url(#SVGYt5YccaZ)\" d=\"M2.75 17.5a.75.75 0 0 0 0 1.5h18.5a.75.75 0 0 0 0-1.5z\"/><path fill=\"url(#SVGS8iGWb4m)\" d=\"M4 6.25A2.25 2.25 0 0 1 6.25 4h11.5A2.25 2.25 0 0 1 20 6.25v7.5A2.25 2.25 0 0 1 17.75 16H6.25A2.25 2.25 0 0 1 4 13.75z\"/><defs><linearGradient id=\"SVGxtLF0bjI\" x1=\"22\" x2=\"20.765\" y1=\"18.912\" y2=\"12.254\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#63686e\"/><stop offset=\"1\" stop-color=\"#889096\"/></linearGradient><linearGradient id=\"SVGYt5YccaZ\" x1=\"22\" x2=\"21.792\" y1=\"18.893\" y2=\"16.123\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#889096\"/><stop offset=\"1\" stop-color=\"#aab3bd\"/></linearGradient><linearGradient id=\"SVGS8iGWb4m\" x1=\"15.2\" x2=\"15.95\" y1=\"4\" y2=\"17.722\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#6ce0ff\"/><stop offset=\"1\" stop-color=\"#4894fe\"/></linearGradient></defs></g>",
+      "width": 24,
+      "height": 24
+    },
+    "library-24": {
+      "body": "<g fill=\"none\"><path fill=\"url(#SVGopB9ecln)\" d=\"M5.5 3A1.5 1.5 0 0 1 7 4.5v15A1.5 1.5 0 0 1 5.5 21h-2A1.5 1.5 0 0 1 2 19.5v-15A1.5 1.5 0 0 1 3.5 3z\"/><path fill=\"url(#SVGopB9ecln)\" d=\"M11.5 3A1.5 1.5 0 0 1 13 4.5v15a1.5 1.5 0 0 1-1.5 1.5h-2A1.5 1.5 0 0 1 8 19.5v-15A1.5 1.5 0 0 1 9.5 3z\"/><path fill=\"url(#SVGopB9ecln)\" d=\"m21.995 18.643l-3.214-12.52a1.5 1.5 0 0 0-1.826-1.08l-1.876.484A1.5 1.5 0 0 0 14 7.353l3.214 12.517a1.5 1.5 0 0 0 1.826 1.08l1.876-.481a1.5 1.5 0 0 0 1.08-1.826\"/><path fill=\"url(#SVGE9oVQcXx)\" d=\"M2 6h5v2H2z\"/><path fill=\"url(#SVGE9oVQcXx)\" d=\"m14.982 11.18l4.785-1.218l-.498-1.937l-4.785 1.218z\"/><path fill=\"url(#SVGE9oVQcXx)\" d=\"M13 6H8v2h5z\"/><defs><linearGradient id=\"SVGopB9ecln\" x1=\"-1.75\" x2=\"2.7\" y1=\"3\" y2=\"26.492\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#43e5ca\"/><stop offset=\"1\" stop-color=\"#2764e7\"/></linearGradient><linearGradient id=\"SVGE9oVQcXx\" x1=\"8\" x2=\"13.97\" y1=\"2.178\" y2=\"4.427\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#9ff0f9\"/><stop offset=\"1\" stop-color=\"#6ce0ff\"/></linearGradient></defs></g>",
       "width": 24,
       "height": 24
     },

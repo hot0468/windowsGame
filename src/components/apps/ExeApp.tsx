@@ -4,10 +4,10 @@ import { STAT_META } from '../../data/statMeta'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { canRun } from '../../systems/turn'
-import { getBurnoutPenalty } from '../../systems/burnout'
-import { getLivingCost, getWageMultiplier } from '../../systems/economy'
+import { getLivingCost } from '../../systems/economy'
 import { STAT_NAMES } from '../../types/game'
 import type { Stats } from '../../types/game'
+import { previewActivity } from './activityPreview'
 import './ExeApp.css'
 
 /** 이 창에서만 쓰는 일회성 경고 글리프. 여러 경고 문구가 공유한다. */
@@ -33,17 +33,8 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
   if (!activity || !state) return null
 
   const runnable = canRun(state, activity)
-  const { efficiency, mentalPenalty } = getBurnoutPenalty(state.recentActivities, activity.id)
-  const isBurnedOut = efficiency < 1
-
-  /** 표시용 실제 변화량. 번아웃 효율과 알바비 배율을 반영한다. */
-  const displayValue = (key: keyof Stats, raw: number): number => {
-    let value = raw
-    if (key === 'money' && value > 0 && activity.scalesWithWage) {
-      value *= getWageMultiplier(state.day)
-    }
-    return Math.round(value > 0 ? value * efficiency : value)
-  }
+  // 증감 계산은 브라우저 사이트의 확정 패널과 **같은 함수**를 쓴다(activityPreview 주석 참조).
+  const { rows, efficiency, mentalPenalty, isBurnedOut } = previewActivity(state, activity)
 
   const handleRun = () => {
     doActivity(activity)
@@ -55,19 +46,15 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
       <p className="exe-desc">{activity.description}</p>
 
       <div className="exe-effects">
-        {Object.entries(activity.effects).map(([key, raw]) => {
-          const statKey = key as keyof Stats
-          const value = displayValue(statKey, raw)
-          return (
-            <div key={key} className="exe-effect">
-              <StatLabel statKey={statKey} />
-              <span className={value >= 0 ? 'exe-plus' : 'exe-minus'}>
-                {value >= 0 ? '+' : ''}
-                {value.toLocaleString('ko-KR')}
-              </span>
-            </div>
-          )
-        })}
+        {rows.map(({ key, value }) => (
+          <div key={key} className="exe-effect">
+            <StatLabel statKey={key} />
+            <span className={value >= 0 ? 'exe-plus' : 'exe-minus'}>
+              {value >= 0 ? '+' : ''}
+              {value.toLocaleString('ko-KR')}
+            </span>
+          </div>
+        ))}
         {mentalPenalty > 0 && (
           <div className="exe-effect">
             <StatLabel statKey="mental" note="(연속 페널티)" />

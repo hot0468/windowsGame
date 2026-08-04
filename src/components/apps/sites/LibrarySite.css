@@ -1,0 +1,126 @@
+/*
+ * 미디북스. 브라우저 안의 웹페이지이므로 --nv-* 토큰만 쓴다(--os-*·--hud-* 금지).
+ *
+ * style `E-Ink / Paper`: 흰 종이 + 잉크 한 색, 그라데이션 없음, 크롬 최소.
+ * ⚠️ 새 색을 만들지 않는다 — 정체성은 색상환이 아니라 **값과 구조**가 만든다.
+ * (흰 종이 + 헤어라인 목록 = 미디북스 / 어두운 판 = 시집이 / 회색 판 + 둥근 카드 = 보스타입)
+ */
+.lib {
+  padding: var(--sp-6) var(--sp-6) var(--sp-8);
+  /* 페이지 자체가 종이다 — 회색 배경 위에 흰 카드를 얹지 않는다. */
+  background: var(--nv-surface);
+  min-height: 100%;
+}
+
+.lib-head {
+  padding-bottom: var(--sp-4);
+  /* 잉크 두 줄. 상자 대신 선이 구역을 가르는 것이 이 사이트의 문법이다. */
+  border-bottom: 2px solid var(--nv-text);
+}
+
+.lib-logo {
+  margin: 0;
+  font-family: var(--font-point);
+  /* 한 벌짜리 서체라 합성 볼드를 막는다(index.css 폰트 규칙). */
+  font-weight: 400;
+  font-size: var(--fs-2xl);
+  color: var(--nv-text);
+}
+
+.lib-sub {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--nv-text-3);
+}
+
+.lib-receipt {
+  margin: var(--sp-4) 0 0;
+  padding: var(--sp-3) var(--sp-4);
+  border-left: 3px solid var(--nv-text);
+  background: var(--nv-surface-alt);
+  font-size: var(--fs-base);
+  color: var(--nv-text-2);
+}
+
+.lib-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lib-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--sp-4);
+  width: 100%;
+  /* ux `touch-target-size`: 목록 한 줄이 44px을 넘는다. */
+  padding: var(--sp-4) var(--sp-2);
+  border: none;
+  border-bottom: 1px solid var(--nv-border);
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.lib-item:hover {
+  background: var(--nv-surface-alt);
+}
+
+/* 고른 줄. 색 + 왼쪽 잉크 바 + "선택함" 글자 셋이 함께 알린다. */
+.lib-item-on {
+  background: var(--nv-surface-alt);
+  box-shadow: inset 3px 0 0 var(--nv-text);
+}
+
+.lib-cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 64px;
+  border-radius: var(--r-sm);
+  background: var(--nv-text);
+  font-family: var(--font-point);
+  font-weight: 400;
+  font-size: var(--fs-lg);
+  /* 잉크 판 위 종이색 글자 = 17.8:1. */
+  color: var(--nv-surface);
+}
+
+.lib-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lib-title {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--nv-text);
+}
+
+.lib-meta {
+  font-size: var(--fs-sm);
+  color: var(--nv-text-3);
+}
+
+.lib-blurb {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-base);
+  line-height: 1.55;
+  color: var(--nv-text-2);
+}
+
+.lib-mark {
+  flex: 0 0 auto;
+  min-width: 44px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-align: right;
+  color: var(--nv-text);
+}

@@ -135,14 +135,22 @@ export const ACTIVITIES: Activity[] = [
     requires: { stamina: 10 },
   },
   {
-    /* 돈이 나가는 대신 멘탈을 채워 주는 회복형 여가. 게임의 대안이다. */
+    /*
+     * 돈이 나가는 대신 멘탈을 채워 주는 회복형 여가. 게임의 대안이다.
+     *
+     * ⚠️ **2026-08-04 극장 기준으로 재조정했다.** 예매 사이트(시집이)가 생기면서
+     * 이 활동이 "집에서 보는 것"이 아니라 **극장에 다녀오는 것**으로 확정됐다.
+     * 행동력 -5는 소파에서 보는 값이었고, 12,000원은 표값보다 쌌다.
+     * 나가는 값을 올린 만큼 큰 화면의 보상(멘탈 6→8)도 함께 올려 여전히
+     * "게임(mental +18, 거의 공짜)"의 대안으로 남게 했다 — 비싸기만 하면 아무도 안 고른다.
+     */
     id: 'movie',
     label: '영화 감상',
     icon: 'fluent-color:video-24',
     category: 'leisure',
     description: '혼자 조조를 본다. 엔딩 크레딧까지 앉아 있는 사람은 늘 몇 없다.',
-    effects: { sensitivity: 6, creativity: 3, mental: 6, stamina: -5, money: -12000 },
-    requires: { stamina: 5, money: 12000 },
+    effects: { sensitivity: 6, creativity: 3, mental: 8, stamina: -15, money: -15000 },
+    requires: { stamina: 15, money: 15000 },
   },
   {
     /* 창의력의 주 공급원. 돈은 안 들지만 행동력·멘탈을 가장 많이 먹는다. */

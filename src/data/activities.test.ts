@@ -61,6 +61,35 @@ describe('활동 분류', () => {
   })
 })
 
+/**
+ * 예매 사이트(시집이)가 생기면서 `movie`는 "집에서 보는 것"이 아니라
+ * **극장에 다녀오는 것**으로 확정됐다(2026-08-04). 그 사실이 수치에 남아 있는지 지킨다 —
+ * 수치를 되돌리면 사이트의 설명("극장 예매")과 게임 규칙이 조용히 어긋난다.
+ */
+describe('영화 감상은 극장 기준이다', () => {
+  const movie = findActivity('movie')!
+
+  it('외출 비용이 붙는다 — 행동력·돈이 소파에서 보는 값보다 크다', () => {
+    expect(movie.effects.stamina).toBe(-15)
+    expect(movie.effects.money).toBe(-15000)
+  })
+
+  it('큰 화면의 보상이 값을 정당화한다', () => {
+    expect(movie.effects.mental).toBe(8)
+  })
+
+  it('requires가 effects와 어긋나지 않는다 — 못 낼 값을 낼 수 있다고 하면 안 된다', () => {
+    // 조건이 비용보다 헐거우면 잔고가 모자란 채로 실행돼 마이너스가 난다.
+    expect(movie.requires?.stamina).toBe(Math.abs(movie.effects.stamina!))
+    expect(movie.requires?.money).toBe(Math.abs(movie.effects.money!))
+  })
+
+  it('그래도 게임보다 비싼 회복 수단으로 남는다 (선택지가 되려면 대안이 있어야 한다)', () => {
+    const game = findActivity('game')!
+    expect(movie.effects.mental!).toBeLessThan(game.effects.mental!)
+  })
+})
+
 describe('아이템 잠금', () => {
   it('requiresItem은 실제로 파는 물건을 가리킨다', () => {
     for (const a of ACTIVITIES) {

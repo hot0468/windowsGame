@@ -1,0 +1,109 @@
+/*
+ * 보스타입(창작자 발행 플랫폼). --nv-* 토큰만 쓴다(--os-*·--hud-* 금지).
+ *
+ * style `Editorial Grid / Magazine`(고대비 활자 + 구역 구분선 + 여백) +
+ * `Bento Grids`(회색 판 위 큰 모서리(--r-xl) 카드 · subtle border).
+ * ⚠️ 새 색을 만들지 않는다 — 미디북스와의 구분은 **판의 밝기와 카드의 모서리**가 만든다.
+ */
+.pub {
+  padding: var(--sp-6) var(--sp-6) var(--sp-8);
+  background: var(--nv-bg);
+  min-height: 100%;
+}
+
+.pub-head {
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--nv-border);
+}
+
+.pub-logo {
+  margin: 0;
+  font-family: var(--font-point);
+  /* 한 벌짜리 서체라 합성 볼드를 막는다(index.css 폰트 규칙). */
+  font-weight: 400;
+  font-size: var(--fs-3xl);
+  color: var(--nv-text);
+}
+
+.pub-sub {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--nv-text-3);
+}
+
+.pub-receipt {
+  margin: var(--sp-4) 0 0;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--nv-border);
+  border-radius: var(--r-lg);
+  background: var(--nv-surface);
+  font-size: var(--fs-base);
+  color: var(--nv-text-2);
+}
+
+/* ux `heading-hierarchy`: h1 다음은 h2다. 라벨 하나로 구역을 가른다. */
+.pub-section {
+  margin: var(--sp-6) 0 var(--sp-3);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--nv-text-3);
+}
+
+.pub-grid {
+  display: grid;
+  /* 카드 폭이 260px 아래로 내려가면 글감 제목이 세 줄로 무너진다. */
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--sp-4);
+}
+
+.pub-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  /* ux `touch-target-size`: 카드 전체가 누르는 자리다. */
+  min-height: 120px;
+  padding: var(--sp-4);
+  border: 1px solid var(--nv-border);
+  border-radius: var(--r-xl);
+  background: var(--nv-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out;
+}
+
+.pub-card:hover:not(.pub-card-on) {
+  border-color: var(--nv-text-3);
+}
+
+/* 고른 카드. 테두리 + 잉크 판 + 문구 셋이 함께 알린다. */
+.pub-card-on {
+  border-color: var(--nv-text);
+  box-shadow: inset 0 0 0 1px var(--nv-text);
+}
+
+.pub-theme {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--nv-text);
+}
+
+.pub-hint {
+  flex: 1 1 auto;
+  font-size: var(--fs-base);
+  line-height: 1.55;
+  color: var(--nv-text-2);
+}
+
+.pub-mark {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--nv-text-3);
+}
+
+.pub-card-on .pub-mark {
+  color: var(--nv-text);
+}
