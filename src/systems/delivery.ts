@@ -1,7 +1,14 @@
 import { findItem } from '../data/items'
-import { clampStats } from './turn'
-import type { EventLog, GameState, Stats } from '../types/game'
+import { clampStats, inventoryOf, owns } from './turn'
+import type { GameState, Stats } from '../types/game'
 import type { ShopItem } from '../data/items'
+
+/**
+ * 보유 판정은 `turn.ts`가 갖고 있다 — 활동 실행 조건(`canRun`)이 이걸 보게 되면서
+ * 이 파일에 두면 `turn` ↔ `delivery` 순환이 되기 때문이다. 여기서 재수출하는 이유는
+ * "인벤토리는 배송의 결과물"이라는 읽는 순서를 호출부에서 유지하기 위해서다.
+ */
+export { inventoryOf, owns }
 
 /**
  * 쇼핑 · 배송 · 사건 기록.
@@ -16,15 +23,6 @@ import type { ShopItem } from '../data/items'
 
 /** 주문한 다음 날 도착한다. */
 const DELIVERY_DAYS = 1
-
-export function inventoryOf(state: GameState): EventLog[] {
-  return state.inventory ?? []
-}
-
-/** 이미 가진 물건인지. 보유 판정이 여러 곳에 흩어지지 않게 여기 하나만 둔다. */
-export function owns(state: GameState, itemId: string): boolean {
-  return inventoryOf(state).some((i) => i.id === itemId)
-}
 
 /** 살 수 있는지. 게임오버·잔액 부족·이미 보유·이미 배송 중이면 못 산다. */
 export function canOrder(state: GameState, item: ShopItem): boolean {

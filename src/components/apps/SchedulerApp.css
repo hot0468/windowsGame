@@ -173,7 +173,8 @@
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 2;
-  width: 300px;
+  /* 15종 · 6묶음이 되면서 300px에서는 효과 줄이 세 줄로 접혔다. 320px이면 대부분 두 줄이다. */
+  width: 320px;
   padding: var(--sp-3);
   border: 1px solid var(--os-border);
   border-radius: var(--r-xl);
@@ -186,6 +187,28 @@
   margin: 0 0 var(--sp-2);
   padding: 0 var(--sp-2);
   font-size: var(--fs-sm);
+  color: var(--os-text-3);
+}
+
+/* 목록만 구른다 — 판 전체를 굴리면 "몇 일차 몇 시"라는 머리글이 같이 사라져
+   무엇을 예약하는 중인지 잃는다. 상한은 창이 짧을 때를 대비해 vh와 함께 잡는다. */
+.sch-picker-list {
+  max-height: min(60vh, 460px);
+  overflow-y: auto;
+}
+
+/* 묶음. 상자를 두르지 않는다 — 여백과 작은 라벨만으로 가른다(ux `whitespace-balance`).
+   판 안에 상자를 또 그리면 모달 안에 카드가 겹쳐 층이 하나 늘어난다. */
+.sch-pick-group + .sch-pick-group {
+  margin-top: var(--sp-2);
+}
+
+.sch-pick-cat {
+  margin: 0;
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
   color: var(--os-text-3);
 }
 
@@ -203,13 +226,14 @@
   cursor: pointer;
 }
 
-.sch-pick:hover {
+.sch-pick:hover:not(:disabled) {
   background: var(--os-fill);
 }
 
 .sch-pick-body {
   display: flex;
   flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -218,9 +242,37 @@
   color: var(--os-text);
 }
 
-.sch-pick-desc {
-  font-size: var(--fs-sm);
-  color: var(--os-text-3);
+/* 증감 칩 줄. 설명 대신 이걸 둔다 — 15개 중에 고르는 사람이 실제로 비교하는 값은
+   문장이 아니라 숫자다. 설명은 title 툴팁으로 내려갔다. */
+.sch-pick-fx {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--sp-2);
+  font-size: var(--fs-xs);
+  /* 숫자가 자리마다 흔들리지 않게(typography `number-tabular`). */
+  font-variant-numeric: tabular-nums;
+}
+
+/* 활동 창(ExeApp)과 같은 의미색이다 — 같은 뜻에 두 벌의 색을 쓰지 않는다.
+   부호와 스탯 이름이 함께 있으므로 색만으로 뜻을 전하지 않는다(ux `color-not-only`). */
+.sch-pick-plus {
+  color: var(--os-success);
+}
+
+.sch-pick-minus {
+  color: var(--os-danger);
+}
+
+/* 잠긴 활동. ux `disabled-states`: 투명도 + 커서 + 의미론적 속성(disabled)을 함께 준다.
+   ⚠️ **감추지 않는다** — 감추면 회원권의 존재를 알 수 없어 살 이유도 사라진다. */
+.sch-pick-locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sch-pick-lock {
+  font-size: var(--fs-xs);
+  color: var(--os-text-2);
 }
 
 .sch-note {

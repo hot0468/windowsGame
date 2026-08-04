@@ -71,6 +71,15 @@ export interface OfferOption {
   activityId?: string
   /** 즉시 빠져나갈 금액. 턴은 쓰지 않는다(등록·결제). */
   cost?: number
+  /**
+   * 이 제안이 실제로는 **물건을 주문하는 것**일 때의 아이템 id(`data/items.ts`).
+   *
+   * `cost`와 함께 쓰지 않는다 — 가격도 도착일도 아이템 정의가 갖고 있으므로
+   * 여기 금액을 또 적으면 두 값이 어긋난다. 주문·배송은 기존 흐름을 그대로 탄다
+   * (`systems/delivery.ts`: 다음 날 도착 → 인벤토리). 이미 가진 물건이면 결제 없이
+   * 나머지(주간 예약)만 처리한다.
+   */
+  itemId?: string
   /** 결제 뒤 매주 같은 요일에 걸 예약(0=일 … 4=목). */
   weekly?: { weekday: number; weeks: number; activityId: string }
 }
@@ -101,8 +110,11 @@ export const THREADS: Thread[] = [
         {
           id: 'gym-month',
           label: '한 달 끊을게요',
-          desc: '월 90,000원 · 매주 목요일 오후 자동 등록',
-          cost: 90000,
+          desc: '회원권 90,000원 · 카드는 내일 도착 · 매주 목요일 오후 자동 등록',
+          // ⚠️ 금액을 여기 적지 않는다. 이 선택지는 쇼핑의 '헬스장 회원권'과 **같은 물건**을
+          // 주문하는 것이고, 그 카드가 있어야 gym-member 활동이 열린다.
+          // 잠금 해제 경로를 둘로 나누면 한쪽만 고쳐 놓고 다른 쪽이 새는 사고가 난다.
+          itemId: 'gym-pass',
           // 4 = 목요일(0=일). 4주치를 건다.
           weekly: { weekday: 4, weeks: 4, activityId: 'gym-member' },
         },

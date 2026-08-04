@@ -1,13 +1,34 @@
 import { useState } from 'react'
-import { ACTIVITIES } from '../../data/activities'
+import { ACTIVITIES, ACTIVITY_CATEGORIES, activitiesOf } from '../../data/activities'
 import { dateOf, dayOf } from '../../data/calendar'
+import { findItem } from '../../data/items'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
+import { owns } from '../../systems/delivery'
 import { findPlan } from '../../systems/schedule'
-import type { Slot } from '../../types/game'
+import { STAT_NAMES } from '../../types/game'
+import type { Activity, Slot, Stats } from '../../types/game'
 import './SchedulerApp.css'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
+
+/**
+ * 활동 한 줄에 붙는 증감 표시.
+ *
+ * **이득을 앞에 세운다** — 고르는 사람이 먼저 묻는 것은 "뭐가 오르나"이고,
+ * 비용은 그다음에 판단한다. 15개를 나란히 놓고 비교하려면 순서가 같아야 한다.
+ * 색은 활동 창(`ExeApp`)과 같은 의미색이고, 부호(+/−)와 스탯 이름이 함께 있으므로
+ * 색만으로 뜻을 전하지 않는다(ux `color-not-only`·`contrast-feedback`).
+ */
+function effectChips(activity: Activity) {
+  return (Object.entries(activity.effects) as [keyof Stats, number][])
+    .sort((a, b) => Number(b[1] > 0) - Number(a[1] > 0))
+    .map(([key, value]) => ({
+      key,
+      gain: value > 0,
+      text: `${STAT_NAMES[key]} ${value > 0 ? '+' : '−'}${Math.abs(value).toLocaleString()}`,
+    }))
+}
 
 /**
  * 일정(스케줄러).
@@ -43,6 +64,9 @@ export function SchedulerApp() {
     const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i)
     return { date: d, day: dayOf(d), inMonth: d.getMonth() === month }
   })
+
+  /** 고르기 판에서 **화면 순서상** 첫 항목. 포커스를 여기에 준다. */
+  const firstPickId = ACTIVITY_CATEGORIES.flatMap((c) => activitiesOf(c.id))[0]?.id
 
   const nowIndex = state.day * 2 + (state.slot === 'afternoon' ? 1 : 0)
   const isPast = (day: number, slot: Slot) =>
@@ -148,24 +172,74 @@ export function SchedulerApp() {
             <p className="sch-picker-head">
               {picking.day}일차 {picking.slot === 'morning' ? '오전' : '오후'}
             </p>
-            {ACTIVITIES.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                className="sch-pick"
-                autoFocus={a.id === ACTIVITIES[0].id}
-                onClick={() => {
-                  planActivity(picking.day, picking.slot, a.id)
-                  setPicking(null)
-                }}
-              >
-                <AppIcon name={a.icon} size={20} />
-                <span className="sch-pick-body">
-                  <span className="sch-pick-name">{a.label}</span>
-                  <span className="sch-pick-desc">{a.description}</span>
-                </span>
-              </button>
-            ))}
+            {/*
+              활동이 15종이 되면서 평평한 한 줄 목록으로는 못 고른다.
+              묶음 라벨과 순서는 데이터(`ACTIVITY_CATEGORIES`)가 정한다 — 여기에 적으면
+              콘텐츠가 컴포넌트로 새고, 활동을 늘릴 때마다 화면을 고치게 된다.
+              구분은 상자가 아니라 **작은 라벨 + 여백**이 한다(ux `whitespace-balance`,
+              typography `font-scale`: 11/12/14 세 단만 쓴다).
+            */}
+            <div className="sch-picker-list">
+              {ACTIVITY_CATEGORIES.map((cat) => {
+                const list = activitiesOf(cat.id)
+                if (!list.length) return null
+                return (
+                  <section key={cat.id} className="sch-pick-group" aria-label={cat.label}>
+                    <p className="sch-pick-cat" aria-hidden="true">
+                      {cat.label}
+                    </p>
+                    {list.map((a) => {
+                      // 아이템이 필요한 활동은 **감추지 않고 잠근다**. 감추면 회원권이라는
+                      // 것이 있다는 사실 자체를 알 길이 없어 쇼핑으로 가는 길이 끊긴다
+                      // (ux `empty-nav-state`: 갈 수 없는 곳은 숨기지 말고 이유를 밝힌다).
+                      const need = a.requiresItem ? findItem(a.requiresItem) : undefined
+                      const locked = !!a.requiresItem && !owns(state, a.requiresItem)
+                      return (
+                        <button
+                          key={a.id}
+                          type="button"
+                          className={`sch-pick${locked ? ' sch-pick-locked' : ''}`}
+                          disabled={locked}
+                          // 처음 그려지는 항목에 포커스를 준다. 배열 첫 항목(study)이
+                          // 아니라 **화면 순서의 첫 항목**이어야 탭 순서와 어긋나지 않는다.
+                          autoFocus={a.id === firstPickId}
+                          title={
+                            locked
+                              ? `${need?.name ?? a.requiresItem}이(가) 있어야 합니다`
+                              : a.description
+                          }
+                          onClick={() => {
+                            planActivity(picking.day, picking.slot, a.id)
+                            setPicking(null)
+                          }}
+                        >
+                          <AppIcon name={a.icon} size={20} />
+                          <span className="sch-pick-body">
+                            <span className="sch-pick-name">{a.label}</span>
+                            {locked ? (
+                              <span className="sch-pick-lock">
+                                {need?.name ?? a.requiresItem} 필요 — 쇼핑에서 구입
+                              </span>
+                            ) : (
+                              <span className="sch-pick-fx">
+                                {effectChips(a).map((c) => (
+                                  <span
+                                    key={c.key}
+                                    className={c.gain ? 'sch-pick-plus' : 'sch-pick-minus'}
+                                  >
+                                    {c.text}
+                                  </span>
+                                ))}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </section>
+                )
+              })}
+            </div>
           </div>
         </>
       )}

@@ -1,7 +1,7 @@
 import { getLivingCost, getWageMultiplier } from './economy'
 import { getBurnoutPenalty, pushActivity } from './burnout'
 import { GROWTH_STAT_KEYS, INITIAL_STATS } from '../types/game'
-import type { Activity, GameState, GrowthStatKey, Slot, Stats } from '../types/game'
+import type { Activity, EventLog, GameState, GrowthStatKey, Slot, Stats } from '../types/game'
 
 /** 취침 시 회복되는 체력 비율 (maxStamina 기준). */
 const SLEEP_RECOVERY_RATIO = 0.6
@@ -57,9 +57,33 @@ export function createInitialState(playerName: string): GameState {
   }
 }
 
-/** 요구 스탯을 모두 충족하고 게임오버가 아니어야 실행 가능하다. */
+/**
+ * 보유 아이템 목록.
+ *
+ * ⚠️ **`delivery.ts`가 아니라 여기 있다**(2026-08-04 이동). 활동 실행 조건(`canRun`)이
+ * 보유 여부를 보게 되면서 `turn` → `delivery` 의존이 생기는데, `delivery`는 이미
+ * `turn`을 부르고 있어 순환이 된다. 보유 판정은 `GameState`만 보는 순수 술어라
+ * 배송 규칙보다 아래 계층에 있는 것이 맞다. `delivery.ts`가 그대로 재수출하므로
+ * 기존 호출부는 손대지 않았다.
+ */
+export function inventoryOf(state: GameState): EventLog[] {
+  return state.inventory ?? []
+}
+
+/** 이미 가진 물건인지. 보유 판정이 여러 곳에 흩어지지 않게 여기 하나만 둔다. */
+export function owns(state: GameState, itemId: string): boolean {
+  return inventoryOf(state).some((i) => i.id === itemId)
+}
+
+/**
+ * 요구 스탯과 요구 아이템을 모두 충족하고 게임오버가 아니어야 실행 가능하다.
+ *
+ * ⚠️ **아이템 조건도 여기서 본다.** 화면에서만 막으면 스케줄러에 미리 넣어 둔 예약이
+ * 잠금을 그대로 통과한다 — 그 경로로 들어오면 회원권 없이 회원 요금(무료)으로 운동하게 된다.
+ */
 export function canRun(state: GameState, activity: Activity): boolean {
   if (state.gameOver) return false
+  if (activity.requiresItem && !owns(state, activity.requiresItem)) return false
   if (!activity.requires) return true
   return Object.entries(activity.requires).every(
     ([key, required]) => state.stats[key as keyof Stats] >= required,

@@ -92,16 +92,38 @@ export type Slot = 'morning' | 'afternoon'
  */
 export type IconName = string
 
+/**
+ * 활동 분류. 스케줄러 고르기 판이 이 값으로 묶는다.
+ *
+ * 활동이 15종이 되면서 한 줄 목록으로는 고를 수 없게 됐다 — 무엇을 키우는 행동인지가
+ * 라벨에만 있으면 15개를 전부 읽어야 비교가 된다. 라벨과 순서는 `ACTIVITY_CATEGORIES`가
+ * 정한다(컴포넌트에 적지 않는다 — 콘텐츠는 `src/data/`에 산다는 규칙).
+ */
+export type ActivityCategory = 'living' | 'study' | 'body' | 'relation' | 'leisure' | 'giving'
+
 /** 활동 정의. 수치는 전부 data/에만 존재한다. */
 export interface Activity {
   id: string
   label: string
   icon: IconName
   description: string
+  /**
+   * 어느 묶음에 속하는가. **옵셔널이 아니다** —
+   * 새 활동이 분류 없이 추가되면 고르기 판에서 조용히 사라지기 때문이다.
+   */
+  category: ActivityCategory
   /** 스탯 변화량. money는 알바비 배율이 적용된다. */
   effects: StatDelta
   /** 실행에 필요한 최소 스탯. 미달이면 실행 불가. */
   requires?: Partial<Record<keyof Stats, number>>
+  /**
+   * 실행에 필요한 보유 아이템 id(`data/items.ts`의 `SHOP_ITEMS`).
+   *
+   * 스탯 조건(`requires`)과 달리 **시간이 지나도 저절로 충족되지 않는다** — 사야 열린다.
+   * 판정은 `systems/turn.ts`의 `canRun` 하나가 하므로, 스케줄러가 예약해 둔 뒤에
+   * 아이템을 잃더라도 실행 시점에 다시 막힌다.
+   */
+  requiresItem?: string
   /** 알바비 배율(economy)을 money에 적용할지 여부. 알바 활동만 true. */
   scalesWithWage?: boolean
   /** 바탕화면에 아이콘을 띄울지 여부. 나머지 활동은 정의만 보존된다. */
@@ -254,7 +276,8 @@ export const INITIAL_STATS: Stats = {
   money: 300000,
   knowledge: 10,
   charm: 10,
-  // 신규 스탯은 모두 0에서 시작한다. 아직 이를 올리는 활동은 없다(스케줄 시스템에서 채울 예정).
+  // 나머지 성장 스탯은 0에서 시작한다. 전부 올릴 활동이 하나 이상 있다 —
+  // 그 사실은 `data/activities.test.ts`가 지킨다(스탯만 늘리고 활동을 안 만들면 실패한다).
   sensitivity: 0,
   reputation: 0,
   morality: 0,

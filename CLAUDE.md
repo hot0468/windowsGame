@@ -20,6 +20,7 @@
 | 2026-08-03 | 플레이 가능 코어 구현 완료 (Task 1~12) | src/ 전체 | 계획 2026-08-03-playable-core 실행 |
 | 2026-08-03 | 파일 맵·컨벤션·구현 중 결정 사항 반영 | skills/project-context | 다음 세션의 코드베이스 재탐색 방지 |
 | 2026-08-03 | 디자인 규칙 추가: UI 작업 전 ui-ux-pro-max 필수 로드 | CLAUDE.md, game-pipeline | 디자인 스킬을 설치했는데 참조하지 않고 감으로 스타일링한 문제 재발 방지 |
+| 2026-08-04 | 활동 15종·분류·아이템 잠금 규칙 반영 | project-context 스킬 | 활동 8종 추가로 성장 스탯 10종 전부 육성 가능해지고, `Activity.category`/`requiresItem`이라는 새 컨벤션이 생김 |
 | 2026-08-04 | 쇼핑·택배·인벤토리/이벤트 도감 추가, 카톡 일반/오픈 탭 분리, 일정 창 전체 높이화 | src/, project-context | 설계자 요청 배치 실행 |
 | 2026-08-03 | HUD 밝은 모던 리스타일 완료 + 폰트 3벌(Pretendard/Cafe24 Ohsquare/SF 함박눈) 도입 | src/index.css, HudPanel/Desktop/EndingModal CSS, index.html | 다크 판타지 방향 기각분 마무리, 설계자 폰트 지시 반영 |
 | 2026-08-03 | 브라우저 즐겨찾기 줄·별표·더보기 메뉴 추가, 스탯창 스크롤 제거·"생계" 제목 삭제 | BrowserApp, browserStore(신규), HudPanel, StatPanel | 설계자 지시 |

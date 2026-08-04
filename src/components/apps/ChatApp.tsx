@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { AppIcon } from '../../icons/AppIcon'
 import { findChatApp, findThread, threadsOf } from '../../data/messages'
 import { findActivity } from '../../data/activities'
+import { findItem } from '../../data/items'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
+import { canOrder, owns } from '../../systems/delivery'
 import { canRun } from '../../systems/turn'
 import { lastMessage, selectChannel, selectIncoming } from '../../systems/messages'
 import { STAT_NAMES } from '../../types/game'
@@ -336,10 +338,14 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
           <p className="chat-offer-q">{thread.offer.question}</p>
           {thread.offer.options.map((opt) => {
             const activity = opt.activityId ? findActivity(opt.activityId) : undefined
-            // 즉시 활동은 조건을, 결제는 잔액을 본다. 못 누르는 이유는 툴팁이 밝힌다.
+            const item = opt.itemId ? findItem(opt.itemId) : undefined
+            // 즉시 활동은 조건을, 주문은 주문 가능 여부를, 결제는 잔액을 본다.
+            // ⚠️ **이미 가진 물건이면 막지 않는다** — 결제 없이 주간 예약만 다시 걸린다.
             const blocked = activity
               ? !canRun(state, activity)
-              : opt.cost !== undefined && state.stats.money < opt.cost
+              : item
+                ? !owns(state, item.id) && !canOrder(state, item)
+                : opt.cost !== undefined && state.stats.money < opt.cost
             return (
               <button
                 key={opt.id}

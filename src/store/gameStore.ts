@@ -10,8 +10,9 @@ import {
 } from '../systems/turn'
 import { INITIAL_STATS } from '../types/game'
 import { findActivity } from '../data/activities'
+import { findItem } from '../data/items'
 import { clearPlan, planWeekly, runPlans, setPlan } from '../systems/schedule'
-import { collect, order, recordEvent } from '../systems/delivery'
+import { collect, order, owns, recordEvent } from '../systems/delivery'
 import type { OfferOption } from '../data/messages'
 import type { ShopItem } from '../data/items'
 import type { SkippedPlan } from '../systems/schedule'
@@ -202,6 +203,21 @@ export const useGameStore = create<GameStore>()(
         // 아래에서 그걸 확인해 예약·활동을 건너뛴다(외상으로 등록되면 안 된다).
         let next = option.cost ? spendMoney(current, option.cost) : current
         if (option.cost && next === current) return
+
+        // 물건을 사는 제안(헬스장 회원권)은 **쇼핑과 같은 통로**를 탄다 —
+        // 가격·중복 구매 판정·다음 날 도착이 전부 `systems/delivery.ts` 하나에 있다.
+        // 이미 가진 물건이면 결제를 건너뛰고 아래의 주간 예약만 다시 걸어 준다
+        // (재등록이 막히면 회원이 회원 대접을 못 받는다).
+        if (option.itemId) {
+          const item = findItem(option.itemId)
+          if (!item) return
+          if (!owns(next, item.id)) {
+            const ordered = order(next, item)
+            // 잔액 부족·이미 배송 중이면 아무것도 하지 않는다(반쪽 상태를 남기지 않는다).
+            if (ordered === next) return
+            next = ordered
+          }
+        }
 
         if (option.weekly) {
           next = {

@@ -12,7 +12,7 @@ import {
   canClaimAdBonus,
   claimAdBonus,
 } from './turn'
-import { findActivity } from '../data/activities'
+import { ACTIVITIES, findActivity } from '../data/activities'
 import { getLivingCost } from './economy'
 import { GROWTH_STAT_KEYS } from '../types/game'
 import type { GameState } from '../types/game'
@@ -57,6 +57,44 @@ describe('canRun', () => {
     const social = findActivity('social')!
     const s = stateWith({ stats: { ...createInitialState('t').stats, money: 100 } })
     expect(canRun(s, social)).toBe(false)
+  })
+
+  /*
+   * 아이템 잠금(`requiresItem`). 화면이 아니라 **여기서** 막혀야 스케줄러에 미리
+   * 넣어 둔 예약도 같은 규칙을 받는다 — 그러지 않으면 회원권 없이 회원 요금으로 운동한다.
+   */
+  describe('requiresItem 잠금', () => {
+    const gymMember = findActivity('gym-member')!
+    const gymDay = findActivity('gym-day')!
+
+    it('요구 아이템이 없으면 스탯이 충분해도 실행 불가하다', () => {
+      const s = createInitialState('t')
+      expect(canRun(s, gymMember)).toBe(false)
+    })
+
+    it('아이템을 보유하면 실행 가능해진다', () => {
+      const s = stateWith({ inventory: [{ id: 'gym-pass', day: 1 }] })
+      expect(canRun(s, gymMember)).toBe(true)
+    })
+
+    it('아이템이 있어도 스탯 조건은 따로 본다', () => {
+      const s = stateWith({
+        inventory: [{ id: 'gym-pass', day: 1 }],
+        stats: { ...createInitialState('t').stats, stamina: 5 },
+      })
+      expect(canRun(s, gymMember)).toBe(false)
+    })
+
+    it('다른 아이템만 갖고 있으면 열리지 않는다', () => {
+      const s = stateWith({ inventory: [{ id: 'laptop', day: 1 }] })
+      expect(canRun(s, gymMember)).toBe(false)
+    })
+
+    it('잠금 덕분에 1일권이 지배당하지 않는다 — 회원권이 없는 동안 쓸 수 있는 쪽은 1일권뿐이다', () => {
+      const s = createInitialState('t')
+      expect(canRun(s, gymDay)).toBe(true)
+      expect(canRun(s, gymMember)).toBe(false)
+    })
   })
 
   it('게임오버 상태에서는 실행 불가하다', () => {
@@ -188,8 +226,13 @@ describe('스탯 상한', () => {
     expect(runActivity(s, findActivity('game')!).stats.knowledge).toBe(0)
   })
 
-  it('신규 스탯 8종은 0에서 시작하고 어떤 활동으로도 오르지 않는다', () => {
-    // 스케줄 시스템 도입 전까지는 의도적으로 0에 머물러야 한다.
+  /*
+   * ⚠️ 이 테스트는 뒤집혔다(2026-08-04). 예전에는 "신규 스탯 8종은 어떤 활동으로도
+   * 오르지 않는다"를 지켰다 — 활동이 5종뿐이던 시절의 의도였다. 활동 8종을 추가해
+   * 10종 전부에 육성 경로가 생겼으므로, 이제 지켜야 할 것은 정반대다.
+   * "무엇이 안 오르나"는 `data/activities.test.ts`가 목록 순회로 훨씬 촘촘히 본다.
+   */
+  it('신규 스탯 8종도 0에서 시작하지만 이제는 오른다', () => {
     const newKeys = [
       'sensitivity',
       'reputation',
@@ -200,12 +243,17 @@ describe('스탯 상한', () => {
       'athletics',
       'gaming',
     ] as const
-    let s = createInitialState('t')
-    for (const key of newKeys) expect(s.stats[key]).toBe(0)
-    for (const activity of [study, work, exercise, findActivity('game')!, findActivity('social')!]) {
-      if (!canRun(s, activity)) continue
-      s = runActivity(s, activity)
-      for (const key of newKeys) expect(s.stats[key]).toBe(0)
+    const fresh = createInitialState('t')
+    for (const key of newKeys) expect(fresh.stats[key]).toBe(0)
+
+    // 각 스탯을 올리는 활동을 하나씩 골라 실제로 실행해 본다.
+    // 데이터에서 찾으므로 활동 id가 바뀌어도 따라간다.
+    for (const key of newKeys) {
+      const activity = ACTIVITIES.find((a) => (a.effects[key] ?? 0) > 0 && !a.requiresItem)
+      expect(activity, `${key}를 올리는 활동이 없다`).toBeDefined()
+      const s = stateWith({ stats: { ...fresh.stats, money: 500000 } })
+      expect(canRun(s, activity!)).toBe(true)
+      expect(runActivity(s, activity!).stats[key]).toBeGreaterThan(0)
     }
   })
 

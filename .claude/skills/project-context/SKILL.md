@@ -21,7 +21,7 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 | 스탯 | 12종. ⚠️ **`stamina` = "행동력", `maxStamina` = "체력"으로 표시된다**(2026-08-03 개명, 코드 키는 그대로). "체력/최대 체력"은 같은 것의 현재값·상한처럼 읽혀 둘이 왜 나뉘는지 설명하지 못했다 — 실제 관계는 매일 쓰고 채우는 소모 자원 vs 운동으로 영구히 키우는 그릇이다. 규칙은 안 바뀌었다. 소모 자원: `stamina`/`maxStamina`, `mental`(0~100), `money`. 성장 스탯 **10종**: `knowledge`, `charm`, `sensitivity`, `reputation`, `morality`, `creativity`, `sociability`, `vocabulary`, `athletics`, `gaming`(게임). 상한은 `growthCap(key)`가 정한다 — 평판·도덕만 100, 나머지 999 |
 | 엔딩 | 멀티 엔딩 6종(대기업 합격/인플루언서/철인/현실주의자/번아웃/평범). 스탯 조합 판정 |
 | 엔딩 공개 | 비공개. 엔딩 도감에 한 번 본 엔딩만 해금 |
-| 활동 선택 | ⚠️ **바탕화면에 활동 아이콘은 없다**(`onDesktop` 전부 false). 활동을 실행하는 통로는 둘이다: ①카톡 대화창의 [만나러 가기](= `social`) ②**스케줄러 예약**(그 슬롯이 오면 자동 실행). 활동 5종 정의는 `data/activities.ts`에 그대로 있다 |
+| 활동 선택 | ⚠️ **바탕화면에 활동 아이콘은 없다**(`onDesktop` 전부 false). 활동을 실행하는 통로는 둘이다: ①카톡 대화창의 [만나러 가기](= `social`) ②**스케줄러 예약**(그 슬롯이 오면 자동 실행). 활동 **15종** 정의는 `data/activities.ts`에 그대로 있다 |
 | 행동 비용 | **탐색 무료**, 확정 행동만 1턴 소모 |
 | 날짜 제한 | **없음.** 대신 ①매일 생활비 차감(0→파산) ②10일 주기 물가 인상(뉴스 예고) ③번아웃 누적 |
 | 알바비 | 물가보다 느리게 인상 → 고소득 알바 전환 압박 = 스탯 투자 이유 |
@@ -181,6 +181,39 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - 연쇄 실행 상한 40슬롯. **번아웃을 우회하지 못한다** — 테스트로 지킨다(같은 활동을 연달아 예약하면
   두 번째부터 효율이 깎인다). 이게 깨지면 달력을 한 활동으로 도배하는 게 최적해가 된다.
 - 달력은 항상 **6주 42칸**을 그린다. 달마다 주 수를 바꾸면 창 높이가 들쭉날쭉해진다.
+- ⚠️ **고르기 판은 묶음별로 그린다**(2026-08-04, 활동 15종이 되면서). 라벨과 순서는
+  `data/activities.ts`의 **`ACTIVITY_CATEGORIES`**가 정한다 — 컴포넌트에 적지 않는다.
+  `Activity.category`는 **옵셔널이 아니다**: 분류 없는 활동은 판에서 조용히 사라진다.
+  각 항목은 설명 문장 대신 **증감 칩**(스탯 이름 + 부호 + 값)을 보여 준다 — 15개를 비교할 때
+  읽는 것은 문장이 아니라 숫자다(설명은 `title` 툴팁으로 내려갔다). 색은 활동 창(`ExeApp`)과
+  같은 `--os-success`/`--os-danger`이고, 부호와 스탯 이름이 함께 있어 색만으로 뜻을 전하지 않는다.
+  목록만 스크롤한다(`.sch-picker-list`) — 판째 구르면 "몇 일차 몇 시"라는 머리글이 사라진다.
+
+### 활동 · 성장 스탯 (2026-08-04)
+- ⚠️ **성장 스탯 10종은 전부 올릴 방법이 있어야 한다.** 예전에는 지식·매력 둘만 올라
+  스탯창 여덟 줄이 영원히 0이었다 — 아무것도 깨지지 않고 그냥 아무 일도 안 일어나는
+  종류의 버그다. `src/data/activities.test.ts`가 `GROWTH_STAT_KEYS`를 순회하며 지킨다:
+  **스탯만 늘리고 활동을 안 만들면 거기서 실패한다.**
+- 수치를 잡을 때의 규칙 세 가지(자세한 사유는 `data/activities.ts` 상단 주석):
+  ①**평판·도덕은 상한 100**이라 상승폭을 일부러 작게 준다 ②비용의 **성격**을 갈라 둔다
+  (행동력만/돈/멘탈 소모/멘탈 회복) ③**멘탈 회복처는 넷이다**(game·movie·club·running) —
+  하나뿐이면 그 활동은 선택지가 아니라 통행세다.
+- ⚠️ **`athletics`(운동)와 `maxStamina`(체력)는 다른 스탯이다.** 기존 운동 활동들은
+  그릇(maxStamina)만 키웠다. 운동 스탯을 올리는 것은 `running`이다.
+- ⚠️ **`Activity.requiresItem`은 아이템 잠금이다.** 판정은 **`systems/turn.ts`의 `canRun`
+  하나**가 한다 — 화면에서만 막으면 스케줄러에 미리 넣어 둔 예약이 잠금을 통과한다.
+  현재 유일한 사례가 `gym-member` ← `gym-pass`(헬스장 회원권, 90,000원 = 1일권 6회분).
+  **이 잠금이 `gym-day`(1일권)의 존재 이유다** — 없던 동안 1일권은 순수하게 열등한 선택지였다.
+- 회원권을 얻는 길은 **둘이지만 통로는 하나다**: 쇼핑(`ShopSite`)과 헬스장 오픈채팅의
+  [한 달 끊을게요]가 **같은 아이템을 `order()`로 주문**한다(`OfferOption.itemId`).
+  가격도 도착일도 `data/items.ts`가 갖는다 — 대화 쪽에 금액을 다시 적으면 두 값이 어긋난다.
+  이미 가진 경우 결제를 건너뛰고 주간 예약만 다시 건다.
+- 잠긴 활동은 고르기 판에서 **감추지 않고 비활성으로 보여 준다**(ux `empty-nav-state`).
+  감추면 회원권이라는 것이 있다는 사실을 알 길이 없어 쇼핑으로 가는 길이 끊긴다.
+  잠금 사유("헬스장 회원권 필요 — 쇼핑에서 구입")를 글자로 적는다.
+- 쇼핑 카드의 "○○ 활동 해제" 줄은 `activitiesUnlockedBy(itemId)`가 **`requiresItem`에서
+  뒤집어 찾는다** — 아이템 쪽에 활동 id를 또 적으면 같은 관계가 두 곳에 생긴다.
+  `gym-pass`는 `effects`가 빈 유일한 물건이다(값은 잠금 해제 자체다).
 
 ### 쇼핑 · 택배 · 폴더 (2026-08-04 신설)
 - 흐름: **쇼핑에서 주문 → 다음 날 도착 → 토스트 → 아이템 인벤토리 폴더**.
@@ -247,9 +280,9 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 ## 파일 맵
 - 진입: `index.html` → `src/main.tsx` → `src/App.tsx` (`loggedIn && state`로 잠금화면/바탕화면 분기)
 - 타입: `src/types/game.ts` — Stats, Activity, GameState 등 도메인 타입 전부
-- 데이터(수치): `src/data/` — **items**(`SHOP_ITEMS`·`fakeSize` — 쇼핑 물건), **events**(`EVENTS` — 이벤트 도감 정의), activities(활동 5종, `onDesktop` 플래그 — 현재 전부 false), **startMenu**(`START_MENU_ITEMS` — 시작 메뉴 항목), **messages**(`CHAT_APPS`·`THREADS`·`MAILBOX`·`MESSAGE_SCHEDULE` — 메신저/메일 콘텐츠), **banners**(`BANNERS` — 포털 배너존), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합, `openMaximized` 옵트인), **sites**(`SITES`·`BOOKMARK_SITES`·`HOME_SITE_ID`·`findSite` — 브라우저가 이동할 사이트 단일 출처), **news**(`NEWS_POOL`·`NEWS_VISIBLE_COUNT`·`TRENDING_TERMS` — 포털 뉴스/실검 정적 콘텐츠), layers(`LAYERS` — z-order 상수), shell(`SHELL` — 작업표시줄·타이틀바 높이), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(엔딩 6종), statMeta(스탯별 `icon`(다색)·`hudIcon`(단색) + 표시 순서), icons(`UI_ICONS` — OS 크롬 / `HUD_ICONS` — HUD 전용 단색 / `BROWSER_ICONS` — 브라우저 도구 모음 단색)
+- 데이터(수치): `src/data/` — **items**(`SHOP_ITEMS`·`fakeSize` — 쇼핑 물건), **events**(`EVENTS` — 이벤트 도감 정의), activities(활동 **15종** + `ACTIVITY_CATEGORIES`(묶음 라벨·순서) + `activitiesOf`/`activitiesUnlockedBy`, `onDesktop` 플래그 — 현재 전부 false), **startMenu**(`START_MENU_ITEMS` — 시작 메뉴 항목), **messages**(`CHAT_APPS`·`THREADS`·`MAILBOX`·`MESSAGE_SCHEDULE` — 메신저/메일 콘텐츠), **banners**(`BANNERS` — 포털 배너존), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합, `openMaximized` 옵트인), **sites**(`SITES`·`BOOKMARK_SITES`·`HOME_SITE_ID`·`findSite` — 브라우저가 이동할 사이트 단일 출처), **news**(`NEWS_POOL`·`NEWS_VISIBLE_COUNT`·`TRENDING_TERMS` — 포털 뉴스/실검 정적 콘텐츠), layers(`LAYERS` — z-order 상수), shell(`SHELL` — 작업표시줄·타이틀바 높이), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(엔딩 6종), statMeta(스탯별 `icon`(다색)·`hudIcon`(단색) + 표시 순서), icons(`UI_ICONS` — OS 크롬 / `HUD_ICONS` — HUD 전용 단색 / `BROWSER_ICONS` — 브라우저 도구 모음 단색)
 - 아이콘: `src/icons/` — AppIcon(공용 렌더 컴포넌트), bootstrap(시작 시 addCollection), generated.ts(자동 생성, 수정 금지). 생성기는 `scripts/build-icon-subset.mjs`
-- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티), ending(티어 판정), **news**(오늘의 뉴스 선택 — 날짜 결정적), **browserHistory**(뒤로/앞으로 이력 계산), **messages**(턴별 메시지 편성 — 결정적), **search**(포털 검색), **schedule**(예약 실행), **delivery**(쇼핑·배송·사건 기록). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지). 총 **225개** 테스트(`src/systems`+`src/store`+`src/data`)
+- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티), ending(티어 판정), **news**(오늘의 뉴스 선택 — 날짜 결정적), **browserHistory**(뒤로/앞으로 이력 계산), **messages**(턴별 메시지 편성 — 결정적), **search**(포털 검색), **schedule**(예약 실행), **delivery**(쇼핑·배송·사건 기록. ⚠️ `owns`/`inventoryOf`는 **turn.ts로 옮겨졌고 여기서 재수출**한다 — `canRun`이 보유를 봐야 해서 두면 순환이 된다). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지) + `data/activities.test.ts`(성장 스탯 10종 전부에 육성 경로가 있는지 목록 순회로 검사). 총 **256개** 테스트(`src/systems`+`src/store`+`src/data`)
 - 상태: `src/store/` — gameStore(세이브+loggedIn), metaStore(도감·영구), windowStore(창 목록 + 최소화/최대화 런타임 상태·휘발), desktopPanelStore(스탯창·날짜칸 z, 휘발), **browserStore**(즐겨찾기 id 목록 + 개발자 모드·영구, 기본 즐겨찾기 없음), **toastStore**(우하단 알림·휘발)
 - UI: `src/components/`(**PanelOrnament** — 테두리 장식. ⚠️ HUD에서는 제거됐고 활동창·안내창·엔딩 모달만 쓴다), `window/`(Window·WindowManager — OS 창 크롬), `desktop/`(Desktop·HudPanel·StatPanel·CalendarPanel·Taskbar·**StartMenu**·**ToastHost**), `lockscreen/`, `apps/`(ExeApp·StubApp·EndingModal·BrowserApp·**ChatApp**(목록+대화)·**MailApp**·**SystemApps**(저장/작업관리자/명령프롬프트)·**SchedulerApp**·**ExplorerApp**(인벤토리·도감)), `apps/sites/`(NeverPortal·**ShopSite**·ConstructionSite)
 - 설정: `vite.config.ts`, `tsconfig.json`(+`.app`/`.node`), 전역 CSS `src/index.css`(**디자인 토큰 `:root` 단일 출처**)

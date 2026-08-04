@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { SHOP_ITEMS, findItem } from '../data/items'
 import { canOrder, collect, order, recordEvent } from './delivery'
-import { createInitialState, skipSlot } from './turn'
+import { canRun, createInitialState, skipSlot } from './turn'
+import { findActivity } from '../data/activities'
 import type { GameState } from '../types/game'
 
 const item = findItem('notebook')!
@@ -84,5 +85,42 @@ describe('recordEvent', () => {
 describe('SHOP_ITEMS', () => {
   it('id가 중복되지 않는다 — 인벤토리가 id로 보유를 판정한다', () => {
     expect(new Set(SHOP_ITEMS.map((i) => i.id)).size).toBe(SHOP_ITEMS.length)
+  })
+})
+
+/**
+ * 쇼핑 → 배송 → 인벤토리 고리가 **활동 잠금까지 이어지는지** 본다.
+ *
+ * 헬스장 회원권은 스탯이 아니라 활동을 여는 유일한 물건이라, 고리 중 한 칸만 끊겨도
+ * "샀는데 여전히 못 간다"가 된다 — 화면에서는 이유가 보이지 않는 종류의 고장이다.
+ */
+describe('회원권 잠금 해제 고리', () => {
+  const pass = findItem('gym-pass')!
+  const gymMember = findActivity('gym-member')!
+
+  it('사기 전에는 실행할 수 없다', () => {
+    expect(canRun(rich(), gymMember)).toBe(false)
+  })
+
+  it('주문만 해서는 열리지 않는다 — 도착해야 열린다', () => {
+    const ordered = order(rich(), pass)
+    expect(ordered.stats.money).toBe(1_000_000 - pass.price)
+    expect(canRun(ordered, gymMember)).toBe(false)
+  })
+
+  it('다음 날 도착하면 열린다', () => {
+    // 하루를 보낸다(오전 → 오후 → 다음 날 오전). 도착 판정은 collect가 한다.
+    let s = order(rich(), pass)
+    s = skipSlot(skipSlot(s))
+    const got = collect(s)
+    expect(got.arrived.map((i) => i.id)).toContain('gym-pass')
+    expect(canRun(got.state, gymMember)).toBe(true)
+  })
+
+  it('회원권은 두 번 살 수 없다 — 두 번째 결제는 아무 일도 하지 않는다', () => {
+    let s = order(rich(), pass)
+    s = collect(skipSlot(skipSlot(s))).state
+    expect(canOrder(s, pass)).toBe(false)
+    expect(order(s, pass)).toBe(s)
   })
 })

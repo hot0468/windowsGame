@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { activitiesUnlockedBy } from '../../../data/activities'
 import { SHOP_ITEMS } from '../../../data/items'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
@@ -64,6 +65,13 @@ export function ShopSite() {
                   {Object.entries(item.effects).map(([key, value]) => (
                     <span key={key} className="shop-effect">
                       {STAT_NAMES[key as keyof typeof STAT_NAMES]} +{value}
+                    </span>
+                  ))}
+                  {/* 스탯이 아니라 **활동**을 여는 물건(회원권)의 값어치. 관계는
+                      `Activity.requiresItem` 한 곳에서만 뒤집어 찾는다. */}
+                  {activitiesUnlockedBy(item.id).map((a) => (
+                    <span key={a.id} className="shop-effect">
+                      {a.label} 활동 해제
                     </span>
                   ))}
                 </p>
