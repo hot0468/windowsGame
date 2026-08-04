@@ -76,6 +76,49 @@ export interface WritingPrompt {
   theme: string
   /** 글감 아래에 붙는 짧은 조언. 빈 화면을 마주한 사람에게 첫 문장을 준다. */
   hint: string
+  /**
+   * 키워드 격자에 넣을 짧은 이름.
+   * ⚠️ `theme`(문장형)을 격자에 그대로 넣으면 칸이 무너진다 — 격자는 두세 어절짜리
+   * 라벨을 전제로 한 배치다. 같은 글감을 두 길이로 들고 있는 게 아니라,
+   * **격자용 이름과 글감 문장이 다른 역할**을 하는 것이다.
+   */
+  keyword: string
+}
+
+/** 아점 연재 글 한 편. 요일별 연재 탭에 뜬다. */
+export interface Serial {
+  id: string
+  /** 요일. 0=일 … 6=토. `Date.getDay()`와 같은 규칙이라 환산이 필요 없다. */
+  weekday: number
+  category: string
+  title: string
+  author: string
+  /** 목록 오른쪽의 작은 그림. 이미지가 없으므로 그라데이션이다. */
+  thumb: string
+}
+
+/** 아점 작가 한 명. */
+export interface Writer {
+  id: string
+  name: string
+  /** 아바타에 넣을 한 글자. 프로필 사진이 없으니 글자와 색으로 구분한다. */
+  initial: string
+  color: string
+  role: string
+  bio: string
+  tags: string[]
+}
+
+/** 상단 캐러셀에 거는 대표 작품. */
+export interface FeatureBook {
+  id: string
+  title: string
+  author: string
+  /** 표지 배경(그라데이션). */
+  cover: string
+  /** 표지 오른쪽 위 배지. */
+  badge: string
+  caption: string
 }
 
 export const BOOKS: Book[] = [
@@ -337,37 +380,79 @@ export const FILMS: Film[] = [
 ]
 
 export const WRITING_PROMPTS: WritingPrompt[] = [
+  { id: 'useless', keyword: '쓸데없는 소비', theme: '오늘 산 것 중 제일 쓸데없는 것', hint: '후회는 짧게, 묘사는 길게.' },
+  { id: 'quiet', keyword: '조용한 장소', theme: '내가 아는 가장 조용한 장소', hint: '소리 대신 그 자리의 냄새부터 적어 본다.' },
+  { id: 'refund', keyword: '스무 살 반품', theme: '스무 살의 나에게 보내는 반품 신청서', hint: '사유란은 비워 두지 않는다.' },
+  { id: 'faces', keyword: '퇴근길 얼굴', theme: '퇴근길 지하철에서 본 얼굴들', hint: '아무도 특정할 수 없게 쓴다.' },
+  { id: 'oldest', keyword: '가장 오래된 물건', theme: '내 방에서 가장 오래된 물건', hint: '버리지 못한 이유부터 시작한다.' },
+  { id: 'ramen', keyword: '라면 끓이기', theme: '라면을 가장 맛있게 끓이는 법', hint: '레시피는 세 줄, 나머지는 전부 사족.' },
+  { id: 'rent', keyword: '월세와 나', theme: '이 방에 살면서 배운 것', hint: '보증금 말고 다른 걸 적어 본다.' },
+  { id: 'firstpay', keyword: '첫 월급', theme: '첫 월급으로 한 일', hint: '통장 잔액은 마지막 문장에만 적는다.' },
+  { id: 'nightbus', keyword: '심야 버스', theme: '막차에서 본 것', hint: '창밖과 창 안을 번갈아 적는다.' },
+  { id: 'callmom', keyword: '엄마의 전화', theme: '받지 못한 전화 세 통', hint: '왜 못 받았는지는 쓰지 않아도 된다.' },
+  { id: 'diet', keyword: '작심삼일', theme: '사흘 만에 그만둔 것들의 목록', hint: '변명은 한 줄씩만 허락한다.' },
+  { id: 'window', keyword: '창밖 풍경', theme: '내 창문에서 보이는 것', hint: '계절이 바뀌면 무엇이 달라지는지까지.' },
+  { id: 'coffee', keyword: '커피 한 잔', theme: '매일 같은 시간에 마시는 것', hint: '맛보다 그 시간에 대해 쓴다.' },
+  { id: 'goodbye', keyword: '작별 인사', theme: '마지막으로 인사하지 못한 사람', hint: '이름은 끝까지 감춘다.' },
+]
+
+/**
+ * 요일별 연재. ⚠️ `weekday`는 `Date.getDay()`와 같은 규칙(0=일)이라 환산이 없다.
+ * 게임 진행과 무관한 배경 소품이므로 날짜 계산에 끌어들이지 않는다.
+ */
+export const SERIALS: Serial[] = [
+  { id: 'sr1', weekday: 1, category: '데뷔단 감독, 맥과 김', title: '작은 방을 조금 아름답게 하는 법', author: '유수아', thumb: 'linear-gradient(140deg, #8d6e63 0%, #d7ccc8 100%)' },
+  { id: 'sr2', weekday: 1, category: '매니교라', title: '입김', author: '문호 훈', thumb: 'linear-gradient(140deg, #546e7a 0%, #b0bec5 100%)' },
+  { id: 'sr3', weekday: 2, category: '락산노', title: 'BTS와 신김치통', author: '반박희 정신윤', thumb: 'linear-gradient(140deg, #ef6c00 0%, #ffcc80 100%)' },
+  { id: 'sr4', weekday: 2, category: '단짠단 원드코드', title: '22화. 오븐 켜둘 걸 그냥 나서 바로소 열린 길', author: '하나 미현', thumb: 'linear-gradient(140deg, #6a1b9a 0%, #ce93d8 100%)' },
+  { id: 'sr5', weekday: 3, category: '그 자리에 만 이보고', title: '무구한 백색의 근처는 낮선 지역', author: '숲 조현재이', thumb: 'linear-gradient(140deg, #1565c0 0%, #90caf9 100%)' },
+  { id: 'sr6', weekday: 3, category: '매주는 커피 시간이면', title: '《베우는 백의 시간이면》 12화. 커피 열 잔의 광량', author: '고맹랑 마이키', thumb: 'linear-gradient(140deg, #4e342e 0%, #a1887f 100%)' },
+  { id: 'sr7', weekday: 4, category: '안면', title: '가짜운 안면일수록 소홀해진다', author: '남노', thumb: 'linear-gradient(140deg, #00695c 0%, #80cbc4 100%)' },
+  { id: 'sr8', weekday: 4, category: '오막물 아이의', title: '언어초는 집', author: '에마 시온', thumb: 'linear-gradient(140deg, #c62828 0%, #ef9a9a 100%)' },
+  { id: 'sr9', weekday: 5, category: '금요일의 부엌', title: '냉장고를 비우는 주말', author: '윤가경', thumb: 'linear-gradient(140deg, #2e7d32 0%, #a5d6a7 100%)' },
+  { id: 'sr10', weekday: 5, category: '퇴근 이후', title: '아무것도 하지 않기로 한 두 시간', author: '서지완', thumb: 'linear-gradient(140deg, #37474f 0%, #90a4ae 100%)' },
+  { id: 'sr11', weekday: 6, category: '토요일 산책', title: '같은 길을 백 번 걸으면 생기는 일', author: '오세림', thumb: 'linear-gradient(140deg, #f9a825 0%, #fff59d 100%)' },
+  { id: 'sr12', weekday: 6, category: '주말 기록', title: '장바구니에만 담아 둔 것들', author: '문태경', thumb: 'linear-gradient(140deg, #ad1457 0%, #f48fb1 100%)' },
+  { id: 'sr13', weekday: 0, category: '일요일 밤', title: '내일을 미리 걱정하는 사람들에게', author: '유수아', thumb: 'linear-gradient(140deg, #283593 0%, #9fa8da 100%)' },
+  { id: 'sr14', weekday: 0, category: '한 주의 끝', title: '설거지를 미루는 마음에 대하여', author: '남노', thumb: 'linear-gradient(140deg, #00838f 0%, #80deea 100%)' },
+]
+
+export const WRITERS: Writer[] = [
+  { id: 'w1', name: 'Gleon', initial: 'G', color: '#37474f', role: '신춘문예 아마브라이', bio: '카피라이터 · 저자 · 크리에이티브 디렉터. 가끔 남는 시간에 회사원처럼 지냅니다.', tags: ['브랜딩', '카피'] },
+  { id: 'w2', name: '피앤피에이션시 매거진', initial: '피', color: '#1565c0', role: '피앤피에이션시 편집팀', bio: '브랜드를 짓습니다. 만들면서 기록도 합니다. 매거진이 그리 기록도 합니다.', tags: ['브랜딩', '기획'] },
+  { id: 'w3', name: 'Shaun', initial: 'S', color: '#ad1457', role: '디자이너', bio: '경험을 배열하고 문장으로 굽는 게 좋습니다.', tags: ['디자인', 'UX'] },
+  { id: 'w4', name: '이형주 David Lee', initial: '이', color: '#6a1b9a', role: 'MBTI설립 컨설턴트', bio: '읽히는 말과 쓰는 말 사이의 거리를 재는 일을 합니다.', tags: ['비즈니스', '커리어'] },
+  { id: 'w5', name: 'NORE', initial: 'N', color: '#e65100', role: '노비드유커비스 개발자', bio: '어젯밤 짜다 만 코드와 오늘 아침 미지근한 커피에 대해 씁니다.', tags: ['IT', '개발'] },
+  { id: 'w6', name: '정영훈', initial: '정', color: '#2e7d32', role: '기획자', bio: '회의실에서 나온 문장 중 살아남은 것만 골라 적습니다.', tags: ['기획', '에세이'] },
+]
+
+export const FEATURE_BOOKS: FeatureBook[] = [
   {
-    id: 'useless',
-    theme: '오늘 산 것 중 제일 쓸데없는 것',
-    hint: '후회는 짧게, 묘사는 길게.',
+    id: 'fb1',
+    title: '어느 봄날, 이른 새벽의 문장',
+    author: '이덕원',
+    cover: 'linear-gradient(160deg, #6d5b4b 0%, #a89584 100%)',
+    badge: '연재',
+    caption: '1화의 감동',
   },
   {
-    id: 'quiet',
-    theme: '내가 아는 가장 조용한 장소',
-    hint: '소리 대신 그 자리의 냄새부터 적어 본다.',
+    id: 'fb2',
+    title: '여름에 남겨진 기억, 엄마의 맛',
+    author: '이덕원',
+    cover: 'linear-gradient(160deg, #bf360c 0%, #ff8a65 100%)',
+    badge: '완결',
+    caption: '주목받고 있는 응원 인기글',
   },
   {
-    id: 'refund',
-    theme: '스무 살의 나에게 보내는 반품 신청서',
-    hint: '사유란은 비워 두지 않는다.',
-  },
-  {
-    id: 'faces',
-    theme: '퇴근길 지하철에서 본 얼굴들',
-    hint: '아무도 특정할 수 없게 쓴다.',
-  },
-  {
-    id: 'oldest',
-    theme: '내 방에서 가장 오래된 물건',
-    hint: '버리지 못한 이유부터 시작한다.',
-  },
-  {
-    id: 'ramen',
-    theme: '라면을 가장 맛있게 끓이는 법',
-    hint: '레시피는 세 줄, 나머지는 전부 사족.',
+    id: 'fb3',
+    title: '한밤중에 쓰는 편지들',
+    author: '윤가경',
+    cover: 'linear-gradient(160deg, #263238 0%, #607d8b 100%)',
+    badge: '신규',
+    caption: '이번 주 새로 열린 연재',
   },
 ]
+
 
 /** 모든 상영 회차를 영화와 묶어 펼친다. 고른 회차의 영화 제목을 되찾을 때 쓴다. */
 export function findShowtime(id: string): { film: Film; showtime: Showtime } | undefined {
