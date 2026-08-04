@@ -35,3 +35,4 @@
 | 2026-08-04 | 시작 메뉴 + 시스템 도구 3종(저장·작업관리자·명령프롬프트), 스탯 `gaming` 추가 | startMenu, StartMenu, SystemApps, types/statMeta | 설계자 지시 |
 | 2026-08-04 | 스케줄러(예약 자동 실행) + 포털 검색 결과 + 브라우저 개발자 모드 | schedule(신규), search(신규), SchedulerApp, NeverPortal, BrowserApp | 설계자 지시 |
 | 2026-08-04 | `Window`에 `bareTitle`·`dark` 옵션, 열릴 때 위치 클램프. HUD 테두리 장식 제거 | Window, WindowManager, HudPanel | 레퍼런스 충실도 + 창이 작업표시줄 아래로 빠지던 문제 |
+| 2026-08-05 | 알바 4종 + 알바몬 사이트 신설, `Activity.burnoutKey`로 번아웃 키 공유 | activities, jobs(신규), AlbamonSite(신규), sites, burnout, turn, SchedulerApp | 설계 문서의 "고소득 알바 전환 압박"이 알바가 하나뿐이라 구현되지 않았음. 알바를 늘리면 번갈아 일해 번아웃을 우회할 수 있어 키를 묶음 |

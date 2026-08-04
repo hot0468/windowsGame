@@ -249,10 +249,15 @@ describe('스탯 상한', () => {
     // 각 스탯을 올리는 활동을 하나씩 골라 실제로 실행해 본다.
     // 데이터에서 찾으므로 활동 id가 바뀌어도 따라간다.
     for (const key of newKeys) {
-      const activity = ACTIVITIES.find((a) => (a.effects[key] ?? 0) > 0 && !a.requiresItem)
-      expect(activity, `${key}를 올리는 활동이 없다`).toBeDefined()
       const s = stateWith({ stats: { ...fresh.stats, money: 500000 } })
-      expect(canRun(s, activity!)).toBe(true)
+      // ⚠️ **새 판에서 바로 할 수 있는** 활동으로 고른다(2026-08-05).
+      // 알바 4종처럼 스탯 조건이 걸린 활동이 먼저 걸리면 첫 판에서는 실행할 수 없는데,
+      // 그건 데이터가 틀린 게 아니라 의도다. 여기서 지켜야 하는 것은 "그 스탯을 올리는
+      // 활동이 있다"가 아니라 **"시작하자마자 올릴 길이 있다"**이다.
+      const activity = ACTIVITIES.find(
+        (a) => (a.effects[key] ?? 0) > 0 && !a.requiresItem && canRun(s, a),
+      )
+      expect(activity, `${key}를 새 판에서 올릴 수 있는 활동이 없다`).toBeDefined()
       expect(runActivity(s, activity!).stats[key]).toBeGreaterThan(0)
     }
   })

@@ -126,6 +126,15 @@ export interface Activity {
   requiresItem?: string
   /** 알바비 배율(economy)을 money에 적용할지 여부. 알바 활동만 true. */
   scalesWithWage?: boolean
+  /**
+   * 번아웃을 함께 세는 이름. 생략하면 `id`가 곧 키다(기본 동작은 안 바뀐다).
+   *
+   * ⚠️ **알바 4종이 이 필드의 존재 이유다.** 번아웃이 활동 id로만 세면
+   * 편의점 → 카페 → 물류 → 과외를 돌려 가며 **연속 노동의 대가를 한 번도 치르지 않는다**.
+   * "같은 일을 반복하면 효율이 떨어진다"는 규칙이 지키는 것은 활동 id가 아니라
+   * **하고 있는 일의 성격**이므로, 알바는 전부 같은 키('work')를 공유한다.
+   */
+  burnoutKey?: string
   /** 바탕화면에 아이콘을 띄울지 여부. 나머지 활동은 정의만 보존된다. */
   onDesktop?: boolean
 }

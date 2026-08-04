@@ -14,6 +14,7 @@ export type SiteRender =
   | 'cinema'
   | 'publish'
   | 'tube'
+  | 'jobs'
 
 /** 가짜 브라우저가 이동할 수 있는 사이트 하나. */
 export interface Site {
@@ -74,8 +75,10 @@ export const SITES: Site[] = [
     url: 'https://alba.neinom.com',
     title: '알바몬',
     icon: 'fluent-color:briefcase-24',
-    render: 'construction',
-    notice: '알바 목록 비교와 지원 기능은 아직 열리지 않았습니다. 지금은 바탕화면의 알바 아이콘으로 일할 수 있습니다.',
+    render: 'jobs',
+    // 공고가 가리키는 활동은 `data/jobs.ts`가 각자 갖는다. 여기의 id는 **아무것도
+    // 안 고른 상태의 기본값**(조건 없는 편의점)이라 확정 패널이 항상 무언가를 그린다.
+    activityId: 'work',
     promo: {
       tag: '알바몬',
       title: '오늘 할 수 있는 일자리',

@@ -76,14 +76,18 @@ describe('활동을 실행하는 사이트', () => {
   })
 
   it('활동을 실행하는 render 종류는 activityId를 반드시 갖는다', () => {
-    for (const site of SITES.filter((s) => ['library', 'cinema', 'publish'].includes(s.render))) {
+    for (const site of SITES.filter((s) =>
+      ['library', 'cinema', 'publish', 'jobs'].includes(s.render),
+    )) {
       expect(site.activityId).toBeDefined()
     }
   })
 
-  it('세 사이트가 서로 다른 활동을 실행한다', () => {
+  it('네 사이트가 서로 다른 활동을 실행한다', () => {
+    // 알바몬의 'work'는 **아무것도 안 고른 상태의 기본값**이다 — 실제로 어떤 알바를
+    // 실행할지는 `data/jobs.ts`의 공고가 정한다(그쪽은 `jobs.test.ts`가 지킨다).
     const ids = SITES.map((s) => s.activityId).filter((id) => id !== undefined)
-    expect(ids).toEqual(['reading', 'movie', 'writing'])
+    expect(ids).toEqual(['work', 'reading', 'movie', 'writing'])
     expect(new Set(ids).size).toBe(ids.length)
   })
 })

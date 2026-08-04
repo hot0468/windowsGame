@@ -1,4 +1,4 @@
-import { getBurnoutPenalty } from '../../systems/burnout'
+import { burnoutKeyOf, getBurnoutPenalty } from '../../systems/burnout'
 import { getWageMultiplier } from '../../systems/economy'
 import type { Activity, GameState, Stats } from '../../types/game'
 
@@ -25,7 +25,11 @@ export interface ActivityPreview {
 }
 
 export function previewActivity(state: GameState, activity: Activity): ActivityPreview {
-  const { efficiency, mentalPenalty } = getBurnoutPenalty(state.recentActivities, activity.id)
+  // 키는 `burnoutKeyOf`가 정한다 — 실행(turn.ts)과 미리보기가 다른 키를 보면 거짓 숫자가 뜬다.
+  const { efficiency, mentalPenalty } = getBurnoutPenalty(
+    state.recentActivities,
+    burnoutKeyOf(activity),
+  )
 
   const rows = Object.entries(activity.effects).map(([key, raw]) => {
     const statKey = key as keyof Stats

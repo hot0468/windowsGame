@@ -1,5 +1,5 @@
 import { getLivingCost, getWageMultiplier } from './economy'
-import { getBurnoutPenalty, pushActivity } from './burnout'
+import { burnoutKeyOf, getBurnoutPenalty, pushActivity } from './burnout'
 import { GROWTH_STAT_KEYS, INITIAL_STATS } from '../types/game'
 import type { Activity, EventLog, GameState, GrowthStatKey, Slot, Stats } from '../types/game'
 
@@ -158,7 +158,9 @@ function detectGameOver(stats: Stats): GameState['gameOver'] {
 export function runActivity(state: GameState, activity: Activity): GameState {
   if (state.gameOver) return state
 
-  const { efficiency, mentalPenalty } = getBurnoutPenalty(state.recentActivities, activity.id)
+  // 알바 4종은 같은 키를 공유한다 — 종류를 바꿔 가며 일해도 연속 노동은 연속 노동이다.
+  const key = burnoutKeyOf(activity)
+  const { efficiency, mentalPenalty } = getBurnoutPenalty(state.recentActivities, key)
   const withEffects = applyEffects(state.stats, activity, state.day, efficiency)
   withEffects.mental -= mentalPenalty
 
@@ -170,7 +172,7 @@ export function runActivity(state: GameState, activity: Activity): GameState {
     day: advanced.day,
     slot: advanced.slot,
     stats,
-    recentActivities: pushActivity(state.recentActivities, activity.id),
+    recentActivities: pushActivity(state.recentActivities, key),
     gameOver: detectGameOver(stats),
   }
 }

@@ -2,11 +2,13 @@ import { describe, it, expect } from 'vitest'
 import {
   ACTIVITIES,
   ACTIVITY_CATEGORIES,
+  WORK_ACTIVITIES,
   activitiesOf,
   activitiesUnlockedBy,
   findActivity,
 } from './activities'
 import { SHOP_ITEMS, findItem } from './items'
+import { burnoutKeyOf } from '../systems/burnout'
 import { GROWTH_STAT_KEYS, STAT_NAMES } from '../types/game'
 import type { GrowthStatKey } from '../types/game'
 
@@ -87,6 +89,68 @@ describe('영화 감상은 극장 기준이다', () => {
   it('그래도 게임보다 비싼 회복 수단으로 남는다 (선택지가 되려면 대안이 있어야 한다)', () => {
     const game = findActivity('game')!
     expect(movie.effects.mental!).toBeLessThan(game.effects.mental!)
+  })
+})
+
+/**
+ * 알바 4종 (2026-08-05, 알바몬 사이트와 함께 신설).
+ *
+ * 지키는 것 둘: ①**번아웃 우회 금지** — 종류를 바꿔 가며 일해도 연속 노동은 연속 노동이다.
+ * ②**전환 압박** — 조건이 걸린 알바는 조건 없는 편의점보다 행동력당 수입이 높아야 한다.
+ * 둘 중 하나가 깨지면 "스탯에 투자해 더 좋은 일자리로 간다"는 축이 사라진다.
+ */
+describe('알바', () => {
+  /** 행동력 1당 버는 돈. 알바비 배율은 전부에 똑같이 곱해지므로 비교에서 뺀다. */
+  const perStamina = (a: (typeof WORK_ACTIVITIES)[number]) =>
+    a.effects.money! / Math.abs(a.effects.stamina!)
+
+  it('알바는 넷이고 전부 생계 묶음이다', () => {
+    expect(WORK_ACTIVITIES.map((a) => a.id)).toEqual([
+      'work',
+      'work-cafe',
+      'work-logistics',
+      'work-tutor',
+    ])
+    for (const a of WORK_ACTIVITIES) expect(a.category).toBe('living')
+  })
+
+  it('번아웃 키를 공유한다 — 종류를 돌려 가며 일해도 페널티를 피할 수 없다', () => {
+    for (const a of WORK_ACTIVITIES) expect(burnoutKeyOf(a)).toBe('work')
+  })
+
+  it('전부 알바비 배율을 탄다 — 하나만 빠지면 물가가 올라도 그 일자리만 제자리다', () => {
+    for (const a of WORK_ACTIVITIES) expect(a.scalesWithWage).toBe(true)
+  })
+
+  it('조건 없는 알바는 편의점 하나뿐이다 — 첫날에도 돈 벌 길은 있어야 한다', () => {
+    const free = WORK_ACTIVITIES.filter((a) => !a.requires || Object.keys(a.requires).length <= 1)
+    expect(free.map((a) => a.id)).toEqual(['work'])
+  })
+
+  it('조건이 걸린 알바는 편의점보다 행동력당 수입이 높다 (카페 제외)', () => {
+    // 카페는 예외다 — 돈이 아니라 **매력과 낮은 멘탈 소모**를 사는 자리다.
+    const convenience = findActivity('work')!
+    for (const id of ['work-logistics', 'work-tutor']) {
+      const job = findActivity(id)!
+      expect(perStamina(job), `${id}가 편의점보다 벌이가 못하다`).toBeGreaterThan(
+        perStamina(convenience),
+      )
+    }
+  })
+
+  it('카페는 돈 대신 다른 것을 준다 — 벌이만 못하면 고를 이유가 없다', () => {
+    const cafe = findActivity('work-cafe')!
+    expect(cafe.effects.charm).toBeGreaterThan(0)
+    // 멘탈 소모가 편의점보다 적다(음수라 더 큰 값이 덜 깎이는 것이다).
+    expect(cafe.effects.mental!).toBeGreaterThan(findActivity('work')!.effects.mental!)
+  })
+
+  it('requires가 effects의 행동력 소모와 어긋나지 않는다', () => {
+    for (const a of WORK_ACTIVITIES) {
+      expect(a.requires?.stamina, `${a.id}의 조건이 비용과 다르다`).toBe(
+        Math.abs(a.effects.stamina!),
+      )
+    }
   })
 })
 

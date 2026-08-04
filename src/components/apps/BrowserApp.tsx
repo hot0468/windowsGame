@@ -13,6 +13,7 @@ import {
   goForward,
   navigate,
 } from '../../systems/browserHistory'
+import { AlbamonSite } from './sites/AlbamonSite'
 import { CinemaSite } from './sites/CinemaSite'
 import { ConstructionSite } from './sites/ConstructionSite'
 import { LibrarySite } from './sites/LibrarySite'
@@ -306,6 +307,7 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         {site?.render === 'library' && <LibrarySite site={site} />}
         {site?.render === 'cinema' && <CinemaSite site={site} />}
         {site?.render === 'publish' && <PublishSite site={site} />}
+        {site?.render === 'jobs' && <AlbamonSite site={site} />}
         {site?.render === 'construction' && (
           <ConstructionSite site={site} onGoHome={() => goToSite(HOME_SITE_ID)} />
         )}

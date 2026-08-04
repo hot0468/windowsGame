@@ -6,8 +6,9 @@ import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { owns } from '../../systems/delivery'
 import { findPlan } from '../../systems/schedule'
-import { STAT_NAMES } from '../../types/game'
-import type { Activity, Slot, Stats } from '../../types/game'
+import { GROWTH_STAT_KEYS, STAT_NAMES } from '../../types/game'
+import type { Activity, GameState, Slot, Stats } from '../../types/game'
+import { previewActivity } from './activityPreview'
 import './SchedulerApp.css'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -20,14 +21,34 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
  * 색은 활동 창(`ExeApp`)과 같은 의미색이고, 부호(+/−)와 스탯 이름이 함께 있으므로
  * 색만으로 뜻을 전하지 않는다(ux `color-not-only`·`contrast-feedback`).
  */
-function effectChips(activity: Activity) {
-  return (Object.entries(activity.effects) as [keyof Stats, number][])
-    .sort((a, b) => Number(b[1] > 0) - Number(a[1] > 0))
-    .map(([key, value]) => ({
-      key,
+function effectChips(state: GameState, activity: Activity) {
+  // ⚠️ **원본 `effects`를 그리지 않는다**(2026-08-05 수정). 알바는 `scalesWithWage`라
+  // 실제 입금액이 물가 배율만큼 다르고, 번아웃 중이면 이득이 깎인다. 활동 창·확정 패널·
+  // 알바몬 카드가 전부 `previewActivity`를 쓰는데 이 판만 원본을 그리면,
+  // 같은 활동이 "일정에서는 +60,000, 알바몬에서는 +72,000"으로 갈라진다.
+  return previewActivity(state, activity)
+    .rows.sort((a, b) => Number(b.value > 0) - Number(a.value > 0))
+    .map(({ key, value }) => ({
+      key: key as keyof Stats,
       gain: value > 0,
       text: `${STAT_NAMES[key]} ${value > 0 ? '+' : '−'}${Math.abs(value).toLocaleString()}`,
     }))
+}
+
+/**
+ * 지금 못 채운 **성장 스탯** 조건. 알바 4종처럼 스탯으로 잠긴 활동을 위한 것이다.
+ *
+ * ⚠️ 행동력·소지금은 세지 않는다 — 자고 나면 회복되므로 **미래 슬롯**을 계획하는 이 화면에서
+ * "지금 부족하다"를 경고하면 늘 떠 있는 소음이 된다. 성장 스탯은 저절로 오르지 않으므로 다르다.
+ * ⚠️ 그래도 **버튼을 막지는 않는다**: 그 슬롯에 닿을 때까지 조건을 채울 수 있고, 못 채우면
+ * `systems/schedule.ts`가 실행 시점에 `canRun`으로 막는다(판정은 거기 하나뿐이다).
+ */
+function unmetGrowth(state: GameState, activity: Activity): string[] {
+  const need = activity.requires
+  if (!need) return []
+  return GROWTH_STAT_KEYS.filter((k) => (need[k] ?? 0) > state.stats[k]).map(
+    (k) => `${STAT_NAMES[k]} ${need[k]} 이상 필요 — 현재 ${state.stats[k]}`,
+  )
 }
 
 /**
@@ -207,6 +228,8 @@ export function SchedulerApp() {
                       // (ux `empty-nav-state`: 갈 수 없는 곳은 숨기지 말고 이유를 밝힌다).
                       const need = a.requiresItem ? findItem(a.requiresItem) : undefined
                       const locked = !!a.requiresItem && !owns(state, a.requiresItem)
+                      // 스탯으로 잠긴 활동(알바 3종)은 막지 않고 사유만 적는다 — 위 주석 참조.
+                      const unmet = locked ? [] : unmetGrowth(state, a)
                       return (
                         <button
                           key={a.id}
@@ -234,16 +257,23 @@ export function SchedulerApp() {
                                 {need?.name ?? a.requiresItem} 필요 — 쇼핑에서 구입
                               </span>
                             ) : (
-                              <span className="sch-pick-fx">
-                                {effectChips(a).map((c) => (
-                                  <span
-                                    key={c.key}
-                                    className={c.gain ? 'sch-pick-plus' : 'sch-pick-minus'}
-                                  >
-                                    {c.text}
+                              <>
+                                <span className="sch-pick-fx">
+                                  {effectChips(state, a).map((c) => (
+                                    <span
+                                      key={c.key}
+                                      className={c.gain ? 'sch-pick-plus' : 'sch-pick-minus'}
+                                    >
+                                      {c.text}
+                                    </span>
+                                  ))}
+                                </span>
+                                {unmet.map((reason) => (
+                                  <span key={reason} className="sch-pick-lock">
+                                    {reason}
                                   </span>
                                 ))}
-                              </span>
+                              </>
                             )}
                           </span>
                         </button>

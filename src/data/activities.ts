@@ -49,14 +49,68 @@ export const ACTIVITIES: Activity[] = [
     requires: { stamina: 15 },
   },
   {
+    /*
+     * ── 알바 4종의 기준점 (2026-08-05) ──
+     * 조건이 하나도 없는 **유일한** 알바다. 시작하자마자 할 수 있어야 하므로 여기서 잠그면
+     * 첫날부터 돈을 벌 길이 사라진다. 나머지 셋은 전부 스탯 조건이 걸려 있고, 그것이
+     * 설계 문서의 "알바비는 물가보다 느리게 오른다 → 고소득 알바 전환 압박"을 구현한다.
+     */
     id: 'work',
-    label: '알바',
+    label: '알바 (편의점)',
     icon: 'fluent-color:briefcase-24',
     category: 'living',
     description: '편의점 야간 근무. 돈은 들어온다.',
     effects: { money: 60000, stamina: -25, mental: -8 },
     requires: { stamina: 25 },
     scalesWithWage: true,
+    burnoutKey: 'work',
+  },
+  {
+    /*
+     * 손님을 상대하는 일이라 **매력이 붙고 몸이 덜 상한다**. 대신 급여는 넷 중 가장 낮다.
+     * 조건(매력 12)이 가벼운 것은 의도다 — 초반에 "조건을 채우면 다른 일이 열린다"를
+     * 한 번 겪게 하는 자리이고, 그 경험이 있어야 과외·물류의 높은 조건이 목표로 읽힌다.
+     */
+    id: 'work-cafe',
+    label: '알바 (카페)',
+    icon: 'fluent-color:food-24',
+    category: 'living',
+    description: '주말 오전 홀 담당. 사람을 계속 마주치는 일이라 얼굴이 는다.',
+    effects: { money: 45000, charm: 3, stamina: -18, mental: -3 },
+    requires: { stamina: 18, charm: 12 },
+    scalesWithWage: true,
+    burnoutKey: 'work',
+  },
+  {
+    /*
+     * 몸으로 버는 쪽. 행동력을 가장 많이 먹고 멘탈도 가장 많이 깎지만 **조건이 스탯 하나**라
+     * 러닝만 꾸준히 하면 열린다. `maxStamina`가 조금 붙는 것은 부수 효과이지 목적이 아니다
+     * (그릇을 키우려면 운동 활동이 여전히 더 싸다).
+     */
+    id: 'work-logistics',
+    label: '알바 (물류센터)',
+    icon: 'fluent-color:toolbox-24',
+    category: 'living',
+    description: '새벽 상하차. 끝나면 손가락이 안 펴지지만 일당이 그날 들어온다.',
+    effects: { money: 95000, maxStamina: 2, stamina: -35, mental: -12 },
+    requires: { stamina: 35, athletics: 25 },
+    scalesWithWage: true,
+    burnoutKey: 'work',
+  },
+  {
+    /*
+     * 행동력당 수입이 가장 높은 알바이자 **지식 투자에 대한 보상**이다. 조건(지식 60)이
+     * 높은 것이 이 활동의 값이다 — 공부 열 번쯤을 미리 치러야 열린다.
+     */
+    id: 'work-tutor',
+    label: '알바 (과외)',
+    icon: 'fluent-color:board-24',
+    category: 'living',
+    description: '중학생 수학 과외. 두 시간 앉아 있으면 편의점 하루치가 들어온다.',
+    effects: { money: 105000, sociability: 2, vocabulary: 1, stamina: -20, mental: -6 },
+    requires: { stamina: 20, knowledge: 60 },
+    scalesWithWage: true,
+    burnoutKey: 'work',
   },
   {
     id: 'exercise',
@@ -220,6 +274,12 @@ export const ACTIVITIES: Activity[] = [
     requires: { stamina: 15 },
   },
 ]
+
+/**
+ * 알바 활동 전체. 번아웃 키를 공유한다는 사실이 곧 "이것들은 같은 종류의 일"이라는 정의다 —
+ * 목록을 따로 적으면 알바를 늘릴 때 한쪽만 고치는 사고가 난다(알바몬 공고가 이 목록을 본다).
+ */
+export const WORK_ACTIVITIES: Activity[] = ACTIVITIES.filter((a) => a.burnoutKey === 'work')
 
 export function findActivity(id: string): Activity | undefined {
   return ACTIVITIES.find((a) => a.id === id)

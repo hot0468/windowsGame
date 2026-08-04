@@ -1,5 +1,5 @@
 // 이 파일은 `npm run icons`(scripts/build-icon-subset.mjs)가 생성한다. 직접 수정하지 말 것.
-// src/에서 실제로 쓰는 아이콘 121개만 담은 축소 세트다 —
+// src/에서 실제로 쓰는 아이콘 125개만 담은 축소 세트다 —
 // 전체 세트(8천여 개)를 번들에 넣지 않기 위한 것이다.
 import type { IconifyJSON } from '@iconify/react/offline'
 
@@ -61,7 +61,7 @@ export const mdiLight: IconifyJSON = {
   "height": 24
 }
 
-/** mdi — 사용 중인 58개 */
+/** mdi — 사용 중인 61개 */
 export const mdi: IconifyJSON = {
   "prefix": "mdi",
   "icons": {
@@ -122,6 +122,9 @@ export const mdi: IconifyJSON = {
     "chevron-right": {
       "body": "<path fill=\"currentColor\" d=\"M8.59 16.58L13.17 12L8.59 7.41L10 6l6 6l-6 6z\"/>"
     },
+    "clock-outline": {
+      "body": "<path fill=\"currentColor\" d=\"M12 20a8 8 0 0 0 8-8a8 8 0 0 0-8-8a8 8 0 0 0-8 8a8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10a10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67l-.75 1.23L11 13V7z\"/>"
+    },
     "close": {
       "body": "<path fill=\"currentColor\" d=\"M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z\"/>"
     },
@@ -170,8 +173,14 @@ export const mdi: IconifyJSON = {
     "lightning-bolt-outline": {
       "body": "<path fill=\"currentColor\" d=\"M11 9.47V11h3.76L13 14.53V13H9.24zM13 1L6 15h5v8l7-14h-5z\"/>"
     },
+    "lock-outline": {
+      "body": "<path fill=\"currentColor\" d=\"M12 17a2 2 0 0 1-2-2c0-1.11.89-2 2-2a2 2 0 0 1 2 2a2 2 0 0 1-2 2m6 3V10H6v10zm0-12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10c0-1.11.89-2 2-2h1V6a5 5 0 0 1 5-5a5 5 0 0 1 5 5v2zm-6-5a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3\"/>"
+    },
     "magnify": {
       "body": "<path fill=\"currentColor\" d=\"M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5l-1.5 1.5l-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16A6.5 6.5 0 0 1 3 9.5A6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14S14 12 14 9.5S12 5 9.5 5\"/>"
+    },
+    "map-marker-outline": {
+      "body": "<path fill=\"currentColor\" d=\"M12 6.5A2.5 2.5 0 0 1 14.5 9a2.5 2.5 0 0 1-2.5 2.5A2.5 2.5 0 0 1 9.5 9A2.5 2.5 0 0 1 12 6.5M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7m0 2a5 5 0 0 0-5 5c0 1 0 3 5 9.71C17 12 17 10 17 9a5 5 0 0 0-5-5\"/>"
     },
     "menu": {
       "body": "<path fill=\"currentColor\" d=\"M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z\"/>"
@@ -244,12 +253,17 @@ export const mdi: IconifyJSON = {
   "height": 24
 }
 
-/** fluent-color — 사용 중인 50개 */
+/** fluent-color — 사용 중인 51개 */
 export const fluentColor: IconifyJSON = {
   "prefix": "fluent-color",
   "icons": {
     "alert-24": {
       "body": "<g fill=\"none\"><path fill=\"url(#SVGuIIGJdAj)\" d=\"M15 18a3 3 0 1 1-6 0a3 3 0 0 1 6 0\"/><path fill=\"url(#SVGgeRKnBlj)\" d=\"M12 2.004a7.5 7.5 0 0 1 7.5 7.5v3.998l1.418 3.16a.95.95 0 0 1-.866 1.34h-16.1a.95.95 0 0 1-.867-1.339l1.415-3.16V9.49l.005-.25A7.5 7.5 0 0 1 12 2.004\"/><defs><linearGradient id=\"SVGuIIGJdAj\" x1=\"12\" x2=\"12.019\" y1=\"17.5\" y2=\"20.999\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#eb4824\"/><stop offset=\"1\" stop-color=\"#ffcd0f\" stop-opacity=\".988\"/></linearGradient><linearGradient id=\"SVGgeRKnBlj\" x1=\"21.027\" x2=\"5.578\" y1=\"17.995\" y2=\"3.776\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#ff6f47\"/><stop offset=\"1\" stop-color=\"#ffcd0f\"/></linearGradient></defs></g>",
+      "width": 24,
+      "height": 24
+    },
+    "board-24": {
+      "body": "<g fill=\"none\"><path fill=\"url(#SVGWAUSbcVC)\" d=\"m11.999 15l4.501-1l4.5 1v2.752a3.25 3.25 0 0 1-3.25 3.25H12L11 18z\"/><path fill=\"url(#SVGMi3jjeUD)\" d=\"M17.751 3a3.25 3.25 0 0 1 3.245 3.066l.005.184L21 15h-9l-1-6l1.001-6z\"/><path fill=\"url(#SVGKh6hwdZv)\" d=\"M11.999 9L12 21.001H6.25a3.25 3.25 0 0 1-3.245-3.065L3 17.752V9l4.5-1z\"/><path fill=\"url(#SVGS1AsMeHm)\" d=\"M12.001 3L12 9H3V6.25A3.25 3.25 0 0 1 6.25 3z\"/><defs><linearGradient id=\"SVGWAUSbcVC\" x1=\"7.666\" x2=\"12.721\" y1=\"11.454\" y2=\"23.563\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#b0f098\"/><stop offset=\"1\" stop-color=\"#52d17c\"/></linearGradient><linearGradient id=\"SVGMi3jjeUD\" x1=\"13\" x2=\"20.103\" y1=\"4.333\" y2=\"13.322\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#52d17c\"/><stop offset=\"1\" stop-color=\"#309c61\"/></linearGradient><linearGradient id=\"SVGKh6hwdZv\" x1=\"4.286\" x2=\"11.748\" y1=\"10.053\" y2=\"17.199\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#42b870\"/><stop offset=\"1\" stop-color=\"#1a7f7c\"/></linearGradient><linearGradient id=\"SVGS1AsMeHm\" x1=\"4.286\" x2=\"6.65\" y1=\"4.2\" y2=\"10.322\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#b0f098\"/><stop offset=\"1\" stop-color=\"#64de89\"/></linearGradient></defs></g>",
       "width": 24,
       "height": 24
     },
