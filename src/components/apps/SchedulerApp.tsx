@@ -139,16 +139,21 @@ export function SchedulerApp() {
                       type="button"
                       className={`sch-slot${plan ? ' sch-slot-on' : ''}`}
                       disabled={past}
-                      onClick={() =>
-                        plan
-                          ? setRemoving({ day: c.day, slot })
-                          : setPicking({ day: c.day, slot })
-                      }
+                      /* 왼쪽 클릭은 **예약/교체**만 한다. 취소를 왼쪽에 걸어 두면
+                         칸을 잘못 눌렀을 때 곧바로 사라진다(설계자 지시). */
+                      onClick={() => setPicking({ day: c.day, slot })}
+                      /* 취소는 **오른쪽 클릭**이다(설계자 지시). 실제 OS의 삭제 자리와 같고,
+                         브라우저 기본 메뉴는 막는다 — 그게 뜨면 확인창이 가려진다. */
+                      onContextMenu={(e) => {
+                        if (!plan) return
+                        e.preventDefault()
+                        setRemoving({ day: c.day, slot })
+                      }}
                       title={
                         past
                           ? '지난 슬롯입니다'
                           : plan
-                            ? `${activity?.label ?? plan.activityId} — 눌러서 취소`
+                            ? `${activity?.label ?? plan.activityId} — 오른쪽 클릭으로 취소`
                             : '눌러서 예약'
                       }
                     >
@@ -298,7 +303,7 @@ export function SchedulerApp() {
 
       <p className="sch-note">
         예약한 슬롯은 그 시간이 되면 자동으로 실행됩니다. 행동력이나 소지금이 모자라면
-        건너뛰고 알려 줍니다.
+        건너뛰고 알려 줍니다. 예약을 취소하려면 그 칸을 <b>오른쪽 클릭</b>하세요.
       </p>
     </div>
   )
