@@ -13,7 +13,7 @@ import './LibrarySite.css'
  *
  * 시각 언어: style `E-Ink / Paper`("high contrast black on off-white, no gradients,
  * minimal UI chrome, reading-focused"). 흰 종이 위 잉크 한 색, 상자 대신 헤어라인 목록,
- * 표지도 이미지가 아니라 제목을 앉힌 잉크 판이다 — 시집이(어두운 극장)·보스타입(회색 판 위
+ * 표지도 이미지가 아니라 제목을 앉힌 잉크 판이다 — 시집이(어두운 극장)·아점(회색 판 위
  * 둥근 카드)과 값·구조로 갈린다. 색을 새로 만들지 않고 --nv-* 안에서 해결한다.
  */
 export function LibrarySite({ site }: { site: Site }) {

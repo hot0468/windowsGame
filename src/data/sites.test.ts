@@ -43,7 +43,7 @@ describe('사이트 목록', () => {
       'twitter',
       'midibooks',
       'sizibi',
-      'bostype',
+      'ajeom',
     ])
     expect(BOOKMARK_SITES.map((s) => s.id)).not.toContain(HOME_SITE_ID)
   })

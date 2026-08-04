@@ -163,9 +163,9 @@ export const SITES: Site[] = [
     bookmark: true,
   },
   {
-    id: 'bostype',
-    url: 'https://www.bostype.com',
-    title: '보스타입',
+    id: 'ajeom',
+    url: 'https://www.ajeom.com',
+    title: '아점',
     icon: 'fluent-color:notebook-24',
     render: 'publish',
     activityId: 'writing',

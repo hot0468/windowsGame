@@ -6,7 +6,7 @@ import { ActivityCommit } from './ActivityCommit'
 import './PublishSite.css'
 
 /**
- * 보스타입 — 창작자 발행 플랫폼. 확정 버튼이 `writing`(글쓰기) 활동을 실행한다.
+ * 아점 — 창작자 발행 플랫폼. 확정 버튼이 `writing`(글쓰기) 활동을 실행한다.
  *
  * 다른 두 사이트가 **남이 만든 것을 고르는** 곳이라면 여기는 **플레이어 자신의 자리**다.
  * 그래서 목록의 이름도 상품이 아니라 "글감"이고, 버튼도 소비가 아니라 [발행하기]다.
@@ -31,8 +31,8 @@ export function PublishSite({ site }: { site: Site }) {
   return (
     <div className="pub">
       <header className="pub-head">
-        <h1 className="pub-logo">보스타입</h1>
-        <p className="pub-sub">쓰고 싶은 것을 씁니다. 읽히는 것은 그다음 문제입니다.</p>
+        <h1 className="pub-logo">아점</h1>
+        <p className="pub-sub">아침도 점심도 아닌 시간에 씁니다. 읽히는 것은 그다음 문제입니다.</p>
       </header>
 
       {published && (
