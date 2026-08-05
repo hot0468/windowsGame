@@ -4,10 +4,36 @@ import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
 import { growthCap } from '../../systems/turn'
+import { rankOf, toNextRank } from '../../systems/rank'
+import type { StatRank } from '../../systems/rank'
 import { CALENDAR_PANEL_LAYOUT } from '../../data/calendar'
 import { STAT_META, GROWTH_STAT_ORDER } from '../../data/statMeta'
 import { STAT_NAMES } from '../../types/game'
 import type { GrowthStatKey, Stats } from '../../types/game'
+
+/**
+ * 등급 뱃지. 판정은 전부 `systems/rank.ts`가 하고 여기서는 **글자로 옮기기만** 한다.
+ *
+ * ⚠️ **색으로 등급을 말하지 않는다**(ux `color-not-only`, 이 패널의 "액센트는 하나" 규칙).
+ * 글자 자체가 F·C·B·A·S·SS라 이미 순서가 읽히고, 여섯 색을 흩뿌리면 스탯별 색을
+ * 걷어낸 이유가 그대로 되돌아온다. 상위 두 등급(S·SS)만 **같은 액센트를 진하게** 채워
+ * "여기까지 왔다"를 표시한다 — 다른 색이 아니라 같은 색의 강도다.
+ */
+function RankBadge({ rank, title }: { rank: StatRank; title: string }) {
+  const top = rank === 'S' || rank === 'SS'
+  return (
+    <span className={`stat-rank${top ? ' stat-rank-top' : ''}`} title={title}>
+      {rank}
+    </span>
+  )
+}
+
+/** 뱃지 툴팁 문구. "다음까지 얼마"를 함께 적어야 등급이 장식이 아니라 목표가 된다. */
+function rankTitle(key: GrowthStatKey, value: number): string {
+  const need = toNextRank(key, value)
+  const head = `${STAT_NAMES[key]} 등급 ${rankOf(key, value)}`
+  return need === undefined ? `${head} (최고 등급)` : `${head} — 다음 등급까지 ${need}`
+}
 
 /**
  * 상한이 실제로 의미 있는 자원 스탯(행동력·멘탈·체력)만 게이지로 보여준다.
@@ -23,12 +49,19 @@ function ResourceRow({
   max,
   suffix = '',
   warn = false,
+  rankKey,
 }: {
   statKey: keyof Stats
   value: number
   max?: number
   suffix?: string
   warn?: boolean
+  /**
+   * 등급을 함께 보여줄 성장 스탯 키. **소모 자원에는 넘기지 않는다** —
+   * 행동력·멘탈은 매 턴 오르내리는 잔량이라 "등급"이라는 말이 성립하지 않는다
+   * (오늘 일했다고 행동력 F가 되는 것이 아니다). 등급은 **쌓아 올린 것**의 척도다.
+   */
+  rankKey?: GrowthStatKey
 }) {
   const { hudIcon } = STAT_META[statKey]
   return (
@@ -37,6 +70,9 @@ function ResourceRow({
         {/* 외곽선 변형은 채워진 변형보다 시각 무게가 가볍다 — 크기를 한 단 올려 보정한다. */}
         <AppIcon name={hudIcon} size={15} className="stat-icon" />
         <span className="stat-label">{STAT_NAMES[statKey]}</span>
+        {rankKey && (
+          <RankBadge rank={rankOf(rankKey, value)} title={rankTitle(rankKey, value)} />
+        )}
         <span className={`stat-value${warn ? ' stat-warn' : ''}`}>
           {value.toLocaleString('ko-KR')}
           {/* 막대가 있는 줄은 상한도 함께 적는다(설계자 지시) — 막대만으로는
@@ -73,9 +109,12 @@ function ResourceRow({
 function GrowthCell({ statKey, value }: { statKey: GrowthStatKey; value: number }) {
   const { hudIcon } = STAT_META[statKey]
   return (
-    <div className="stat-cell" title={`${STAT_NAMES[statKey]} ${value}`}>
+    <div className="stat-cell" title={rankTitle(statKey, value)}>
       <AppIcon name={hudIcon} size={14} className="stat-icon" />
       <span className="stat-cell-name">{STAT_NAMES[statKey]}</span>
+      {/* 게이지가 없는 칸이라 **등급이 곧 게이지다** — 999 상한에서 숫자 137이 어디쯤인지
+          말해 주는 것이 여기서는 이 한 글자뿐이다. */}
+      <RankBadge rank={rankOf(statKey, value)} title={rankTitle(statKey, value)} />
       <span className="stat-cell-value">{value}</span>
     </div>
   )
@@ -122,9 +161,23 @@ export function StatPanel() {
       {/* 평판은 성장 스탯이지만 자원 줄에 둔다(설계자 지시).
           상한이 999라 게이지는 의미가 없으므로 max 없이 숫자만 보여준다. */}
       {/* 막대 기준은 실제 상한이다 — growthCap()이 클램프와 같은 값을 주므로
-          표시와 규칙이 어긋날 수 없다(평판·도덕은 100, 나머지 성장 스탯은 999). */}
-      <ResourceRow statKey="reputation" value={stats.reputation} max={growthCap('reputation')} />
-      <ResourceRow statKey="morality" value={stats.morality} max={growthCap('morality')} />
+          표시와 규칙이 어긋날 수 없다(평판·도덕·예의범절은 100, 나머지 성장 스탯은 999).
+          ⚠️ 이 둘만 등급을 함께 단다 — 위의 행동력·멘탈·체력은 잔량이지 쌓은 것이 아니다. */}
+      <ResourceRow
+        statKey="reputation"
+        value={stats.reputation}
+        max={growthCap('reputation')}
+        rankKey="reputation"
+      />
+      <ResourceRow
+        statKey="morality"
+        value={stats.morality}
+        max={growthCap('morality')}
+        rankKey="morality"
+      />
+      {/* ⚠️ 예의범절은 상한이 100이라 여기가 어울려 보이지만 **그리드에 있다** —
+          자원 줄 한 칸은 게이지까지 약 46px이라 720px 화면에서 스탯창에 세로 스크롤바가
+          생긴다(실측). 사유는 `data/statMeta.ts`의 RESOURCE_ROW_STATS 주석. */}
 
       {/* 2구역: 성장 스탯 그리드(평판을 뺀 8종). 2열로 압축해 창 높이를 억제하되,
           3열일 때처럼 숫자가 짓눌리지 않게 한 칸의 폭을 넉넉히 준다. */}

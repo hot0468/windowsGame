@@ -42,6 +42,9 @@ export const STAT_META: Record<keyof Stats, StatMeta> = {
   vocabulary: { icon: 'fluent-color:book-24', hudIcon: 'mdi:book-open-page-variant-outline' },
   athletics: { icon: 'fluent-color:sport-24', hudIcon: 'mdi:run' },
   gaming: { icon: 'fluent-color:puzzle-piece-24', hudIcon: 'mdi:gamepad-variant-outline' },
+  // 예의범절: 고개 숙여 인사하는 그림이 mdi에는 없다. 가장 가까운 것이
+  // "손을 모아 인사하는" 합장 글리프이고, 외곽선 변형이 있어 HUD 규칙도 지킨다.
+  manners: { icon: 'fluent-color:people-community-24', hudIcon: 'mdi:hand-heart-outline' },
 }
 
 /**
@@ -50,8 +53,15 @@ export const STAT_META: Record<keyof Stats, StatMeta> = {
  * 않도록 여기서 한 번 감싼다.
  *
  * ⚠️ **평판·도덕은 빠져 있다** — 설계자가 자원 줄(체력 아래)로 옮겼기 때문이다.
- * 둘 다 여전히 성장 스탯(상한 999)이고 `GROWTH_STAT_KEYS`에도 그대로 있다.
+ * 둘 다 여전히 성장 스탯이고 `GROWTH_STAT_KEYS`에도 그대로 있다.
  * 이건 "어디에 그리나"의 문제라 표시용 목록에서만 뺀다 — 상한·클램프·엔딩 판정은 그대로다.
+ *
+ * ⚠️ **예의범절은 상한이 100이지만 자원 줄이 아니라 그리드다**(2026-08-05).
+ * 척도만 보면 평판·도덕 옆이 맞지만, 자원 줄 한 칸은 게이지까지 딸려 **약 46px**을 먹고
+ * 그리드 한 칸은 그 절반이다. 스탯창은 **세로 스크롤바가 뜨면 안 된다**는 제약이 있는데
+ * (`.hud`의 `max-height`), 실측해 보니 자원 줄에 두면 패널이 589px이 되어 세로 720px
+ * 화면에서 상한(537px)을 넘겨 스크롤바가 생겼다. 그리드로 내리면 552px로 들어온다.
+ * **자원 줄에 되돌리지 말 것** — 되돌리려면 그 전에 다른 줄을 빼야 한다.
  */
 const RESOURCE_ROW_STATS: GrowthStatKey[] = ['reputation', 'morality']
 

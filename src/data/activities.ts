@@ -213,6 +213,43 @@ export const ACTIVITIES: Activity[] = [
     requires: { stamina: 20 },
     requiresItem: 'gym-pass',
   },
+  /*
+   * ── 수료증이 여는 활동 2종 (2026-08-05 슬로우캠퍼스) ──
+   * ⚠️ **수료증은 기존 조건을 우회시키지 않고 새 활동을 연다.** 과외의 '지식 60'을
+   * 수료증으로 대신 열어 주면 스탯을 키울 이유가 사라진다 — 잠금은 `gym-member`와
+   * 같은 방향으로만 쓴다(돈을 미리 치른 사람에게 **다른 선택지**를 준다).
+   * ⚠️ **번아웃 키가 알바('work')와 다르다**(`commute`와 같은 판단). 알바와 같은 키를
+   * 주면 `WORK_ACTIVITIES`(= `burnoutKey === 'work'`에서 파생)에 섞여 들어가 "알바는 넷"과
+   * "조건 없는 알바는 편의점 하나뿐"이라는 불변식을 깬다 — 이 둘은 **알바몬 공고가 가리키는
+   * 일용직**의 규칙이고, 외주는 알바몬에 공고가 없다. 대신 둘끼리는 키를 공유해
+   * 외주만 번갈아 받는 우회를 막는다.
+   */
+  {
+    /* 수료증(cert-ai)이 여는 고소득 일감. 과외(지식 60)보다 조건이 이르지만 멘탈을 더 먹는다. */
+    id: 'gig-ai',
+    label: 'AI 외주',
+    icon: 'fluent-color:bot-sparkle-24',
+    category: 'living',
+    description: '수료증을 걸고 받은 첫 외주. 요구사항이 세 번 바뀐다.',
+    effects: { money: 95000, knowledge: 3, stamina: -25, mental: -10 },
+    requires: { stamina: 25 },
+    requiresItem: 'cert-ai',
+    burnoutKey: 'gig',
+    scalesWithWage: true,
+  },
+  {
+    /* 수료증(cert-brand)이 여는 일감. 돈은 덜 되지만 평판이 붙는다 — 성격을 갈라 둔다. */
+    id: 'gig-brand',
+    label: '브랜드 외주',
+    icon: 'fluent-color:megaphone-loud-24',
+    category: 'living',
+    description: '작은 가게의 간판 문구를 다듬어 준다. 사장님이 커피를 내준다.',
+    effects: { money: 72000, reputation: 2, charm: 1, stamina: -22, mental: -6 },
+    requires: { stamina: 22 },
+    requiresItem: 'cert-brand',
+    burnoutKey: 'gig',
+    scalesWithWage: true,
+  },
   {
     id: 'social',
     label: '메신저',
@@ -314,6 +351,37 @@ export const ACTIVITIES: Activity[] = [
     description: '해 지기 전에 천변을 뛴다. 3km쯤에서 생각이 멈춘다.',
     effects: { athletics: 6, maxStamina: 2, stamina: -18, mental: 4 },
     requires: { stamina: 18 },
+  },
+  {
+    /*
+     * 예의범절의 주 공급원 (2026-08-05 스탯 신설과 함께). 상한이 100이라 상승폭이 작다
+     * (위 규칙 1 — 평판·도덕과 같은 부류다).
+     *
+     * **비용의 성격을 기존 활동과 겹치지 않게 잡았다**(위 규칙 2): 돈도 안 들고 몸도 거의
+     * 안 쓰는 대신 **멘탈만 깎는다**. 하기 싫은 걸 참고 하는 종류의 일이라 그렇다 —
+     * 행동력을 크게 먹이면 "몸 쓰는 활동"으로 읽혀 러닝·봉사와 성격이 겹친다.
+     */
+    id: 'etiquette',
+    label: '예절 교육',
+    icon: 'fluent-color:people-community-24',
+    category: 'relation',
+    description: '온라인 비즈니스 매너 강의를 튼다. 명함은 두 손으로 받는 거였다.',
+    effects: { manners: 5, sociability: 1, stamina: -8, mental: -4 },
+    requires: { stamina: 8 },
+  },
+  {
+    /*
+     * 예의범절을 **부수적으로** 올리는 자리. 주 공급원(`etiquette`)이 하나뿐이면
+     * 그 활동은 선택지가 아니라 통행세가 된다(멘탈 회복처를 넷으로 늘린 것과 같은 판단).
+     * 대신 상승폭은 절반이고 회비가 든다 — 싸게 올리려면 여전히 예절 교육이 낫다.
+     */
+    id: 'tea-ceremony',
+    label: '다도 모임',
+    icon: 'fluent-color:food-24',
+    category: 'giving',
+    description: '어른들 틈에 앉아 잔을 받는다. 두 손의 위치를 계속 지적받는다.',
+    effects: { manners: 3, sensitivity: 2, mental: 3, stamina: -10, money: -8000 },
+    requires: { stamina: 10, money: 8000 },
   },
   {
     /* 게임 스탯의 주 공급원. 멘탈을 채우는 game과 달리 **깎는다** — 이기지 못하면 그렇다. */
