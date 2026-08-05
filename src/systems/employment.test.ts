@@ -25,7 +25,15 @@ import {
   shortfalls,
   stageIndex,
 } from './employment'
-import { canRun, createInitialState, runActivity, skipSlot } from './turn'
+import {
+  canRun,
+  createInitialState,
+  nightPayoutPending,
+  runActivity,
+  settleGameOver,
+  skipSlot,
+} from './turn'
+import { getLivingCost } from './economy'
 import type { GameState } from '../types/game'
 
 const entry = CAREERS[0]
@@ -347,6 +355,102 @@ describe('최고 경력', () => {
 
   it('없는 공고로는 기록되지 않는다', () => {
     expect(recordPeakCareer(createInitialState('테스터'), '없는회사').peakCareerId).toBeUndefined()
+  })
+})
+
+/**
+ * 밤 정산의 순서 — **급여가 우선한다** (2026-08-05, 설계자 지시).
+ *
+ * ## 무엇이 잘못돼 있었나
+ * 밤은 두 단계로 정산된다: `turn.ts`의 취침 정산이 **생활비를 빼고**, 그 뒤 `afterTurn`이
+ * `advanceEmployment`를 불러 **급여를 넣는다**. 그런데 파산 판정이 그 **중간**에 있었다.
+ * 그래서 급여일이 하필 잔고가 바닥나는 밤에 겹치면 **월급 167만 원을 손에 쥔 채
+ * "파산했습니다"**가 떴다. 굶어 죽었다고 통보받는데 통장에는 급여가 들어와 있는 상태다.
+ *
+ * ## 고친 방식
+ * 게임오버는 **밤이 다 정산된 뒤 딱 한 번** 결정된다. `runActivity`/`skipSlot`은 입금이
+ * 남은 밤이면 판정을 미루고(`turn.ts`의 `nightPayoutPending`), 밤의 마지막 지점인
+ * `advanceEmployment`가 `settleGameOver`로 결정한다. **죽였다가 되살리는 것이 아니라
+ * 애초에 한 번만 판단한다** — 그래서 "파산" 화면이 한 프레임도 지나가지 않는다.
+ *
+ * ⚠️ 아래 두 테스트는 **짝이다.** 위만 있으면 파산을 통째로 못 걸게 만들어도 통과하므로,
+ * 급여일이 아닌 밤에는 **여전히 파산한다**는 것을 함께 못 박는다.
+ */
+describe('밤 정산의 순서 — 급여가 우선한다', () => {
+  /** 잔고가 그날 생활비보다 적은, 급여일 전날 밤의 재직자. */
+  function brokeOnPaydayEve(payday: number): GameState {
+    // 급여일 **전날 오후**에 서 있게 만든다 — 오후를 넘기면 그날 밤 정산이 일어나고
+    // 날이 급여일로 바뀐다. 감사 커서는 어제까지 옮겨 결근·해고가 끼어들지 않게 한다.
+    const eve = payday - 1
+    const base = employedAt(eve, eve)
+    return {
+      ...base,
+      slot: 'afternoon',
+      employment: { ...base.employment!, paydayDay: payday },
+      // 생활비를 내고 나면 0 이하가 되는 잔고.
+      stats: { ...base.stats, money: getLivingCost(eve) - 1000 },
+    }
+  }
+
+  it('급여일 밤에 잔고가 바닥나도 급여가 먼저 들어와 살아남는다', () => {
+    const payday = mondayOnOrAfter(30) + PAYDAY_INTERVAL
+    const before = brokeOnPaydayEve(payday)
+    const living = getLivingCost(before.day)
+    expect(before.stats.money).toBeLessThan(living)
+
+    // 오후를 넘긴다 = 취침 정산(생활비 차감)이 일어나고 날이 급여일로 바뀐다.
+    const night = skipSlot(before)
+    expect(night.day).toBe(payday)
+    // 이 시점의 잔고는 0 이하다 — 옛 코드가 여기서 파산을 확정했다.
+    expect(night.stats.money).toBeLessThanOrEqual(0)
+    // ⚠️ **그러나 아직 판정하지 않는다.** 오늘 밤 들어올 급여가 남아 있다.
+    expect(night.gameOver).toBeNull()
+
+    const settled = advanceEmployment(night)
+    expect(settled.notices.some((n) => n.kind === 'payday')).toBe(true)
+    // 급여가 들어왔으니 살아 있어야 한다. 이것이 이 테스트의 전부다.
+    expect(settled.state.gameOver).toBeNull()
+    expect(settled.state.stats.money).toBe(night.stats.money + entry.salary)
+    expect(settled.state.stats.money).toBeGreaterThan(0)
+  })
+
+  it('급여일이 아닌 밤에 바닥나면 그대로 파산한다 — 파산이 사라지면 안 된다', () => {
+    // 같은 상황에서 급여일만 멀리 밀어 둔다.
+    const payday = mondayOnOrAfter(30) + PAYDAY_INTERVAL
+    const base = brokeOnPaydayEve(payday)
+    const before: GameState = {
+      ...base,
+      employment: { ...base.employment!, paydayDay: payday + PAYDAY_INTERVAL },
+    }
+
+    const night = skipSlot(before)
+    expect(night.stats.money).toBeLessThanOrEqual(0)
+    // 들어올 돈이 없는 밤이므로 **그 자리에서** 파산이 확정된다(미루지 않는다).
+    expect(night.gameOver).toBe('bankrupt')
+
+    const settled = advanceEmployment(night)
+    expect(settled.notices.some((n) => n.kind === 'payday')).toBe(false)
+    expect(settled.state.gameOver).toBe('bankrupt')
+  })
+
+  it('무직이면 판정을 미루지 않는다 — 밸런스 시뮬레이션이 이 성질에 기대고 있다', () => {
+    // `balance.verify.test.ts`는 `runActivity`/`skipSlot`만 불러 파산 시점을 잰다.
+    // 미루기가 무직에게까지 번지면 그 시뮬레이션이 영원히 안 끝난다.
+    const base = createInitialState('무직')
+    const broke: GameState = {
+      ...base,
+      slot: 'afternoon',
+      stats: { ...base.stats, money: getLivingCost(base.day) - 1000 },
+    }
+    expect(nightPayoutPending(broke)).toBe(false)
+    expect(skipSlot(broke).gameOver).toBe('bankrupt')
+  })
+
+  it('이미 확정된 게임오버를 되살리지 않는다', () => {
+    const dead: GameState = { ...createInitialState('t'), gameOver: 'burnout' }
+    // 소지금·멘탈이 멀쩡해도 확정된 사유는 그대로다(되살아나는 함수가 아니다).
+    expect(settleGameOver(dead)).toBe(dead)
+    expect(settleGameOver(dead).gameOver).toBe('burnout')
   })
 })
 

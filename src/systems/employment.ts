@@ -14,7 +14,7 @@ import {
 import { MAILBOX } from '../data/messages'
 import { STAT_NAMES } from '../types/game'
 import { messageTime, turnIndex } from './messages'
-import { clampStats } from './turn'
+import { clampStats, settleGameOver } from './turn'
 import type { TimedMessage } from './messages'
 import type { Career, CareerRequirement } from '../data/careers'
 import type { Application, GameState, JobNotice, Stats } from '../types/game'
@@ -292,9 +292,19 @@ function enforceAttendance(state: GameState): { state: GameState; notices: JobNo
 /**
  * **턴이 넘어간 뒤** 고용을 하루치 진행시킨다(`gameStore.afterTurn`이 부른다).
  *
- * 순서가 규칙이다: 채용 절차 → 결근 감사 → **급여** → 경고/해고.
+ * 순서가 규칙이다: 채용 절차 → 결근 감사 → **급여** → 경고/해고 → **게임오버 확정**.
  * 급여가 해고보다 앞인 것은 "이미 일한 대가는 받는다"이고, 결근 감사가 급여보다 앞인 것은
  * 급여일에 지난 주기의 출근부를 버리기 때문이다(버린 뒤에 세면 전부 결근이 된다).
+ *
+ * ⚠️ **게임오버가 맨 뒤인 것이 이 함수의 핵심이다**(설계자 지시: 급여가 우선한다).
+ * 밤 정산은 생활비를 먼저 빼는데(`turn.ts`의 `sleep`) 급여는 여기서 들어온다. 그 사이에서
+ * 파산을 확정하면 **월급을 손에 쥔 채 굶어 죽었다**는 판정이 나온다 — 실제로 나던 버그다.
+ * 그래서 `runActivity`/`skipSlot`은 입금이 남은 밤이면 판정을 미루고(`nightPayoutPending`),
+ * 그 마지막 결정을 밤의 마지막 지점인 여기가 맡는다.
+ *
+ * ⚠️ **`settleGameOver`를 이 줄에서 빼거나 급여보다 앞으로 올리지 말 것** —
+ * 급여일에 파산하는 버그가 그대로 되돌아온다. 밤의 판정은 **한 번, 맨 마지막에** 한다.
+ * 턴을 넘기는 모든 통로가 `afterTurn` → 이 함수를 지나므로 여기 한 곳이면 샐 데가 없다.
  */
 export function advanceEmployment(state: GameState): { state: GameState; notices: JobNotice[] } {
   const stepped = advanceApplication(state)
@@ -302,7 +312,7 @@ export function advanceEmployment(state: GameState): { state: GameState; notices
   const paid = payWages(audited)
   const enforced = enforceAttendance(paid.state)
   const notices = [...stepped.notices, ...paid.notices, ...enforced.notices]
-  return { state: push(enforced.state, notices), notices }
+  return { state: settleGameOver(push(enforced.state, notices)), notices }
 }
 
 /* ── 화면이 묻는 것들 ──────────────────────────────────────────────────── */

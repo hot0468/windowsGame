@@ -200,6 +200,65 @@ function detectGameOver(stats: Stats): GameState['gameOver'] {
 }
 
 /**
+ * **그 밤에 아직 들어올 돈이 남아 있는가.**
+ *
+ * ⚠️ 이 술어 하나가 "급여가 우선한다"(설계자 지시)를 지탱한다. 밤 정산은 생활비를
+ * 먼저 빼는데, 급여는 그 뒤에 `gameStore.afterTurn` → `advanceEmployment`가 넣는다.
+ * 그 사이에서 파산을 확정해 버리면 **월급 167만 원을 손에 쥔 채 굶어 죽었다는 판정**이
+ * 나온다(실제로 나던 버그다). 그러니 아직 입금이 남은 밤에는 **판단 자체를 미룬다**.
+ *
+ * ⚠️ **`employment.ts`를 import하지 않는다** — 의존은 계속 한 방향이다
+ * (employment/schedule/delivery → turn, 반대는 없다). 여기서 보는 것은 세이브에 이미 있는
+ * `GameState.employment`의 **날짜 하나**(`paydayDay`)뿐이고, 규칙(누구에게 얼마를 언제
+ * 주는가)은 여전히 전부 `employment.ts`가 갖는다. `canRun`의 `jobStageOpen`이 같은 자리에
+ * 같은 이유로 있는 것과 같다 — 활동 실행 통로가 넷이듯, 턴을 넘기는 통로도 여럿이라
+ * 판단이 `turn.ts` 밖에 있으면 그중 하나가 반드시 샌다.
+ *
+ * `>=`인 이유: 급여 루프(`payWages`)도 `day >= paydayDay`로 밀린 주기를 따라잡는다
+ * (스케줄러 연쇄로 며칠이 한 번에 흐를 수 있다). 판정 기준이 어긋나면 미루는 밤과
+ * 실제 입금하는 밤이 달라진다.
+ *
+ * ⚠️ **밤에 돈이 들어오는 원천을 새로 만들면 그 조건을 여기에 함께 넣어야 한다**
+ * (연말정산·이자·환급 등). 안 넣으면 정확히 같은 형태의 버그가 그 원천에서 재현된다 —
+ * "받을 돈이 있는데 그 전에 죽었다"가 된다.
+ */
+export function nightPayoutPending(state: GameState): boolean {
+  const job = state.employment
+  return !!job && state.day >= job.paydayDay
+}
+
+/**
+ * **밤이 다 정산된 뒤 딱 한 번** 게임오버를 확정한다.
+ *
+ * 생활비가 나가고 급여가 들어오고 그 밖에 그날 밤 돈을 움직이는 것이 전부 끝난 다음이
+ * 유일하게 옳은 판정 시점이다. 부르는 곳은 **밤의 마지막 지점 하나**뿐이다 —
+ * `employment.ts`의 `advanceEmployment` 말미(그리고 그것을 부르는 `gameStore.afterTurn`이
+ * 턴을 넘기는 모든 통로의 종점이다).
+ *
+ * ⚠️ **되살아나게 하는 함수가 아니다.** 이미 확정된 게임오버는 그대로 두고(초기화하지
+ * 않는다), 아직 null인 판만 지금 상태로 판단한다. 그래야 "죽었다가 살아나는" 상태가
+ * 화면에 한 프레임도 나타나지 않는다.
+ */
+export function settleGameOver(state: GameState): GameState {
+  if (state.gameOver) return state
+  const gameOver = detectGameOver(state.stats)
+  return gameOver ? { ...state, gameOver } : state
+}
+
+/**
+ * 슬롯을 넘긴 결과에 게임오버 판정을 붙인다.
+ *
+ * ⚠️ **입금이 남은 밤에는 판단을 미룬다**(`nightPayoutPending`). 미룬 판은
+ * `advanceEmployment` 말미의 `settleGameOver`가 급여까지 끝난 뒤에 결정한다. `runActivity`·`skipSlot`을
+ * 직접 부르는 곳(밸런스 시뮬레이션)에서도 **무직이면 지금 그대로 판정된다** —
+ * 미뤄지는 것은 오직 "오늘 밤 월급이 들어오는 재직자"뿐이다.
+ */
+function withGameOver(next: GameState): GameState {
+  if (nightPayoutPending(next)) return next
+  return { ...next, gameOver: detectGameOver(next.stats) }
+}
+
+/**
  * 정규직 활동이 남기는 **사실**을 기록한다.
  *
  * ⚠️ **여기 있어야 하는 이유는 `canRun`과 같다.** 활동을 실행하는 통로가 넷이고
@@ -247,15 +306,14 @@ export function runActivity(state: GameState, activity: Activity): GameState {
   const advanced = advance(state, withEffects)
   const stats = clampStats(advanced.stats)
 
-  return {
+  return withGameOver({
     ...state,
     ...stamped,
     day: advanced.day,
     slot: advanced.slot,
     stats,
     recentActivities: pushActivity(state.recentActivities, key),
-    gameOver: detectGameOver(stats),
-  }
+  })
 }
 
 /**
@@ -302,12 +360,11 @@ export function skipSlot(state: GameState): GameState {
   const advanced = advance(state, { ...state.stats })
   const stats = clampStats(advanced.stats)
 
-  return {
+  return withGameOver({
     ...state,
     day: advanced.day,
     slot: advanced.slot,
     stats,
     recentActivities: pushActivity(state.recentActivities, 'rest'),
-    gameOver: detectGameOver(stats),
-  }
+  })
 }

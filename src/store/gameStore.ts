@@ -204,6 +204,10 @@ function afterTurn(next: GameState, chain?: number) {
   const got = collect(ran.state)
   // ⚠️ 고용 정산은 **예약 연쇄가 끝난 뒤**에 한 번 돈다. 커서(`checkedDay`)와
   //    급여 루프가 밀린 날짜를 따라잡도록 돼 있어, 며칠이 한 번에 흘러도 새지 않는다.
+  // ⚠️ **반드시 마지막이다.** 게임오버는 밤이 다 정산된 뒤 딱 한 번 확정되는데
+  //    (설계자 지시: 급여가 우선한다) 그 확정을 `advanceEmployment`의 마지막 줄이 한다.
+  //    생활비는 `turn.ts`의 취침 정산이 먼저 빼고 급여는 여기서 들어오므로, 이 호출을
+  //    위로 올리면 **월급을 손에 쥔 채 파산하는** 버그가 되돌아온다.
   const job = advanceEmployment(got.state)
   return {
     state: job.state,
