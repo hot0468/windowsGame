@@ -14,6 +14,10 @@ import { careerEnding } from '../data/endings'
 import { advanceEmployment, applyTo, passes } from './employment'
 import { advanceBank, bankOf, bankedTotal, borrow, loanRoom, openDeposit, withdraw } from './bank'
 import { DEPOSIT_MIN, LOAN_LIMIT_BASE } from '../data/bank'
+import { canMove, moveTo } from './housing'
+import { HOUSINGS } from '../data/housing'
+import { advanceLottery, affordableTickets, buyTickets } from './lottery'
+import { TICKET_PRICE } from '../data/lottery'
 import type { Activity, GameState } from '../types/game'
 import type { Career } from '../data/careers'
 
@@ -312,7 +316,7 @@ function playToward(career: Career, maxDays: number): { state: GameState; hiredD
       next = runActivity(state, game)
     } else if (
       !state.employment &&
-      state.stats.money < getLivingCost(state.day) * RUNWAY_DAYS &&
+      state.stats.money < getLivingCost(state) * RUNWAY_DAYS &&
       canRun(state, earn)
     ) {
       next = runActivity(state, earn)
@@ -403,7 +407,7 @@ function playBanking(maxDays: number): { state: GameState; peakBanked: number } 
   let peakBanked = 0
 
   while (!state.gameOver && state.day <= maxDays) {
-    const living = getLivingCost(state.day)
+    const living = getLivingCost(state)
     // 손에 남겨 둘 최소 현금. 이보다 많으면 묶고, 적으면 푼다.
     const buffer = living * 4
 
@@ -468,6 +472,124 @@ describe('은행 — 그래도 판은 끝난다', () => {
     expect(state.gameOver).toBe('bankrupt')
     // 빚이 원금보다 커져 있어야 한다 — 이자가 나를 향해 붙었다는 증거다.
     expect(bankOf(state).debt).toBeGreaterThan(LOAN_LIMIT_BASE)
+  })
+})
+
+/* ── 이사 · 복권 (2026-08-05) ──────────────────────────────────────────────
+ *
+ * ⚠️ **이 묶음이 새 장치 둘 때문에 판이 무한해지지 않는다는 것을 지킨다.**
+ *
+ * 둘은 정확히 반대 방향으로 이 프로젝트의 핵심 보증("게임은 반드시 끝난다")을 위협한다:
+ *  (a) **이사**는 생활비를 **영구히** 낮춘다 — 물가를 못 이기게 만드는 바로 그 값을 깎는다.
+ *  (b) **복권**은 아주 낮은 확률로 큰 돈을 준다 — 한 번 터지면 며칠이 아니라 몇 달이 생긴다.
+ *
+ * (b)는 기대값 부등식(`lottery.test.ts`)이 데이터 수준에서 막는다(환급률 27.5%).
+ * 여기서는 **둘을 동시에 최대로 쓰는 플레이**를 시뮬레이션으로 돌려 죽는 날을 확인한다.
+ *
+ * ⚠️ **기존 알바·정규직·은행 시뮬레이션을 약화시키지 않는다**(정규직·은행 때와 같은 원칙).
+ */
+
+const cheapest = HOUSINGS[HOUSINGS.length - 1]
+
+/**
+ * **가장 싼 집으로 옮기고 복권을 계속 사는 플레이.**
+ *
+ * `playOptimally`(알바 + 멘탈 회복)에 두 겹을 얹었다:
+ *  - 계약금이 모이는 즉시 **가장 싼 집**(고시원, 생활비 48%)으로 옮긴다.
+ *  - 그 뒤로는 며칠치 생활비를 넘는 여윳돈으로 **매 슬롯 복권을 산다**(1회 상한까지).
+ *
+ * ⚠️ **매 슬롯 `advanceLottery`를 돌린다** — 손으로 플레이할 때 `gameStore.afterTurn`이
+ * 하는 것과 같다. 빠뜨리면 당첨금이 한 번도 안 들어와 시뮬레이션이 거짓이 된다
+ * (`playBanking`이 `advanceBank`를 부르는 것과 같은 이유).
+ */
+function playHousedGambler(maxDays: number): {
+  state: GameState
+  movedDay: number | null
+  tickets: number
+  won: number
+} {
+  let state = createInitialState('이사복권')
+  let movedDay: number | null = null
+
+  while (!state.gameOver && state.day <= maxDays) {
+    // ① 계약금이 되면 가장 싼 집으로. 생활비를 깎는 것이 가장 큰 이득이므로 최우선이다.
+    if (movedDay === null && canMove(state, cheapest)) {
+      state = moveTo(state, cheapest)
+      movedDay = state.day
+    }
+
+    // ② 여윳돈으로 복권. 며칠치 생활비는 남긴다(사자마자 굶어 죽으면 시뮬레이션이 아니다).
+    //
+    // ⚠️ **이사하기 전에는 사지 않는다.** 계약금을 모으는 중에 표를 사면 목돈이 영영
+    //    안 모여 "이사도 못 하고 복권도 손해만 보는" 플레이가 된다 — 그건 최적이 아니라
+    //    그냥 나쁜 플레이라 밸런스를 재는 근거가 못 된다. 사람도 목돈 모을 때는 안 산다.
+    if (movedDay !== null) {
+      const buffer = getLivingCost(state) * 3
+      const spare = Math.floor((state.stats.money - buffer) / TICKET_PRICE)
+      const count = Math.min(spare, affordableTickets(state))
+      if (count >= 1) state = buyTickets(state, count)
+    }
+
+    const streak = countConsecutive(state.recentActivities, 'work')
+    const mentalCost = 8 + streak * 4
+    if (canRun(state, work) && state.stats.mental - mentalCost > 3) state = runActivity(state, work)
+    else if (canRun(state, game) && state.stats.mental < 95) state = runActivity(state, game)
+    else state = skipSlot(state)
+
+    // ⚠️ 손으로 플레이할 때와 **같은 함수, 같은 자리**. 당첨금이 여기서 들어온다.
+    state = advanceLottery(state)
+  }
+
+  const lot = state.lottery
+  return { state, movedDay, tickets: lot?.serial ?? 0, won: lot?.won ?? 0 }
+}
+
+describe('이사 · 복권 — 그래도 판은 끝난다', () => {
+  it('가장 싼 집으로 옮기고 복권을 계속 사도 결국 파산한다', () => {
+    const run = playHousedGambler(2000)
+    expect(run.movedDay, '끝내 이사하지 못했다면 시뮬레이션이 거짓이다').not.toBeNull()
+    expect(run.tickets, '복권을 한 장도 사지 않았다면 시뮬레이션이 거짓이다').toBeGreaterThan(0)
+    expect(run.state.gameOver).toBe('bankrupt')
+  })
+
+  /**
+   * ⚠️ **이 상한이 "이사가 판을 통째로 다시 쓰지는 않는다"를 못 박는다.**
+   * 은행의 240일과 같은 자리의 같은 장치다 — 매물 배율을 낮추다가 이 선을 넘으면
+   * 여기서 터진다.
+   */
+  it('그 연장이 무한이 아니다 — 은행 상한(240일)을 넘지 않는다', () => {
+    expect(playHousedGambler(2000).state.day).toBeLessThanOrEqual(240)
+  })
+
+  it('이사가 실제로 며칠을 사 준다 — 쓰는 이유가 없으면 장치가 아니다', () => {
+    const gambler = playHousedGambler(2000)
+    const plain = playOptimally(2000)
+    expect(gambler.state.day).toBeGreaterThan(plain.state.day)
+  })
+
+  /**
+   * ⚠️ **복권은 며칠을 사 주지 않는다** — 기대값이 음수이므로 사면 살수록 손해다.
+   * 이 단언이 무너지면 복권이 수입원이 된 것이고, 그 순간 파산 보증이 죽는다.
+   */
+  it('⚠️ 복권에 쓴 돈이 받은 상금보다 많다 — 수입원이 아니다', () => {
+    const run = playHousedGambler(2000)
+    const lot = run.state.lottery!
+    expect(lot.spent).toBeGreaterThan(lot.won)
+  })
+
+  it('이사만 하고 복권을 안 사면 더 오래 산다 — 복권은 죽는 날을 앞당긴다', () => {
+    // 같은 정책에서 복권만 뺀 플레이. 복권이 이득이라면 이쪽이 더 짧아야 한다.
+    let state = createInitialState('이사만')
+    while (!state.gameOver && state.day <= 2000) {
+      if (canMove(state, cheapest)) state = moveTo(state, cheapest)
+      const streak = countConsecutive(state.recentActivities, 'work')
+      if (canRun(state, work) && state.stats.mental - (8 + streak * 4) > 3) {
+        state = runActivity(state, work)
+      } else if (canRun(state, game) && state.stats.mental < 95) state = runActivity(state, game)
+      else state = skipSlot(state)
+    }
+    expect(state.gameOver).toBe('bankrupt')
+    expect(state.day).toBeGreaterThanOrEqual(playHousedGambler(2000).state.day)
   })
 })
 

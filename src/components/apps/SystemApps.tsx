@@ -133,7 +133,7 @@ export function TaskManagerApp() {
             : '없음'}
         </dd>
         <dt>오늘 생활비</dt>
-        <dd>{getLivingCost(state.day).toLocaleString('ko-KR')}원</dd>
+        <dd>{getLivingCost(state).toLocaleString('ko-KR')}원</dd>
         <dt>알바비 배율</dt>
         <dd>×{getWageMultiplier(state.day).toFixed(2)}</dd>
       </dl>

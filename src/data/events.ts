@@ -80,6 +80,22 @@ export const EVENTS: GameEvent[] = [
     icon: 'fluent-color:coin-multiple-24',
     ext: '.evt',
   },
+  {
+    id: 'first-move',
+    name: '짐을 싸는 날',
+    hint: '살던 곳을 떠나 더 싼 곳으로 간다.',
+    desc: '짐은 생각보다 적었다. 줄어드는 것은 방의 크기만이 아니었다.',
+    icon: 'fluent-color:building-home-24',
+    ext: '.evt',
+  },
+  {
+    id: 'first-lottery',
+    name: '만 원짜리 가능성',
+    hint: '아주 낮은 확률에 돈을 건다.',
+    desc: '긁기 전까지는 무엇이든 될 수 있었다. 긁고 나서는 아니었다.',
+    icon: 'fluent-color:gift-card-24',
+    ext: '.evt',
+  },
 ]
 
 export function findEvent(id: string): GameEvent | undefined {

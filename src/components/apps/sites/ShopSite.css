@@ -160,3 +160,183 @@
   color: var(--nv-text-3);
   cursor: default;
 }
+
+/* ── 복권 판매대 (2026-08-05) ────────────────────────────────────────────
+ *
+ * ⚠️ **물건 목록 아래, 계산대 옆의 판매대다.** 진열대와 시각적으로 구분되어야 하지만
+ * 다른 사이트로 읽히면 안 되므로, 색은 그대로 `--nv-*`를 쓰고 **점선 테두리와
+ * 옅은 바탕**으로만 "여기는 물건이 아니다"를 말한다(사이트별 색 토큰을 늘리지 않는다 —
+ * 복권은 사이트가 아니라 이 가게의 한 구역이다).
+ *
+ * 적용한 규칙:
+ *  - ux `number-tabular`: 금액·확률은 전부 tabular. 표가 세로로 서므로 자릿수가 맞아야 읽힌다.
+ *  - ux `color-not-only`: 당첨/꽝은 색과 함께 **등수 글자**가 말한다.
+ *  - ux `input-labels`: 장수 입력에 보이는 라벨이 있다.
+ *  - ux `touch-friendly-input`: 입력·버튼 높이 40px 이상.
+ */
+.shop-lotto {
+  margin-top: var(--sp-8);
+  padding: var(--sp-5);
+  background: var(--nv-surface);
+  border: 1px dashed var(--nv-border);
+  border-radius: var(--r-lg);
+}
+
+.shop-lotto-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--nv-border);
+}
+
+.shop-lotto-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--nv-text);
+}
+
+.shop-lotto-sub {
+  margin: 2px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--nv-text-3);
+}
+
+/* ⚠️ 환급률을 눈에 띄는 자리에 둔다 — 감추면 "손해 보는 거래"라는 사실이 전달되지 않는다. */
+.shop-lotto-ev {
+  margin: 0 0 0 auto;
+  text-align: right;
+  font-size: var(--fs-xs);
+  color: var(--nv-text-3);
+}
+
+.shop-lotto-ev strong {
+  display: block;
+  font-size: var(--fs-lg);
+  color: var(--os-danger);
+  font-variant-numeric: tabular-nums;
+}
+
+.shop-lotto-ev span {
+  display: block;
+}
+
+/* 확률표. 등수 · 상금 · 확률 세 열이 항상 같은 자리에 선다. */
+.shop-lotto-odds {
+  margin: var(--sp-3) 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.shop-lotto-odds li {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: var(--sp-3);
+  padding: var(--sp-1) 0;
+  font-size: var(--fs-xs);
+  color: var(--nv-text-2);
+}
+
+.shop-lotto-rank {
+  font-weight: 700;
+  color: var(--nv-text);
+}
+
+.shop-lotto-amt {
+  color: var(--nv-text);
+}
+
+.shop-lotto-odd {
+  color: var(--nv-text-3);
+}
+
+/* ── 구매 줄 ─────────────────────────────────────────── */
+.shop-lotto-buy {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--nv-border);
+}
+
+.shop-lotto-label {
+  font-size: var(--fs-sm);
+  color: var(--nv-text-2);
+}
+
+.shop-lotto-count {
+  width: 72px;
+  min-height: 40px;
+  padding: var(--sp-2);
+  background: var(--os-surface);
+  border: 1px solid var(--nv-border);
+  border-radius: var(--r-sm);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--nv-text);
+}
+
+.shop-lotto-total {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--nv-text);
+}
+
+.shop-lotto-buy .shop-btn {
+  margin-left: auto;
+}
+
+.shop-lotto-why {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--os-danger);
+}
+
+/* ── 최근 구매 ───────────────────────────────────────── */
+.shop-lotto-log {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--nv-border);
+}
+
+.shop-lotto-log-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--nv-text-3);
+}
+
+.shop-lotto-log ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shop-lotto-log li {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  font-size: var(--fs-xs);
+  color: var(--nv-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.shop-lotto-win {
+  font-weight: 700;
+  color: var(--os-success);
+}
+
+.shop-lotto-lose {
+  color: var(--nv-text-3);
+}
+
+.shop-lotto-tally {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--nv-text-3);
+  font-variant-numeric: tabular-nums;
+}

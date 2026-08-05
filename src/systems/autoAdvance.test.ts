@@ -10,7 +10,7 @@ import {
 } from './autoAdvance'
 import { AUTO_MAX_SLOTS, MONEY_DANGER_DAYS } from '../data/autoAdvance'
 import { SHOP_ITEMS } from '../data/items'
-import { getLivingCost } from './economy'
+import { livingCostForDay } from './economy'
 import { createInitialState } from './turn'
 import { setPlan } from './schedule'
 import type { StopContext } from './autoAdvance'
@@ -91,12 +91,26 @@ describe('정지 조건', () => {
 })
 
 describe('소지금 위험선', () => {
+  /** 그 날짜의 기본 상태(이사 안 한 사람)로 위험선을 잰다. */
+  const lineOn = (day: number) => moneyDangerLine(base({ day }))
+
   it('하루 생활비 × 설정값이다', () => {
-    expect(moneyDangerLine(1)).toBe(getLivingCost(1) * MONEY_DANGER_DAYS)
+    expect(lineOn(1)).toBe(livingCostForDay(1) * MONEY_DANGER_DAYS)
+  })
+
+  /**
+   * ⚠️ **위험선은 날짜가 아니라 상태를 본다**(2026-08-05 이사 신설).
+   * 고시원으로 옮긴 플레이어는 생활비가 절반 이하이므로 위험선도 함께 내려가야 한다 —
+   * 안 내려가면 실제로는 안전한 금액에서 계속 경고를 받고, 그러면 그 경고를 무시하게 된다.
+   */
+  it('싼 집으로 이사하면 위험선도 함께 내려간다', () => {
+    const plain = base({ day: 1 })
+    const cheap = { ...plain, housing: { id: 'gosiwon', movedDay: 1, deposit: 300_000 } }
+    expect(moneyDangerLine(cheap)).toBeLessThan(moneyDangerLine(plain))
   })
 
   it('넘어가는 순간에만 멈춘다 (이미 아래였으면 안 멈춘다)', () => {
-    const line = moneyDangerLine(1)
+    const line = lineOn(1)
     const rich = base({ stats: { ...base().stats, money: line + 1 } })
     const poor = base({
       plans: setPlan([], 1, 'morning', 'study'),
@@ -114,16 +128,16 @@ describe('소지금 위험선', () => {
   it('⚠️ 물가 구간이 바뀌는 날에도 경고가 사라지지 않는다', () => {
     // 20일차 위험선 < 21일차 위험선(생활비가 10일마다 오른다). 20일차 기준으로는 안전하고
     // 21일차 기준으로는 위험한 금액을 들고 하룻밤을 넘기면 **반드시 경고해야 한다**.
-    expect(moneyDangerLine(21)).toBeGreaterThan(moneyDangerLine(20))
-    const money = moneyDangerLine(20) + 16000
-    expect(money).toBeLessThan(moneyDangerLine(21))
+    expect(lineOn(21)).toBeGreaterThan(lineOn(20))
+    const money = lineOn(20) + 16000
+    expect(money).toBeLessThan(lineOn(21))
 
     const before = base({ day: 20, slot: 'afternoon', stats: { ...base().stats, money } })
     const after = base({
       day: 21,
       slot: 'morning',
       plans: setPlan([], 21, 'morning', 'study'),
-      stats: { ...base().stats, money: money - getLivingCost(20) },
+      stats: { ...base().stats, money: money - livingCostForDay(20) },
     })
     expect(findStop(ctx({ before, state: after }))?.id).toBe('money')
   })
@@ -150,7 +164,7 @@ describe('진행 기록', () => {
   })
 
   it('⚠️ 오후 슬롯의 생활비를 되돌려 더한다 — 상계된 차액을 그대로 쓰면 "지출 0원"이 된다', () => {
-    const living = getLivingCost(1)
+    const living = livingCostForDay(1)
     const before = base({ slot: 'afternoon', plans: setPlan([], 1, 'afternoon', 'work') })
     // 알바로 60,000 벌고 밤에 생활비가 나갔다 → 차액은 60,000 − living뿐이다.
     const after = base({

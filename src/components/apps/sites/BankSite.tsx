@@ -147,7 +147,7 @@ export function BankSite({ site }: { site: Site }) {
 
   const bank = bankOf(state)
   const money = state.stats.money
-  const living = getLivingCost(state.day)
+  const living = getLivingCost(state)
   const locked = lockedTotal(state)
   const limit = loanLimit(state)
   const room = loanRoom(state)

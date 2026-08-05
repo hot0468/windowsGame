@@ -22,6 +22,11 @@ export type SiteRender =
    * (`activityId`가 없다). 거래는 턴을 쓰지 않으므로 확정 패널(`ActivityCommit`)도 없다.
    */
   | 'bank'
+  /**
+   * 방구석부동산 — 이사. 은행과 같은 성격의 "기능 사이트"다(`activityId` 없음,
+   * 확정 패널 없음, 턴을 쓰지 않는다). 파는 것은 활동이 아니라 **영구히 낮아진 생활비**다.
+   */
+  | 'realty'
 
 /** 가짜 브라우저가 이동할 수 있는 사이트 하나. */
 export interface Site {
@@ -209,6 +214,26 @@ export const SITES: Site[] = [
       title: '예금과 대출',
       desc: '맡기면 이자가 붙고, 빌리면 더 붙습니다',
       gradient: 'linear-gradient(135deg, #0b5c3b 0%, #2f9e6e 100%)',
+    },
+  },
+  {
+    /*
+     * 방구석부동산 — **이사**. 은행과 같은 부류다(활동을 실행하지 않는 기능 사이트).
+     * 여기서 사는 것은 물건도 활동도 아니라 **영구히 낮아진 생활비**이고, 그래서
+     * 이 게임에서 죽음의 원인 자체를 건드리는 유일한 사이트다.
+     * 이름은 "방을 구하는 곳"과 "방구석"의 말장난이고 실존 상호가 아니다.
+     */
+    id: 'realty',
+    url: 'https://room.neinom.com',
+    title: '방구석부동산',
+    // ⚠️ 다른 사이트와 겹치지 않는 글리프여야 한다(`sites.test.ts`가 지킨다).
+    icon: 'fluent-color:building-people-24',
+    render: 'realty',
+    promo: {
+      tag: '방구석부동산',
+      title: '생활비를 줄이는 방',
+      desc: '보증금은 돌려받고, 매일 나가는 돈은 줄어듭니다',
+      gradient: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)',
     },
   },
 ]

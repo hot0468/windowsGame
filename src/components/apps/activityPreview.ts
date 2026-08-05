@@ -120,8 +120,9 @@ export function previewWarnings(state: GameState, activity: Activity): ActivityW
   if (state.slot === 'afternoon') {
     warnings.push({
       id: 'living',
+      // ⚠️ 상태를 넘긴다 — 생활비는 날짜뿐 아니라 **사는 집**이 정한다(2026-08-05 이사).
       text: `지금 확정하면 하루가 끝나고 잠자리에 듭니다. 생활비 ${getLivingCost(
-        state.day,
+        state,
       ).toLocaleString('ko-KR')}원이 차감됩니다. (행동력·멘탈은 회복됩니다)`,
     })
   }

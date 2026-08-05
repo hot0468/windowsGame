@@ -21,6 +21,7 @@ import { BankSite } from './sites/BankSite'
 import { LibrarySite } from './sites/LibrarySite'
 import { NeverPortal } from './sites/NeverPortal'
 import { PublishSite } from './sites/PublishSite'
+import { RealtySite } from './sites/RealtySite'
 import { ShopSite } from './sites/ShopSite'
 import { TubeSite } from './sites/TubeSite'
 import './BrowserApp.css'
@@ -311,8 +312,10 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         {site?.render === 'publish' && <PublishSite site={site} />}
         {site?.render === 'jobs' && <AlbamonSite site={site} />}
         {site?.render === 'career' && <FleaSite site={site} />}
-        {/* ⚠️ 은행만 활동을 실행하지 않는다 — 거래는 턴을 쓰지 않으므로 확정 패널이 없다. */}
+        {/* ⚠️ 은행·부동산은 활동을 실행하지 않는다 — 거래도 계약도 턴을 쓰지 않으므로
+            확정 패널이 없다. 이 둘이 파는 것은 슬롯이 아니라 **며칠**이다. */}
         {site?.render === 'bank' && <BankSite site={site} />}
+        {site?.render === 'realty' && <RealtySite site={site} />}
         {site?.render === 'construction' && (
           <ConstructionSite site={site} onGoHome={() => goToSite(HOME_SITE_ID)} />
         )}

@@ -96,9 +96,19 @@ const JOB_NOTICE_LABELS: Record<JobNoticeKind, string> = {
   fired: '해고',
 }
 
-/** 지금 소지금이 이 아래면 위험 구간이다. 근거는 `data/autoAdvance.ts` 주석 참조. */
-export function moneyDangerLine(day: number): number {
-  return getLivingCost(day) * MONEY_DANGER_DAYS
+/**
+ * 지금 소지금이 이 아래면 위험 구간이다. 근거는 `data/autoAdvance.ts` 주석 참조.
+ *
+ * ⚠️ **날짜가 아니라 상태를 받는다**(2026-08-05 이사 신설). 위험선은 "며칠치 생활비"인데
+ * 생활비가 이제 날짜뿐 아니라 **사는 집**에도 달려 있다. 날짜만 보면 고시원으로 이사한
+ * 플레이어가 실제로는 안전한 금액에서 계속 경고를 받는다 — 알림이 거짓이 되면
+ * 플레이어는 그 알림 자체를 무시하게 된다.
+ *
+ * "전과 후를 각자의 기준으로 잰다"는 규칙은 그대로다: 두 상태가 각자의 날짜와 집을
+ * 들고 있으므로 이사한 날에도 경고가 사라지지 않는다.
+ */
+export function moneyDangerLine(state: GameState): number {
+  return getLivingCost(state) * MONEY_DANGER_DAYS
 }
 
 /**
@@ -154,12 +164,13 @@ export const STOP_RULES: StopRule[] = [
      */
     test: (c) => {
       if (!c.before) return null
-      const line = moneyDangerLine(c.state.day)
+      const line = moneyDangerLine(c.state)
       if (c.state.stats.money >= line) return null
-      // ⚠️ **전과 후를 각자의 날 기준으로 잰다.** 위험선은 생활비에서 나오는데 생활비는
-      //    10일마다 오르므로(`data/economy.ts`), 구간이 바뀌는 날에 한쪽 기준으로만 비교하면
-      //    "어제도 이미 아래였다"가 되어 경고가 통째로 사라진다(CDP 실측으로 잡은 버그).
-      if (c.before.stats.money < moneyDangerLine(c.before.day)) return null
+      // ⚠️ **전과 후를 각자의 기준으로 잰다.** 위험선은 생활비에서 나오는데 생활비는
+      //    10일마다 오르고(`data/economy.ts`) **이사하면 즉시 달라진다**. 구간이 바뀌는 날에
+      //    한쪽 기준으로만 비교하면 "어제도 이미 아래였다"가 되어 경고가 통째로 사라진다
+      //    (CDP 실측으로 잡은 버그).
+      if (c.before.stats.money < moneyDangerLine(c.before)) return null
       return `소지금이 위험선(생활비 ${MONEY_DANGER_DAYS}일치 ${won(line)}) 아래로 내려갔습니다 — 현재 ${won(
         c.state.stats.money,
       )}.`
@@ -355,7 +366,9 @@ export function appendStep(run: AutoRun, ctx: StopContext): AutoRun {
 
   // 오후 슬롯을 넘기면 밤 정산(생활비 차감)이 함께 일어난다 — `turn.ts`의 `advance`와
   // 같은 판정을 여기서도 한다(같은 함수 `getLivingCost`를 본다).
-  const living = before.slot === 'afternoon' ? getLivingCost(before.day) : 0
+  // ⚠️ **`before`(그 슬롯을 실행하기 전 상태)를 넘긴다** — 생활비는 날짜뿐 아니라
+  //    그때 살던 집에도 달려 있다. 이사한 슬롯에서 지금 집으로 계산하면 금액이 어긋난다.
+  const living = before.slot === 'afternoon' ? getLivingCost(before) : 0
   const delta = ctx.state.stats.money - before.stats.money
   // 생활비를 되돌려 더하면 그 슬롯의 **행동 자체**가 만든 돈이 나온다.
   const gross = delta + living

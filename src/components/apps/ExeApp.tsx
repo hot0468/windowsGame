@@ -84,7 +84,7 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
           <AppIcon name={WARN_ICON} size={15} className="exe-warn-icon" />
           <span>
             이 행동을 하면 하루가 끝나고 잠자리에 듭니다. 생활비{' '}
-            {getLivingCost(state.day).toLocaleString('ko-KR')}원이 차감됩니다. (행동력·멘탈은
+            {getLivingCost(state).toLocaleString('ko-KR')}원이 차감됩니다. (행동력·멘탈은
             회복됩니다)
           </span>
         </div>

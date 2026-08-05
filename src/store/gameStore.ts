@@ -15,6 +15,9 @@ import { clearPlan, planWeekly, runPlans, setPlan } from '../systems/schedule'
 import { collect, order, owns, recordEvent } from '../systems/delivery'
 import { advanceEmployment, applyTo, canApply } from '../systems/employment'
 import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../systems/bank'
+import { moveTo } from '../systems/housing'
+import { advanceLottery, buyTickets } from '../systems/lottery'
+import { findHousing } from '../data/housing'
 import { selectIncoming } from '../systems/messages'
 import {
   AUTO_STOPPED_BY_PLAYER,
@@ -38,10 +41,14 @@ import type {
   Employment,
   GameState,
   JobNotice,
+  HousingState,
+  LotteryState,
+  LotteryTicket,
   Slot,
   Stats,
   TermDeposit,
 } from '../types/game'
+import type { Housing } from '../data/housing'
 
 /**
  * 세이브에 반드시 유한한 숫자로 들어 있어야 하는 스탯 키.
@@ -179,6 +186,55 @@ function reviveBank(saved: Partial<GameState>): BankState | undefined {
 }
 
 /**
+ * 사는 집 복원.
+ *
+ * ⚠️ **검증이 빡빡한 이유는 `reviveBank`와 정확히 같다 — 이 상태가 돈을 만진다.**
+ * 여기 id가 없는 매물을 가리키면 생활비 배율이 undefined가 되고, 보증금이 NaN이면
+ * 이사할 때 그것이 소지금으로 흘러 `NaN <= 0`이 false가 되어 **파산이 영영 안 걸린다.**
+ * 그래서 하나라도 못 믿으면 **통째로 버린다** — 그러면 시작 원룸에 사는 것으로 읽히고,
+ * 그것이 이 필드가 없던 세이브의 동작과 같다(마이그레이션 불필요).
+ */
+function reviveHousing(saved: Partial<GameState>): HousingState | undefined {
+  const h = saved.housing
+  if (!h || typeof h !== 'object') return undefined
+  if (typeof h.id !== 'string' || !findHousing(h.id)) return undefined
+  if (!Number.isFinite(h.deposit) || h.deposit < 0) return undefined
+  return {
+    id: h.id,
+    movedDay: Number.isFinite(h.movedDay) ? Number(h.movedDay) : Number(saved.day ?? 1),
+    deposit: Number(h.deposit),
+  }
+}
+
+/**
+ * 복권 복원.
+ *
+ * ⚠️ **`serial`이 가장 중요하다** — 이 값이 굴림의 시드이므로, 못 믿는 값이 들어오면
+ * 이미 산 표들이 전부 다시 굴러간다(세이브 스커밍이 열린다). 그래서 유한한 정수가
+ * 아니면 복권 기록을 통째로 버린다.
+ *
+ * ⚠️ **`pending`은 소지금으로 흘러 들어가는 값이다**(밤 정산). NaN이면 소지금이 NaN이
+ * 되고 파산이 영영 안 걸린다 — `reviveBank`의 잔액과 같은 위험이다.
+ */
+function reviveLottery(saved: Partial<GameState>): LotteryState | undefined {
+  const l = saved.lottery
+  if (!l || typeof l !== 'object') return undefined
+  if (!Number.isFinite(l.serial) || l.serial < 0) return undefined
+  if (!Number.isFinite(l.pending) || l.pending < 0) return undefined
+  if (!Number.isFinite(l.spent) || !Number.isFinite(l.won)) return undefined
+  return {
+    serial: Math.floor(Number(l.serial)),
+    spent: Number(l.spent),
+    won: Number(l.won),
+    pending: Number(l.pending),
+    tickets: (Array.isArray(l.tickets) ? l.tickets : []).filter(
+      (t): t is LotteryTicket =>
+        !!t && typeof t.id === 'string' && Number.isFinite(t.day) && Number.isFinite(t.amount),
+    ),
+  }
+}
+
+/**
  * 저장된 세이브를 검증해 안전한 GameState로 되돌린다.
  * 필드가 빠진 구버전 세이브를 그대로 통과시키면 clampStats가 NaN을 만들고,
  * NaN <= 0이 false라 게임오버 판정이 영영 걸리지 않아 조용히 망가진다.
@@ -230,6 +286,8 @@ function reviveState(raw: unknown): GameState | null {
     deliveries: Array.isArray(saved.deliveries) ? saved.deliveries : undefined,
     events: Array.isArray(saved.events) ? saved.events : undefined,
     bank: reviveBank(saved),
+    housing: reviveHousing(saved),
+    lottery: reviveLottery(saved),
   }
 }
 
@@ -269,7 +327,12 @@ function afterTurn(next: GameState, chain?: number) {
   // ⚠️ **은행 정산은 고용 정산보다 먼저 돈다.** 둘 다 마지막 줄에서 `settleGameOver`를
   //    부르므로 순서 자체가 판정을 바꾸지는 않지만(이미 확정된 사유는 되살아나지 않는다),
   //    만기 원리금이 급여보다 먼저 들어와야 급여 소식 메일에 적히는 잔액이 실제와 맞는다.
-  const banked = advanceBank(got.state)
+  // ⚠️ **복권 당첨금도 밤에 들어온다**(`nightPayoutPending`의 세 번째 원천).
+  //    은행보다 앞인 것은 순서가 판정을 바꿔서가 아니라(셋 다 마지막 줄에서
+  //    `settleGameOver`를 부르고, 그 함수는 확정된 사유를 되살리지 않는다) —
+  //    당첨금이 먼저 들어와야 급여 소식 메일에 적히는 잔액이 실제와 맞기 때문이다.
+  const drawn = advanceLottery(got.state)
+  const banked = advanceBank(drawn)
   // ⚠️ 고용 정산은 **예약 연쇄가 끝난 뒤**에 한 번 돈다. 커서(`checkedDay`)와
   //    급여 루프가 밀린 날짜를 따라잡도록 돼 있어, 며칠이 한 번에 흘러도 새지 않는다.
   // ⚠️ **반드시 마지막이다.** 게임오버는 밤이 다 정산된 뒤 딱 한 번 확정되는데
@@ -358,6 +421,17 @@ interface GameStore {
   bankOpenDeposit: (amount: number) => void
   bankBorrow: (amount: number) => void
   bankRepay: (amount: number) => void
+  /**
+   * 이사. **턴을 소모하지 않는다**(은행 거래·쇼핑 주문과 같은 규칙).
+   * 규칙·판정은 전부 `systems/housing.ts`가 갖고 여기서는 순수 함수를 부르기만 한다.
+   */
+  moveHouse: (target: Housing) => void
+  /**
+   * 복권 구매. **턴을 소모하지 않는다.** 표 값은 즉시 나가고 **상금은 그날 밤** 들어온다
+   * (`nightPayoutPending` → `advanceLottery`). 굴림은 `systems/lottery.ts`의 시드
+   * PRNG가 하고 여기서는 부르기만 한다.
+   */
+  buyLottery: (count: number) => void
   markEndingSeen: (endingId: string) => void
   reset: () => void
 
@@ -694,6 +768,25 @@ export const useGameStore = create<GameStore>()(
           if (!current) return
           const next = repay(current, amount)
           if (next !== current) set({ state: next })
+        },
+
+        /**
+         * ⚠️ **은행 거래와 완전히 같은 모양이다** — 순수 함수를 부르고, 조건이 안 되면
+         * 그 함수가 상태를 그대로 돌려주므로 아무것도 하지 않는다(반쪽 상태 금지).
+         * `afterTurn`을 부르지 않는다: 이사도 복권도 턴을 쓰지 않는다.
+         */
+        moveHouse: (target) => {
+          const current = get().state
+          if (!current) return
+          const next = moveTo(current, target)
+          if (next !== current) set({ state: recordEvent(next, 'first-move') })
+        },
+
+        buyLottery: (count) => {
+          const current = get().state
+          if (!current) return
+          const next = buyTickets(current, count)
+          if (next !== current) set({ state: recordEvent(next, 'first-lottery') })
         },
 
         markEndingSeen: (endingId) => {

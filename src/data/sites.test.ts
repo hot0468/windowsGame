@@ -55,7 +55,13 @@ describe('사이트 목록', () => {
 
   it('퀵메뉴와 하단 소개 섹션은 겹치지 않는다', () => {
     // 같은 사이트가 화면에 두 번 나오면 어느 쪽이 본체인지 알 수 없다.
-    expect(PROMO_SITES.map((s) => s.id)).toEqual(['albamon', 'flea', 'shopping', 'bank'])
+    expect(PROMO_SITES.map((s) => s.id)).toEqual([
+      'albamon',
+      'flea',
+      'shopping',
+      'bank',
+      'realty',
+    ])
     for (const s of PROMO_SITES) expect(s.bookmark).toBeUndefined()
   })
 
@@ -82,6 +88,14 @@ describe('활동을 실행하는 사이트', () => {
     expect(bank.render).toBe('bank')
     expect(bank.activityId).toBeUndefined()
     expect(bank.notice).toBeUndefined()
+  })
+
+  it('부동산도 활동을 실행하지 않는다 — 이사는 턴을 쓰지 않는다', () => {
+    // ⚠️ 은행과 같은 규칙이다. `activityId`가 붙는 순간 확정 패널이 생기고
+    //    계약이 1턴을 먹기 시작한다 — 이사의 비용은 슬롯이 아니라 목돈이다.
+    const realty = findSite('realty')!
+    expect(realty.render).toBe('realty')
+    expect(realty.activityId).toBeUndefined()
   })
 
   it('활동을 실행하는 render 종류는 activityId를 반드시 갖는다', () => {

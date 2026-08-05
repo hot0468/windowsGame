@@ -1,0 +1,414 @@
+/*
+ * 방구석부동산(이사).
+ *
+ * 색은 ui-ux-pro-max `colors.csv` → **Real Estate/Property** 팔레트를 그대로 쓴다
+ * (primary #0F766E · secondary #14B8A6 · accent #0369A1 · bg #F0FDFA · card #FFF ·
+ * fg #134E4A · border #99F6E4 · muted-fg #64748B · destructive #DC2626 —
+ * "Trust teal + professional blue").
+ *
+ * ⚠️ **기존 사이트 여섯과 계열이 겹치지 않는다** — 파란 계열이 이미 셋이고(알바몬 #0369A1 ·
+ * 벼룩장터 #2563EB · 은행 남색) 초록은 네이놈 포털이 쓴다. **청록(teal)**은 비어 있던
+ * 자리이고, 이 사이트가 파는 것이 "돈을 버는 일"이 아니라 **아끼는 일**이라 성격도 맞는다.
+ *
+ * 판형은 style `Comparative Analysis Dashboard`(나란히 놓아야 차이가 읽힌다) +
+ * `Bento Grids`(모듈 카드 격자, 큰 모서리)를 섞은 것이다. 이사는 **비교가 전부인 화면**이라
+ * "지금 사는 곳"을 먼저 고정해 두고 그 아래 매물을 격자로 편다.
+ *
+ * 적용한 규칙:
+ *  - ux `number-tabular`: 금액은 전부 `tabular-nums`. 카드가 나란히 서므로 자릿수가
+ *    흔들리면 비교 자체가 안 된다.
+ *  - ux `color-not-only`: 절감/추가는 색만이 아니라 **부호(-/+)와 한국어 라벨**이 함께 말한다.
+ *  - ux `error-clarity` / `disabled-states`: 못 가는 방은 감추지 않고 비활성 + 사유를 글자로.
+ *  - ux `confirmation-dialogs` / `escape-routes`: 계약 전 확인창(Esc·바깥 클릭으로 나간다).
+ *  - ux `whitespace-balance`: 구역은 헤어라인과 간격으로만 가른다.
+ *
+ * 토큰은 `.rt` 안에 `--rt-*`로 가둔다(다른 사이트와 같은 규칙).
+ * 간격·타입·모서리는 전역 토큰. ⚠️ `--sp-7`은 없다(4/8 리듬).
+ */
+.rt {
+  --rt-bg: #f0fdfa;
+  --rt-surface: #ffffff;
+  --rt-line: #99f6e4;
+  --rt-line-soft: #d8f3ee;
+  --rt-text: #134e4a; /* #fff 위 10.4:1 — 본문·금액 */
+  --rt-text-2: #64748b; /* #fff 위 4.8:1 — 메타·설명 (WCAG AA) */
+  --rt-teal: #0f766e; /* #fff 위 5.3:1 — 구역 제목·강조 (AA) */
+  --rt-blue: #0369a1; /* #fff 위 5.9:1 — 보조 강조 */
+  --rt-bad: #b91c1c; /* #fff 위 5.9:1 — 수수료·대가 */
+  --rt-wash: #e6faf6;
+
+  padding-bottom: var(--sp-8);
+  background: var(--rt-bg);
+  color: var(--rt-text);
+  min-height: 100%;
+}
+
+/* 본문 폭. 판을 묶지 않으면 넓은 창에서 카드가 늘어져 비교가 안 된다. */
+.rt-head,
+.rt-sec,
+.rt-receipt,
+.rt-foot {
+  width: min(1000px, 100% - 48px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── 상단 띠 ─────────────────────────────────────────── */
+.rt-strip {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-6);
+  background: var(--rt-teal);
+  color: #ffffff;
+  font-size: var(--fs-xs);
+  text-align: center;
+}
+
+/* ── 제호 ─────────────────────────────────────────────── */
+.rt-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-5) 0 var(--sp-4);
+  border-bottom: 1px solid var(--rt-line);
+}
+
+.rt-title {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--rt-teal);
+}
+
+.rt-sub {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--rt-text-2);
+}
+
+.rt-money {
+  margin: 0 0 0 auto;
+  font-size: var(--fs-sm);
+  color: var(--rt-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.rt-money strong {
+  color: var(--rt-text);
+  font-size: var(--fs-lg);
+}
+
+/* ── 구역 ─────────────────────────────────────────────── */
+.rt-sec {
+  padding-top: var(--sp-6);
+}
+
+.rt-sec-title {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: var(--rt-teal);
+}
+
+/* ── 지금 사는 곳 (비교 기준) ──────────────────────────── */
+.rt-now {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  background: var(--rt-surface);
+  border: 1px solid var(--rt-line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--el-1);
+}
+
+.rt-now-info {
+  min-width: 0;
+}
+
+.rt-now-name {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
+.rt-now-area {
+  margin: 2px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--rt-text-2);
+}
+
+.rt-now-figs {
+  display: flex;
+  gap: var(--sp-6);
+  margin: 0 0 0 auto;
+  text-align: right;
+}
+
+.rt-now-figs div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rt-now-figs dt,
+.rt-figs dt {
+  font-size: var(--fs-xs);
+  color: var(--rt-text-2);
+}
+
+.rt-now-figs dd,
+.rt-figs dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.rt-now-figs dd {
+  font-size: var(--fs-lg);
+}
+
+/* 금액은 전부 tabular — 카드가 나란히 서므로 자릿수가 흔들리면 비교가 안 된다. */
+.rt-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.rt-good {
+  color: var(--rt-teal);
+}
+
+.rt-bad {
+  color: var(--rt-bad);
+}
+
+/* ── 계약 완료 안내 ────────────────────────────────────── */
+.rt-receipt {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: var(--sp-4) auto 0;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--rt-wash);
+  border: 1px solid var(--rt-line);
+  border-radius: var(--r-lg);
+  font-size: var(--fs-sm);
+}
+
+/* ── 매물 격자 ─────────────────────────────────────────
+   ⚠️ `auto-fit` 격자의 열 수는 minmax의 **최소 폭**이 정한다. 판이 1000px일 때
+   2열을 원하므로 최소 폭을 1000/3보다 크게 잡는다(카드 폭 상한으로는 못 막는다). */
+.rt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: var(--sp-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rt-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-5);
+  background: var(--rt-surface);
+  border: 1px solid var(--rt-line-soft);
+  border-radius: var(--r-xl);
+  box-shadow: var(--el-1);
+  transition: box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.rt-card:hover {
+  border-color: var(--rt-line);
+  box-shadow: var(--el-2);
+}
+
+/* 거주 중인 방은 테두리로 구분한다(색만이 아니라 아래 뱃지 글자가 함께 말한다). */
+.rt-card-here {
+  border-color: var(--rt-teal);
+  background: var(--rt-wash);
+}
+
+.rt-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.rt-name {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 600;
+}
+
+.rt-badge {
+  padding: 1px var(--sp-2);
+  background: var(--rt-teal);
+  color: #ffffff;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+}
+
+.rt-area {
+  margin: 2px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--rt-text-2);
+}
+
+.rt-desc {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--rt-text-2);
+  line-height: 1.6;
+}
+
+/* 수치 2×2. 카드마다 같은 자리에 같은 항목이 있어야 눈이 옆으로 흐른다. */
+.rt-figs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-2) var(--sp-4);
+  margin: 0;
+  padding: var(--sp-3) 0;
+  border-top: 1px solid var(--rt-line-soft);
+  border-bottom: 1px solid var(--rt-line-soft);
+}
+
+.rt-figs div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.rt-figs dd {
+  font-size: var(--fs-base);
+}
+
+.rt-cost {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--rt-bad);
+}
+
+.rt-buy {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: auto;
+}
+
+.rt-contract {
+  font-size: var(--fs-xs);
+  color: var(--rt-text-2);
+}
+
+.rt-contract strong {
+  display: block;
+  font-size: var(--fs-lg);
+  color: var(--rt-text);
+}
+
+.rt-why {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--rt-bad);
+}
+
+/* ── 버튼 ─────────────────────────────────────────────── */
+.rt-btn {
+  margin-left: auto;
+  padding: var(--sp-2) var(--sp-5);
+  min-height: 40px;
+  background: var(--rt-teal);
+  color: #ffffff;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 180ms ease;
+}
+
+.rt-btn:hover:not(:disabled) {
+  background: #0b5f58;
+}
+
+/* ux `disabled-states`: 흐리게 + 커서 변경 + 의미론적 속성. */
+.rt-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rt-btn-ghost {
+  margin-left: 0;
+  background: transparent;
+  color: var(--rt-text);
+  border-color: var(--rt-line);
+}
+
+.rt-btn-ghost:hover:not(:disabled) {
+  background: var(--rt-wash);
+}
+
+/* ── 확인창 ───────────────────────────────────────────── */
+.rt-scrim {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  /* ux `Scrim and modal legibility`: 배경이 앞의 글을 방해하지 않을 만큼 눌러 준다. */
+  background: rgba(15, 23, 42, 0.45);
+  padding: var(--sp-5);
+}
+
+.rt-dialog {
+  width: min(440px, 100%);
+  padding: var(--sp-5);
+  background: var(--rt-surface);
+  border-radius: var(--r-xl);
+  box-shadow: var(--el-3);
+}
+
+.rt-dlg-title {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--rt-teal);
+}
+
+.rt-dlg-body {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  color: var(--rt-text-2);
+}
+
+.rt-dlg-body strong {
+  color: var(--rt-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.rt-dlg-btns {
+  display: flex;
+  gap: var(--sp-3);
+  justify-content: flex-end;
+}
+
+.rt-foot {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--rt-line-soft);
+  font-size: var(--fs-xs);
+  color: var(--rt-text-2);
+  text-align: center;
+}
+
+/* ux `reduced-motion`: 움직임을 줄여 달라고 하면 전부 끈다. */
+@media (prefers-reduced-motion: reduce) {
+  .rt-card,
+  .rt-btn {
+    transition: none;
+  }
+}

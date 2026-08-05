@@ -1,6 +1,7 @@
 import { getLivingCost, getWageMultiplier } from './economy'
 import { burnoutKeyOf, getBurnoutPenalty, pushActivity } from './burnout'
 import { weekdayOf } from '../data/calendar'
+import { DEFAULT_HOUSING_ID, findHousing } from '../data/housing'
 import { FINAL_DAYS, isWorkWeekday } from '../data/careers'
 import { GROWTH_STAT_KEYS, INITIAL_STATS } from '../types/game'
 import type {
@@ -175,13 +176,39 @@ function applyEffects(stats: Stats, activity: Activity, day: number, efficiency:
   return next
 }
 
-/** 취침: 체력·멘탈 회복 후 생활비 차감. */
-function sleep(stats: Stats, day: number): Stats {
+/**
+ * 그 집에 사는 대가로 밤마다 깎이는 멘탈.
+ *
+ * ⚠️ **`systems/housing.ts`를 import하지 않는다** — 그쪽이 이미 `turn.ts`를 부르고 있어
+ * 순환이 된다(`owns`가 `delivery.ts`에서 여기로 옮겨 온 것과 같은 이유). 여기서 읽는
+ * 것은 **데이터 한 줄**(`Housing.mentalPerNight`)뿐이고, 이사의 규칙(누가 어디로 옮길
+ * 수 있고 얼마가 오가는가)은 전부 `housing.ts`가 갖는다. `housing.ts`가 같은 값을
+ * `housingMentalCost`로 재수출하므로 화면은 그쪽을 본다.
+ */
+function housingMentalCost(state: GameState): number {
+  const id = state.housing?.id ?? DEFAULT_HOUSING_ID
+  return findHousing(id)?.mentalPerNight ?? 0
+}
+
+/**
+ * 취침: 체력·멘탈 회복 후 생활비 차감.
+ *
+ * ⚠️ **생활비는 이제 날짜만의 함수가 아니다** — `getLivingCost(state)`가 물가 구간에
+ * **집 배율**을 곱한다(2026-08-05 이사 신설). 여기서 `livingCostForDay`를 쓰면
+ * 이사한 플레이어가 실제로는 안 낸 돈을 내게 된다.
+ *
+ * ⚠️ **집이 멘탈을 갉는 것도 여기서 일어난다**(`housingMentalCost`). 밤에 붙는 이유는
+ * 회복과 같은 자리에서 상계돼야 "그 방에서 자는 대가"로 읽히기 때문이다.
+ * `housing.ts`를 import하지 않고 `GameState.housing`의 배율/비용만 읽는 것은
+ * `nightPayoutPending`이 `employment.ts`를 import하지 않는 것과 같은 규칙이다 —
+ * 의존은 계속 한 방향이다(housing → turn).
+ */
+function sleep(stats: Stats, state: GameState): Stats {
   return {
     ...stats,
     stamina: stats.stamina + stats.maxStamina * SLEEP_RECOVERY_RATIO,
-    mental: stats.mental + SLEEP_MENTAL_RECOVERY,
-    money: stats.money - getLivingCost(day),
+    mental: stats.mental + SLEEP_MENTAL_RECOVERY - housingMentalCost(state),
+    money: stats.money - getLivingCost(state),
   }
 }
 
@@ -190,7 +217,7 @@ function advance(state: GameState, stats: Stats): { day: number; slot: Slot; sta
   if (state.slot === 'morning') {
     return { day: state.day, slot: 'afternoon', stats }
   }
-  return { day: state.day + 1, slot: 'morning', stats: sleep(stats, state.day) }
+  return { day: state.day + 1, slot: 'morning', stats: sleep(stats, state) }
 }
 
 function detectGameOver(stats: Stats): GameState['gameOver'] {
@@ -228,10 +255,17 @@ function detectGameOver(stats: Stats): GameState['gameOver'] {
  * 정기예금이라는 장치 자체가 거짓말이 된다. 판정 근거는 `GameState.bank.deposits`의
  * **날짜 하나**(`matureDay`)뿐이고, 규칙(얼마를 언제 주는가)은 전부 `systems/bank.ts`에 있다 —
  * 여기서 `bank.ts`를 import하지 않는 것도 `employment.ts`를 import하지 않는 것과 같다.
+ *
+ * **원천 3 — 복권 당첨금**(2026-08-05 추가). 오후에 산 표가 당첨되면 상금은
+ * `GameState.lottery.pending`에 담겼다가 밤 정산 뒤 `advanceLottery`가 소지금에 넣는다.
+ * 급여·만기와 **정확히 같은 자리, 같은 이유**다: 그 중간에서 판정하면
+ * **당첨금을 손에 쥔 채 굶어 죽는다.** 여기서 보는 것도 숫자 하나(`pending`)뿐이고
+ * 규칙(확률·상금·언제 굴리는가)은 전부 `systems/lottery.ts`에 있다.
  */
 export function nightPayoutPending(state: GameState): boolean {
   const job = state.employment
   if (job && state.day >= job.paydayDay) return true
+  if ((state.lottery?.pending ?? 0) > 0) return true
   return (state.bank?.deposits ?? []).some((d) => state.day >= d.matureDay)
 }
 

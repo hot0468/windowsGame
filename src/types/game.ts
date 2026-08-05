@@ -431,6 +431,69 @@ export interface BankState {
   ledger: BankEntry[]
 }
 
+/* ── 이사 · 복권 (2026-08-05 신설) ─────────────────────────────────────────
+ *
+ * 둘 다 성격이 정반대다. **이사는 계획**(목돈을 묶고 생활비를 영구히 낮춘다)이고
+ * **복권은 분산**(기대값이 음수인 대신 아주 낮은 확률로 큰 것이 터진다)이다.
+ *
+ * 수치는 `data/housing.ts`·`data/lottery.ts`에, 규칙은 `systems/housing.ts`·
+ * `systems/lottery.ts`에 있다. 여기에는 **모양만** 적는다(`Plan`·`BankState`와 같은 이유).
+ */
+
+/** 지금 사는 집. **옵셔널이다** — 없으면 `HOUSINGS[0]`(시작 원룸)로 읽힌다. */
+export interface HousingState {
+  /** `data/housing.ts`의 매물 id. */
+  id: string
+  /** 이 집으로 옮긴 날. 계약 내역 표시용. */
+  movedDay: number
+  /**
+   * **묶여 있는 보증금.** 다음에 이사할 때 그대로 돌아온다.
+   *
+   * ⚠️ 매물 정의(`Housing.deposit`)를 다시 읽지 않고 **낸 금액을 여기 박아 둔다** —
+   * 나중에 매물 가격을 손봐도 이미 낸 보증금의 약속은 바뀌지 않는다
+   * (`TermDeposit.rate`를 예금에 박아 두는 것과 같은 이유).
+   */
+  deposit: number
+}
+
+/** 복권 한 장의 결과. 사실만 남기고 문장은 화면이 만든다(`BankEntry`와 같은 규칙). */
+export interface LotteryTicket {
+  /** 렌더 키. 구매 일련번호가 들어 있어 절대 겹치지 않는다. */
+  id: string
+  day: number
+  /** 당첨 등수 라벨. 꽝이면 undefined. */
+  prize?: string
+  /** 상금. 꽝이면 0. */
+  amount: number
+}
+
+/**
+ * 복권 상태. **옵셔널이다** — 산 적 없으면 없다.
+ *
+ * ⚠️ **`serial`이 이 구조의 핵심이다.** 시드에 들어가는 구매 일련번호이고,
+ * 세이브에 남기 때문에 **새로 고침해도 이미 산 표가 다시 굴러가지 않는다**.
+ * 이게 없으면 결과가 마음에 안 들 때 새로 고침하는 것이 최적 전략이 된다.
+ */
+export interface LotteryState {
+  /** 지금까지 산 표의 총 수. **다음 표의 시드**이자 굴림의 독립성을 만드는 값이다. */
+  serial: number
+  /** 지금까지 쓴 돈. 화면이 "얼마를 넣고 얼마를 받았나"를 정직하게 적는 근거다. */
+  spent: number
+  /** 지금까지 받은 상금. */
+  won: number
+  /** 최근 구매 기록. 오래된 것부터 잘라 낸다. */
+  tickets: LotteryTicket[]
+  /**
+   * **오늘 밤 소지금으로 들어올 상금.**
+   *
+   * ⚠️ 이 필드가 `turn.ts`의 `nightPayoutPending`에 물리는 지점이다. 오후에 산 표가
+   * 당첨됐는데 그날 밤 생활비를 못 내면, 상금을 손에 쥔 채 굶어 죽는 판정이 난다 —
+   * 급여·정기예금 만기에서 이미 두 번 터진 것과 **같은 형태의 버그**다.
+   * 밤 정산(`advanceLottery`)이 소지금에 넣고 이 값을 0으로 되돌린다.
+   */
+  pending: number
+}
+
 export interface GameState {
   playerName: string
   day: number
@@ -505,6 +568,22 @@ export interface GameState {
    * 마이그레이션이 필요 없다(`plans`·`inventory`와 같은 규칙).
    */
   bank?: BankState
+  /**
+   * 지금 사는 집. **옵셔널이다** — 없으면 시작 원룸(`HOUSINGS[0]`)에 산다.
+   *
+   * ⚠️ 이 필드가 생활비를 **날짜만의 함수에서 날짜 × 플레이어 상태의 함수로** 바꿨다.
+   * 생활비를 읽는 곳은 전부 `getLivingCost(state)`(상태를 받는 쪽)를 지나야 한다 —
+   * 하나라도 옛 경로(`livingCostForDay(day)`)에 남으면 그 화면만 조용히 거짓말을 한다.
+   */
+  housing?: HousingState
+  /**
+   * 복권. **옵셔널이다** — 산 적 없으면 없다.
+   *
+   * ⚠️ `reviveState`의 검증이 다른 옵셔널 필드보다 빡빡하다(`bank`·`employment`와 같은
+   * 이유 — 돈을 만드는 상태다). `pending`이 NaN이면 그것이 소지금으로 흘러
+   * `NaN <= 0`이 false가 되어 **파산이 영영 안 걸린다.**
+   */
+  lottery?: LotteryState
 }
 
 export const INITIAL_STATS: Stats = {

@@ -7,7 +7,7 @@ import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
 import { selectNewsPage } from '../../../systems/news'
 import { search } from '../../../systems/search'
-import { getLivingCost, getNextTier, getWageMultiplier } from '../../../systems/economy'
+import { getLivingCost, getNextTier, getWageMultiplier, tierCostFor } from '../../../systems/economy'
 import { AD_BONUS_MONEY, canClaimAdBonus } from '../../../systems/turn'
 import './NeverPortal.css'
 
@@ -45,6 +45,13 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
   const day = useGameStore((s) => s.state?.day ?? 1)
   const slot = useGameStore((s) => s.state?.slot ?? 'morning')
   const money = useGameStore((s) => s.state?.stats.money ?? 0)
+  /**
+   * ⚠️ 생활비만은 **날짜가 아니라 상태**에서 뽑는다(2026-08-05 이사 신설) —
+   * 사는 집이 배율을 정하므로 `day`만으로는 계산할 수 없다. 계산은 `getLivingCost`가
+   * 하고 여기서는 숫자만 받는다(스탯창·확정 패널과 같은 함수를 본다).
+   */
+  const living = useGameStore((s) => (s.state ? getLivingCost(s.state) : 0))
+  const nextLiving = useGameStore((s) => (s.state ? tierCostFor(s.state, getNextTier(s.state.day)) : 0))
 
   /** 뉴스 분야 탭. null이면 '전체'. */
   const [tab, setTab] = useState<NewsCategory | null>(null)
@@ -58,12 +65,13 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
    * tone은 좋고 나쁨이 아니라 **플레이어에게 유리/불리**를 뜻한다.
    */
   const next = getNextTier(day)
-  const living = getLivingCost(day)
   const INDICES = [
     {
       label: '생활비',
       value: living.toLocaleString('ko-KR'),
-      delta: `${next.day - day}일 뒤 +${Math.round((next.living / living - 1) * 100)}%`,
+      // ⚠️ 인상률은 **같은 배율 위의 두 값**으로 잰다(`living`도 `nextLiving`도 집 배율을 탔다).
+      //    한쪽만 기준 금액을 쓰면 이사한 플레이어에게 말이 안 되는 %가 뜬다.
+      delta: `${next.day - day}일 뒤 +${living > 0 ? Math.round((nextLiving / living - 1) * 100) : 0}%`,
       tone: 'bad',
     },
     {
@@ -261,7 +269,7 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
               {slot === 'afternoon' ? '오후' : '오전'}
             </span>
             <span className="nv-strip-right">
-              오늘 생활비 {getLivingCost(day).toLocaleString('ko-KR')}원
+              오늘 생활비 {living.toLocaleString('ko-KR')}원
             </span>
           </div>
 

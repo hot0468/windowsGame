@@ -33,7 +33,7 @@ import {
   settleGameOver,
   skipSlot,
 } from './turn'
-import { getLivingCost } from './economy'
+import { livingCostForDay } from './economy'
 import type { GameState } from '../types/game'
 
 const entry = CAREERS[0]
@@ -388,14 +388,14 @@ describe('밤 정산의 순서 — 급여가 우선한다', () => {
       slot: 'afternoon',
       employment: { ...base.employment!, paydayDay: payday },
       // 생활비를 내고 나면 0 이하가 되는 잔고.
-      stats: { ...base.stats, money: getLivingCost(eve) - 1000 },
+      stats: { ...base.stats, money: livingCostForDay(eve) - 1000 },
     }
   }
 
   it('급여일 밤에 잔고가 바닥나도 급여가 먼저 들어와 살아남는다', () => {
     const payday = mondayOnOrAfter(30) + PAYDAY_INTERVAL
     const before = brokeOnPaydayEve(payday)
-    const living = getLivingCost(before.day)
+    const living = livingCostForDay(before.day)
     expect(before.stats.money).toBeLessThan(living)
 
     // 오후를 넘긴다 = 취침 정산(생활비 차감)이 일어나고 날이 급여일로 바뀐다.
@@ -440,7 +440,7 @@ describe('밤 정산의 순서 — 급여가 우선한다', () => {
     const broke: GameState = {
       ...base,
       slot: 'afternoon',
-      stats: { ...base.stats, money: getLivingCost(base.day) - 1000 },
+      stats: { ...base.stats, money: livingCostForDay(base.day) - 1000 },
     }
     expect(nightPayoutPending(broke)).toBe(false)
     expect(skipSlot(broke).gameOver).toBe('bankrupt')

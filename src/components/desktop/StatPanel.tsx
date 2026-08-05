@@ -2,7 +2,7 @@ import { HudPanel, HudSection } from './HudPanel'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
-import { getLivingCost, getNextTier } from '../../systems/economy'
+import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
 import { growthCap } from '../../systems/turn'
 import { CALENDAR_PANEL_LAYOUT } from '../../data/calendar'
 import { STAT_META, GROWTH_STAT_ORDER } from '../../data/statMeta'
@@ -146,14 +146,19 @@ export function StatPanel() {
         suffix="원"
         warn={stats.money <= 100000}
       />
+      {/* ⚠️ 두 줄 다 **지금 사는 집의 배율**을 탄 금액이다(`getLivingCost`/`tierCostFor`).
+          한쪽만 기준 금액을 적으면 이사한 플레이어에게 "오늘 21,600원 → 5일 후 60,000원"처럼
+          말이 안 되는 예고가 뜬다. */}
       <div className="stat-note">
         <span className="stat-note-row">
           <span>오늘 생활비</span>
-          <span className="stat-note-num">{getLivingCost(day).toLocaleString('ko-KR')}원</span>
+          <span className="stat-note-num">{getLivingCost(state).toLocaleString('ko-KR')}원</span>
         </span>
         <span className="stat-note-row">
           <span>{nextTier.day - day}일 후 인상</span>
-          <span className="stat-note-num">{nextTier.living.toLocaleString('ko-KR')}원</span>
+          <span className="stat-note-num">
+            {tierCostFor(state, nextTier).toLocaleString('ko-KR')}원
+          </span>
         </span>
       </div>
     </HudPanel>

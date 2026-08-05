@@ -246,3 +246,115 @@ describe('migrateSave — 정규직', () => {
     expect(migrateSave(save).state?.employment).toBeUndefined()
   })
 })
+
+/* ── 이사 · 복권 (2026-08-05) ──────────────────────────────────────────────
+ *
+ * ⚠️ **둘 다 돈을 만지는 상태라 검증이 다른 옵셔널 필드보다 빡빡하다**
+ * (`reviveJob`·`reviveBank`와 같은 이유). 숫자가 NaN이면 그것이 소지금으로 흘러
+ * `NaN <= 0`이 false가 되어 **파산이 영영 안 걸린다**.
+ */
+describe('migrateSave — 이사', () => {
+  const moved = () => ({
+    state: {
+      ...createInitialState('이사'),
+      housing: { id: 'gosiwon', movedDay: 30, deposit: 2_100_000 },
+    },
+  })
+
+  it('사는 집을 그대로 복원한다', () => {
+    expect(migrateSave(moved()).state?.housing).toEqual({
+      id: 'gosiwon',
+      movedDay: 30,
+      deposit: 2_100_000,
+    })
+  })
+
+  it('⚠️ 왕복해도 값이 그대로다 — 세이브를 열 때마다 집이 바뀌면 안 된다', () => {
+    const once = migrateSave(moved()).state!
+    const twice = migrateSave({ state: once }).state!
+    expect(twice.housing).toEqual(once.housing)
+  })
+
+  it('이사한 적 없는 옛 세이브는 필드가 없고 그대로 열린다 (마이그레이션 불필요)', () => {
+    expect(migrateSave({ state: createInitialState('옛') }).state?.housing).toBeUndefined()
+  })
+
+  it('없는 매물을 가리키면 버린다 — 배율을 못 찾으면 생활비가 NaN이 된다', () => {
+    const save = moved()
+    save.state.housing.id = '없는방'
+    expect(migrateSave(save).state?.housing).toBeUndefined()
+  })
+
+  it('보증금이 NaN이면 버린다 — 이사할 때 소지금으로 흘러 파산을 무력화한다', () => {
+    const save = moved()
+    save.state.housing.deposit = Number.NaN
+    expect(migrateSave(save).state?.housing).toBeUndefined()
+  })
+
+  it('음수 보증금도 버린다', () => {
+    const save = moved()
+    save.state.housing.deposit = -1
+    expect(migrateSave(save).state?.housing).toBeUndefined()
+  })
+})
+
+describe('migrateSave — 복권', () => {
+  const played = () => ({
+    state: {
+      ...createInitialState('복권'),
+      lottery: {
+        serial: 17,
+        spent: 170_000,
+        won: 30_000,
+        pending: 20_000,
+        tickets: [{ id: 'ticket-17', day: 5, amount: 20_000, prize: '5등' }],
+      },
+    },
+  })
+
+  it('복권 기록을 그대로 복원한다', () => {
+    const l = migrateSave(played()).state?.lottery
+    expect(l?.serial).toBe(17)
+    expect(l?.pending).toBe(20_000)
+    expect(l?.tickets).toHaveLength(1)
+  })
+
+  /**
+   * ⚠️ **`serial`이 굴림의 시드다.** 세이브를 열 때 값이 달라지면 이미 산 표가
+   * 전부 다시 굴러가고, 그 순간 "새로 고침"이 최적 전략이 된다(세이브 스커밍).
+   */
+  it('⚠️ 왕복해도 일련번호가 그대로다 — 새로 고침으로 재굴림할 수 없다', () => {
+    const once = migrateSave(played()).state!
+    const twice = migrateSave({ state: once }).state!
+    expect(twice.lottery?.serial).toBe(17)
+    expect(twice.lottery).toEqual(once.lottery)
+  })
+
+  it('산 적 없는 옛 세이브는 필드가 없고 그대로 열린다', () => {
+    expect(migrateSave({ state: createInitialState('옛') }).state?.lottery).toBeUndefined()
+  })
+
+  it('일련번호가 깨지면 버린다 — 시드를 못 믿으면 기록 전체를 못 믿는다', () => {
+    const save = played()
+    save.state.lottery.serial = Number.NaN
+    expect(migrateSave(save).state?.lottery).toBeUndefined()
+  })
+
+  it('당첨 대기금이 NaN이면 버린다 — 소지금으로 흘러 파산을 무력화한다', () => {
+    const save = played()
+    save.state.lottery.pending = Number.NaN
+    expect(migrateSave(save).state?.lottery).toBeUndefined()
+  })
+
+  it('음수 대기금도 버린다', () => {
+    const save = played()
+    save.state.lottery.pending = -100
+    expect(migrateSave(save).state?.lottery).toBeUndefined()
+  })
+
+  it('깨진 표 한 장은 그것만 걸러 낸다 (기록 전체를 버리지 않는다)', () => {
+    const save = played()
+    ;(save.state.lottery.tickets as unknown[]).push({ id: 42, day: 'x', amount: null })
+    expect(migrateSave(save).state?.lottery?.tickets).toHaveLength(1)
+  })
+})

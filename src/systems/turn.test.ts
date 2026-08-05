@@ -13,7 +13,7 @@ import {
   claimAdBonus,
 } from './turn'
 import { ACTIVITIES, findActivity } from '../data/activities'
-import { getLivingCost } from './economy'
+import { livingCostForDay } from './economy'
 import { GROWTH_STAT_KEYS } from '../types/game'
 import type { GameState } from '../types/game'
 
@@ -303,7 +303,7 @@ describe('runActivity — 취침 정산', () => {
     const before = stateWith({ slot: 'afternoon' })
     const after = runActivity(before, study)
     const activityMoney = 0
-    expect(after.stats.money).toBe(before.stats.money + activityMoney - getLivingCost(1))
+    expect(after.stats.money).toBe(before.stats.money + activityMoney - livingCostForDay(1))
   })
 
   it('하루가 끝나면 체력이 회복된다', () => {
@@ -390,7 +390,7 @@ describe('skipSlot', () => {
     const before = stateWith({ slot: 'afternoon' })
     const after = skipSlot(before)
     expect(after.day).toBe(2)
-    expect(after.stats.money).toBe(before.stats.money - getLivingCost(1))
+    expect(after.stats.money).toBe(before.stats.money - livingCostForDay(1))
   })
 
   // 날짜칸 버튼 라벨이 "오전/오후 건너뛰기"인 근거.
@@ -408,7 +408,7 @@ describe('skipSlot', () => {
     const after = skipSlot(skipSlot(before))
     expect(after.day).toBe(2)
     expect(after.slot).toBe('morning')
-    expect(after.stats.money).toBe(before.stats.money - getLivingCost(1))
+    expect(after.stats.money).toBe(before.stats.money - livingCostForDay(1))
   })
 
   it('게임오버 상태면 아무 일도 일어나지 않는다 (버튼 비활성화와 일치)', () => {
@@ -451,6 +451,6 @@ describe('광고 배너 보상', () => {
 
   it('보상액이 하루 생활비를 흔들 만큼 크지 않다', () => {
     // 클릭이 생계 수단이 되면 "일해서 번다"는 축이 무너진다. 1% 미만을 지킨다.
-    expect(AD_BONUS_MONEY).toBeLessThan(getLivingCost(1) * 0.01)
+    expect(AD_BONUS_MONEY).toBeLessThan(livingCostForDay(1) * 0.01)
   })
 })

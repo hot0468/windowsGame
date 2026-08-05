@@ -32,7 +32,7 @@ import {
   withdraw,
 } from './bank'
 import { createInitialState, nightPayoutPending, skipSlot } from './turn'
-import { getLivingCost } from './economy'
+import { livingCostForDay } from './economy'
 import type { GameState } from '../types/game'
 
 function fresh(overrides: Partial<GameState> = {}): GameState {
@@ -338,7 +338,7 @@ describe('밤 정산의 순서 — 만기 원리금이 우선한다', () => {
     // 생활비를 내고 나면 0 이하가 되는 잔고 + 오늘 밤 만기가 오는 정기예금.
     return {
       ...base,
-      stats: { ...base.stats, money: getLivingCost(day) - 1000 },
+      stats: { ...base.stats, money: livingCostForDay(day) - 1000 },
       bank: {
         ...emptyBank(day),
         deposits: [
@@ -356,7 +356,7 @@ describe('밤 정산의 순서 — 만기 원리금이 우선한다', () => {
 
   it('만기가 오는 밤에 잔고가 바닥나도 원리금이 들어와 살아남는다', () => {
     const before = brokeOnMaturityEve()
-    const living = getLivingCost(before.day)
+    const living = livingCostForDay(before.day)
     expect(before.stats.money).toBeLessThan(living)
     // 아직 만기가 아니므로 이 시점에는 미루지 않는다.
     expect(nightPayoutPending(before)).toBe(false)
@@ -402,7 +402,7 @@ describe('밤 정산의 순서 — 만기 원리금이 우선한다', () => {
     const base = fresh({ day: 20, slot: 'afternoon' })
     const broke: GameState = {
       ...base,
-      stats: { ...base.stats, money: getLivingCost(20) - 1000 },
+      stats: { ...base.stats, money: livingCostForDay(20) - 1000 },
     }
     expect(nightPayoutPending(broke)).toBe(false)
     expect(skipSlot(broke).gameOver).toBe('bankrupt')
