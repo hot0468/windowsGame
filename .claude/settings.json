@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": false,
+    "superpowers@claude-plugins-official": false
+  }
+}
