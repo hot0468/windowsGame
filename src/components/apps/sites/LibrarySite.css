@@ -1,0 +1,454 @@
+/*
+ * 미디북스(전자책 스토어).
+ *
+ * 레퍼런스(실제 전자책 스토어 홈)를 따른다: 흰 배경 + 파랑 액센트, 촘촘한 격자,
+ * 표지가 주인공. 토큰은 너튜브(`--tb-*`)·시집이(`--cn-*`)·아점(`--pb-*`)과 같은 규칙으로
+ * `.lib` 안에 가둔다 — 사이트마다 색이 다른 게 정상이고, 전역 팔레트를 사이트 수만큼
+ * 부풀리면 색의 출처를 아무도 못 찾는다. 간격·타입·모서리는 전역 토큰을 쓴다.
+ * ⚠️ 간격 척도에 `--sp-7`은 없다(4/8 리듬). 없는 var를 쓰면 선언 전체가 무효가 된다.
+ */
+.lib {
+  --lb-bg: #ffffff;
+  --lb-line: #e6e8eb;
+  --lb-text: #1f2124;
+  --lb-text-2: #61656b; /* #fff 위 5.9:1 — 저자·별점 (WCAG AA) */
+  --lb-text-3: #9aa0a6;
+  --lb-blue: #1f6feb; /* #fff 위 4.6:1. 로고·선택 표시에 쓴다 */
+  --lb-wash: #eef4ff;
+
+  padding-bottom: var(--sp-8);
+  background: var(--lb-bg);
+  color: var(--lb-text);
+  min-height: 100%;
+}
+
+/* 본문 폭. ⚠️ 판을 묶지 않으면 `auto-fit` 격자가 넓은 창에서 열을 늘려
+   3열·6열 배치가 깨진다(아점에서 실제로 터졌다). */
+.lib-hero,
+.lib-quick,
+.lib-receipt,
+.lib-sec,
+.lib-foot {
+  width: min(1120px, 100% - 48px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── 헤더 ─────────────────────────────────────────────── */
+.lib-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-6) var(--sp-3);
+}
+
+.lib-logo {
+  margin: 0;
+  font-family: var(--font-point);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--lb-blue);
+}
+
+.lib-search {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 1 1 auto;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 0 var(--sp-3);
+  height: 32px;
+  border-radius: var(--r-md);
+  background: #f4f5f7;
+  font-size: var(--fs-sm);
+  color: var(--lb-text-3);
+}
+
+.lib-account {
+  font-size: var(--fs-xs);
+  color: var(--lb-text-2);
+}
+
+/* ── 카테고리 탭 ──────────────────────────────────────── */
+.lib-tabs {
+  display: flex;
+  gap: var(--sp-4);
+  padding: 0 var(--sp-6) var(--sp-3);
+  border-bottom: 1px solid var(--lb-line);
+  overflow-x: auto;
+}
+
+.lib-tab {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 var(--sp-1);
+  border: none;
+  background: transparent;
+  font-size: var(--fs-md);
+  color: var(--lb-text-2);
+  cursor: pointer;
+}
+
+/* 선택된 탭. 색만으로 알리지 않도록 굵기 + 밑줄 + aria-pressed가 함께 간다. */
+.lib-tab-on {
+  font-weight: 700;
+  color: var(--lb-blue);
+}
+
+.lib-tab-on::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--sp-3) * -1 - 1px);
+  height: 2px;
+  background: var(--lb-blue);
+}
+
+/* ── 배너 ─────────────────────────────────────────────── */
+.lib-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+}
+
+.lib-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: 200px;
+  padding: var(--sp-5);
+  border-radius: var(--r-lg);
+  color: #fff;
+  text-align: center;
+}
+
+/* 가운데 배너만 조금 크게 — 레퍼런스도 현재 슬라이드를 강조한다. */
+.lib-banner-main {
+  outline: 2px solid var(--lb-blue);
+  outline-offset: 2px;
+}
+
+.lib-banner-tag {
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.lib-banner-title {
+  margin: 0;
+  font-family: var(--font-point);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.lib-banner-sub {
+  margin: 0;
+  font-size: var(--fs-xs);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.lib-hero-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* ux `touch-target-size`: 최소 44px. */
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--lb-line);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--lb-text);
+  cursor: pointer;
+}
+
+.lib-hero-prev {
+  left: calc(var(--sp-5) * -1);
+}
+
+.lib-hero-next {
+  right: calc(var(--sp-5) * -1);
+}
+
+/* ── 퀵메뉴 ───────────────────────────────────────────── */
+.lib-quick {
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-6);
+  margin: var(--sp-6) auto 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lib-quick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--lb-text-2);
+}
+
+.lib-quick-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--lb-line);
+  border-radius: 50%;
+  color: var(--lb-blue);
+}
+
+/* ── 읽기 결과 ────────────────────────────────────────── */
+.lib-receipt {
+  margin-top: var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  border-left: 3px solid var(--lb-blue);
+  background: var(--lb-wash);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+/* ── 구역 ─────────────────────────────────────────────── */
+.lib-sec {
+  padding-top: var(--sp-8);
+}
+
+.lib-sec-head {
+  margin: 0 0 var(--sp-4);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+
+/* ── 표지 ─────────────────────────────────────────────── */
+.lib-cover {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 실제 책 비율. 이미지가 없으므로 CSS가 비율을 붙든다 —
+     표지 높이가 흔들리면 격자가 어긋난다. */
+  aspect-ratio: 3 / 4;
+  padding: var(--sp-2);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+.lib-cover-title {
+  font-family: var(--font-point);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  overflow-wrap: anywhere;
+}
+
+.lib-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 1px 4px;
+  background: var(--lb-blue);
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ── 순위 목록 ────────────────────────────────────────── */
+.lib-ranks {
+  display: grid;
+  /* 레퍼런스는 3열. 판이 1120px이므로 최소 폭이 1120/4보다 커야 3열이 유지된다. */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--sp-3) var(--sp-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lib-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lib-row:hover {
+  background: #f7f8fa;
+}
+
+/* 고른 책. 배경 + 테두리 + '선택함' 글자 + aria-checked 넷이 함께 알린다. */
+.lib-row-on,
+.lib-tile-on {
+  border-color: var(--lb-blue);
+  background: var(--lb-wash);
+}
+
+.lib-rank {
+  flex: 0 0 auto;
+  width: 18px;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  text-align: center;
+  color: var(--lb-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.lib-row .lib-cover {
+  flex: 0 0 44px;
+}
+
+.lib-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.lib-title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--lb-text);
+  /* 두 줄까지. 잘려도 확정 패널에 전문이 뜬다(ux `truncation-strategy`). */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lib-meta {
+  font-size: var(--fs-xs);
+  color: var(--lb-text-2);
+}
+
+.lib-stars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--fs-xs);
+  color: var(--lb-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.lib-stars-n {
+  color: var(--lb-text-3);
+}
+
+.lib-mark {
+  flex: 0 0 auto;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--lb-blue);
+}
+
+/* ── 표지 줄 ──────────────────────────────────────────── */
+.lib-shelf {
+  display: grid;
+  /* 레퍼런스는 6열. 1120px 판에서 6열이 되려면 최소 폭이 1120/7보다 커야 한다. */
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--sp-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lib-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  width: 100%;
+  padding: var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lib-tile:hover {
+  background: #f7f8fa;
+}
+
+.lib-tile .lib-cover {
+  margin-bottom: var(--sp-2);
+}
+
+.lib-tile .lib-cover-title {
+  font-size: var(--fs-sm);
+}
+
+/* ── 이벤트 ───────────────────────────────────────────── */
+.lib-events {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lib-event {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  padding: var(--sp-5);
+  border-radius: var(--r-lg);
+  color: #fff;
+}
+
+.lib-event strong {
+  font-family: var(--font-point);
+  font-size: var(--fs-lg);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.lib-event span:last-child {
+  font-size: var(--fs-xs);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* ── 푸터 ─────────────────────────────────────────────── */
+.lib-foot {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--lb-line);
+  font-size: var(--fs-xs);
+  line-height: 1.8;
+  color: var(--lb-text-3);
+}
+
+.lib-foot p {
+  margin: 0;
+}
+
+.lib-foot-logo {
+  font-family: var(--font-point);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--lb-text-2);
+}

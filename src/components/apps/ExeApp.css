@@ -1,0 +1,112 @@
+/* 활동 실행 창. OS 창 안이므로 윈도우 11 라이트 시각 언어(--os-*)를 따른다.
+   간격은 전부 --sp-* 사다리(4/8 리듬)에서 고른다. */
+
+.exe-desc {
+  margin-bottom: var(--sp-4);
+  color: var(--os-text-2);
+  line-height: 1.6;
+}
+
+/* 효과 목록 블록. 창 배경(#fdfdfd)보다 살짝 어두운 카드로 띄우되,
+   회색 덩어리(#e8e8e8)가 아니라 "옅은 채움 + 1px 경계"로 만든다 —
+   경계 없는 회색 블록이 값싸 보이던 원인이다. */
+.exe-effects {
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-3);
+  background: var(--os-fill);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-md);
+}
+
+.exe-effect {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--fs-sm);
+  padding: var(--sp-1) 0;
+  /* 증감 숫자가 자리마다 흔들리지 않게 한다(typography `number-tabular`). */
+  font-variant-numeric: tabular-nums;
+}
+
+.exe-effect-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+/* 증감 색은 의미색이므로 4.5:1을 넘어야 한다(ux `contrast-feedback`).
+   #2e7d32는 흰 배경에서 4.9:1, --os-success(#0f7b3d)는 5.3:1로 여유가 더 크다. */
+.exe-plus {
+  color: var(--os-success);
+  font-weight: 600;
+}
+
+.exe-minus {
+  color: var(--os-danger);
+  font-weight: 600;
+}
+
+/* 오후 슬롯 생활비 경고. 왼쪽 굵은 선 + 옅은 경고 배경 = 윈도우 InfoBar와 같은 형태. */
+.exe-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--os-warn-bg);
+  border: 1px solid rgba(214, 138, 26, 0.35);
+  border-left: 3px solid var(--os-warn-border);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  color: var(--os-warn-text);
+  line-height: 1.5;
+}
+
+/* 이 창의 유일한 주요 행동(style `primary-action`: 화면당 CTA는 하나).
+   색은 윈도우 시스템 액센트(--os-accent)를 쓴다 — 머티리얼 파랑(#1e88e5)은
+   윈도우 언어가 아니고 흰 글자와 3.1:1로 대비도 부족했다. #0067c0은 5.6:1. */
+.exe-run {
+  width: 100%;
+  /* 최소 터치 타깃 44px(ux `touch-target-size`). */
+  min-height: 40px;
+  padding: var(--sp-3);
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--os-accent);
+  box-shadow: var(--el-1);
+  color: #fff;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.exe-run:hover:not(:disabled) {
+  background: var(--os-accent-hover);
+}
+
+.exe-run:active:not(:disabled) {
+  background: var(--os-accent-press);
+  box-shadow: none;
+}
+
+.exe-run:disabled {
+  background: #d6d6d6;
+  box-shadow: none;
+  color: #6b6b6b;
+  cursor: not-allowed;
+}
+
+.exe-warn-icon {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.exe-cost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--os-text-3);
+}

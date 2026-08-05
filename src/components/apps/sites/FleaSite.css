@@ -1,0 +1,419 @@
+/*
+ * 벼룩장터(정규직 구인).
+ *
+ * 색은 ui-ux-pro-max `colors.csv` → **Classifieds / Buy-Sell** 팔레트를 그대로 쓴다
+ * (primary #2563EB · fg #1E40AF · bg #EFF6FF · card #FFF · border #BFDBFE ·
+ * accent #16A34A · muted-fg #64748B · destructive #DC2626).
+ * ⚠️ 알바몬(`--ab-*`, 하늘색 #0369A1/#BAE6FD)과 **계열을 갈라 둔다** — 구인 사이트가 둘이라
+ * 색까지 같으면 어느 쪽에 있는지 알 수 없다. 급여는 accent 초록으로, 일당(알바몬)은
+ * primary 파랑으로 칠해 "돈의 성격이 다르다"까지 색이 말한다.
+ *
+ * 판형은 style `Editorial Grid / Magazine`(생활정보지가 원형이다 — 굵은 제호 가로줄,
+ * 구역 구분선, 작은 모서리)에 style `Data-Dense Dashboard`(낮은 패딩의 촘촘한 목록)를
+ * 섞은 것이다.
+ *
+ * 토큰은 `.flea` 안에 가둔다(너튜브·시집이·아점·미디북스·알바몬과 같은 규칙).
+ * 간격·타입·모서리는 전역 토큰을 쓴다. ⚠️ `--sp-7`은 없다(4/8 리듬).
+ */
+.flea {
+  --fl-bg: #eff6ff;
+  --fl-surface: #ffffff;
+  --fl-line: #bfdbfe;
+  --fl-line-soft: #e2e8f0;
+  --fl-text: #1e40af; /* #fff 위 8.6:1 */
+  --fl-text-2: #64748b; /* #fff 위 4.8:1 — 메타·태그 (WCAG AA) */
+  --fl-primary: #2563eb; /* #fff 위 5.2:1 — 제호·선택 표시 */
+  --fl-accent: #15803d; /* #fff 위 5.0:1 — 급여·요건 충족 */
+  --fl-bad: #b91c1c; /* #fff 위 5.9:1 — 결근·요건 미달 */
+  --fl-wash: #e9eff8;
+  --fl-badge-bg: #dbeafe;
+
+  padding-bottom: var(--sp-8);
+  background: var(--fl-bg);
+  color: var(--fl-text);
+  min-height: 100%;
+}
+
+/* 본문 폭. 판을 묶지 않으면 넓은 창에서 줄이 늘어져 읽는 거리가 길어진다. */
+.flea-head,
+.flea-sec,
+.flea-foot {
+  width: min(1080px, 100% - 48px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── 상단 띠 ─────────────────────────────────────────── */
+.flea-strip {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-6);
+  background: var(--fl-text);
+  color: #ffffff;
+  font-size: var(--fs-xs);
+  text-align: center;
+}
+
+/* ── 제호 (생활정보지의 얼굴) ─────────────────────────── */
+.flea-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-5) 0 var(--sp-3);
+  /* Editorial: 제호 아래 굵은 가로줄이 인쇄물의 인상을 만든다. */
+  border-bottom: 3px solid var(--fl-text);
+  margin-bottom: var(--sp-5);
+}
+
+.flea-logo {
+  margin: 0;
+  font-family: var(--font-point);
+  font-weight: 400; /* 한 벌짜리 서체라 합성 볼드를 막는다 */
+  font-size: var(--fs-3xl);
+  letter-spacing: 0.02em;
+  color: var(--fl-primary);
+}
+
+.flea-tagline {
+  margin: 0;
+  flex: 1 1 auto;
+  font-size: var(--fs-sm);
+  color: var(--fl-text-2);
+}
+
+.flea-issue {
+  font-size: var(--fs-xs);
+  color: var(--fl-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 구역 ─────────────────────────────────────────────── */
+.flea-sec {
+  margin-bottom: var(--sp-6);
+}
+
+.flea-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--fl-line);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.flea-sec-count {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--fl-text-2);
+}
+
+/* ── 내 채용 현황 ─────────────────────────────────────── */
+.flea-status {
+  padding: var(--sp-4);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--r-md);
+  background: var(--fl-surface);
+}
+
+/* 재직 중은 왼쪽 굵은 선으로 한 단 강조한다(상태가 다르다는 것을 형태가 말한다). */
+.flea-status-job {
+  border-left: 4px solid var(--fl-accent);
+}
+
+.flea-status-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+/* ux `Progress Indicators`: 단계는 숫자로도 말한다. */
+.flea-steps {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.flea-step-badge {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--fl-primary);
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.flea-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--sp-3);
+  margin: 0;
+}
+
+.flea-facts dt {
+  font-size: var(--fs-xs);
+  color: var(--fl-text-2);
+}
+
+.flea-facts dd {
+  margin: 2px 0 0;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.flea-money {
+  color: var(--fl-accent);
+}
+
+.flea-bad {
+  color: var(--fl-bad);
+}
+
+.flea-dim {
+  font-weight: 400;
+  color: var(--fl-text-2);
+}
+
+.flea-note {
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--fl-text-2);
+}
+
+.flea-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 3px solid var(--fl-bad);
+  border-radius: var(--r-sm);
+  background: var(--fl-surface);
+  font-size: var(--fs-sm);
+  color: var(--fl-bad);
+}
+
+/* ux `Empty States`: 빈 화면 대신 다음 행동을 적는다. */
+.flea-empty {
+  margin: 0;
+  padding: var(--sp-4);
+  border: 1px dashed var(--fl-line);
+  border-radius: var(--r-md);
+  background: var(--fl-surface);
+  font-size: var(--fs-sm);
+  color: var(--fl-text-2);
+}
+
+.flea-receipt {
+  margin: var(--sp-3) 0 0;
+  padding: var(--sp-3) var(--sp-4);
+  border-left: 3px solid var(--fl-primary);
+  border-radius: var(--r-sm);
+  background: var(--fl-surface);
+  font-size: var(--fs-sm);
+  color: var(--fl-text);
+}
+
+/* ── 공고 목록 ────────────────────────────────────────── */
+.flea-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flea-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  width: 100%;
+  padding: var(--sp-4);
+  border: 1px solid var(--fl-line-soft);
+  border-radius: var(--r-md);
+  background: var(--fl-surface);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+.flea-card:hover:not(:disabled) {
+  border-color: var(--fl-line);
+  box-shadow: var(--el-1);
+}
+
+.flea-card-on {
+  border-color: var(--fl-primary);
+  box-shadow: inset 0 0 0 1px var(--fl-primary);
+}
+
+/* ux `disabled-states`: 투명도 + 커서 + 의미론적 disabled. 사유는 목록 아래에 글자로 적는다. */
+.flea-card-off {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.flea-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.flea-company {
+  font-size: var(--fs-xs);
+  color: var(--fl-text-2);
+}
+
+.flea-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.flea-badge {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--fl-badge-bg);
+  color: var(--fl-text); /* 연한 파랑 위 7.2:1 */
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.flea-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  font-size: var(--fs-xs);
+  color: var(--fl-text-2);
+}
+
+.flea-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.flea-summary {
+  font-size: var(--fs-sm);
+  color: var(--fl-text-2);
+}
+
+.flea-needs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: 2px;
+}
+
+.flea-need {
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--fl-wash);
+  font-size: var(--fs-xs);
+  color: var(--fl-text);
+}
+
+.flea-need b {
+  color: var(--fl-text-2);
+  font-weight: 700;
+}
+
+.flea-ok,
+.flea-short {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+}
+
+.flea-ok {
+  color: var(--fl-accent);
+}
+
+.flea-short {
+  color: var(--fl-bad);
+}
+
+.flea-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-top: 2px;
+}
+
+.flea-tag {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--fl-wash);
+  font-size: var(--fs-xs);
+  color: var(--fl-text-2);
+}
+
+/* ── 급여 ─────────────────────────────────────────────── */
+.flea-pay {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.flea-pay-label {
+  font-size: var(--fs-xs);
+  color: var(--fl-text-2);
+}
+
+.flea-pay-value {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--fl-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.flea-picked {
+  margin-top: 2px;
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--fl-primary);
+  color: #ffffff;
+  font-size: var(--fs-xs);
+}
+
+/* ── 푸터 ─────────────────────────────────────────────── */
+.flea-foot {
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--fl-line);
+  font-size: var(--fs-xs);
+  color: var(--fl-text-2);
+}
+
+.flea-foot-logo {
+  margin: 0 0 var(--sp-2);
+  font-family: var(--font-point);
+  font-weight: 400;
+  font-size: var(--fs-base);
+  color: var(--fl-text-2);
+}
+
+.flea-foot p {
+  margin: 0 0 var(--sp-1);
+}
+
+/* 움직임을 줄여 달라는 설정을 존중한다(전역 규칙과 같다). */
+@media (prefers-reduced-motion: reduce) {
+  .flea-card {
+    transition: none;
+  }
+}

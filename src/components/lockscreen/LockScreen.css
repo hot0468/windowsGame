@@ -1,0 +1,152 @@
+/* 잠금화면. 게임에서 처음 보이는 화면이라 인상을 좌우한다.
+   윈도우 11 잠금화면의 구성(큰 시계 → 날짜 → 아바타 → 입력)을 그대로 따르되,
+   위계를 시간(72px) → 날짜(18px) → 이름(18px) → 컨트롤(14px)로 명확히 나눈다. */
+
+.lock {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  /* 바탕화면(.desktop)과 같은 문법의 배경 — 광원 radial + linear.
+     같은 세계라는 연속감을 주되 잠금화면 쪽을 더 어둡게 눌러 "잠김"을 표현한다. */
+  background:
+    radial-gradient(100% 70% at 50% 20%, rgba(90, 160, 230, 0.28), transparent 62%),
+    linear-gradient(160deg, #071a2e 0%, #143755 55%, #1f5c8f 100%);
+  color: #fff;
+}
+
+/*
+ * 큰 시계는 윈도우 11처럼 얇은 획(200)이다.
+ * 다만 letter-spacing 2px는 숫자를 흩어놓아 싸구려 시계처럼 보인다 —
+ * 큰 글자일수록 자간은 좁혀야 한다(typography `letter-spacing`).
+ * tabular-nums로 분이 바뀔 때 폭이 흔들리는 것도 막는다.
+ */
+.lock-clock {
+  font-size: 72px;
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
+}
+
+.lock-date {
+  font-size: var(--fs-xl);
+  font-weight: 400;
+  /* opacity 0.85 대신 실제 색을 준다 — opacity는 자식(그림자 포함)까지 흐려
+     글자 윤곽이 함께 죽는다. */
+  color: rgba(255, 255, 255, 0.86);
+  margin-bottom: var(--sp-8);
+}
+
+/* 플랫 컬러 아이콘이라 color/stroke-width는 효과가 없어 제거했다.
+   원형 배경은 유지하고, 아이콘 크기는 컴포넌트가 지정한 값(72px)을 그대로 쓴다.
+   유리 원반처럼 보이도록 1px 밝은 테두리를 더한다(style `Glassmorphism`). */
+.lock-avatar {
+  box-sizing: content-box;
+  /* 단색 라인 글리프라 색을 입힐 수 있다. 벽지 위 흰 선이라 대비가 넉넉하다. */
+  color: #fff;
+  padding: var(--sp-3);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.lock-name {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.lock-input {
+  width: 260px;
+  /* 최소 터치/클릭 타깃 높이. */
+  min-height: 40px;
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  /* 윈도우 11 입력창의 특징은 "아래쪽 한 줄만 진한 밑선"이다(액센트 밑선).
+     아래 테두리만 두껍게 주어 그 형태를 만든다. */
+  border-bottom: 2px solid rgba(255, 255, 255, 0.75);
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  /* 흰색 틴트가 아니라 어두운 틴트를 쓴다 — 흰 글자를 담는 칸이므로
+     배경이 밝아질수록 대비가 무너진다(실제로 플레이스홀더가 3.97:1까지 떨어졌다). */
+  background: rgba(0, 20, 40, 0.35);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: #fff;
+  font-size: var(--fs-lg);
+  text-align: center;
+  outline: none;
+}
+
+.lock-input:focus {
+  background: rgba(0, 20, 40, 0.5);
+  border-bottom-color: #fff;
+}
+
+/*
+ * ⚠️ 실측으로 잡은 대비 문제.
+ * 입력창 배경이 반투명이라 밝은 벽지 위에서 rgb(73,103,129)까지 밝아지고,
+ * 그 위의 흰색 72% 플레이스홀더는 3.97:1로 4.5:1에 미달했다(CDP 픽셀 실측).
+ * 불투명도를 올려도 4.5:1에 닿지 않으므로 완전 불투명 흰색으로 두고,
+ * 대신 입력값(#fff, 굵기 400)과 구분되도록 기울임을 준다 —
+ * ux `color-not-only`: 구분을 색(밝기)에만 의존하지 않는다.
+ */
+.lock-input::placeholder {
+  color: #fff;
+  font-style: italic;
+  opacity: 1; /* 파이어폭스는 placeholder에 기본 opacity를 넣는다 — 초기화 필수 */
+}
+
+.lock-btn {
+  min-height: 40px;
+  padding: var(--sp-2) var(--sp-6);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.16);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: #fff;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lock-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.lock-btn:active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.38);
+}
+
+/* 0.4는 너무 흐려 "버튼이 있는지"조차 알기 어렵다.
+   권장 구간(0.38–0.5)의 위쪽을 쓰고 커서로도 알린다(ux `disabled-states`). */
+.lock-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 보조 행동(새로 시작)은 주요 행동보다 시각적으로 확실히 아래에 둔다
+   (style `primary-action`: 보조는 종속시킨다). */
+.lock-sub {
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--fs-md);
+  background: none;
+  border: none;
+  border-radius: var(--r-sm);
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.lock-sub:hover {
+  color: #fff;
+}

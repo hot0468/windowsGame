@@ -1,3 +1,234 @@
+/*
+ * 본문 폰트 Pretendard. npm 패키지에서 직접 불러와 번들에 포함시킨다(CDN 아님).
+ * 아이콘과 같은 오프라인 규칙을 따른다 — 네트워크가 없거나 느려도 첫 화면이 흔들리지 않고,
+ * CDN이 죽어도 게임은 그대로 뜬다.
+ * dynamic-subset은 unicode-range로 쪼개져 있어 브라우저가 실제로 쓰는 글자 범위만 내려받는다
+ * (전체 2MB를 항상 받는 통짜 파일보다 실사용 전송량이 작다).
+ */
+@import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
+
+/*
+ * ── 디자인 토큰 (단일 출처) ──
+ * 근거: ui-ux-pro-max DB
+ *  - ux `spacing-scale`: "Use 4pt/8dp incremental spacing system" → --sp-* 를 4의 배수로만 정의.
+ *    임의 패딩(7px·9px·11px 등)을 전부 이 사다리로 흡수한다.
+ *  - ux `font-scale`: "Type scale (12 14 16 18 24 32)" → --fs-* 를 그 척도로 고정.
+ *  - style `elevation-consistent`: "Use a consistent elevation/shadow scale ... avoid random
+ *    shadow values" → 컴포넌트마다 그림자를 새로 쓰지 않고 --el-1/2/3 세 단만 쓴다.
+ *  - color `color-semantic`: "Define semantic color tokens ... not raw hex in components".
+ *
+ * 두 개의 시각 언어가 공존한다:
+ *  1) OS 크롬(창·작업표시줄·바탕화면·잠금화면) = 윈도우 11 라이트 (--os-*)
+ *  2) 게임 HUD(스탯창·날짜칸) = **밝은 모던 시스템 카드** (--hud-*)
+ * 둘은 같은 밝은 계열이지만 표면 처리(HUD는 아크릴 카드)와 타입 리듬이 달라
+ * "게임 위젯이 OS 위에 얹혀 있다"는 인상을 만든다.
+ */
+/*
+ * 포인트 폰트 (Cafe24 Ohsquare). 굵고 각진 한 벌짜리 디스플레이 서체다.
+ * font-display: swap — 폰트가 늦게 와도 글자가 안 보이는 구간(FOIT)을 만들지 않는다.
+ */
+@font-face {
+  font-family: 'Cafe24Anemone';
+  src: url('./assets/fonts/Cafe24Ohsquare.woff')
+    format('woff');
+  font-weight: normal;
+  font-display: swap;
+}
+
+/*
+ * 네이놈 로고 전용 서체 (SB 어그로). 굵기가 셋 다 있는 몇 안 되는 디스플레이 서체라
+ * 합성 볼드 없이 300/500/700을 쓸 수 있다 — 로고는 700을 쓴다.
+ */
+@font-face {
+  font-family: 'Aggravo';
+  src: url('./assets/fonts/SBAggroL.woff')
+    format('woff');
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Aggravo';
+  src: url('./assets/fonts/SBAggroM.woff')
+    format('woff');
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Aggravo';
+  src: url('./assets/fonts/SBAggroB.woff')
+    format('woff');
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* 날짜 전용 서체 (SF 함박눈). 날짜칸의 날짜 한 줄에만 쓴다. */
+@font-face {
+  font-family: 'SfHambakneun';
+  src: url('./assets/fonts/SF_HambakSnow.woff') format('woff');
+  font-weight: normal;
+  font-display: swap;
+}
+
+:root {
+  /*
+   * 폰트 두 벌.
+   *  --font-base  본문 전부. Pretendard(이 파일 상단에서 npm 패키지로 번들) → 시스템 폰트 폴백.
+   *  --font-point 게임이 자기 목소리를 내는 자리에만. 한 벌짜리 굵은 디스플레이 서체라
+   *               본문·숫자에 쓰면 tabular 정렬이 깨지고 위계가 뭉갠다.
+   * ⚠️ **포인트 폰트는 게임 요소에만 쓴다** — OS 크롬(잠금화면 시계·작업 표시줄·창 타이틀)은
+   * 시스템 폰트라야 "가짜 윈도우"로 읽힌다. 서체를 섞는 경계가 곧 OS/게임의 경계다.
+   */
+  --font-base: 'Pretendard Variable', Pretendard, 'Segoe UI', 'Malgun Gothic', sans-serif;
+  --font-point: 'Cafe24Anemone', var(--font-base);
+  /* 날짜칸의 날짜 한 줄 전용(설계자 지시). 포인트 폰트와 별개인 이유는
+     이 한 자리가 다른 포인트 자리(플레이어명·엔딩 제목)와 성격이 다르기 때문이다 —
+     둘을 --font-point 하나로 묶으면 한쪽을 바꿀 때 나머지가 딸려간다. */
+  --font-date: 'SfHambakneun', var(--font-point);
+  /* 네이놈 로고 전용. 브랜드 마크 하나에만 쓰므로 --font-point와 묶지 않는다 —
+     묶으면 게임 쪽 포인트 서체를 바꿀 때 사이트 로고까지 딸려간다. */
+  --font-logo: 'Aggravo', var(--font-base);
+
+  /* 간격 사다리 (4/8 리듬) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* 타입 스케일 */
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-base: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 18px;
+  --fs-2xl: 24px;
+  --fs-3xl: 32px;
+
+  /* 모서리 */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --r-xl: 12px;
+
+  /*
+   * 고도(그림자) 3단.
+   * 1 = 바닥에 붙은 요소(입력창·칩), 2 = 떠 있는 표면(창·HUD 패널),
+   * 3 = 화면을 가로막는 표면(엔딩 모달).
+   * 각 단은 "가까운 윤곽 + 넓고 옅은 확산" 2겹으로 구성한다 — 한 겹짜리 큰 그림자는
+   * 대비만 세지고 거리감이 생기지 않아 싸구려로 읽힌다.
+   */
+  --el-1:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.08);
+  --el-2:
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 8px 20px rgba(0, 0, 0, 0.14);
+  --el-3:
+    0 4px 8px rgba(0, 0, 0, 0.16),
+    0 24px 56px rgba(0, 0, 0, 0.34);
+
+  /* ── OS 크롬: 윈도우 11 라이트 테마 ── */
+  --os-surface: #fdfdfd; /* 창 본문 (거의 흰색) */
+  --os-surface-alt: #f9f9f9; /* 창 배경 */
+  --os-chrome: #f3f3f3; /* 타이틀 바 */
+  /* 크롬보다 한 단 어두운 띠. 활성 요소가 --os-chrome으로 얹혀 도드라져야 하는 자리에 쓴다
+     (가짜 브라우저의 탭 줄). 단독으로는 배경일 뿐이라 대비 대상이 아니다. */
+  --os-chrome-alt: #dfe1e5;
+  --os-fill: #f0f0f0; /* 창 안의 보조 블록 */
+  --os-border: rgba(0, 0, 0, 0.08); /* 윈도우 11의 1px 경계는 검정 8% 선이다 */
+  --os-border-strong: rgba(0, 0, 0, 0.14);
+  --os-text: #1a1a1a; /* 대비 15.9:1 on #fdfdfd */
+  --os-text-2: #444; /* 본문 보조. 대비 9.2:1 */
+  --os-text-3: #5c5c5c; /* 최소 보조. 대비 6.4:1 — #999(2.8:1) 금지 */
+  --os-accent: #0067c0; /* 윈도우 11 시스템 액센트 */
+  --os-accent-hover: #005ba1;
+  /* 액센트 배경 틴트. "켜진 토글"처럼 액센트로 눌린 상태를 알릴 때 쓴다
+     (주소창 즐겨찾기 별표 등). --os-fill과 달리 색이 있어 중립 hover와 구분된다. */
+  --os-accent-wash: rgba(0, 103, 192, 0.1);
+  /* 액센트 헤어라인. 테두리 장식처럼 "있는 줄은 알지만 읽지는 않는" 선에 쓴다.
+     텍스트에는 쓰지 않는다 — 대비가 모자란다. */
+  --os-accent-line: rgba(0, 103, 192, 0.45);
+  --os-accent-press: #004e8a;
+  --os-danger: #c42b1c;
+  --os-success: #0f7b3d;
+  --os-warn-bg: #fff4e0;
+  --os-warn-border: #d68a1a;
+  --os-warn-text: #6b4200;
+
+  /* ── 게임 HUD: 밝은 모던 시스템 카드 (윈도우 11 액센트 단일) ──
+     2026-08-03 방향 전환. 다크 판타지(근검정 + 샴페인 골드)는 폐기했다 —
+     설계자 요구가 "밝은 UI · 모던한 시스템 디자인"이다. 레퍼런스는 윈도우 11 위젯 /
+     깔끔한 SaaS 대시보드 카드이며, 장식(세리프 부제·✳ 오너먼트·금테)은 전부 걷어냈다.
+     남긴 것은 장식이 아니라 좋은 설계인 부분이다: 단일 액센트, 우측 정렬 tabular 숫자,
+     넉넉한 행 간격, 상자-속-상자 금지, 구역 구조.
+
+     ui-ux-pro-max 근거:
+      - style `Executive Dashboard`: "clean layout with white space", 큰 KPI 숫자,
+        professional blue/grey/white 팔레트 + KPI용 액센트 하나.
+      - style `Swiss Modernism 2.0`: "#FFFFFF / #F5F5F5 + single vibrant accent only",
+        "minimal decoration", WCAG AAA. → 액센트를 하나로 묶고 장식을 없애는 근거.
+      - ux `visual-hierarchy`: "hierarchy via size, spacing, contrast — not color alone".
+      - ux `whitespace-balance`: 간격으로 묶고 나눈다(칸막이 상자 금지).
+      - ux `color-accessible-pairs`: 아래 값은 계산 후 **반투명 합성 픽셀 실측**으로 재검증했다.
+
+     ⚠️ 반투명 표면의 색은 토큰이 아니라 합성 결과가 정한다. 알파 0.9 카드가 파란 벽지
+     위에 얹히면 실제 픽셀은 순백이 아니라 밝은 청회색이 되고, 그만큼 대비가 깎인다.
+     그래서 텍스트/경고색은 #fff 기준이 아니라 합성 픽셀 기준으로 골랐다. */
+  --hud-bg: rgba(252, 252, 253, 0.9); /* 니어 화이트 아크릴 */
+  --hud-bg-solid: #fbfbfd; /* backdrop-filter 미지원 시 폴백 */
+  --hud-track: rgba(0, 0, 0, 0.1); /* 게이지 트랙 — 옅은 회색 홈 */
+  --hud-border: rgba(0, 0, 0, 0.09); /* 패널 바깥 헤어라인 (--os-border와 같은 계열) */
+  --hud-rule: rgba(0, 0, 0, 0.08); /* 구역을 가르는 헤어라인 */
+  --hud-text: #14161a; /* 잉크. 합성 표면 대비 14:1+ */
+  --hud-text-2: #3f444c; /* 라벨·글리프. 8:1+ */
+  /* 최소 보조(주석·구역 라벨).
+     Pretendard로 바꾸면서 #585e68이 실측 4.55:1까지 내려왔다 — 획이 Segoe UI보다 얇아
+     안티에일리어싱이 먹은 픽셀이 늘었기 때문이다. AA(4.5:1)는 넘지만 여유가 없어
+     한 단 어둡게 내린다. 색 값은 계산이 아니라 스크린샷 픽셀로 다시 쟀다(5.4:1). */
+  --hud-text-3: #4e545e;
+  /* 단 하나의 액센트 — 윈도우 11 시스템 액센트(--os-accent와 같은 값).
+     별도 색상환을 열지 않는 것이 "OS 위의 시스템 위젯"이라는 인상의 근거다.
+     텍스트로는 쓰지 않는다(합성 표면 위 4.5:1 경계) — 게이지·글리프·테두리 전용. */
+  --hud-accent: #0067c0;
+  --hud-accent-strong: #005ba1; /* hover/press */
+  --hud-accent-line: rgba(0, 103, 192, 0.28); /* 칩 테두리 헤어라인 */
+  --hud-accent-wash: rgba(0, 103, 192, 0.09); /* 칩 배경 틴트 */
+  --hud-fill: rgba(0, 0, 0, 0.03); /* 버튼 기본 면 (윈도우 11 표준 버튼) */
+  --hud-fill-hover: rgba(0, 0, 0, 0.06);
+  --hud-fill-press: rgba(0, 0, 0, 0.1);
+  /* --os-danger(#c42b1c)는 이 반투명 표면 위에서 4.5:1 경계라 한 단 어둡게 잡았다. */
+  --hud-danger: #b3261e;
+  --hud-blur: blur(24px) saturate(150%); /* 윈도우 11 아크릴: 블러 + 채도 보존 */
+
+  /* ── 게임 안의 웹사이트: 네이놈 포털 (--nv-*) ──
+     세 번째 시각 언어다. OS 크롬(--os-*)·HUD(--hud-*)와 섞지 않는 이유는 같다 —
+     브라우저 안의 내용물은 "OS가 그린 창"이 아니라 "웹페이지"로 읽혀야 한다.
+     근거: color DB "Government Portal / Civic Services"(card #FFFFFF, muted 계열 배경,
+     서비스 그린 액센트, notes "accessibility") + 국내 포털 특유의 초록 아이덴티티.
+     모든 텍스트 색은 4.5:1 이상을 계산으로 맞추고 픽셀로 재검증했다. */
+  --nv-bg: #f2f4f6; /* 페이지 배경 (창 표면보다 살짝 어두워 "사이트"로 분리돼 보인다) */
+  --nv-surface: #ffffff; /* 카드 */
+  --nv-surface-alt: #f7f8fa; /* 카드 안의 보조 블록 */
+  --nv-border: #dde1e6;
+  --nv-text: #16181d; /* 17.8:1 on #fff */
+  --nv-text-2: #3f454e; /* 9.7:1 */
+  --nv-text-3: #5b6472; /* 6.0:1 on #fff, 5.4:1 on --nv-bg — 최소 보조색 */
+  --nv-green: #0b7a3b; /* 로고·링크 등 텍스트급 브랜드 초록. 5.4:1 on #fff */
+  --nv-green-strong: #096331; /* hover/press. 7.4:1 */
+  --nv-green-bright: #03c75a; /* 2.25:1 — 장식 전용(테두리·액센트 바). 텍스트 금지 */
+  /* 지표 칩용. 생활비 인상처럼 플레이어에게 불리한 값에 쓴다. 6.0:1 on #fff */
+  --nv-danger: #b3261e;
+  --nv-danger-bg: #fdecea;
+  --nv-green-bg: #e8f6ee;
+  --nv-ad: #8a5300; /* [광고] 라벨. 6.3:1 on #fff */
+  --nv-ad-bg: #fff8e8;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -8,6 +239,63 @@ body,
   margin: 0;
   height: 100%;
   overflow: hidden;
-  font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+  font-family: var(--font-base);
   user-select: none;
+}
+
+/*
+ * hover/press 상태 전환.
+ * 없으면 색이 즉시 튀어 싸구려처럼 보인다. 150ms는 "반응이 빠르다"고
+ * 느끼면서도 전환이 인지되는 구간이다(300ms를 넘기면 굼떠 보인다).
+ * 색과 그림자만 전환한다 — width/height를 전환하면 레이아웃 리플로우가 일어난다.
+ */
+button,
+.desktop-icon,
+.taskbar-item,
+.stat-cell {
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    border-color 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+
+/*
+ * 키보드 포커스 표시.
+ * 없으면 Tab으로 이동할 때 지금 어디에 있는지 알 수 없다.
+ * :focus-visible을 쓰므로 마우스 클릭에는 테두리가 뜨지 않는다(윈도우 동작과 동일).
+ */
+:focus-visible {
+  outline: 2px solid var(--os-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* 닫기 버튼은 빨간 배경 위에 뜨므로 흰 테두리라야 보인다. */
+.win-close:focus-visible {
+  outline-color: #fff;
+  outline-offset: -3px;
+}
+
+/* HUD가 밝은 표면이 되면서 골드 링 오버라이드는 폐기했다.
+   대신 HUD가 자기 액센트 토큰을 명시적으로 소유하게 둔다 — 지금은 --os-accent와
+   같은 값이지만, 링 색이 HUD 팔레트를 따른다는 사실을 코드에 남겨야
+   나중에 HUD 액센트만 바뀌어도 링이 따라온다.
+   ux `focus-states`: 링은 표면이 바뀌어도 보여야 한다(밝은 카드 위 5.5:1). */
+.hud :focus-visible {
+  outline-color: var(--hud-accent);
+}
+
+/*
+ * 모션 최소화 설정을 켠 사용자에게는 전환 효과를 끈다.
+ * 전정 장애가 있는 사용자에게 움직임은 어지럼증을 유발할 수 있다.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

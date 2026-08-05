@@ -1,0 +1,50 @@
+/* 준비 중 사이트 공용 페이지. 포털과 같은 --nv-* 언어를 쓴다. */
+.nv-construction {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* 전체 화면 창에서는 페이지가 길게 늘어나므로 위에 붙지 않고 가운데에 놓인다
+     (StubApp과 같은 처리). 창을 복원해 짧아지면 그대로 위에서부터 흐른다. */
+  justify-content: center;
+  gap: var(--sp-4);
+  min-height: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: var(--sp-8) var(--sp-6);
+  text-align: center;
+}
+
+.nv-construction-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  color: var(--nv-text);
+}
+
+.nv-construction-text {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: 1.7;
+  color: var(--nv-text-3); /* 5.4:1 on --nv-bg */
+}
+
+/* 이 페이지의 유일한 행동이므로 단일 CTA로 둔다(style `primary-action`). */
+.nv-construction-home {
+  padding: var(--sp-2) var(--sp-5);
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--nv-green);
+  font: inherit;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--nv-surface); /* 흰 글자 5.4:1 */
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.nv-construction-home:hover {
+  background: var(--nv-green-strong);
+}

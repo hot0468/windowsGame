@@ -1,0 +1,257 @@
+/*
+ * 자동 진행 요약 창.
+ *
+ * 이것은 **OS 창 안의 내용**이므로 `--os-*` 토큰만 쓴다(HUD의 --hud-*, 사이트의 --nv-*와
+ * 섞지 않는다). 생 hex·임의 px을 새로 적지 않는다(ui-ux-pro-max `elevation-consistent`,
+ * `color-semantic`).
+ *
+ * 판형 근거 — style `Executive Dashboard`:
+ *  - "large KPI cards (4-6 max)", "large font-size (24-48px) for metrics"
+ *  - "status indicators (border-left color)" → 멈춘 이유 카드의 좌측 띠
+ *  - "high-level summary only", "one-page view" → 요약이 위, 상세는 아래에서 스크롤
+ * typography `number-tabular`: 금액·수치는 전부 tabular figure(줄이 흔들리지 않는다).
+ * ux `whitespace-balance`: 구역은 상자가 아니라 여백 + 작은 제목이 가른다.
+ */
+.alog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  font-size: var(--fs-base);
+  color: var(--os-text);
+}
+
+/* ── 머리: 언제부터 언제까지 ── */
+
+.alog-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-3);
+}
+
+/* 이 창의 주인공 문장. 타입 스케일 상단(18px)으로 위계를 만든다(ux `visual-hierarchy`). */
+.alog-range {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.alog-sub {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 멈춘 이유 ── */
+
+/* 좌측 상태 띠 + "멈춘 이유" 라벨. 색만으로 뜻을 전하지 않도록 라벨 글자를 함께 둔다
+   (ux `color-not-only`). 기본은 중립 액센트, 나쁜 소식만 danger로 갈린다. */
+.alog-stop {
+  border-left: 3px solid var(--os-accent);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: var(--os-accent-wash);
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.alog-stop-bad {
+  border-left-color: var(--os-danger);
+  background: var(--os-warn-bg);
+}
+
+.alog-stop-label {
+  display: block;
+  margin-bottom: var(--sp-1);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--os-text-3);
+}
+
+.alog-stop-text {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.alog-empty {
+  margin: 0;
+  padding: var(--sp-5);
+  border: 1px dashed var(--os-border-strong);
+  border-radius: var(--r-md);
+  color: var(--os-text-2);
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* ── KPI 줄 ── */
+
+.alog-kpis {
+  display: grid;
+  /* ⚠️ 최소 폭이 열 수를 정한다(`auto-fit` 규칙). 창 폭 520px(본문 ~470px)에서 3열이 되면
+     KPI 4개가 3+1로 갈라져 넷째 칸만 외따로 남는다 — 150px으로 잡아 2×2를 만든다. */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--sp-3);
+}
+
+.alog-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-md);
+  background: var(--os-fill);
+}
+
+.alog-kpi-label {
+  font-size: var(--fs-xs);
+  color: var(--os-text-3);
+}
+
+/* 숫자가 주인공. 금액은 자릿수가 길어 24px은 넘치므로 18px + tabular로 잡는다. */
+.alog-kpi-value {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 수입/지출은 부호(+/−)가 이미 붙어 있어 색은 보강일 뿐이다(ux `color-not-only`). */
+.alog-kpi-up {
+  color: var(--os-success);
+}
+
+.alog-kpi-down {
+  color: var(--os-danger);
+}
+
+.alog-kpi-sub {
+  font-size: var(--fs-xs);
+  color: var(--os-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 구역 ── */
+
+.alog-sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--os-border);
+}
+
+.alog-sec-title {
+  margin: 0;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--os-text-3);
+}
+
+.alog-events {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+/* 항목마다 상자를 두르지 않는다 — 목록이 길어지면 칸막이 서랍처럼 읽힌다
+   (HUD의 "상자 금지"와 같은 판단). 구분은 간격이 한다. */
+.alog-event {
+  padding-left: var(--sp-3);
+  border-left: 2px solid var(--os-border-strong);
+  line-height: 1.5;
+  color: var(--os-text-2);
+}
+
+.alog-event-bad {
+  border-left-color: var(--os-danger);
+  color: var(--os-text);
+}
+
+.alog-none {
+  margin: 0;
+  color: var(--os-text-3);
+}
+
+/* ── 스탯 변화 칩 ── */
+
+.alog-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-2);
+  margin: 0;
+}
+
+.alog-chip {
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--os-fill);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.alog-chip-up {
+  color: var(--os-success);
+}
+
+.alog-chip-down {
+  color: var(--os-danger);
+}
+
+/* ── 슬롯별 기록 ── */
+
+/*
+ * ⚠️ **여기에 자체 스크롤을 두지 않는다.** 창 본문(.win-body)에 이미 60vh 상한과
+ * 스크롤이 걸려 있어서(Window.css), 목록에도 스크롤을 주면 한 창에 스크롤 영역이 둘이 된다
+ * (ux `scroll-behavior`: 중첩 스크롤은 주 스크롤 경험을 방해한다 — 실측 스크린샷에서
+ * 실제로 스크롤바가 두 줄 생겼다). 긴 기록은 창 본문 하나로 굴린다.
+ */
+.alog-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.alog-step {
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid var(--os-border);
+  font-size: var(--fs-sm);
+}
+
+.alog-step:last-child {
+  border-bottom: none;
+}
+
+.alog-step-when {
+  color: var(--os-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.alog-step-what {
+  color: var(--os-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alog-step-miss {
+  color: var(--os-danger);
+}
+
+.alog-step-money {
+  color: var(--os-text-2);
+  font-variant-numeric: tabular-nums;
+}
+

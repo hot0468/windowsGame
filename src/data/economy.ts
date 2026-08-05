@@ -14,3 +14,18 @@ export const ECONOMY_TIERS: EconomyTier[] = [
   { day: 41, living: 75000, wageMultiplier: 1.48 },
   { day: 51, living: 95000, wageMultiplier: 1.55 },
 ]
+
+/** 표 이후 구간의 주기(일). 표와 같은 10일 간격을 이어간다. */
+export const TIER_INTERVAL = 10
+
+/**
+ * 표 이후 구간마다 곱해지는 생활비 상승률.
+ * 알바비 상승률보다 훨씬 커서, 마지막 표 구간 이후 생활비가 기하급수적으로 벌어진다.
+ */
+export const LIVING_GROWTH_RATE = 1.3
+
+/**
+ * 표 이후 구간마다 곱해지는 알바비 상승률.
+ * 생활비 상승률보다 낮게 두어 실질 소득이 반드시 역전되도록 한다.
+ */
+export const WAGE_GROWTH_RATE = 1.04

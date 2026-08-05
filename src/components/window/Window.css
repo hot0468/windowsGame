@@ -1,0 +1,318 @@
+/* 윈도우 11 라이트 테마 창.
+   맥스러운 요소(그라데이션 타이틀 바, 굵은 타이틀, 둥근 캡션 버튼, 짙은 그림자)를
+   전부 걷어내고 윈도우 11의 플랫한 시각 언어로 맞춘다. */
+.win {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  /* 윈도우 11의 창 배경은 칙칙한 #f0f0f0이 아니라 거의 흰색이다. */
+  background: var(--os-surface);
+  /* 윈도우 11의 창 테두리는 얇고 옅은 "검정 8%" 선이다 — 고정 회색(#e5e5e5)은
+     밝은 창 위에서는 진하고 어두운 배경 위에서는 튄다. */
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-lg);
+  /* 맥처럼 짙게 떠 있는 그림자 대신 공용 고도 2단(--el-2)을 쓴다.
+     컴포넌트마다 그림자를 새로 적지 않는 것이 규칙이다(style `elevation-consistent`). */
+  box-shadow: var(--el-2);
+  overflow: hidden;
+  min-width: 200px;
+}
+
+.win-title {
+  display: flex;
+  align-items: center;
+  /* 캡션 버튼이 우상단 모서리에 딱 붙어야 하므로 오른쪽 패딩을 두지 않는다. */
+  padding: 0 0 0 var(--sp-3);
+  gap: var(--sp-2);
+  /* ⚠️ 40px = SHELL.TITLE_BAR_HEIGHT (src/data/shell.ts). 바꿀 때 함께 고친다.
+     캡션 버튼이 타이틀 바 높이를 꽉 채우려면 높이가 고정돼야 한다. */
+  height: 40px;
+  /* 윈도우 11은 플랫 단색이다. 그라데이션은 구식이고 맥스럽다. */
+  background: var(--os-chrome);
+  border-bottom: 1px solid var(--os-border);
+  cursor: grab;
+  font-size: var(--fs-md);
+  /* 윈도우 11 타이틀은 굵지 않다(600 → 400). */
+  font-weight: 400;
+  color: var(--os-text);
+  user-select: none;
+}
+
+.win-title:active {
+  cursor: grabbing;
+}
+
+/* 전체 화면 창(OpenWindow.maximized — 런타임 상태).
+   높이·좌표는 Window.tsx가 인라인 style로 지정한다(뷰포트 리사이즈를 따라가야 하므로).
+   여기서는 전체 화면일 때만 달라지는 외형만 다룬다.
+   ⚠️ 작업 표시줄 높이 44px의 단일 출처는 src/data/shell.ts의 SHELL.TASKBAR_HEIGHT다. */
+.win-max {
+  /* 최대화 시에는 윈도우 11도 모서리를 각지게 만든다. */
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  box-shadow: none;
+}
+
+/* 끌 수 없는 창이므로 잡을 수 있다는 신호(grab 커서)를 주지 않는다.
+   현재는 전체 화면 창만 해당한다(스탯창·날짜칸은 HudPanel로 분리돼 이 크롬을 쓰지 않는다).
+   `fixed` prop은 앞으로 생길 고정 창을 위해 남겨 둔다. */
+.win-max .win-title,
+.win-fixed .win-title {
+  cursor: default;
+}
+
+.win-max .win-title:active,
+.win-fixed .win-title:active {
+  cursor: default;
+}
+
+/* 전체 화면 창의 본문은 60vh 상한 대신 남은 높이를 전부 채운다.
+   내용이 적어도 위쪽 작은 상자에 갇히지 않도록 자식을 세로로 늘린다. */
+.win-max .win-body {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.win-max .win-body > * {
+  flex: 1 1 auto;
+}
+
+/* 플랫 컬러 아이콘은 자체 색을 가지므로 color로 덧칠하지 않는다. */
+.win-title-icon {
+  flex: 0 0 auto;
+}
+
+.win-title-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── 캡션 버튼 (최소화 · 최대화/복원 · 닫기) ──
+   윈도우 캡션 버튼은 각진 직사각형이며 창 우상단 모서리에 딱 붙고
+   타이틀 바 높이를 꽉 채운다(맥처럼 둥근 버튼이 아니다). */
+.win-caption {
+  display: flex;
+  align-self: stretch;
+  margin-left: auto;
+}
+
+/* ⚠️ 회귀 주의: 세 버튼이 이 클래스를 공유해야 한다.
+   Window.tsx의 handlePointerDown이 이 클래스로 포인터 캡처를 건너뛰지 않으면
+   pointerup이 버튼에 닿지 않아 클릭이 성립하지 않는다. */
+.win-caption-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 윈도우 11 캡션 버튼의 표준 폭. */
+  width: 46px;
+  align-self: stretch;
+  border: none;
+  /* 각진 직사각형 — radius 0. */
+  border-radius: 0;
+  background: transparent;
+  color: var(--os-text);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+/* 최소화·최대화는 옅은 회색 hover. */
+.win-minimize:hover,
+.win-maximize:hover {
+  background: #e5e5e5;
+}
+
+.win-minimize:active,
+.win-maximize:active {
+  background: #dadada;
+}
+
+/* 닫기만 빨강 + 흰 아이콘 (윈도우 표준).
+   #e81123 대신 윈도우 11의 실제 시스템 위험색(--os-danger #c42b1c)을 쓴다 —
+   흰 글리프와의 대비가 4.5:1을 넘는 값이다(#e81123은 4.0:1로 미달). */
+.win-close:hover {
+  background: var(--os-danger);
+  color: #fff;
+}
+
+.win-close:active {
+  background: #a52218;
+  color: #fff;
+}
+
+/* 캡션 글리프는 가는 단색 선이라 아이콘 세트가 아니라 CSS 도형으로 그린다.
+   플랫 컬러 아이콘은 다색이라 닫기 hover 시 흰색으로 덧칠할 수 없다.
+   currentColor를 쓰므로 버튼의 color만 바꾸면 글리프도 함께 따라온다. */
+.win-glyph {
+  display: block;
+  position: relative;
+  width: 10px;
+  height: 10px;
+}
+
+/* 최소화: 가로줄 하나. */
+.win-glyph-minimize {
+  height: 1px;
+  background: currentColor;
+}
+
+/* 최대화: 빈 사각형 하나. */
+.win-glyph-maximize {
+  border: 1px solid currentColor;
+}
+
+/* 복원: 겹친 사각형 두 개(윈도우 표준 복원 글리프). */
+.win-glyph-restore::before,
+.win-glyph-restore::after {
+  content: '';
+  position: absolute;
+  border: 1px solid currentColor;
+}
+
+/* 뒤쪽(오른쪽 위로 어긋난) 사각형. */
+.win-glyph-restore::before {
+  left: 2px;
+  top: 0;
+  width: 8px;
+  height: 8px;
+}
+
+/* 앞쪽 사각형. 뒤쪽 사각형의 선을 가려야 "겹친 창"으로 읽히므로 배경을 채운다.
+   버튼 배경과 같은 색이어야 하며, hover로 배경이 바뀌면 아래에서 함께 갱신한다. */
+.win-glyph-restore::after {
+  left: 0;
+  top: 2px;
+  width: 8px;
+  height: 8px;
+  background: var(--os-chrome);
+}
+
+.win-maximize:hover .win-glyph-restore::after {
+  background: #e5e5e5;
+}
+
+.win-maximize:active .win-glyph-restore::after {
+  background: #dadada;
+}
+
+/* 닫기: X. 선 두 개를 회전시켜 만든다. */
+.win-glyph-close::before,
+.win-glyph-close::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+}
+
+.win-glyph-close::before {
+  transform: rotate(45deg);
+}
+
+.win-glyph-close::after {
+  transform: rotate(-45deg);
+}
+
+/*
+ * 테두리 장식은 타이틀 바를 비켜 본문 영역만 감싼다 — 타이틀 바는 윈도우 11 크롬이고
+ * 거기에 장식이 걸치면 OS 크롬을 게임이 침범한 꼴이 된다.
+ * ⚠️ 45px = SHELL.TITLE_BAR_HEIGHT(40) + 장식 여백(5). CSS가 TS 상수를 못 읽어
+ * 중복해 둔 값이므로 타이틀 바 높이를 바꾸면 여기도 함께 고친다(layers.ts와 같은 규칙).
+ * .win-body 안이 아니라 밖에 두는 이유: 본문은 스크롤 컨테이너라 안에 넣으면
+ * 장식이 내용과 함께 굴러 올라가 버린다.
+ */
+.win > .panel-ornament {
+  top: 45px;
+}
+
+.win-body {
+  /* 장식이 붙는 창(활동창·안내창)에서 액자선과 글자가 붙지 않도록 20px.
+     장식선이 5px 안쪽에 있으므로 실제 여백은 14px이다. */
+  padding: var(--sp-5);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--os-text);
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+/*
+ * 일정(스케줄러)은 달력이라 **세로로 커야 읽힌다**(설계자 지시: 화면에 거의 꽉 차게).
+ * `.win-body`의 60vh 상한이 걸리면 실제 높이와 무관하게 세로 스크롤바가 생기므로
+ * 이 창에서만 상한을 푼다 — 실제 높이는 `.sch`의 min-height가 정한다.
+ */
+/* 파일 탐색기도 같은 이유다 — 목록 창이라 세로로 커야 하고, 실제 높이는 `.ex`가 정한다. */
+.win-body:has(> .sch),
+.win-body:has(> .ex) {
+  max-height: none;
+}
+
+/*
+ * 제목 없는 타이틀 바(bareTitle). 캡션 버튼만 남고 앱 배경이 창 꼭대기까지 올라온다 —
+ * 레퍼런스(카톡·네이트온 PC)에는 회색 OS 타이틀 바가 보이지 않는다.
+ *
+ * 바를 **본문 위에 겹쳐** 띄우는 것이 핵심이다. 흐름에 그대로 두면 앱 색이 시작되기 전에
+ * 빈 띠가 한 줄 생겨 "타이틀 바를 지운" 인상이 나오지 않는다.
+ * 겹쳐도 드래그·더블클릭 최대화는 그대로 동작한다.
+ */
+.win-title-bare {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  background: transparent;
+  border-bottom: none;
+}
+
+/* 본문 패딩을 걷어내 앱이 창 가장자리까지 자기 색을 칠하게 한다.
+   캡션 버튼에 가리지 않도록 위쪽을 비우는 것은 **앱의 몫**이다 —
+   여기서 padding-top을 주면 앱 배경이 그만큼 위에서 잘려 타이틀 바가 다시 보인다. */
+.win-bare .win-body {
+  padding: 0;
+  /* 상한을 완전히 풀면 내용이 긴 창이 화면보다 커져 위치 보정으로도 담을 수 없다.
+     ⚠️ 44px = SHELL.TASKBAR_HEIGHT, 여기에 위아래 숨 56px을 더한 값이다. */
+  max-height: calc(100vh - 100px);
+}
+
+/*
+ * 어두운 창 크롬(dark). 명령 프롬프트처럼 **창 전체가 어두운 프로그램**용이다.
+ * 캡션 글리프를 밝은 색으로 뒤집지 않으면 어두운 바 위에서 보이지 않는다.
+ * 닫기 hover의 빨강만 그대로 둔다 — 어느 테마에서도 같은 뜻이기 때문이다.
+ */
+.win-dark {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.win-dark .win-caption-btn {
+  color: #e6e6e6;
+}
+
+.win-dark .win-minimize:hover,
+.win-dark .win-maximize:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.win-dark .win-minimize:active,
+.win-dark .win-maximize:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 복원 글리프의 앞쪽 사각형은 배경을 채워 뒤쪽 선을 가린다 —
+   어두운 크롬에서는 그 채움색도 어두워야 한다. */
+.win-dark .win-glyph-restore::after {
+  background: #2b2b2b;
+}
+
+.win-dark .win-maximize:hover .win-glyph-restore::after {
+  background: #3a3a3a;
+}
