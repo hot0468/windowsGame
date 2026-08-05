@@ -45,6 +45,8 @@ export const UI_ICONS = {
   skipTurn: 'fluent-color:fast-forward-circle-24',
   /** 준비 중인 앱의 안내 창. */
   underConstruction: 'fluent-color:wrench-screwdriver-24',
+  /** 자동 진행 요약 창. "지나간 시간의 기록"이므로 시계 방향 화살표 계열을 쓴다. */
+  autoLog: 'fluent-color:history-24',
   /**
    * 잠금화면 아바타.
    * ⚠️ 예전의 다색 이모지 아이콘에서 바꿨다 — 어두운 잠금화면 위에서
@@ -110,6 +112,13 @@ export const HUD_ICONS = {
   slotAfternoon: 'mdi:weather-night',
   /** 슬롯 건너뛰기 버튼. */
   skipTurn: 'mdi:fast-forward-outline',
+  /**
+   * 자동 진행 시작. 건너뛰기(fast-forward)와 **다른 글리프여야 한다** —
+   * 바로 위아래에 붙는 두 버튼이 같은 모양이면 "한 칸"과 "계속"이 구분되지 않는다.
+   */
+  autoRun: 'mdi:play-speed',
+  /** 자동 진행 멈추기. 정지는 단호한 뜻이라 유일하게 채운 글리프를 쓴다. */
+  autoStop: 'mdi:stop-circle-outline',
   /** 턴 소모 안내. */
   turnCost: 'mdi:timer-sand',
   // calendarPanel(날짜칸 머리 글리프)은 제거했다 — 날짜칸에서 타이틀 영역 자체가 사라졌다.

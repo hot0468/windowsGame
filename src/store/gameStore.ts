@@ -14,7 +14,17 @@ import { findItem } from '../data/items'
 import { clearPlan, planWeekly, runPlans, setPlan } from '../systems/schedule'
 import { collect, order, owns, recordEvent } from '../systems/delivery'
 import { advanceEmployment, applyTo, canApply } from '../systems/employment'
+import { selectIncoming } from '../systems/messages'
+import {
+  AUTO_STOPPED_BY_PLAYER,
+  appendStep,
+  endRun,
+  findStop,
+  startRun,
+} from '../systems/autoAdvance'
+import { AUTO_STEP_MS } from '../data/autoAdvance'
 import { findCareer } from '../data/careers'
+import type { AutoRun, AutoStop, StopContext } from '../systems/autoAdvance'
 import type { Career } from '../data/careers'
 import type { OfferOption } from '../data/messages'
 import type { ShopItem } from '../data/items'
@@ -189,8 +199,8 @@ export function selectPersistedState(state: GameState | null): { state: GameStat
  * **턴을 넘기는 모든 통로가 여기를 지난다** — 예약 실행(`runPlans`)과 택배 수령(`collect`)을
  * 호출부마다 적어 두면 새 통로가 생길 때마다 하나씩 빠뜨린다.
  */
-function afterTurn(next: GameState) {
-  const ran = runPlans(next)
+function afterTurn(next: GameState, chain?: number) {
+  const ran = runPlans(next, chain)
   const got = collect(ran.state)
   // ⚠️ 고용 정산은 **예약 연쇄가 끝난 뒤**에 한 번 돈다. 커서(`checkedDay`)와
   //    급여 루프가 밀린 날짜를 따라잡도록 돼 있어, 며칠이 한 번에 흘러도 새지 않는다.
@@ -266,176 +276,320 @@ interface GameStore {
   clearJobNotices: () => void
   markEndingSeen: (endingId: string) => void
   reset: () => void
+
+  /* ── 자동 진행 ──────────────────────────────────────────────────────── */
+  /**
+   * 지금 자동으로 흐르고 있는가. **휘발**이다 — 새로고침하면 멈춘 상태에서 시작한다
+   * (달리는 채로 저장하면 창을 다시 열자마자 손댈 수 없는 흐름이 시작된다).
+   */
+  autoRunning: boolean
+  /** 이번 진행에서 지금까지 넘긴 슬롯 수. 진행 표시(ux `Progress Indicators`)에 쓴다. */
+  autoSlots: number
+  /**
+   * 마지막 자동 진행의 보고서. 다음 진행이 시작될 때 갈아 끼운다.
+   * ⚠️ **휘발이지만 진행이 끝나도 비우지 않는다** — 요약 창을 닫았다가 다시 열 수 있어야 한다.
+   */
+  autoRun: AutoRun | null
+  /** 자동 진행을 시작한다. 게임오버거나 이미 달리는 중이면 아무것도 하지 않는다. */
+  startAuto: () => void
+  /** 진행을 즉시 멈춘다. 다음 슬롯은 실행되지 않는다. */
+  stopAuto: () => void
 }
+
+/**
+ * 자동 진행이 한 번에 밀어내는 슬롯 수.
+ *
+ * ⚠️ **1이어야 한다.** 예약 연쇄(`runPlans`)는 기본값 40슬롯까지 한 번에 달리는데,
+ * 그 안에서는 급여일도 택배도 보이지 않아 "멈춰야 하는가"를 물을 수가 없다.
+ * 연쇄를 여기 루프가 대신 돌면 슬롯마다 정지 조건을 물을 수 있고, 실행 통로는
+ * 여전히 `afterTurn` 하나로 남는다(예약 → 택배 → 고용 순서도 그대로다).
+ */
+const AUTO_CHAIN = 1
 
 export const useGameStore = create<GameStore>()(
   persist(
-    (set, get) => ({
-      state: null,
-      loggedIn: false,
+    (set, get) => {
+      /**
+       * 다음 슬롯을 예약해 둔 타이머. 모듈 스코프인 이유는 **취소할 수 있어야 하기 때문**이다 —
+       * 상태에 넣으면 리렌더마다 새 값이 되어 정리 시점이 흐려진다.
+       */
+      let autoTimer: ReturnType<typeof setTimeout> | null = null
 
-      /** 새 게임: 기존 세이브를 버리고 새로 만든다. */
-      startGame: (name) => set({ state: createInitialState(name), loggedIn: true }),
+      const clearAutoTimer = () => {
+        if (autoTimer !== null) clearTimeout(autoTimer)
+        autoTimer = null
+      }
 
-      /** 이어하기: 기존 세이브를 그대로 두고 로그인만 처리한다. */
-      continueGame: () => {
-        if (!get().state) return
-        set({ loggedIn: true })
-      },
-
-      /** 잠금화면으로 돌아간다. 세이브는 유지된다. */
-      logout: () => set({ loggedIn: false }),
-
-      skippedPlans: [],
-      clearSkipped: () => set({ skippedPlans: [] }),
-
-      arrivals: [],
-      clearArrivals: () => set({ arrivals: [] }),
-
-      jobNotices: [],
-      clearJobNotices: () => set({ jobNotices: [] }),
-
-      applyToCareer: (career) => {
-        const current = get().state
-        if (!current || !canApply(current)) return
-        const activity = findActivity('job-apply')
-        if (!activity || !canRun(current, activity)) return
-        // ⚠️ 게이트를 **먼저** 묻고 기록을 만든다. 기록을 먼저 만들면 그 기록 자체가
-        //    "이미 지원한 상태"가 되어 게이트가 닫힌다.
-        const applied = applyTo(current, career)
-        if (applied === current) return
-        set(afterTurn(runActivity(applied, activity)))
-      },
-
-      orderItem: (item) => {
-        const current = get().state
-        if (!current) return
-        const next = order(current, item)
-        if (next === current) return
-        set({ state: next })
-      },
-
-      acceptOffer: (option) => {
-        const current = get().state
-        if (!current) return
-        // 결제부터 한다 — 잔액이 모자라면 spendMoney가 상태를 그대로 돌려주므로
-        // 아래에서 그걸 확인해 예약·활동을 건너뛴다(외상으로 등록되면 안 된다).
-        let next = option.cost ? spendMoney(current, option.cost) : current
-        if (option.cost && next === current) return
-
-        // 물건을 사는 제안(헬스장 회원권)은 **쇼핑과 같은 통로**를 탄다 —
-        // 가격·중복 구매 판정·다음 날 도착이 전부 `systems/delivery.ts` 하나에 있다.
-        // 이미 가진 물건이면 결제를 건너뛰고 아래의 주간 예약만 다시 걸어 준다
-        // (재등록이 막히면 회원이 회원 대접을 못 받는다).
-        if (option.itemId) {
-          const item = findItem(option.itemId)
-          if (!item) return
-          if (!owns(next, item.id)) {
-            const ordered = order(next, item)
-            // 잔액 부족·이미 배송 중이면 아무것도 하지 않는다(반쪽 상태를 남기지 않는다).
-            if (ordered === next) return
-            next = ordered
-          }
-        }
-
-        if (option.weekly) {
-          next = {
-            ...recordEvent(next, 'gym-member'),
-            plans: planWeekly(
-              next.plans ?? [],
-              next.day,
-              option.weekly.weekday,
-              option.weekly.weeks,
-              option.weekly.activityId,
-            ),
-          }
-        }
-
-        if (option.activityId) {
-          const activity = findActivity(option.activityId)
-          if (activity && canRun(next, activity)) {
-            set(afterTurn(runActivity(next, activity)))
-            return
-          }
-          // 조건이 안 되면 결제도 예약도 하지 않는다 — 반쪽짜리 상태를 남기지 않는다.
-          if (activity) return
-        }
-
-        set({ state: next })
-      },
-
-      planActivity: (day, slot, activityId) => {
-        const current = get().state
-        if (!current) return
-        // 지난 슬롯에는 못 넣는다 — 과거를 예약하는 건 말이 안 된다.
-        const now = current.day * 2 + (current.slot === 'afternoon' ? 1 : 0)
-        if (day * 2 + (slot === 'afternoon' ? 1 : 0) < now) return
-        const planned = { ...current, plans: setPlan(current.plans ?? [], day, slot, activityId) }
-        set({ state: recordEvent(planned, 'first-plan') })
-      },
-
-      unplan: (day, slot) => {
-        const current = get().state
-        if (!current) return
-        set({ state: { ...current, plans: clearPlan(current.plans ?? [], day, slot) } })
-      },
+      /** 진행을 끝내고 보고서를 확정한다. 사유는 반드시 남긴다. */
+      const finishAuto = (stop: AutoStop | null) => {
+        clearAutoTimer()
+        const run = get().autoRun
+        set({ autoRunning: false, autoRun: run ? endRun(run, stop) : null })
+      }
 
       /**
-       * ⚠️ 행동 뒤에는 **항상 예약을 흘려 보낸다**(`runPlans`).
-       * 턴을 넘기는 통로가 여기 둘(doActivity·doSkip)뿐이라 여기서만 부르면 빠짐이 없다.
-       * `turn.ts`가 예약을 모르는 것은 의도다 — 턴 규칙이 스케줄러를 모르게 두어야
-       * 밸런스 테스트가 스케줄러 없이도 성립한다.
+       * 자동 진행 한 걸음 = **슬롯 하나**.
+       *
+       * ⚠️ 턴을 넘기는 방법을 여기서 새로 만들지 않는다 — `afterTurn`을 연쇄 상한 1로
+       * 부르는 것이 전부다. 그래야 예약 실행·조건 미달 처리·택배 수령·고용 정산이
+       * 손으로 플레이할 때와 **완전히 같은 함수, 같은 순서**로 일어난다.
        */
-      doActivity: (activity) => {
-        const current = get().state
-        if (!current || !canRun(current, activity)) return
-        set(afterTurn(runActivity(current, activity)))
-      },
-
-      /**
-       * ⚠️ **이미 있는 세이브 검증기(`reviveState`)를 그대로 쓴다.**
-       * 여기서 따로 검사하면 규칙이 두 곳으로 갈라지고, 손으로 고친 세이브가
-       * 그쪽 구멍으로 들어온다 — NaN 스탯이 들어오면 게임오버 판정이 영영 안 걸린다.
-       */
-      importSave: (raw) => {
-        try {
-          const revived = reviveState(JSON.parse(raw))
-          if (!revived) return false
-          set({ state: revived })
-          return true
-        } catch {
-          return false
+      const autoTick = () => {
+        autoTimer = null
+        const { autoRunning, autoSlots, autoRun, state: before } = get()
+        if (!autoRunning || !before || !autoRun) {
+          finishAuto(null)
+          return
         }
-      },
 
-      /**
-       * ⚠️ **브라우저가 게임 상태를 바꾸는 유일한 통로다.**
-       * 원칙은 그대로다 — 브라우저·사이트는 스탯을 직접 계산하지 않고, 하루 한 번
-       * 제한과 금액은 전부 `systems/turn.ts`가 정한다. 여기서는 순수 함수를 부르기만 한다.
-       */
-      claimAdBonus: () => {
-        const current = get().state
-        if (!current) return
-        const claimed = claimAdBonus(current)
-        // 보상을 못 받은 날(이미 받음)은 사건도 기록하지 않는다 — 누른 적이 있어야 사건이다.
-        set({ state: claimed === current ? current : recordEvent(claimed, 'first-ad') })
-      },
+        // 슬롯을 실행하기 **전** 점검. 게임오버·엔딩·빈 계획처럼 "한 슬롯 더 가 보고
+        // 판단할 수 없는" 것들이 여기서 걸린다. 특히 게임오버는 여기를 절대 통과하지 못한다.
+        const pre = findStop({
+          state: before,
+          arrivals: [],
+          notices: [],
+          skipped: [],
+          messages: [],
+          slots: autoSlots,
+        })
+        if (pre) {
+          finishAuto(pre)
+          return
+        }
 
-      doSkip: () => {
-        const current = get().state
-        if (!current) return
-        set(afterTurn(skipSlot(current)))
-      },
+        const result = afterTurn(before, AUTO_CHAIN)
+        const after = result.state
+        const ctx: StopContext = {
+          before,
+          state: after,
+          arrivals: result.arrivals,
+          notices: result.jobNotices,
+          skipped: result.skippedPlans,
+          // 토스트와 **같은 출처**를 본다 — 여기서 따로 계산하면 알림과 요약이 어긋난다.
+          messages: selectIncoming(after.day, after.slot),
+          slots: autoSlots + 1,
+        }
 
-      markEndingSeen: (endingId) => {
-        const current = get().state
-        if (!current || current.seenEndingIds.includes(endingId)) return
-        set({ state: { ...current, seenEndingIds: [...current.seenEndingIds, endingId] } })
-      },
+        // ⚠️ `result`를 그대로 얹는다. 택배·회사 소식이 `arrivals`/`jobNotices`로 나가
+        // 토스트와 메일을 평소와 똑같이 탄다 — 자동 진행이 알림 경로를 우회하지 않는다.
+        set({ ...result, autoSlots: autoSlots + 1, autoRun: appendStep(autoRun, ctx) })
 
-      /** 세이브를 지우고 잠금화면으로 돌아간다. */
-      reset: () => set({ state: null, loggedIn: false }),
-    }),
+        const stop = findStop(ctx)
+        if (stop) {
+          finishAuto(stop)
+          return
+        }
+        autoTimer = setTimeout(autoTick, AUTO_STEP_MS)
+      }
+
+      return {
+        state: null,
+        loggedIn: false,
+
+        autoRunning: false,
+        autoSlots: 0,
+        autoRun: null,
+
+        startAuto: () => {
+          const { state: current, autoRunning } = get()
+          // 게임오버에서는 시작조차 하지 않는다. 정지 규칙(`game-over`)이 한 번 더 막지만,
+          // 끝난 판에서 버튼이 "돌아가는 시늉"을 하는 것부터가 거짓말이다.
+          if (!current || current.gameOver || autoRunning) return
+          clearAutoTimer()
+          set({ autoRunning: true, autoSlots: 0, autoRun: startRun(current) })
+          autoTick()
+        },
+
+        stopAuto: () => {
+          if (!get().autoRunning) return
+          finishAuto(AUTO_STOPPED_BY_PLAYER)
+        },
+
+        /** 새 게임: 기존 세이브를 버리고 새로 만든다. */
+        startGame: (name) => {
+          clearAutoTimer()
+          set({
+            state: createInitialState(name),
+            loggedIn: true,
+            autoRunning: false,
+            autoSlots: 0,
+            autoRun: null,
+          })
+        },
+
+        /** 이어하기: 기존 세이브를 그대로 두고 로그인만 처리한다. */
+        continueGame: () => {
+          if (!get().state) return
+          set({ loggedIn: true })
+        },
+
+        /** 잠금화면으로 돌아간다. 세이브는 유지된다. */
+        logout: () => {
+          // ⚠️ 달리는 채로 잠금화면에 가면 보이지 않는 곳에서 날짜가 계속 흐른다.
+          clearAutoTimer()
+          set({ loggedIn: false, autoRunning: false })
+        },
+
+        skippedPlans: [],
+        clearSkipped: () => set({ skippedPlans: [] }),
+
+        arrivals: [],
+        clearArrivals: () => set({ arrivals: [] }),
+
+        jobNotices: [],
+        clearJobNotices: () => set({ jobNotices: [] }),
+
+        applyToCareer: (career) => {
+          const current = get().state
+          if (!current || !canApply(current)) return
+          const activity = findActivity('job-apply')
+          if (!activity || !canRun(current, activity)) return
+          // ⚠️ 게이트를 **먼저** 묻고 기록을 만든다. 기록을 먼저 만들면 그 기록 자체가
+          //    "이미 지원한 상태"가 되어 게이트가 닫힌다.
+          const applied = applyTo(current, career)
+          if (applied === current) return
+          set(afterTurn(runActivity(applied, activity)))
+        },
+
+        orderItem: (item) => {
+          const current = get().state
+          if (!current) return
+          const next = order(current, item)
+          if (next === current) return
+          set({ state: next })
+        },
+
+        acceptOffer: (option) => {
+          const current = get().state
+          if (!current) return
+          // 결제부터 한다 — 잔액이 모자라면 spendMoney가 상태를 그대로 돌려주므로
+          // 아래에서 그걸 확인해 예약·활동을 건너뛴다(외상으로 등록되면 안 된다).
+          let next = option.cost ? spendMoney(current, option.cost) : current
+          if (option.cost && next === current) return
+
+          // 물건을 사는 제안(헬스장 회원권)은 **쇼핑과 같은 통로**를 탄다 —
+          // 가격·중복 구매 판정·다음 날 도착이 전부 `systems/delivery.ts` 하나에 있다.
+          // 이미 가진 물건이면 결제를 건너뛰고 아래의 주간 예약만 다시 걸어 준다
+          // (재등록이 막히면 회원이 회원 대접을 못 받는다).
+          if (option.itemId) {
+            const item = findItem(option.itemId)
+            if (!item) return
+            if (!owns(next, item.id)) {
+              const ordered = order(next, item)
+              // 잔액 부족·이미 배송 중이면 아무것도 하지 않는다(반쪽 상태를 남기지 않는다).
+              if (ordered === next) return
+              next = ordered
+            }
+          }
+
+          if (option.weekly) {
+            next = {
+              ...recordEvent(next, 'gym-member'),
+              plans: planWeekly(
+                next.plans ?? [],
+                next.day,
+                option.weekly.weekday,
+                option.weekly.weeks,
+                option.weekly.activityId,
+              ),
+            }
+          }
+
+          if (option.activityId) {
+            const activity = findActivity(option.activityId)
+            if (activity && canRun(next, activity)) {
+              set(afterTurn(runActivity(next, activity)))
+              return
+            }
+            // 조건이 안 되면 결제도 예약도 하지 않는다 — 반쪽짜리 상태를 남기지 않는다.
+            if (activity) return
+          }
+
+          set({ state: next })
+        },
+
+        planActivity: (day, slot, activityId) => {
+          const current = get().state
+          if (!current) return
+          // 지난 슬롯에는 못 넣는다 — 과거를 예약하는 건 말이 안 된다.
+          const now = current.day * 2 + (current.slot === 'afternoon' ? 1 : 0)
+          if (day * 2 + (slot === 'afternoon' ? 1 : 0) < now) return
+          const planned = { ...current, plans: setPlan(current.plans ?? [], day, slot, activityId) }
+          set({ state: recordEvent(planned, 'first-plan') })
+        },
+
+        unplan: (day, slot) => {
+          const current = get().state
+          if (!current) return
+          set({ state: { ...current, plans: clearPlan(current.plans ?? [], day, slot) } })
+        },
+
+        /**
+         * ⚠️ 행동 뒤에는 **항상 예약을 흘려 보낸다**(`runPlans`).
+         * 턴을 넘기는 통로가 여기 둘(doActivity·doSkip)뿐이라 여기서만 부르면 빠짐이 없다.
+         * `turn.ts`가 예약을 모르는 것은 의도다 — 턴 규칙이 스케줄러를 모르게 두어야
+         * 밸런스 테스트가 스케줄러 없이도 성립한다.
+         */
+        doActivity: (activity) => {
+          const current = get().state
+          if (!current || !canRun(current, activity)) return
+          set(afterTurn(runActivity(current, activity)))
+        },
+
+        /**
+         * ⚠️ **이미 있는 세이브 검증기(`reviveState`)를 그대로 쓴다.**
+         * 여기서 따로 검사하면 규칙이 두 곳으로 갈라지고, 손으로 고친 세이브가
+         * 그쪽 구멍으로 들어온다 — NaN 스탯이 들어오면 게임오버 판정이 영영 안 걸린다.
+         */
+        importSave: (raw) => {
+          try {
+            const revived = reviveState(JSON.parse(raw))
+            if (!revived) return false
+            set({ state: revived })
+            return true
+          } catch {
+            return false
+          }
+        },
+
+        /**
+         * ⚠️ **브라우저가 게임 상태를 바꾸는 유일한 통로다.**
+         * 원칙은 그대로다 — 브라우저·사이트는 스탯을 직접 계산하지 않고, 하루 한 번
+         * 제한과 금액은 전부 `systems/turn.ts`가 정한다. 여기서는 순수 함수를 부르기만 한다.
+         */
+        claimAdBonus: () => {
+          const current = get().state
+          if (!current) return
+          const claimed = claimAdBonus(current)
+          // 보상을 못 받은 날(이미 받음)은 사건도 기록하지 않는다 — 누른 적이 있어야 사건이다.
+          set({ state: claimed === current ? current : recordEvent(claimed, 'first-ad') })
+        },
+
+        doSkip: () => {
+          const current = get().state
+          if (!current) return
+          set(afterTurn(skipSlot(current)))
+        },
+
+        markEndingSeen: (endingId) => {
+          const current = get().state
+          if (!current || current.seenEndingIds.includes(endingId)) return
+          set({ state: { ...current, seenEndingIds: [...current.seenEndingIds, endingId] } })
+        },
+
+        /** 세이브를 지우고 잠금화면으로 돌아간다. */
+        reset: () => {
+          clearAutoTimer()
+          set({
+            state: null,
+            loggedIn: false,
+            autoRunning: false,
+            autoSlots: 0,
+            autoRun: null,
+          })
+        },
+      }
+    },
     {
       name: 'windows-game-save',
       partialize: (s) => selectPersistedState(s.state),

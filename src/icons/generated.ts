@@ -1,5 +1,5 @@
 // 이 파일은 `npm run icons`(scripts/build-icon-subset.mjs)가 생성한다. 직접 수정하지 말 것.
-// src/에서 실제로 쓰는 아이콘 133개만 담은 축소 세트다 —
+// src/에서 실제로 쓰는 아이콘 136개만 담은 축소 세트다 —
 // 전체 세트(8천여 개)를 번들에 넣지 않기 위한 것이다.
 import type { IconifyJSON } from '@iconify/react/offline'
 
@@ -61,7 +61,7 @@ export const mdiLight: IconifyJSON = {
   "height": 24
 }
 
-/** mdi — 사용 중인 63개 */
+/** mdi — 사용 중인 65개 */
 export const mdi: IconifyJSON = {
   "prefix": "mdi",
   "icons": {
@@ -209,6 +209,9 @@ export const mdi: IconifyJSON = {
     "play-box-outline": {
       "body": "<path fill=\"currentColor\" d=\"M19 19H5V5h14m0-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-9 5v8l5-4z\"/>"
     },
+    "play-speed": {
+      "body": "<path fill=\"currentColor\" d=\"M13 2.05v2c4.39.54 7.5 4.53 6.96 8.92c-.46 3.64-3.32 6.53-6.96 6.96v2c5.5-.55 9.5-5.43 8.95-10.93c-.45-4.75-4.22-8.5-8.95-8.97zM5.67 19.74A10 10 0 0 0 11 22v-2a8 8 0 0 1-3.9-1.63zm1.43-14c1.12-.9 2.47-1.48 3.9-1.68v-2c-1.95.19-3.81.94-5.33 2.2zM5.69 7.1L4.26 5.67A9.9 9.9 0 0 0 2.05 11h2c.19-1.42.75-2.77 1.64-3.9M4.06 13h-2c.2 1.96.97 3.81 2.21 5.33l1.42-1.43A8 8 0 0 1 4.06 13M10 16.5l6-4.5l-6-4.5z\"/>"
+    },
     "plus": {
       "body": "<path fill=\"currentColor\" d=\"M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z\"/>"
     },
@@ -223,6 +226,9 @@ export const mdi: IconifyJSON = {
     },
     "star": {
       "body": "<path fill=\"currentColor\" d=\"M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2L9.19 8.62L2 9.24l5.45 4.73L5.82 21z\"/>"
+    },
+    "stop-circle-outline": {
+      "body": "<path fill=\"currentColor\" d=\"M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 2c4.41 0 8 3.59 8 8s-3.59 8-8 8s-8-3.59-8-8s3.59-8 8-8M9 9v6h6V9\"/>"
     },
     "ticket-percent-outline": {
       "body": "<path fill=\"currentColor\" d=\"M14.8 8L16 9.2L9.2 16L8 14.8zM4 4h16c1.11 0 2 .89 2 2v4a2 2 0 1 0 0 4v4c0 1.11-.89 2-2 2H4a2 2 0 0 1-2-2v-4c1.11 0 2-.89 2-2a2 2 0 0 0-2-2V6a2 2 0 0 1 2-2m0 2v2.54a3.994 3.994 0 0 1 0 6.92V18h16v-2.54a3.994 3.994 0 0 1 0-6.92V6zm5.5 2c.83 0 1.5.67 1.5 1.5S10.33 11 9.5 11S8 10.33 8 9.5S8.67 8 9.5 8m5 5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5\"/>"
@@ -259,7 +265,7 @@ export const mdi: IconifyJSON = {
   "height": 24
 }
 
-/** fluent-color — 사용 중인 57개 */
+/** fluent-color — 사용 중인 58개 */
 export const fluentColor: IconifyJSON = {
   "prefix": "fluent-color",
   "icons": {
@@ -415,6 +421,11 @@ export const fluentColor: IconifyJSON = {
     },
     "heart-24": {
       "body": "<g fill=\"none\"><path fill=\"url(#SVGifi64dEB)\" d=\"m12.82 5.58l-.821.822l-.823-.823a5.375 5.375 0 0 0-7.602 7.601l7.896 7.896a.75.75 0 0 0 1.06 0l7.902-7.897a5.38 5.38 0 0 0-7.612-7.6\"/><defs><linearGradient id=\"SVGifi64dEB\" x1=\"-2.376\" x2=\"8.135\" y1=\"-.938\" y2=\"21.378\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#f97dbd\"/><stop offset=\"1\" stop-color=\"#d7257d\"/></linearGradient></defs></g>",
+      "width": 24,
+      "height": 24
+    },
+    "history-24": {
+      "body": "<g fill=\"none\"><path fill=\"url(#SVGmozAqe4l)\" d=\"M12 7a1 1 0 0 1 1 1v3h2a1 1 0 1 1 0 2h-3a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1\"/><path fill=\"url(#SVGJdgEXdlf)\" d=\"M12 5a7 7 0 1 1-6.946 6.124a1 1 0 1 0-1.984-.248Q3 11.43 3 12a9 9 0 1 0 4-7.484V4a1 1 0 0 0-2 0v3a1 1 0 0 0 1 1h3a1 1 0 0 0 0-2h-.608A6.97 6.97 0 0 1 12 5\"/><defs><linearGradient id=\"SVGmozAqe4l\" x1=\"10.156\" x2=\"22.094\" y1=\"18.45\" y2=\"13.414\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#d373fc\"/><stop offset=\"1\" stop-color=\"#6d37cd\"/></linearGradient><linearGradient id=\"SVGJdgEXdlf\" x1=\"3\" x2=\"7.831\" y1=\"4.059\" y2=\"24.288\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#0fafff\"/><stop offset=\"1\" stop-color=\"#0067bf\"/></linearGradient></defs></g>",
       "width": 24,
       "height": 24
     },

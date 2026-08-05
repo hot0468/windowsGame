@@ -4,6 +4,7 @@ import { findActivity } from '../../data/activities'
 import { DEFAULT_ICON_CELLS, DESKTOP_ICON_ORDER } from '../../data/desktopIcons'
 import { DESKTOP_ITEMS, desktopEntries } from '../../data/desktopItems'
 import { DESKTOP_GRID } from '../../data/shell'
+import { UI_ICONS } from '../../data/icons'
 import {
   cellKey,
   cellOrigin,
@@ -58,6 +59,30 @@ export function Desktop() {
    * 여기서는 어느 쪽인지만 알린다.
    */
   const slot = useGameStore((s) => s.state?.slot)
+
+  /*
+   * 자동 진행이 끝나면 요약 창을 **스스로** 띄운다.
+   *
+   * ⚠️ 여기(바탕화면)에 있는 이유: 날짜칸에 두면 작업 표시줄 버튼으로 패널을 꺼 놓은 동안
+   * 요약이 영영 안 뜬다(패널이 `null`을 반환해 effect 자체가 없어진다). 바탕화면은
+   * 로그인해 있는 한 항상 그려진다.
+   * 한 슬롯도 못 간 진행(계획이 비어 있었다)은 창을 띄우지 않는다 — 보고할 "지난 며칠"이
+   * 없고, 사유는 날짜칸에 이미 한 줄로 적혀 있다.
+   */
+  const autoRun = useGameStore((s) => s.autoRun)
+  const autoRunning = useGameStore((s) => s.autoRunning)
+  useEffect(() => {
+    if (autoRunning || !autoRun?.stop || autoRun.slots === 0) return
+    open({
+      id: 'autolog',
+      kind: 'autolog',
+      title: '자동 진행 기록',
+      icon: UI_ICONS.autoLog,
+      x: 180,
+      y: 90,
+      width: 520,
+    })
+  }, [autoRun, autoRunning, open])
 
   const storedCells = useDesktopIconStore((s) => s.cells)
   const place = useDesktopIconStore((s) => s.place)

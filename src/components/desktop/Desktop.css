@@ -536,6 +536,40 @@
   color: var(--hud-text-3);
 }
 
+/* 자동 진행 버튼. 건너뛰기 바로 아래에 같은 형태로 붙는다 — 규모만 다른 같은 동사이므로
+   시각적으로 형제여야 한다(style `primary-action`: 주 CTA는 하나뿐, 나머지는 종속).
+   구분은 글리프와 글자가 하고 색은 쓰지 않는다. */
+.cal-auto {
+  margin-top: var(--sp-2);
+}
+
+/* 달리는 중. 액센트 테두리 하나로만 알리고 채우지 않는다 — 반투명 카드 위의 채운 면은
+   벽지를 가려 패널이 통째로 떠 보인다. 상태는 버튼 글자("멈추기")가 이미 말한다
+   (ux `color-not-only`). */
+.cal-auto-on {
+  border-color: var(--hud-accent);
+  background: var(--hud-accent-wash);
+}
+
+.cal-auto-on svg {
+  color: var(--hud-accent);
+}
+
+/* 진행 표시 / 멈춘 이유. 버튼 아래 한 줄, 한 단 작고 흐리게. */
+.cal-auto-note {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  color: var(--hud-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 멈춘 이유는 "지금 읽어야 하는 문장"이라 진행 표시보다 한 단 진하다. */
+.cal-auto-done {
+  color: var(--hud-text-2);
+  font-variant-numeric: normal;
+}
+
 .cal-skip-note {
   display: flex;
   align-items: center;

@@ -68,7 +68,7 @@ export function planWeekly(
  * 달력을 빽빽하게 채우면 며칠이 한 번에 흘러갈 수 있다 — 그게 스케줄러의 쓸모다.
  * 다만 무한 루프(예약이 턴을 넘기지 못하는 경우)를 막을 상한은 반드시 필요하다.
  */
-const MAX_CHAIN = 40
+export const MAX_CHAIN = 40
 
 /**
  * 예약을 실행해 시간을 밀어낸다.
@@ -77,14 +77,23 @@ const MAX_CHAIN = 40
  * 조건이 안 되는 예약은 **건너뛰되 지운다** — 남겨 두면 다음 날에도 같은 자리에서
  * 계속 실패한다. 사유는 `skipped`로 돌려주므로 호출부가 알릴 수 있다.
  *
+ * `limit`은 이번 호출에서 이어 실행할 최대 슬롯 수다. 기본값은 안전 상한(`MAX_CHAIN`)이고,
+ * ⚠️ **자동 진행만 1을 넘긴다**: 자동 진행은 슬롯마다 멈춰야 할지를 물어야 하는데,
+ * 그 판정에 필요한 재료(도착한 택배·회사 소식)는 연쇄가 끝난 뒤에야 나오므로 연쇄 안에서는
+ * 알 수 없다. 그래서 **연쇄를 자동 진행 루프가 대신 돈다**(`store/gameStore.ts`).
+ * 규칙을 두 벌로 만들지 않기 위해 실행 통로는 여전히 이 함수 하나다.
+ *
  * ⚠️ `turn.ts`를 부르지만 그 반대는 없다 — 턴 규칙이 스케줄러를 몰라야
  * 밸런스 테스트가 스케줄러 없이도 성립한다.
  */
-export function runPlans(state: GameState): { state: GameState; skipped: SkippedPlan[] } {
+export function runPlans(
+  state: GameState,
+  limit: number = MAX_CHAIN,
+): { state: GameState; skipped: SkippedPlan[] } {
   let current = state
   const skipped: SkippedPlan[] = []
 
-  for (let i = 0; i < MAX_CHAIN; i++) {
+  for (let i = 0; i < Math.min(limit, MAX_CHAIN); i++) {
     if (current.gameOver) break
     const plans = current.plans ?? []
     const plan = findPlan(plans, current.day, current.slot)

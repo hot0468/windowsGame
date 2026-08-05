@@ -6,6 +6,7 @@ import { MailApp } from '../apps/MailApp'
 import { CommandPromptApp, SaveApp, TaskManagerApp } from '../apps/SystemApps'
 import { SchedulerApp } from '../apps/SchedulerApp'
 import { ExplorerApp } from '../apps/ExplorerApp'
+import { AutoLogApp } from '../apps/AutoLogApp'
 import { ExeApp } from '../apps/ExeApp'
 import { StubApp } from '../apps/StubApp'
 
@@ -58,6 +59,7 @@ export function WindowManager() {
           {w.kind === 'cmd' && <CommandPromptApp />}
           {w.kind === 'scheduler' && <SchedulerApp />}
           {w.kind === 'folder' && w.folderId && <ExplorerApp folderId={w.folderId} />}
+          {w.kind === 'autolog' && <AutoLogApp />}
           {/* 탭의 ✕가 창을 닫는다 — 크롬도 마지막 탭을 닫으면 창이 닫힌다. */}
           {w.kind === 'browser' && <BrowserApp onClose={() => close(w.id)} />}
         </Window>
