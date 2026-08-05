@@ -70,16 +70,16 @@ function nextWorkday(day: number): number {
 describe('요건 판정', () => {
   it('모자란 항목을 사람이 읽는 문장으로 돌려준다 — 사유 없는 탈락은 없다', () => {
     const s = createInitialState('테스터')
-    const missing = shortfalls(s.stats, entry.paper)
+    const missing = shortfalls(s, entry.paper)
     expect(missing.length).toBeGreaterThan(0)
     expect(missing[0]).toContain('지식')
     expect(missing[0]).toContain('40')
-    expect(passes(s.stats, entry.paper)).toBe(false)
+    expect(passes(s, entry.paper)).toBe(false)
   })
 
   it('판정과 사유가 같은 표를 본다 — 통과면 사유가 비어 있다', () => {
-    expect(shortfalls(qualified().stats, entry.paper)).toEqual([])
-    expect(passes(qualified().stats, entry.paper)).toBe(true)
+    expect(shortfalls(qualified(), entry.paper)).toEqual([])
+    expect(passes(qualified(), entry.paper)).toBe(true)
   })
 })
 

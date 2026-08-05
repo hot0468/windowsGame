@@ -1,0 +1,477 @@
+/*
+ * 트위터 — 3열 타임라인.
+ *
+ * ## 색 (ui-ux-pro-max 근거)
+ * - style **`Minimalist Monochrome`**(keywords: monochrome, black white, editorial,
+ *   high contrast / Accessibility: WCAG AAA): 액센트가 **검정**이고 깊이를 그림자가 아니라
+ *   1px 헤어라인과 반전으로 만든다. 다만 이 스타일의 "zero radius"는 따르지 않는다 —
+ *   이 게임의 전역 토큰(`--r-*`)이 이미 모서리를 정해 뒀고 사이트마다 뒤집으면
+ *   "OS 위에 얹힌 한 벌"이라는 인상이 깨진다.
+ * - color **`Portfolio/Personal`**(primary #18181B · bg #FAFAFA · card #FFF ·
+ *   border #E4E4E7 · muted-fg #64748B, Notes: "Monochrome + blue accent"):
+ *   ⚠️ **검정을 고른 이유는 취향이 아니라 구분이다.** 파란 사이트가 이미 셋
+ *   (벼룩장터 #2563EB · 알바몬 #0369A1 · 은행 navy)이고 보라(O넷)·코랄(슬로우캠퍼스)·
+ *   청록(부동산)도 찼다. 검정은 X의 현재 정체성이면서 이 게임에서 유일하게 빈 축이다.
+ *   파랑은 **인증 뱃지 한 점**에만 쓴다.
+ * - ux `nav-state-active`(현재 위치를 색·굵기·표시선으로 알린다) → 활성 탭 아래 검정 막대,
+ *   좌 네비 홈은 굵게. ux `Search / No Results` → 빈 목록에 다음 행동을 적는다.
+ * - ux `color-not-only` → 인증 뱃지·활성 탭·눌린 트렌드는 전부 글자나 aria가 함께 알린다.
+ *
+ * ## 판형 — 레퍼런스(실제 X)가 스펙이다
+ * 좌 네비(로고 + 홈 + 계정 카드) / 중앙(탭 → 작성 자리 → 트윗 목록) / 우(검색 + 트렌드).
+ * ⚠️ **좁아지면 우측 사이드바를 먼저 접는다**(레퍼런스 X와 같은 동작). 판정은 뷰포트가
+ * 아니라 **컨테이너 폭**이다 — 이 사이트는 데스크톱 창 안에 들어 있어 창을 줄여도
+ * 뷰포트는 그대로다.
+ *
+ * 토큰은 `.twt` 안에 `--tw-*`로 가둔다(다른 사이트와 같은 규칙).
+ * 간격·타입·모서리는 전역 토큰을 쓴다. ⚠️ `--sp-7`은 없다(4/8 리듬).
+ */
+.twt {
+  --tw-canvas: #ffffff;
+  --tw-surface: #ffffff;
+  --tw-wash: #f7f9f9;
+  --tw-line: #eff3f4;
+  --tw-line-strong: #cfd9de;
+  --tw-text: #0f1419; /* #fff 위 17.9:1 — 본문·이름 */
+  --tw-text-2: #536471; /* #fff 위 6.1:1 — 핸들·시각·숫자 (WCAG AA) */
+  --tw-accent: #0f1419; /* 검정 액센트 — 활성 탭 막대·눌린 트렌드 */
+  --tw-accent-soft: #e7e9ea;
+  --tw-verified: #1a8cd8; /* 뱃지 판. 흰 글리프 3.6:1 — 그래픽 요소 AA(3:1) 충족 */
+
+  /* 판의 폭과 열. 여기 한 곳만 고치면 세 열이 함께 움직인다. */
+  --tw-page: 1160px;
+  --tw-nav-w: 232px;
+  --tw-side-w: 330px;
+
+  container-type: inline-size;
+  min-height: 100%;
+  background: var(--tw-canvas);
+  color: var(--tw-text);
+}
+
+.tw-grid {
+  display: grid;
+  /* ⚠️ 가운데 열에 minmax(0, …)를 준다 — 안 주면 긴 본문이 열을 밀어 3열이 무너진다. */
+  grid-template-columns: var(--tw-nav-w) minmax(0, 1fr) var(--tw-side-w);
+  gap: var(--sp-4);
+  align-items: start;
+  width: min(var(--tw-page), 100% - var(--sp-4) * 2);
+  margin: 0 auto;
+}
+
+/* ⚠️ 좁아지면 **우측 사이드바를 먼저 접는다**(레퍼런스 X와 같은 동작).
+   검색·트렌드가 사라져도 타임라인은 그대로 읽히지만, 네비가 사라지면 갈 곳이 없다. */
+@container (max-width: 900px) {
+  .tw-grid {
+    grid-template-columns: var(--tw-nav-w) minmax(0, 1fr);
+  }
+
+  .tw-side {
+    display: none;
+  }
+}
+
+/* ── 좌: 세로 네비게이션 ─────────────────────────────── */
+.tw-nav {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-2) var(--sp-4);
+}
+
+.tw-logo {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: var(--sp-2);
+  border-radius: 999px;
+}
+
+.tw-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4) var(--sp-2) var(--sp-3);
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tw-text);
+  font-size: var(--fs-lg);
+  cursor: pointer;
+  transition: background 150ms ease-out;
+}
+
+.tw-nav-item:hover {
+  background: var(--tw-accent-soft);
+}
+
+/* 현재 위치는 굵기로 알린다(ux `nav-state-active`) — aria-current가 함께 붙어 있다. */
+.tw-nav-on {
+  font-weight: 700;
+}
+
+.tw-me {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  margin-top: auto;
+  padding: var(--sp-2) var(--sp-2) 0;
+}
+
+.tw-me-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tw-me-name {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tw-me-handle,
+.tw-me-note {
+  font-size: var(--fs-xs);
+  color: var(--tw-text-2);
+}
+
+.tw-me-stats {
+  display: flex;
+  flex-direction: column;
+  margin: var(--sp-2) 0 0;
+  padding: 0 var(--sp-2);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--tw-text-2);
+}
+
+.tw-me-stats b {
+  color: var(--tw-text);
+}
+
+/* ── 아바타 (그라데이션 + 글자 — 이미지 파일을 쓰지 않는다) ── */
+.tw-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.tw-avatar-me {
+  background: linear-gradient(135deg, #0f1419 0%, #536471 100%);
+}
+
+/* ── 중앙: 타임라인 ──────────────────────────────────── */
+.tw-main {
+  border-left: 1px solid var(--tw-line);
+  border-right: 1px solid var(--tw-line);
+  background: var(--tw-surface);
+  min-width: 0;
+}
+
+.tw-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 1; /* 트윗 위로 올라와야 스크롤 중에도 탭이 읽힌다 */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--tw-line);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+}
+
+.tw-tab {
+  position: relative;
+  padding: var(--sp-4) 0;
+  border: none;
+  background: transparent;
+  color: var(--tw-text-2);
+  font-size: var(--fs-base);
+  cursor: pointer;
+  transition: background 150ms ease-out;
+}
+
+.tw-tab:hover {
+  background: var(--tw-wash);
+}
+
+/* 활성 탭은 검정 막대 + 굵기로 알린다(aria-selected가 함께 붙어 있다). */
+.tw-tab-on {
+  color: var(--tw-text);
+  font-weight: 700;
+}
+
+.tw-tab-on::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 56px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--tw-accent);
+  transform: translateX(-50%);
+}
+
+/* 작성창 자리 = 확정 패널. 여백만 준다(패널의 모양은 ActivityCommit이 정한다). */
+.tw-compose {
+  padding: var(--sp-3);
+  border-bottom: 1px solid var(--tw-line);
+}
+
+.tw-posted {
+  margin: var(--sp-2) 0 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 3px solid var(--tw-accent);
+  border-radius: var(--r-sm);
+  background: var(--tw-wash);
+  font-size: var(--fs-sm);
+}
+
+.tw-feed {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tw-tweet {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--tw-line);
+}
+
+.tw-tweet-body {
+  min-width: 0;
+}
+
+.tw-tweet-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+
+.tw-tweet-name {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tw-verified {
+  display: inline-grid;
+  place-items: center;
+  color: var(--tw-verified);
+}
+
+.tw-tweet-handle,
+.tw-tweet-dot,
+.tw-tweet-age {
+  color: var(--tw-text-2);
+  white-space: nowrap;
+}
+
+.tw-tweet-handle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tw-tweet-text {
+  margin: 2px 0 0;
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* 첨부 이미지도 파일이 아니라 그라데이션 + 글자다. */
+.tw-media {
+  display: grid;
+  place-items: center;
+  margin-top: var(--sp-3);
+  padding: var(--sp-6) var(--sp-4);
+  border: 1px solid var(--tw-line-strong);
+  border-radius: var(--r-lg);
+  color: #ffffff;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45); /* 밝은 쪽 그라데이션에서도 흰 글자를 세운다 */
+}
+
+/* ⚠️ 버튼이 아니라 숫자다 — 커서도 hover도 주지 않는다(누를 수 있는 척하지 않는다). */
+.tw-stats {
+  display: flex;
+  gap: var(--sp-6);
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--tw-text-2);
+}
+
+.tw-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 화면에는 없고 읽어 주기만 하는 글자. */
+.tw-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.tw-empty {
+  margin: 0;
+  padding: var(--sp-6) var(--sp-4);
+  font-size: var(--fs-sm);
+  color: var(--tw-text-2);
+  text-align: center;
+}
+
+.tw-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--tw-text);
+  font-size: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ── 우: 검색 + 트렌드 ───────────────────────────────── */
+.tw-side {
+  position: sticky;
+  top: 0;
+  padding: var(--sp-3) var(--sp-2) var(--sp-4);
+}
+
+.tw-search {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--tw-line-strong);
+  border-radius: 999px;
+  background: var(--tw-wash);
+  color: var(--tw-text-2);
+}
+
+.tw-search:focus-within {
+  border-color: var(--tw-accent);
+  background: var(--tw-surface);
+}
+
+.tw-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--tw-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  outline: none;
+}
+
+.tw-search-clear {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--tw-text-2);
+  cursor: pointer;
+}
+
+.tw-trends {
+  margin-top: var(--sp-4);
+  border: 1px solid var(--tw-line);
+  border-radius: var(--r-xl);
+  background: var(--tw-wash);
+  overflow: hidden;
+}
+
+.tw-trends-head {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.tw-trend-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tw-trend {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  padding: var(--sp-2) var(--sp-4);
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 150ms ease-out;
+}
+
+.tw-trend:hover {
+  background: var(--tw-accent-soft);
+}
+
+/* 눌린 트렌드는 배경만이 아니라 왼쪽 막대로도 알린다(aria-pressed가 함께 붙어 있다). */
+.tw-trend-on {
+  box-shadow: inset 3px 0 0 var(--tw-accent);
+  background: var(--tw-accent-soft);
+}
+
+.tw-trend-rank,
+.tw-trend-count {
+  font-size: var(--fs-xs);
+  color: var(--tw-text-2);
+}
+
+.tw-trend-label {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--tw-text);
+}
+
+.tw-foot {
+  margin: var(--sp-4) 0 0;
+  padding: 0 var(--sp-4);
+  font-size: var(--fs-xs);
+  color: var(--tw-text-2);
+}
+
+/* 움직임을 줄여 달라는 설정을 존중한다(전역 규칙과 같다). */
+@media (prefers-reduced-motion: reduce) {
+  .tw-nav-item,
+  .tw-tab,
+  .tw-trend {
+    transition: none;
+  }
+}

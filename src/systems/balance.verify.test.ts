@@ -4,7 +4,14 @@
  * 엔딩이 의도한 구간에 도달하는지 검증한다.
  */
 import { describe, it, expect } from 'vitest'
-import { createInitialState, canRun, runActivity, skipSlot } from './turn'
+import { createInitialState, canRun, owns, runActivity, skipSlot } from './turn'
+import {
+  advanceCertification,
+  canTake,
+  certForItem,
+  pendingExam,
+  takeExam,
+} from './certification'
 import { findActivity } from '../data/activities'
 import { ABSENCE_FIRE, ABSENCE_WARNING, CAREERS, PAYDAY_INTERVAL, findCareer } from '../data/careers'
 import { getLivingCost } from './economy'
@@ -20,6 +27,7 @@ import { advanceLottery, affordableTickets, buyTickets } from './lottery'
 import { TICKET_PRICE } from '../data/lottery'
 import type { Activity, GameState } from '../types/game'
 import type { Career } from '../data/careers'
+import type { Cert } from '../data/certs'
 
 const work = findActivity('work')!
 const game = findActivity('game')!
@@ -77,9 +85,12 @@ const reading = findActivity('reading')!
 const social = findActivity('social')!
 const club = findActivity('club')!
 
-/** 그 회사의 서류·면접 요건을 모두 채웠는가. */
+/**
+ * 그 회사의 서류·면접 요건을 모두 채웠는가.
+ * ⚠️ **자격증도 여기에 들어 있다**(`career.cert`) — 판정은 `shortfalls` 하나가 한다.
+ */
 function qualified(state: GameState, career: Career): boolean {
-  return passes(state.stats, career.paper) && passes(state.stats, career.person)
+  return passes(state, career.paper, career.cert) && passes(state, career.person)
 }
 
 /**
@@ -275,6 +286,28 @@ function requirementGaps(state: GameState, career: Career): [string, number][] {
     .filter(([, gap]) => gap > 0)
 }
 
+/**
+ * 자격증이 필요한 자리를 위한 준비 단계.
+ *
+ * ⚠️ **급여 상위 두 공고는 자격증을 요구한다**(2026-08-05 O넷). 시뮬레이션이 응시할 줄
+ * 모르면 그 두 자리가 **도달 불가능한 엔딩**이 되어 아래 테스트가 실패한다 — 그때 고쳐야
+ * 하는 것은 테스트가 아니라 **이 정책**이다("아무도 볼 수 없는 엔딩은 버그다"를 지키는
+ * 것이 저 테스트의 존재 이유이므로, 느슨하게 만들면 지킬 것이 사라진다).
+ *
+ * 정책은 정규직 지원과 같다: **기준을 다 채운 뒤에 접수한다.** 합격 판정은 발표일 시점의
+ * 스탯으로 나므로 미리 넣어도 되지만, 그렇게 하면 "떨어져서 응시료만 날리는" 경로가
+ * 섞여 밸런스를 재는 근거가 흐려진다.
+ */
+function certToTake(state: GameState, career: Career): Cert | undefined {
+  if (!career.cert || owns(state, career.cert)) return undefined
+  const cert = certForItem(career.cert)
+  if (!cert || pendingExam(state, cert.id)) return undefined
+  // 기준 미달이면 아직 안 본다. 응시료를 낼 여유도 함께 본다(내고 굶으면 시뮬레이션이 아니다).
+  if (!passes(state, cert.requires)) return undefined
+  if (state.stats.money < cert.fee + getLivingCost(state) * 3) return undefined
+  return canTake(state, cert) ? cert : undefined
+}
+
 /** 소지금이 이 일수치 생활비 아래로 내려가면 벌러 간다. */
 const RUNWAY_DAYS = 3
 /** 멘탈이 이 아래로 내려가면 회복부터 한다. */
@@ -320,6 +353,9 @@ function playToward(career: Career, maxDays: number): { state: GameState; hiredD
       canRun(state, earn)
     ) {
       next = runActivity(state, earn)
+    } else if (certToTake(state, career)) {
+      // 자격증은 **지원보다 먼저** 딴다 — 없으면 서류에서 떨어진다.
+      next = takeExam(state, certToTake(state, career)!)
     } else {
       const remaining = requirementGaps(state, career).sort((a, b) => a[1] - b[1])
       // 과외를 여는 지식 60이 최우선이다(그 회사가 어차피 지식을 요구할 때만).
@@ -333,7 +369,10 @@ function playToward(career: Career, maxDays: number): { state: GameState; hiredD
       else next = skipSlot(state)
     }
 
-    const settled = advanceEmployment(next)
+    // ⚠️ 손으로 플레이할 때와 **같은 함수, 같은 자리**(`gameStore.afterTurn`).
+    //    빠뜨리면 합격이 한 번도 확정되지 않아 자격증이 영영 안 나온다
+    //    (`playBanking`이 `advanceBank`를 부르는 것과 같은 이유).
+    const settled = advanceEmployment(advanceCertification(next).state)
     for (const n of settled.notices) if (n.kind === 'hired' && hiredDay === null) hiredDay = n.day
     state = settled.state
   }

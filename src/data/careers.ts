@@ -49,6 +49,17 @@ export interface Career {
   paper: CareerRequirement
   /** **면접**이 보는 스탯. 사람을 보는 자리다(매력·평판·친화력). */
   person: CareerRequirement
+  /**
+   * **서류에 반드시 붙여야 하는 자격증**(`data/items.ts`의 아이템 id, O넷에서 취득한다).
+   *
+   * ⚠️ **급여 상위 두 공고만 요구한다.** 스탯은 시간을 들이면 반드시 오르지만 자격증은
+   * "며칠 전에 미리 응시해 뒀는가"를 묻는다 — 상위 공고에만 붙이는 이유는 그 계획성이
+   * 곧 높은 급여의 값이기 때문이다. 아래쪽 공고까지 요구하면 첫 취직이 열흘 밀린다.
+   *
+   * ⚠️ **판정은 `systems/employment.ts`의 `shortfalls()` 하나가 한다**(스탯 요건과 같은
+   * 자리). 화면은 그 사유를 파생만 한다 — 두 번째 판정을 만들지 않는다.
+   */
+  cert?: string
   /** 카드 아래 회색 칩. */
   tags: string[]
   /** 있으면 제목 옆에 강조 배지가 붙는다. */
@@ -160,7 +171,8 @@ export const CAREERS: Career[] = [
     salary: 3_500_000,
     paper: { knowledge: 120, creativity: 60 },
     person: { charm: 30, sociability: 40, reputation: 30 },
-    tags: ['코딩 테스트', '장비 지원', '교육비 지원'],
+    cert: 'cert-info',
+    tags: ['코딩 테스트', '자격증 필수', '장비 지원'],
   },
   {
     id: 'cheongram-group',
@@ -172,13 +184,22 @@ export const CAREERS: Career[] = [
     salary: 4_600_000,
     paper: { knowledge: 150, vocabulary: 100, creativity: 80 },
     person: { charm: 80, sociability: 80, reputation: 70 },
-    tags: ['공채', '연수 3개월', '사택 지원'],
+    cert: 'cert-manage',
+    tags: ['공채', '자격증 필수', '사택 지원'],
     badge: '마감임박',
   },
 ]
 
 export function findCareer(id: string): Career | undefined {
   return CAREERS.find((c) => c.id === id)
+}
+
+/**
+ * 그 자격증을 요구하는 공고. **공고 → 자격증 방향으로만 적혀 있으므로** 뒤집어 찾는다
+ * (O넷이 "이 종목이 무엇을 여는가"를 그릴 때 쓴다 — `activitiesUnlockedBy`와 같은 규칙).
+ */
+export function careersRequiring(certItemId: string): Career[] {
+  return CAREERS.filter((c) => c.cert === certItemId)
 }
 
 /**

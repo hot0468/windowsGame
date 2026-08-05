@@ -18,6 +18,7 @@ import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../s
 import { moveTo } from '../systems/housing'
 import { advanceLottery, buyTickets } from '../systems/lottery'
 import { takeCourse as takeCourseOf } from '../systems/courses'
+import { advanceCertification, takeExam as takeExamOf } from '../systems/certification'
 import { findHousing } from '../data/housing'
 import { selectIncoming } from '../systems/messages'
 import {
@@ -31,6 +32,7 @@ import { AUTO_STEP_MS } from '../data/autoAdvance'
 import { findCareer } from '../data/careers'
 import type { AutoRun, AutoStop, StopContext } from '../systems/autoAdvance'
 import type { Career } from '../data/careers'
+import type { Cert } from '../data/certs'
 import type { Course } from '../data/courses'
 import type { OfferOption } from '../data/messages'
 import type { ShopItem } from '../data/items'
@@ -41,6 +43,7 @@ import type {
   BankEntry,
   BankState,
   Employment,
+  ExamRecord,
   GameState,
   JobNotice,
   HousingState,
@@ -290,6 +293,16 @@ function reviveState(raw: unknown): GameState | null {
     bank: reviveBank(saved),
     housing: reviveHousing(saved),
     lottery: reviveLottery(saved),
+    courses: saved.courses && typeof saved.courses === 'object' ? saved.courses : undefined,
+    // ⚠️ 응시 기록은 **돈을 만들지 않으므로** 검증이 은행·정규직만큼 빡빡할 필요가 없다
+    //    (합격해도 나오는 것은 아이템 하나다). 날짜만 유한하면 통과시키고, 없는 종목을
+    //    가리키는 기록은 `advanceCertification`이 조용히 닫는다.
+    exams: Array.isArray(saved.exams)
+      ? (saved.exams.filter(
+          (e) =>
+            e && typeof e.certId === 'string' && Number.isFinite(e.takenDay) && Number.isFinite(e.resultDay),
+        ) as ExamRecord[])
+      : undefined,
   }
 }
 
@@ -326,6 +339,11 @@ export function selectPersistedState(state: GameState | null): { state: GameStat
 function afterTurn(next: GameState, chain?: number) {
   const ran = runPlans(next, chain)
   const got = collect(ran.state)
+  // ⚠️ **자격시험 발표는 돈을 만지지 않는다** — 그래서 `nightPayoutPending`에 원천을
+  //    추가하지 않아도 되고, 밤 정산 어디에 놓아도 파산 판정이 흔들리지 않는다.
+  //    택배 바로 뒤인 것은 둘 다 **아이템이 인벤토리로 들어오는 일**이라 도착 알림을
+  //    같은 배열(`arrivals`)로 내보내기 때문이다 — 새 알림 창구를 만들지 않는다.
+  const exams = advanceCertification(got.state)
   // ⚠️ **은행 정산은 고용 정산보다 먼저 돈다.** 둘 다 마지막 줄에서 `settleGameOver`를
   //    부르므로 순서 자체가 판정을 바꾸지는 않지만(이미 확정된 사유는 되살아나지 않는다),
   //    만기 원리금이 급여보다 먼저 들어와야 급여 소식 메일에 적히는 잔액이 실제와 맞는다.
@@ -333,7 +351,7 @@ function afterTurn(next: GameState, chain?: number) {
   //    은행보다 앞인 것은 순서가 판정을 바꿔서가 아니라(셋 다 마지막 줄에서
   //    `settleGameOver`를 부르고, 그 함수는 확정된 사유를 되살리지 않는다) —
   //    당첨금이 먼저 들어와야 급여 소식 메일에 적히는 잔액이 실제와 맞기 때문이다.
-  const drawn = advanceLottery(got.state)
+  const drawn = advanceLottery(exams.state)
   const banked = advanceBank(drawn)
   // ⚠️ 고용 정산은 **예약 연쇄가 끝난 뒤**에 한 번 돈다. 커서(`checkedDay`)와
   //    급여 루프가 밀린 날짜를 따라잡도록 돼 있어, 며칠이 한 번에 흘러도 새지 않는다.
@@ -345,7 +363,7 @@ function afterTurn(next: GameState, chain?: number) {
   return {
     state: job.state,
     skippedPlans: ran.skipped,
-    arrivals: got.arrived,
+    arrivals: [...got.arrived, ...exams.arrived],
     jobNotices: job.notices,
   }
 }
@@ -412,6 +430,13 @@ interface GameStore {
    * 규칙·수료증 발급은 전부 `systems/courses.ts`가 갖고 여기서는 부르기만 한다.
    */
   takeCourse: (course: Course) => void
+  /**
+   * 자격시험 응시. **1턴을 쓴다** — 응시료를 내고 `exam` 활동을 실행한다.
+   *
+   * ⚠️ `takeCourse`와 같은 모양이되 **결과가 즉시 나지 않는다**: 여기서는 접수만 하고
+   * 합격은 발표일 밤에 `afterTurn` → `advanceCertification`이 확정한다.
+   */
+  takeExam: (cert: Cert) => void
   /**
    * 방금 도착한 정규직 소식. **휘발**이다 — 토스트를 띄우고 나면 비운다
    * (`arrivals`·`skippedPlans`와 같은 규칙). 원본은 `state.jobNotices`가 들고 있다.
@@ -624,6 +649,15 @@ export const useGameStore = create<GameStore>()(
           // `takeCourse`가 조건을 다 보고 안 되면 상태를 그대로 돌려준다(반쪽 상태 금지).
           // 턴을 쓰는 활동이므로 `afterTurn`으로 예약·택배·정산을 마저 돌린다.
           const next = takeCourseOf(current, course)
+          if (next !== current) set(afterTurn(next))
+        },
+
+        takeExam: (cert) => {
+          const current = get().state
+          if (!current) return
+          // `takeExam`이 조건(응시료·중복 접수·행동력)을 다 보고 안 되면 상태를 그대로
+          // 돌려준다(반쪽 상태 금지 — `takeCourse`와 같은 규칙).
+          const next = takeExamOf(current, cert)
           if (next !== current) set(afterTurn(next))
         },
 

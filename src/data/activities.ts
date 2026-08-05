@@ -250,6 +250,61 @@ export const ACTIVITIES: Activity[] = [
     burnoutKey: 'gig',
     scalesWithWage: true,
   },
+  /*
+   * ── 자격시험 (2026-08-05 O넷) ──
+   * ⚠️ **`requiresPick`이다**(지원서 제출과 같은 이유). "어느 종목을 보는가"는 활동이
+   * 들고 있지 않고 **O넷에서 고른 종목**이 정하므로, 대상 없이 실행될 수 있는 두 통로
+   * (스케줄러 예약 · 바탕화면 바로 가기)에서 자동으로 빠진다 — 그 시점엔 고른 종목이
+   * 없어 턴만 먹는다.
+   * ⚠️ **응시료를 여기 적지 않는다** — 종목마다 다르므로 `Cert.fee`가 단일 출처다
+   * (강의의 `Course.price`와 같은 규칙).
+   */
+  {
+    id: 'exam',
+    label: '자격시험 응시',
+    icon: 'fluent-color:form-24',
+    category: 'study',
+    description: '고사장에 앉는다. 결과는 며칠 뒤에 발표된다.',
+    effects: { knowledge: 1, stamina: -20, mental: -6 },
+    requires: { stamina: 20 },
+    requiresPick: true,
+  },
+  /*
+   * ── 자격증이 여는 활동 2종 (2026-08-05 O넷) ──
+   * ⚠️ **수료증 외주(`gig-ai`·`gig-brand`)와 같은 구조이되 번아웃 키가 다르다.**
+   * `'work'`를 주면 `WORK_ACTIVITIES`(= `burnoutKey === 'work'`에서 파생)에 섞여
+   * "알바는 넷"·"조건 없는 알바는 편의점뿐"이라는 알바몬 공고의 불변식이 깨지고,
+   * `'gig'`를 주면 수료증 외주와 한 덩어리가 되어 **강의를 들은 사람이 자격증 일감까지
+   * 같은 연속 노동으로 세이게 된다**(두 시스템이 서로의 페널티를 물려받는다).
+   * 그래서 `'cert-gig'`라는 제3의 키를 준다 — 대신 **둘끼리는 공유해서** 자격증 일감만
+   * 번갈아 받는 우회를 막는다.
+   */
+  {
+    /* 문서실무 2급이 여는 일감. 조건이 가장 이른 대신 벌이도 가장 작다. */
+    id: 'gig-docs',
+    label: '문서 대행',
+    icon: 'fluent-color:clipboard-text-edit-24',
+    category: 'living',
+    description: '자격증을 걸고 받은 서류 정리 건. 같은 표를 스물세 번 고친다.',
+    effects: { money: 68000, vocabulary: 2, stamina: -18, mental: -7 },
+    requires: { stamina: 18 },
+    requiresItem: 'cert-doc',
+    burnoutKey: 'cert-gig',
+    scalesWithWage: true,
+  },
+  {
+    /* 안전관리 3급이 여는 일감. 몸을 가장 많이 쓰는 대신 벌이가 가장 좋다. */
+    id: 'gig-safety',
+    label: '현장 안전점검',
+    icon: 'fluent-color:shield-checkmark-24',
+    category: 'living',
+    description: '하루짜리 점검을 나간다. 체크리스트가 예순 줄이고 사진을 다 찍어야 한다.',
+    effects: { money: 92000, manners: 1, maxStamina: 1, stamina: -28, mental: -9 },
+    requires: { stamina: 28 },
+    requiresItem: 'cert-safety',
+    burnoutKey: 'cert-gig',
+    scalesWithWage: true,
+  },
   {
     id: 'social',
     label: '메신저',

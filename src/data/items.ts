@@ -137,6 +137,56 @@ export const SHOP_ITEMS: ShopItem[] = [
     effects: {},
     buyable: false,
   },
+  /*
+   * ── 자격증 4종 (2026-08-05 O넷) ──
+   * ⚠️ **수료증과 완전히 같은 부류다**: `buyable: false`라 쇼핑 목록에서 빠지고
+   * (돈으로 사면 시험을 볼 이유가 없다), 효과가 없으며(`effects: {}`), 값어치는
+   * **잠긴 것을 여는 것**이다. 다른 점은 여는 것이 둘이라는 것뿐이다 —
+   * 앞의 둘은 활동을, 뒤의 둘은 **정규직 상위 공고의 지원 자격**을 연다.
+   *
+   * ⚠️ 배송을 거치지 않는다. 합격이 확정되는 밤에 인벤토리로 바로 들어온다
+   * (`systems/certification.ts`). price는 응시료이고 **파일 크기 표시에만 쓰인다**.
+   */
+  {
+    id: 'cert-doc',
+    name: '문서실무 2급 자격증',
+    price: 18000,
+    desc: '수험번호와 취득일이 박혀 있다. 사진 속 표정이 굳어 있다.',
+    icon: 'fluent-color:certificate-24',
+    ext: '.lic',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'cert-safety',
+    name: '안전관리 3급 자격증',
+    price: 32000,
+    desc: '뒷면에 안전수칙 열 줄이 인쇄돼 있다. 읽어 본 적은 없다.',
+    icon: 'fluent-color:certificate-24',
+    ext: '.lic',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'cert-info',
+    name: '정보처리 2급 자격증',
+    price: 48000,
+    desc: '실기 답안에 적었던 SQL이 아직도 가끔 떠오른다.',
+    icon: 'fluent-color:certificate-24',
+    ext: '.lic',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'cert-manage',
+    name: '경영관리 1급 자격증',
+    price: 75000,
+    desc: '1급이라고 적혀 있지만 무엇의 1급인지는 아무도 묻지 않는다.',
+    icon: 'fluent-color:certificate-24',
+    ext: '.lic',
+    effects: {},
+    buyable: false,
+  },
 ]
 
 /**

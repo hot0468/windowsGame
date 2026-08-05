@@ -11,10 +11,11 @@ import {
   findCareer,
   isWorkWeekday,
 } from '../data/careers'
+import { findItem } from '../data/items'
 import { MAILBOX } from '../data/messages'
 import { STAT_NAMES } from '../types/game'
 import { messageTime, turnIndex } from './messages'
-import { clampStats, settleGameOver } from './turn'
+import { clampStats, owns, settleGameOver } from './turn'
 import type { TimedMessage } from './messages'
 import type { Career, CareerRequirement } from '../data/careers'
 import type { Application, GameState, JobNotice, Stats } from '../types/game'
@@ -45,19 +46,36 @@ import type { Application, GameState, JobNotice, Stats } from '../types/game'
  *
  * ⚠️ **판정과 사유가 같은 표를 본다.** 통과 여부는 이 배열이 비었는지로만 정하므로
  * "떨어뜨렸는데 이유는 못 대는" 상태가 구조적으로 불가능하다.
+ *
+ * ⚠️ **자격증도 여기서 본다**(2026-08-05 O넷). `stats`가 아니라 `state`를 받게 된 이유가
+ * 그것이다 — 보유는 인벤토리에 있고, 판정을 화면 쪽으로 빼면 스탯 요건과 자격증 요건이
+ * 서로 다른 곳에서 판정돼 "화면은 통과라는데 서류에서 떨어지는" 상태가 생긴다.
  */
-export function shortfalls(stats: Stats, need: CareerRequirement): string[] {
-  return Object.entries(need)
-    .filter(([key, min]) => stats[key as keyof Stats] < min)
+export function shortfalls(
+  state: GameState,
+  need: CareerRequirement,
+  /** 함께 요구하는 자격증 아이템 id(`Career.cert`). 없으면 스탯만 본다. */
+  certItemId?: string,
+): string[] {
+  const missing = Object.entries(need)
+    .filter(([key, min]) => state.stats[key as keyof Stats] < min)
     .map(
       ([key, min]) =>
-        `${STAT_NAMES[key as keyof Stats]} ${min} 이상 필요 — 현재 ${stats[key as keyof Stats]}`,
+        `${STAT_NAMES[key as keyof Stats]} ${min} 이상 필요 — 현재 ${state.stats[key as keyof Stats]}`,
     )
+  if (certItemId && !owns(state, certItemId)) {
+    missing.push(`${findItem(certItemId)?.name ?? '자격증'} 필요 — O넷에서 취득할 수 있습니다`)
+  }
+  return missing
 }
 
 /** 그 단계를 통과하는가. */
-export function passes(stats: Stats, need: CareerRequirement): boolean {
-  return shortfalls(stats, need).length === 0
+export function passes(
+  state: GameState,
+  need: CareerRequirement,
+  certItemId?: string,
+): boolean {
+  return shortfalls(state, need, certItemId).length === 0
 }
 
 /* ── 지원 ─────────────────────────────────────────────────────────────── */
@@ -154,7 +172,8 @@ function advanceApplication(state: GameState): { state: GameState; notices: JobN
   if (!career) return { state: { ...state, application: undefined }, notices: [] }
 
   if (app.stage === 'screening' && state.day >= app.dueDay) {
-    const missing = shortfalls(state.stats, career.paper)
+    // ⚠️ 자격증은 **서류**가 본다(이력서에 붙이는 것이라 면접이 아니다).
+    const missing = shortfalls(state, career.paper, career.cert)
     if (missing.length) {
       return {
         state: { ...state, application: undefined },
@@ -178,7 +197,7 @@ function advanceApplication(state: GameState): { state: GameState; notices: JobN
   }
 
   if (app.stage === 'final' && state.day >= app.dueDay) {
-    const missing = shortfalls(state.stats, career.person)
+    const missing = shortfalls(state, career.person)
     if (missing.length) {
       return {
         state: { ...state, application: undefined },

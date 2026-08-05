@@ -1,0 +1,465 @@
+/*
+ * O넷(자격증 시험).
+ *
+ * 색은 ui-ux-pro-max `colors.csv` → **Flashcard & Study Tool** 팔레트다
+ * (primary #7C3AED · bg #FAF5FF · card #FFF · border #EFE7FC · accent #059669
+ * "correct green" · fg #0F172A). 공부하고 시험 보는 제품의 팔레트라 자격 포털에 그대로 맞는다.
+ *
+ * ⚠️ **보라를 고른 이유는 의미보다 구분이다.** 벼룩장터 #2563EB · 알바몬 #0369A1 ·
+ * 은행 navy로 **파란 사이트가 이미 셋**이고, 여기서 딴 자격증이 벼룩장터의 지원 자격이 되므로
+ * 두 사이트를 오가게 된다 — 색까지 같으면 어디에 있는지 알 수 없다.
+ * ⚠️ **글자로 쓰는 값은 DB 값 그대로 쓰지 않고 대비를 재서 낮췄다**(#7C3AED는 흰 배경에서
+ * 5.7:1, accent #059669는 3.8:1로 AA 미달이다). 아래 주석의 비율이 실제로 쓰는 값이다.
+ *
+ * ## 판형 — **공공 자격 포털**(레퍼런스가 스펙이다)
+ * 위에서 아래로 ①공지 띠 ②헤더(로고 + 안내 문구 + 오늘 날짜) ③원서접수 현황 표
+ * ④자격 종목 격자 ⑤원서접수 확정 패널 ⑥푸터.
+ * style `Accessible & Ethical`(government/education)이라 장식이 없다: 그림자는 `--el-1`
+ * 한 단, 모서리는 작게(`--r-md`), 구역은 실선과 표 머리로만 가른다.
+ * style `Data-Dense Dashboard`: 현황 표는 낮은 패딩의 촘촘한 줄이다.
+ *
+ * 토큰은 `.cert` 안에 `--qn-*`로 가둔다(다른 사이트와 같은 규칙).
+ * 간격·타입·모서리는 전역 토큰을 쓴다. ⚠️ `--sp-7`은 없다(4/8 리듬).
+ */
+.cert {
+  --qn-bg: #faf5ff;
+  --qn-surface: #ffffff;
+  --qn-line: #ddd6fe;
+  --qn-line-soft: #ede9fe;
+  --qn-text: #2e1065; /* #fff 위 15.2:1 — 본문·제목 */
+  --qn-text-2: #6b5f80; /* #fff 위 5.3:1 — 메타·라벨 (WCAG AA) */
+  --qn-primary: #6d28d9; /* #fff 위 7.1:1 — 로고·선택 표시·표 머리 */
+  --qn-strip: #5b21b6; /* 흰 글자 9.0:1 — 공지 띠 배경 전용 */
+  --qn-pass: #047857; /* #fff 위 5.5:1 — 합격·기준 충족 */
+  --qn-bad: #b91c1c; /* #fff 위 5.9:1 — 불합격·기준 미달 */
+  --qn-wash: #f3ecfd;
+  --qn-badge-bg: #ede9fe;
+
+  /* 판의 폭. 여기 한 곳만 고치면 띠·본문·격자가 함께 움직인다. */
+  --qn-page: 1080px;
+  --qn-gutter: 20px;
+
+  padding-bottom: var(--sp-8);
+  background: var(--qn-bg);
+  color: var(--qn-text);
+  min-height: 100%;
+}
+
+/* ── 공지 띠 ─────────────────────────────────────────── */
+.qn-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: var(--sp-2) max(var(--qn-gutter), calc((100% - var(--qn-page)) / 2));
+  background: var(--qn-strip);
+  font-size: var(--fs-sm);
+  color: #ffffff;
+}
+
+.qn-strip strong {
+  font-weight: 700;
+}
+
+/* ── 헤더 ────────────────────────────────────────────── */
+.qn-head {
+  background: var(--qn-surface);
+  border-bottom: 2px solid var(--qn-primary);
+}
+
+.qn-head-in {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-4);
+  width: min(var(--qn-page), 100% - var(--qn-gutter) * 2);
+  margin: 0 auto;
+  padding: var(--sp-5) 0 var(--sp-4);
+}
+
+.qn-logo {
+  margin: 0;
+  font-family: var(--font-point);
+  font-weight: 400; /* 한 벌짜리 서체라 합성 볼드를 막는다 */
+  font-size: var(--fs-3xl);
+  letter-spacing: 0.02em;
+  color: var(--qn-primary);
+}
+
+.qn-logo-mark {
+  color: var(--qn-text);
+}
+
+.qn-tagline {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--qn-text-2);
+}
+
+.qn-today {
+  margin-left: auto;
+  padding: 2px var(--sp-3);
+  border: 1px solid var(--qn-line);
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--qn-text-2);
+}
+
+.qn-body {
+  width: min(var(--qn-page), 100% - var(--qn-gutter) * 2);
+  margin: var(--sp-5) auto 0;
+}
+
+/* ── 구역 ────────────────────────────────────────────── */
+.qn-sec {
+  margin-bottom: var(--sp-6);
+}
+
+.qn-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--qn-line);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+
+.qn-sec-count {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--qn-text-2);
+}
+
+/* ── 원서접수 현황 표 (style `Data-Dense Dashboard`) ─── */
+.qn-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--qn-line);
+  border-radius: var(--r-md);
+  background: var(--qn-surface);
+  font-size: var(--fs-sm);
+  overflow: hidden;
+}
+
+.qn-table th,
+.qn-table td {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--qn-line-soft);
+  text-align: left;
+  vertical-align: top;
+}
+
+.qn-table thead th {
+  background: var(--qn-wash);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--qn-primary);
+}
+
+.qn-table tbody tr:last-child th,
+.qn-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* 날짜 열은 자릿수가 흔들리면 안 된다(typography `number-tabular`). */
+.qn-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+.qn-dim {
+  color: var(--qn-text-2);
+}
+
+.qn-wait {
+  color: var(--qn-text-2);
+}
+
+.qn-pass,
+.qn-fail,
+.qn-ok,
+.qn-short {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.qn-pass,
+.qn-ok {
+  color: var(--qn-pass);
+}
+
+.qn-fail,
+.qn-short {
+  color: var(--qn-bad);
+}
+
+/* ux `empty-states`: 빈 표 대신 다음 행동을 적는다. */
+.qn-empty {
+  margin: 0;
+  padding: var(--sp-4);
+  border: 1px dashed var(--qn-line);
+  border-radius: var(--r-md);
+  background: var(--qn-surface);
+  font-size: var(--fs-sm);
+  color: var(--qn-text-2);
+}
+
+.qn-receipt {
+  margin: var(--sp-3) 0 0;
+  padding: var(--sp-3) var(--sp-4);
+  border-left: 3px solid var(--qn-primary);
+  border-radius: var(--r-sm);
+  background: var(--qn-wash);
+  font-size: var(--fs-sm);
+}
+
+/* ── 종목 격자 ───────────────────────────────────────── */
+.qn-grid {
+  display: grid;
+  /* ⚠️ 열 수는 이 최소 폭이 정한다(판 1080px → 2열). 카드 폭 상한으로는 못 막는다. */
+  grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 한 줄의 카드 높이를 맞춘다(li → 카드로 stretch가 전달돼야 한다). */
+.qn-grid > li {
+  display: flex;
+}
+
+.qn-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  width: 100%;
+  padding: var(--sp-4);
+  border: 1px solid var(--qn-line);
+  border-radius: var(--r-md);
+  background: var(--qn-surface);
+  box-shadow: var(--el-1);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+.qn-card:hover {
+  border-color: var(--qn-primary);
+  box-shadow: var(--el-2);
+}
+
+.qn-card-on {
+  border-color: var(--qn-primary);
+  box-shadow: inset 0 0 0 1px var(--qn-primary);
+}
+
+/* 이미 딴 종목은 흐리게 두되 **막지는 않는다** — 상태는 글자('취득')가 전한다. */
+.qn-card-done {
+  background: var(--qn-wash);
+}
+
+.qn-card-top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  align-self: stretch;
+  margin-bottom: var(--sp-2);
+}
+
+.qn-card-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--qn-badge-bg);
+}
+
+.qn-card-heads {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.qn-field {
+  font-size: var(--fs-xs);
+  color: var(--qn-text-2);
+}
+
+.qn-name {
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.qn-state {
+  margin-left: auto;
+  padding: 1px var(--sp-2);
+  border: 1px solid var(--qn-line);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  color: var(--qn-text-2);
+  white-space: nowrap;
+}
+
+.qn-state-done {
+  border-color: var(--qn-pass);
+  color: var(--qn-pass);
+}
+
+.qn-state-wait {
+  border-color: var(--qn-primary);
+  color: var(--qn-primary);
+}
+
+.qn-summary {
+  font-size: var(--fs-sm);
+  color: var(--qn-text-2);
+}
+
+.qn-facts {
+  display: flex;
+  gap: var(--sp-5);
+  align-self: stretch;
+  margin: var(--sp-2) 0;
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--qn-line-soft);
+  border-bottom: 1px solid var(--qn-line-soft);
+}
+
+.qn-fact {
+  display: flex;
+  flex-direction: column;
+}
+
+.qn-fact-label {
+  font-size: var(--fs-xs);
+  color: var(--qn-text-2);
+}
+
+.qn-fact-value {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.qn-fee {
+  color: var(--qn-primary);
+}
+
+.qn-need {
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--qn-wash);
+  font-size: var(--fs-xs);
+}
+
+.qn-need b {
+  color: var(--qn-text-2);
+  font-weight: 700;
+}
+
+.qn-ok,
+.qn-short {
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+}
+
+.qn-opens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-top: auto; /* 카드 높이가 달라도 이 줄은 바닥에 붙는다 */
+  padding-top: var(--sp-2);
+}
+
+.qn-open {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--qn-badge-bg);
+  font-size: var(--fs-xs);
+  color: var(--qn-text); /* 연한 보라 위 12.7:1 */
+}
+
+.qn-waiting-note {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--qn-primary);
+}
+
+.qn-picked {
+  margin-top: var(--sp-2);
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--qn-primary);
+  color: #ffffff;
+  font-size: var(--fs-xs);
+}
+
+/* ── 원서접수 확정 ───────────────────────────────────── */
+.qn-receipt-box {
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--qn-line);
+  border-radius: var(--r-md);
+  background: var(--qn-surface);
+}
+
+.qn-receipt-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-1) 0;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.qn-receipt-label {
+  flex: 0 0 96px;
+  font-size: var(--fs-xs);
+  color: var(--qn-text-2);
+}
+
+/* ux `error-clarity`: 왜 못 하는지 사유를 그대로 적는다. */
+.qn-blocked {
+  margin: var(--sp-2) 0 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 3px solid var(--qn-bad);
+  border-radius: var(--r-sm);
+  background: var(--qn-surface);
+  font-size: var(--fs-sm);
+  color: var(--qn-bad);
+}
+
+/* ── 푸터 ────────────────────────────────────────────── */
+.qn-foot {
+  width: min(var(--qn-page), 100% - var(--qn-gutter) * 2);
+  margin: 0 auto;
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--qn-line);
+  font-size: var(--fs-xs);
+  color: var(--qn-text-2);
+}
+
+.qn-foot-logo {
+  margin: 0 0 var(--sp-2);
+  font-family: var(--font-point);
+  font-weight: 400;
+  font-size: var(--fs-base);
+  color: var(--qn-text-2);
+}
+
+.qn-foot p {
+  margin: 0 0 var(--sp-1);
+}
+
+/* 움직임을 줄여 달라는 설정을 존중한다(전역 규칙과 같다). */
+@media (prefers-reduced-motion: reduce) {
+  .qn-card {
+    transition: none;
+  }
+}

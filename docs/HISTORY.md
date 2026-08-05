@@ -4,6 +4,8 @@ CLAUDE.md의 변경 이력 표에서 옮겨온 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-05 | 밤 정산 순서 수정 — 급여가 우선한다. 게임오버는 밤이 다 정산된 뒤 한 번만 확정 | turn(`nightPayoutPending`·`settleGameOver`), employment(`advanceEmployment` 말미), gameStore, employment.test | 파산 판정이 생활비 차감과 급여 입금 **사이**에 있어, 급여일이 잔고 바닥나는 밤과 겹치면 월급 167만원을 손에 쥔 채 "파산"이 떴다 |
+| 2026-08-05 | project-context 다이어트 493 → 250줄 (규칙 전량 보존, 실측·기각안·경위 서술 삭제) + "규칙만 적는다" 작성 규칙 명문화 | skills/project-context | 모든 에이전트가 코드를 만지기 전에 이 문서를 통째로 읽는데, 길이가 늘어 작업마다 수 분씩 지연됐다. 규칙과 그 규칙을 알아낸 보고서를 한 문서에 섞은 것이 원인 |
 | 2026-08-05 | 디자인 스킬·CDP 실측을 신규 화면으로 한정, 검증 분량 규칙 신설, 컨텍스트 문서 250줄 상한 | CLAUDE.md, game-pipeline, project-context | 작업당 20~30만 토큰·20~30분이 들었고, 원인은 모든 작업에 685줄 스킬 로드 + 실클릭 검증 + 40개대 테스트를 요구한 것이었다 |
 | 2026-08-05 | 자동 진행 — 멈출 이유가 생길 때까지 슬롯을 계속 넘기고 요약을 보여 준다 | data/systems/autoAdvance(신규), AutoLogApp(신규), gameStore, CalendarPanel, schedule | 판을 1년까지 늘리기 전에 "길어진 판이 견딜 만한가"를 먼저 재기 위함. 매 슬롯 클릭이 강제되면 날짜만 늘고 깊이는 안 는다 |
 | 2026-08-05 | 활동 바로가기(확정 버튼 우클릭 → 바탕화면 등록 → 더블클릭 실행) + 공용 ContextMenu | shortcuts/contextMenu(신규 systems), shortcutStore(신규), ContextMenu·ActivityConfirm(신규), desktopItems, Desktop, ActivityCommit, activityPreview | 설계자 지시. 경고 문구를 `previewWarnings`로 모은 것은 확정 화면이 셋이 되어 한 곳만 빠뜨리는 사고를 막기 위함 |
