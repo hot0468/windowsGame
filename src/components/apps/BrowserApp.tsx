@@ -17,6 +17,7 @@ import { AlbamonSite } from './sites/AlbamonSite'
 import { CinemaSite } from './sites/CinemaSite'
 import { ConstructionSite } from './sites/ConstructionSite'
 import { FleaSite } from './sites/FleaSite'
+import { BankSite } from './sites/BankSite'
 import { LibrarySite } from './sites/LibrarySite'
 import { NeverPortal } from './sites/NeverPortal'
 import { PublishSite } from './sites/PublishSite'
@@ -310,6 +311,8 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         {site?.render === 'publish' && <PublishSite site={site} />}
         {site?.render === 'jobs' && <AlbamonSite site={site} />}
         {site?.render === 'career' && <FleaSite site={site} />}
+        {/* ⚠️ 은행만 활동을 실행하지 않는다 — 거래는 턴을 쓰지 않으므로 확정 패널이 없다. */}
+        {site?.render === 'bank' && <BankSite site={site} />}
         {site?.render === 'construction' && (
           <ConstructionSite site={site} onGoHome={() => goToSite(HOME_SITE_ID)} />
         )}

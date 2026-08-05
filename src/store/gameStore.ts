@@ -14,6 +14,7 @@ import { findItem } from '../data/items'
 import { clearPlan, planWeekly, runPlans, setPlan } from '../systems/schedule'
 import { collect, order, owns, recordEvent } from '../systems/delivery'
 import { advanceEmployment, applyTo, canApply } from '../systems/employment'
+import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../systems/bank'
 import { selectIncoming } from '../systems/messages'
 import {
   AUTO_STOPPED_BY_PLAYER,
@@ -32,11 +33,14 @@ import type { SkippedPlan } from '../systems/schedule'
 import type {
   Activity,
   Application,
+  BankEntry,
+  BankState,
   Employment,
   GameState,
   JobNotice,
   Slot,
   Stats,
+  TermDeposit,
 } from '../types/game'
 
 /**
@@ -115,6 +119,65 @@ function reviveJob(
   }
 }
 
+const LEDGER_KINDS: BankEntry['kind'][] = [
+  'deposit',
+  'withdraw',
+  'term-open',
+  'term-mature',
+  'interest',
+  'borrow',
+  'repay',
+]
+
+/**
+ * 은행 상태 복원.
+ *
+ * ⚠️ **은행이 생기기 전 세이브에는 이 필드가 아예 없다** — 그때는 undefined가 되고
+ * 그것이 곧 "거래한 적 없음"이라 마이그레이션이 필요 없다(`plans`·`inventory`와 같은 규칙).
+ *
+ * ⚠️ **검증이 다른 옵셔널 필드보다 훨씬 빡빡한 이유는 `reviveJob`과 정확히 같다 —
+ * 이 상태가 돈을 만들기 때문이다.** 잔액이나 이율이 NaN이면 이자가 NaN이 되고, 만기
+ * 원리금이 NaN으로 소지금에 흘러 들어가면 `NaN <= 0`이 false라 **파산 판정이 영영 안 걸린다**
+ * (스탯 검증·정규직 검증과 같은 사고 형태). 그래서 숫자 하나라도 유한하지 않으면
+ * **그 항목을 통째로 버린다** — 반쪽 잔액을 살리는 것보다 잃는 편이 안전하다.
+ */
+function reviveBank(saved: Partial<GameState>): BankState | undefined {
+  const bank = saved.bank
+  if (!bank || typeof bank !== 'object') return undefined
+  // 잔액 셋 중 하나라도 못 믿으면 은행 기록 전체를 버린다.
+  if (!Number.isFinite(bank.savings) || !Number.isFinite(bank.debt)) return undefined
+  if (bank.savings < 0 || bank.debt < 0) return undefined
+
+  const deposits: TermDeposit[] = (Array.isArray(bank.deposits) ? bank.deposits : []).filter(
+    (d): d is TermDeposit =>
+      !!d &&
+      typeof d.id === 'string' &&
+      Number.isFinite(d.principal) &&
+      d.principal > 0 &&
+      Number.isFinite(d.openedDay) &&
+      Number.isFinite(d.matureDay) &&
+      Number.isFinite(d.rate) &&
+      d.rate >= 0,
+  )
+
+  return {
+    savings: Number(bank.savings),
+    debt: Number(bank.debt),
+    deposits,
+    // 커서가 없거나 못 믿을 값이면 오늘로 잡는다 — 과거로 두면 없던 이자가 한꺼번에 붙고,
+    // 미래로 두면 이자가 영영 안 붙는다(`advanceBank`가 `days <= 0`에서 멈춘다).
+    accruedDay: Number.isFinite(bank.accruedDay) ? Number(bank.accruedDay) : Number(saved.day ?? 1),
+    ledger: (Array.isArray(bank.ledger) ? bank.ledger : []).filter(
+      (e): e is BankEntry =>
+        !!e &&
+        typeof e.id === 'string' &&
+        Number.isFinite(e.day) &&
+        Number.isFinite(e.amount) &&
+        LEDGER_KINDS.includes(e.kind),
+    ),
+  }
+}
+
 /**
  * 저장된 세이브를 검증해 안전한 GameState로 되돌린다.
  * 필드가 빠진 구버전 세이브를 그대로 통과시키면 clampStats가 NaN을 만들고,
@@ -166,6 +229,7 @@ function reviveState(raw: unknown): GameState | null {
     inventory: Array.isArray(saved.inventory) ? saved.inventory : undefined,
     deliveries: Array.isArray(saved.deliveries) ? saved.deliveries : undefined,
     events: Array.isArray(saved.events) ? saved.events : undefined,
+    bank: reviveBank(saved),
   }
 }
 
@@ -202,13 +266,17 @@ export function selectPersistedState(state: GameState | null): { state: GameStat
 function afterTurn(next: GameState, chain?: number) {
   const ran = runPlans(next, chain)
   const got = collect(ran.state)
+  // ⚠️ **은행 정산은 고용 정산보다 먼저 돈다.** 둘 다 마지막 줄에서 `settleGameOver`를
+  //    부르므로 순서 자체가 판정을 바꾸지는 않지만(이미 확정된 사유는 되살아나지 않는다),
+  //    만기 원리금이 급여보다 먼저 들어와야 급여 소식 메일에 적히는 잔액이 실제와 맞는다.
+  const banked = advanceBank(got.state)
   // ⚠️ 고용 정산은 **예약 연쇄가 끝난 뒤**에 한 번 돈다. 커서(`checkedDay`)와
   //    급여 루프가 밀린 날짜를 따라잡도록 돼 있어, 며칠이 한 번에 흘러도 새지 않는다.
   // ⚠️ **반드시 마지막이다.** 게임오버는 밤이 다 정산된 뒤 딱 한 번 확정되는데
   //    (설계자 지시: 급여가 우선한다) 그 확정을 `advanceEmployment`의 마지막 줄이 한다.
   //    생활비는 `turn.ts`의 취침 정산이 먼저 빼고 급여는 여기서 들어오므로, 이 호출을
   //    위로 올리면 **월급을 손에 쥔 채 파산하는** 버그가 되돌아온다.
-  const job = advanceEmployment(got.state)
+  const job = advanceEmployment(banked)
   return {
     state: job.state,
     skippedPlans: ran.skipped,
@@ -278,6 +346,18 @@ interface GameStore {
    */
   jobNotices: JobNotice[]
   clearJobNotices: () => void
+  /**
+   * 은행 거래. **전부 턴을 소모하지 않는다**(쇼핑 주문과 같은 규칙 — "탐색은 무료").
+   *
+   * ⚠️ **턴을 안 쓰므로 `afterTurn`을 부르지 않는다.** 부르면 창구에서 통장을 만드는
+   * 것만으로 반나절이 지나간다. 규칙·판정은 전부 `systems/bank.ts`가 갖고 여기서는
+   * 순수 함수를 부르기만 한다(광고 보상·쇼핑 주문과 같은 통로).
+   */
+  bankDeposit: (amount: number) => void
+  bankWithdraw: (amount: number) => void
+  bankOpenDeposit: (amount: number) => void
+  bankBorrow: (amount: number) => void
+  bankRepay: (amount: number) => void
   markEndingSeen: (endingId: string) => void
   reset: () => void
 
@@ -573,6 +653,47 @@ export const useGameStore = create<GameStore>()(
           const current = get().state
           if (!current) return
           set(afterTurn(skipSlot(current)))
+        },
+
+        /**
+         * ⚠️ **은행 거래 다섯은 전부 같은 모양이다.** 순수 함수를 부르고, 조건이 안 되면
+         * 그 함수가 상태를 **그대로** 돌려주므로 그때는 아무것도 하지 않는다
+         * (반쪽 상태를 남기지 않는다 — `orderItem`·`acceptOffer`와 같은 규칙).
+         * ⚠️ `afterTurn`을 부르지 않는다: 거래는 턴을 쓰지 않는다.
+         */
+        bankDeposit: (amount) => {
+          const current = get().state
+          if (!current) return
+          const next = deposit(current, amount)
+          if (next !== current) set({ state: recordEvent(next, 'first-deposit') })
+        },
+
+        bankWithdraw: (amount) => {
+          const current = get().state
+          if (!current) return
+          const next = withdraw(current, amount)
+          if (next !== current) set({ state: next })
+        },
+
+        bankOpenDeposit: (amount) => {
+          const current = get().state
+          if (!current) return
+          const next = openDeposit(current, amount)
+          if (next !== current) set({ state: recordEvent(next, 'first-deposit') })
+        },
+
+        bankBorrow: (amount) => {
+          const current = get().state
+          if (!current) return
+          const next = borrow(current, amount)
+          if (next !== current) set({ state: recordEvent(next, 'first-loan') })
+        },
+
+        bankRepay: (amount) => {
+          const current = get().state
+          if (!current) return
+          const next = repay(current, amount)
+          if (next !== current) set({ state: next })
         },
 
         markEndingSeen: (endingId) => {

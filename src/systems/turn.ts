@@ -221,10 +221,18 @@ function detectGameOver(stats: Stats): GameState['gameOver'] {
  * ⚠️ **밤에 돈이 들어오는 원천을 새로 만들면 그 조건을 여기에 함께 넣어야 한다**
  * (연말정산·이자·환급 등). 안 넣으면 정확히 같은 형태의 버그가 그 원천에서 재현된다 —
  * "받을 돈이 있는데 그 전에 죽었다"가 된다.
+ *
+ * **원천 2 — 은행 정기예금 만기**(2026-08-05 추가). 만기 원리금은 밤 정산 뒤
+ * `afterTurn` → `advanceBank`가 **소지금으로** 넣는다. 급여와 똑같은 자리, 똑같은 이유다:
+ * 12일을 참고 묶어 둔 돈이 만기 당일 밤에 손에 들어오는데 그 직전에 파산하면
+ * 정기예금이라는 장치 자체가 거짓말이 된다. 판정 근거는 `GameState.bank.deposits`의
+ * **날짜 하나**(`matureDay`)뿐이고, 규칙(얼마를 언제 주는가)은 전부 `systems/bank.ts`에 있다 —
+ * 여기서 `bank.ts`를 import하지 않는 것도 `employment.ts`를 import하지 않는 것과 같다.
  */
 export function nightPayoutPending(state: GameState): boolean {
   const job = state.employment
-  return !!job && state.day >= job.paydayDay
+  if (job && state.day >= job.paydayDay) return true
+  return (state.bank?.deposits ?? []).some((d) => state.day >= d.matureDay)
 }
 
 /**

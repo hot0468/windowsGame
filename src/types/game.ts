@@ -378,6 +378,59 @@ export interface JobNotice {
   amount?: number
 }
 
+/* ── 은행 (2026-08-05 신설) ───────────────────────────────────────────────
+ *
+ * 예금은 **오늘 쓸 수 없는 돈**이고 대출은 **오늘 쓸 수 있는 남의 돈**이다. 둘 다
+ * 소지금(`Stats.money`)과 별개로 들고 있어야 파산 판정(`money <= 0`)이 그대로 성립한다 —
+ * 예금을 소지금에 합쳐 두면 "통장에 돈이 있는데 굶어 죽는" 긴장 자체가 사라진다.
+ *
+ * 규칙은 전부 `systems/bank.ts`에, 수치는 전부 `data/bank.ts`에 있다.
+ * 여기에는 **모양만** 적는다(`Plan`·`Employment`와 같은 이유).
+ */
+
+/** 정기예금 한 건. 만기 전에는 못 빼고, 만기가 오면 원리금이 자유예금으로 들어온다. */
+export interface TermDeposit {
+  /** 렌더 키. 같은 날 두 건을 들어도 구분된다. */
+  id: string
+  /** 원금. */
+  principal: number
+  openedDay: number
+  /** 이 날이 되면 만기다(이자 지급 + 자유예금 편입). */
+  matureDay: number
+  /** 가입 시점의 일 이율. **여기 박아 둔다** — 나중에 이율을 고쳐도 이미 든 예금의 약속은 안 바뀐다. */
+  rate: number
+}
+
+/** 거래 내역 한 줄. 사실만 남기고 문장은 화면이 만든다(`JobNotice`와 같은 규칙). */
+export interface BankEntry {
+  id: string
+  day: number
+  kind: 'deposit' | 'withdraw' | 'term-open' | 'term-mature' | 'interest' | 'borrow' | 'repay'
+  /** 움직인 금액(항상 양수). 방향은 `kind`가 말한다. */
+  amount: number
+}
+
+/**
+ * 은행 상태. **옵셔널이다** — 은행이 생기기 전 세이브에는 없고, 없으면 "거래한 적 없음"이라
+ * 마이그레이션이 필요 없다(`adBonusDay`·`plans`와 같은 규칙).
+ *
+ * ⚠️ 다만 `reviveState`의 검증은 다른 옵셔널 필드보다 **빡빡하다** — 여기 숫자가 NaN이면
+ * 이자가 NaN이 되고 그것이 소지금으로 흘러 `NaN <= 0`이 false가 되어 **파산이 영영 안 걸린다**
+ * (정규직 상태와 정확히 같은 사고 형태).
+ */
+export interface BankState {
+  /** 자유예금 잔액. 언제든 뺄 수 있고 매일 이자가 붙는다. */
+  savings: number
+  /** 대출 잔액(원금 + 굴러온 이자). 갚기 전까지 매일 불어난다. */
+  debt: number
+  /** 들어 둔 정기예금. */
+  deposits: TermDeposit[]
+  /** 이자를 마지막으로 정산한 날. 같은 날 두 번 붙이지 않는 커서다(`Employment.checkedDay`와 같은 장치). */
+  accruedDay: number
+  /** 거래 내역. 오래된 것부터 잘라 낸다. */
+  ledger: BankEntry[]
+}
+
 export interface GameState {
   playerName: string
   day: number
@@ -445,6 +498,13 @@ export interface GameState {
   peakCareerId?: string
   /** 도착한 정규직 소식(메일·토스트의 원본). 오래된 것부터 잘라 낸다. */
   jobNotices?: JobNotice[]
+  /**
+   * 은행 거래 상태(예금·대출).
+   *
+   * ⚠️ 옵셔널이다 — 은행이 생기기 전 세이브에는 없다. 없으면 `emptyBank()`로 읽히므로
+   * 마이그레이션이 필요 없다(`plans`·`inventory`와 같은 규칙).
+   */
+  bank?: BankState
 }
 
 export const INITIAL_STATS: Stats = {

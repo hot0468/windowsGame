@@ -17,6 +17,11 @@ export type SiteRender =
   | 'jobs'
   /** 벼룩장터 — 정규직 구인. 알바('jobs')와 달리 채용 절차와 재직 상태를 다룬다. */
   | 'career'
+  /**
+   * 네이놈은행 — 예금·대출. ⚠️ **활동을 실행하지 않는 유일한 "기능 사이트"다**
+   * (`activityId`가 없다). 거래는 턴을 쓰지 않으므로 확정 패널(`ActivityCommit`)도 없다.
+   */
+  | 'bank'
 
 /** 가짜 브라우저가 이동할 수 있는 사이트 하나. */
 export interface Site {
@@ -196,14 +201,13 @@ export const SITES: Site[] = [
   {
     id: 'bank',
     url: 'https://bank.neinom.com',
-    title: '은행',
+    title: '네이놈은행',
     icon: 'fluent-color:savings-24',
-    render: 'construction',
-    notice: '은행과 대출은 1차 구현 대상이 아닙니다. 당분간은 소지금만으로 버텨야 합니다.',
+    render: 'bank',
     promo: {
       tag: '네이놈은행',
-      title: '잔액을 지키는 방법',
-      desc: '당신의 돈을 지켜드립니다',
+      title: '예금과 대출',
+      desc: '맡기면 이자가 붙고, 빌리면 더 붙습니다',
       gradient: 'linear-gradient(135deg, #0b5c3b 0%, #2f9e6e 100%)',
     },
   },

@@ -64,6 +64,22 @@ export const EVENTS: GameEvent[] = [
     icon: 'fluent-color:megaphone-loud-24',
     ext: '.evt',
   },
+  {
+    id: 'first-deposit',
+    name: '맡겨 둔 돈',
+    hint: '오늘 쓸 돈을 내일로 미뤄 둔다.',
+    desc: '통장에 있는 돈은 오늘 밤 밥값이 되지 않는다. 그걸 알면서도 넣었다.',
+    icon: 'fluent-color:savings-24',
+    ext: '.evt',
+  },
+  {
+    id: 'first-loan',
+    name: '빌린 시간',
+    hint: '없는 돈을 미리 당겨 쓴다.',
+    desc: '통장에 찍힌 숫자는 늘었다. 갚아야 할 숫자는 그보다 빨리 늘어난다.',
+    icon: 'fluent-color:coin-multiple-24',
+    ext: '.evt',
+  },
 ]
 
 export function findEvent(id: string): GameEvent | undefined {

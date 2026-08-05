@@ -12,6 +12,8 @@ import { countConsecutive } from './burnout'
 import { getFailureEnding } from './ending'
 import { careerEnding } from '../data/endings'
 import { advanceEmployment, applyTo, passes } from './employment'
+import { advanceBank, bankOf, bankedTotal, borrow, loanRoom, openDeposit, withdraw } from './bank'
+import { DEPOSIT_MIN, LOAN_LIMIT_BASE } from '../data/bank'
 import type { Activity, GameState } from '../types/game'
 import type { Career } from '../data/careers'
 
@@ -366,6 +368,106 @@ describe('직업 엔딩 — 아무도 볼 수 없는 엔딩은 없다', () => {
     expect(run.state.gameOver).toBe('bankrupt')
     expect(run.state.peakCareerId).toBe(CAREERS[0].id)
     expect(getFailureEnding('bankrupt', run.state).id).toBe(careerEnding(CAREERS[0].id)!.id)
+  })
+})
+
+/* ── 은행 (2026-08-05) ─────────────────────────────────────────────────────
+ *
+ * ⚠️ **이 묶음이 은행 때문에 판이 무한해지지 않는다는 것을 지킨다.**
+ *
+ * 은행은 두 방향으로 이 프로젝트의 핵심 보증("게임은 반드시 끝난다")을 위협한다:
+ *  (a) **복리가 물가를 앞지르면** 예금만으로 영원히 산다.
+ *  (b) **빌려서 예금하기**가 이익이면 무위험 차익으로 무한히 불어난다.
+ *
+ * (b)는 이율 부등식(`bank.test.ts`)이 데이터 수준에서 막는다. 여기서는 **(a)를
+ * 시뮬레이션으로** 재 본다 — 단언이 아니라 실제로 최적에 가깝게 굴려 보고 죽는 날을 확인한다.
+ *
+ * ⚠️ **위의 알바·정규직 시뮬레이션을 약화시키지 않는다.** 은행은 경로를 하나 더 여는
+ * 것이지 기존 경로를 바꾸는 것이 아니다(정규직 때와 같은 원칙).
+ */
+
+/**
+ * **은행을 최대한 활용하는 플레이.**
+ *
+ * `playOptimally`(알바 + 멘탈 회복)에 은행 한 겹을 얹었다:
+ *  - 당장 며칠치 생활비를 넘는 여윳돈은 **정기예금**(가장 높은 이율)에 밀어 넣는다.
+ *  - 잔고가 위험해지면 자유예금에서 빼 쓴다.
+ *  - **빌리지는 않는다** — 대출은 이율이 더 높아 생존을 늘리는 방향이 아니다
+ *    (그 사실 자체는 아래 별도 테스트가 확인한다).
+ *
+ * ⚠️ **매 슬롯 `advanceBank`를 돌린다** — 손으로 플레이할 때 `gameStore.afterTurn`이
+ * 하는 것과 같다. 이걸 빠뜨리면 이자가 한 번도 안 붙어 시뮬레이션이 거짓이 된다.
+ */
+function playBanking(maxDays: number): { state: GameState; peakBanked: number } {
+  let state = createInitialState('은행최적')
+  let peakBanked = 0
+
+  while (!state.gameOver && state.day <= maxDays) {
+    const living = getLivingCost(state.day)
+    // 손에 남겨 둘 최소 현금. 이보다 많으면 묶고, 적으면 푼다.
+    const buffer = living * 4
+
+    // ① 여윳돈을 정기예금으로. 이율이 가장 높으므로 이것이 "최적"의 핵심이다.
+    if (state.stats.money - buffer >= DEPOSIT_MIN) {
+      const put = Math.floor((state.stats.money - buffer) / DEPOSIT_MIN) * DEPOSIT_MIN
+      state = openDeposit(state, put)
+    }
+    // ② 잔고가 얇으면 자유예금에서 되찾는다(만기 전 정기예금은 못 뺀다).
+    if (state.stats.money < living * 2 && bankOf(state).savings > 0) {
+      state = withdraw(state, Math.min(bankOf(state).savings, living * 3))
+    }
+
+    const streak = countConsecutive(state.recentActivities, 'work')
+    const mentalCost = 8 + streak * 4
+    if (canRun(state, work) && state.stats.mental - mentalCost > 3) state = runActivity(state, work)
+    else if (canRun(state, game) && state.stats.mental < 95) state = runActivity(state, game)
+    else state = skipSlot(state)
+
+    // ⚠️ 손으로 플레이할 때와 **같은 함수, 같은 자리**. 이자·만기가 여기서 일어난다.
+    state = advanceBank(state)
+    peakBanked = Math.max(peakBanked, bankedTotal(state))
+  }
+  return { state, peakBanked }
+}
+
+describe('은행 — 그래도 판은 끝난다', () => {
+  it('은행을 최대한 굴려도 결국 파산한다 — 복리가 물가를 이기지 못한다', () => {
+    const { state } = playBanking(2000)
+    expect(state.gameOver).toBe('bankrupt')
+  })
+
+  it('은행이 실제로 며칠을 사 준다 — 쓰는 이유가 있어야 장치다', () => {
+    const banking = playBanking(2000)
+    const plain = playOptimally(2000)
+    expect(banking.peakBanked, '은행을 한 번도 쓰지 않았다면 시뮬레이션이 거짓이다').toBeGreaterThan(0)
+    // 예금이 생존을 **늘리기는** 해야 한다. 늘지 않으면 아무도 안 쓴다.
+    expect(banking.state.day).toBeGreaterThanOrEqual(plain.state.day)
+  })
+
+  it('그 연장이 무한이 아니다 — 기존 상한(120일)의 두 배를 넘지 않는다', () => {
+    // ⚠️ 이 상한이 "은행이 판을 통째로 다시 쓰지는 않는다"를 못 박는다.
+    //    이자를 올리다가 이 선을 넘으면 여기서 터진다.
+    const { state } = playBanking(2000)
+    expect(state.day).toBeLessThanOrEqual(240)
+  })
+
+  it('빌려서 예금하는 짓은 판을 늘리지 못한다 — 무위험 차익이 없다', () => {
+    // 한도까지 빌려 정기예금에 넣고 시작한다. 차익이 존재한다면 이쪽이 더 오래 살아야 한다.
+    let state: GameState = createInitialState('차익시도')
+    state = borrow(state, loanRoom(state))
+    state = openDeposit(state, Math.floor(state.stats.money / DEPOSIT_MIN) * DEPOSIT_MIN)
+    let guard = 0
+    while (!state.gameOver && state.day <= 2000 && guard++ < 5000) {
+      const streak = countConsecutive(state.recentActivities, 'work')
+      if (canRun(state, work) && state.stats.mental - (8 + streak * 4) > 3) {
+        state = runActivity(state, work)
+      } else if (canRun(state, game) && state.stats.mental < 95) state = runActivity(state, game)
+      else state = skipSlot(state)
+      state = advanceBank(state)
+    }
+    expect(state.gameOver).toBe('bankrupt')
+    // 빚이 원금보다 커져 있어야 한다 — 이자가 나를 향해 붙었다는 증거다.
+    expect(bankOf(state).debt).toBeGreaterThan(LOAN_LIMIT_BASE)
   })
 })
 

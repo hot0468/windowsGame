@@ -75,6 +75,15 @@ describe('활동을 실행하는 사이트', () => {
     }
   })
 
+  it('은행은 활동을 실행하지 않는다 — 거래는 턴을 쓰지 않는다', () => {
+    // ⚠️ `activityId`가 붙는 순간 확정 패널이 생기고 거래가 1턴을 먹기 시작한다.
+    //    은행 거래는 쇼핑 주문과 같은 규칙(턴 없음)이므로 여기서 못 박는다.
+    const bank = findSite('bank')!
+    expect(bank.render).toBe('bank')
+    expect(bank.activityId).toBeUndefined()
+    expect(bank.notice).toBeUndefined()
+  })
+
   it('활동을 실행하는 render 종류는 activityId를 반드시 갖는다', () => {
     for (const site of SITES.filter((s) =>
       ['library', 'cinema', 'publish', 'jobs', 'career'].includes(s.render),
