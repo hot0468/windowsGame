@@ -15,6 +15,11 @@ export type SiteRender =
   | 'publish'
   | 'tube'
   | 'jobs'
+  /**
+   * 슬로우캠퍼스 — 온라인 강의. 알바몬('jobs')처럼 **고른 것이 실행 활동을 정한다**.
+   * 수강료는 강의가 갖고(`Course.price`), 같은 강의를 여러 번 들으면 수료증이 나온다.
+   */
+  | 'campus'
   /** 벼룩장터 — 정규직 구인. 알바('jobs')와 달리 채용 절차와 재직 상태를 다룬다. */
   | 'career'
   /**
@@ -141,9 +146,16 @@ export const SITES: Site[] = [
     url: 'https://www.slowcampus.com',
     title: '슬로우캠퍼스',
     icon: 'fluent-color:book-star-24',
-    render: 'construction',
-    notice: '유료 고효율 강의 수강과 수료증은 준비 중입니다.',
+    render: 'campus',
+    notice: '듣고 싶은 강의를 고르세요.',
     bookmark: true,
+    /*
+     * ⚠️ **알바몬과 같은 구조다: 강의마다 실행 활동이 다르다.**
+     * 여기 적은 것은 "아무것도 안 고른 상태의 기본값"이고, 실제로 실행되는 활동은
+     * 고른 강의(`data/courses.ts`의 `Course.activityId`)가 정한다.
+     * ⚠️ **수강료는 여기 적지 않는다** — 강의마다 다르므로 `Course.price`가 단일 출처다.
+     */
+    activityId: 'study',
   },
   {
     id: 'youtube',

@@ -17,6 +17,7 @@ import { advanceEmployment, applyTo, canApply } from '../systems/employment'
 import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../systems/bank'
 import { moveTo } from '../systems/housing'
 import { advanceLottery, buyTickets } from '../systems/lottery'
+import { takeCourse as takeCourseOf } from '../systems/courses'
 import { findHousing } from '../data/housing'
 import { selectIncoming } from '../systems/messages'
 import {
@@ -30,6 +31,7 @@ import { AUTO_STEP_MS } from '../data/autoAdvance'
 import { findCareer } from '../data/careers'
 import type { AutoRun, AutoStop, StopContext } from '../systems/autoAdvance'
 import type { Career } from '../data/careers'
+import type { Course } from '../data/courses'
 import type { OfferOption } from '../data/messages'
 import type { ShopItem } from '../data/items'
 import type { SkippedPlan } from '../systems/schedule'
@@ -404,6 +406,13 @@ interface GameStore {
    */
   applyToCareer: (career: Career) => void
   /**
+   * 강의 수강. **1턴을 쓴다** — 수강료를 내고 강의가 가리키는 활동을 실행한다.
+   *
+   * ⚠️ `applyToCareer`와 같은 모양이다(턴을 쓰는 활동 + 활동만으로는 못 넘기는 값).
+   * 규칙·수료증 발급은 전부 `systems/courses.ts`가 갖고 여기서는 부르기만 한다.
+   */
+  takeCourse: (course: Course) => void
+  /**
    * 방금 도착한 정규직 소식. **휘발**이다 — 토스트를 띄우고 나면 비운다
    * (`arrivals`·`skippedPlans`와 같은 규칙). 원본은 `state.jobNotices`가 들고 있다.
    */
@@ -607,6 +616,15 @@ export const useGameStore = create<GameStore>()(
           const applied = applyTo(current, career)
           if (applied === current) return
           set(afterTurn(runActivity(applied, activity)))
+        },
+
+        takeCourse: (course) => {
+          const current = get().state
+          if (!current) return
+          // `takeCourse`가 조건을 다 보고 안 되면 상태를 그대로 돌려준다(반쪽 상태 금지).
+          // 턴을 쓰는 활동이므로 `afterTurn`으로 예약·택배·정산을 마저 돌린다.
+          const next = takeCourseOf(current, course)
+          if (next !== current) set(afterTurn(next))
         },
 
         orderItem: (item) => {

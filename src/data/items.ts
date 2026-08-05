@@ -23,6 +23,11 @@ export interface ShopItem {
   ext: string
   /** 도착했을 때 한 번 적용되는 효과. */
   effects: Partial<Stats>
+  /**
+   * 쇼핑에서 살 수 있는가. **기본은 살 수 있음**(생략 = true)이라 기존 물건은 그대로다.
+   * 수료증처럼 **다른 경로로만 얻는 물건**만 false를 적는다.
+   */
+  buyable?: boolean
 }
 
 export const SHOP_ITEMS: ShopItem[] = [
@@ -103,7 +108,42 @@ export const SHOP_ITEMS: ShopItem[] = [
     ext: '.lap',
     effects: { creativity: 10, gaming: 8, knowledge: 6 },
   },
+  /*
+   * ── 수료증 2종 (2026-08-05 슬로우캠퍼스) ──
+   * ⚠️ **살 수 없는 아이템이다.** `SHOP_ITEMS`에 있지만 쇼핑 목록에서는 빠진다
+   * (`BUYABLE_ITEMS`가 `buyable !== false`로 거른다) — 돈으로 사면 강의를 들을 이유가
+   * 없어진다. 인벤토리·파일 탐색기에서는 다른 아이템과 똑같이 읽혀야 하므로 여기 둔다.
+   *
+   * 효과가 없는(`effects: {}`) 유일한 아이템이기도 하다. 수료증의 값어치는 스탯이 아니라
+   * **잠긴 활동을 여는 것**이다(`gym-pass`와 같은 구조).
+   */
+  {
+    id: 'cert-ai',
+    name: '실무 AI 입문 수료증',
+    price: 135000, // 45,000 × 3회. 파일 크기 표시에만 쓰인다.
+    desc: '이름 석 자와 수료일이 박혀 있다. 액자에 넣을 만한 물건은 아니다.',
+    icon: 'fluent-color:certificate-24',
+    ext: '.crt',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'cert-brand',
+    name: '1인 브랜드 수료증',
+    price: 165000, // 55,000 × 3회.
+    desc: '수료했다는 사실만 적혀 있고 잘한다는 말은 없다.',
+    icon: 'fluent-color:certificate-24',
+    ext: '.crt',
+    effects: {},
+    buyable: false,
+  },
 ]
+
+/**
+ * 쇼핑 목록에 뜨는 물건. ⚠️ **수료증은 여기서 빠진다** — 강의를 들어야만 나온다.
+ * 컴포넌트가 id를 나열해 거르지 않도록 목록을 여기서 만든다(`WORK_ACTIVITIES`와 같은 규칙).
+ */
+export const BUYABLE_ITEMS: ShopItem[] = SHOP_ITEMS.filter((i) => i.buyable !== false)
 
 export function findItem(id: string): ShopItem | undefined {
   return SHOP_ITEMS.find((i) => i.id === id)
