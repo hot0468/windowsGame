@@ -46,7 +46,7 @@ const REQUIRED_STAT_KEYS = Object.keys(INITIAL_STATS) as (keyof Stats)[]
  */
 function reviveJob(
   saved: Partial<GameState>,
-): Pick<GameState, 'application' | 'employment' | 'jobNotices'> {
+): Pick<GameState, 'application' | 'employment' | 'jobNotices' | 'peakCareerId'> {
   const app = saved.application
   const application: Application | undefined =
     app &&
@@ -83,9 +83,22 @@ function reviveJob(
         }
       : undefined
 
+  // 이번 판의 최고 경력. **없는 공고를 가리키면 버린다** — 파산 엔딩이 그 값으로 갈리는데
+  // 찾지 못하면 `careerEnding`이 undefined를 주고 그냥 파산 엔딩이 되므로 조용히 맞는다.
+  //
+  // ⚠️ 이 필드가 생기기 전(2026-08-05 이전) 세이브에는 값이 아예 없다. 그때는 **재직 중인
+  //    회사로 메운다** — 그 사람이 실제로 도달한 자리를 알 수 있는 유일한 흔적이고,
+  //    비워 두면 다니던 회사가 있는데도 "무직으로 죽었다"가 된다. 해고된 뒤 저장된 옛 세이브는
+  //    복원할 방법이 없으므로 무직으로 남는다(그 사실을 알 수 있는 기록 자체가 없다).
+  const peakCareerId =
+    typeof saved.peakCareerId === 'string' && findCareer(saved.peakCareerId)
+      ? saved.peakCareerId
+      : employment?.careerId
+
   return {
     application,
     employment,
+    peakCareerId,
     jobNotices: Array.isArray(saved.jobNotices)
       ? (saved.jobNotices.filter((n) => n && typeof n.id === 'string') as JobNotice[])
       : undefined,
@@ -426,7 +439,16 @@ export const useGameStore = create<GameStore>()(
     {
       name: 'windows-game-save',
       partialize: (s) => selectPersistedState(s.state),
-      version: 1,
+      /**
+       * ⚠️ **2026-08-05에 1 → 2로 올렸다(직업 엔딩).**
+       *
+       * zustand의 `migrate`는 **저장된 버전이 지금 버전과 다를 때만** 불린다. 그래서 v1로
+       * 저장된 세이브는 `reviveState`를 한 번도 지나지 않고, `peakCareerId`를 재직 중인
+       * 회사로 메워 주는 보정도 닿지 않았다 — 다니던 회사가 있는데 "무직으로 죽었다"가 된다.
+       * 버전을 올리면 기존 세이브가 전부 검증기를 한 번 통과한다(못 쓰는 세이브는 예전처럼
+       * 새 게임으로 degrade한다 — 크래시가 아니다).
+       */
+      version: 2,
       // 구버전/손상 세이브를 검증해 보정한다. 못 쓰면 새 게임으로 시작한다.
       migrate: migrateSave,
     },

@@ -181,6 +181,20 @@ export function findCareer(id: string): Career | undefined {
   return CAREERS.find((c) => c.id === id)
 }
 
+/**
+ * 공고의 서열. **배열 순서가 곧 서열이다** — 급여 오름차순으로 정렬돼 있고
+ * 그 사실은 `balance.verify.test.ts`가 지킨다.
+ *
+ * 무직·모르는 id는 **-1**이라 어떤 공고보다도 낮다. 그래서 "더 높은 곳에 갔는가"를
+ * 묻는 쪽(`recordPeakCareer`)이 무직 여부를 따로 분기하지 않아도 된다.
+ *
+ * ⚠️ 별도의 `rank` 필드를 두지 않는 이유: 급여와 서열이 두 곳에 적히면 공고를 하나
+ * 끼워 넣을 때 한쪽만 고쳐도 아무 테스트가 안 터진다.
+ */
+export function careerRank(id: string | undefined): number {
+  return id ? CAREERS.findIndex((c) => c.id === id) : -1
+}
+
 /** 근무일인가. 결근 판정과 화면 안내가 같은 함수를 본다. */
 export function isWorkWeekday(weekday: number): boolean {
   return WORKDAYS.includes(weekday)

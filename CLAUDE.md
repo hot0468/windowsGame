@@ -36,4 +36,5 @@
 | 2026-08-04 | 스케줄러(예약 자동 실행) + 포털 검색 결과 + 브라우저 개발자 모드 | schedule(신규), search(신규), SchedulerApp, NeverPortal, BrowserApp | 설계자 지시 |
 | 2026-08-04 | `Window`에 `bareTitle`·`dark` 옵션, 열릴 때 위치 클램프. HUD 테두리 장식 제거 | Window, WindowManager, HudPanel | 레퍼런스 충실도 + 창이 작업표시줄 아래로 빠지던 문제 |
 | 2026-08-05 | 알바 4종 + 알바몬 사이트 신설, `Activity.burnoutKey`로 번아웃 키 공유 | activities, jobs(신규), AlbamonSite(신규), sites, burnout, turn, SchedulerApp | 설계 문서의 "고소득 알바 전환 압박"이 알바가 하나뿐이라 구현되지 않았음. 알바를 늘리면 번갈아 일해 번아웃을 우회할 수 있어 키를 묶음 |
+| 2026-08-05 | 직업 엔딩 5종 — 취직이 아니라 **파산했을 때** 뜬다. `bigtech`의 스탯 조건 삭제, `GameState.peakCareerId` 신설, 세이브 version 2 | endings, careers, ending, employment, gameStore, types, EndingModal | 설계자 지시("직업엔딩은 취직한 순간이 아닌 돈 없어서 죽은 후 뜨게 해"). 취직은 결말이 아니라 도중의 사건이고, '대기업 합격'이라는 이름이 스탯 문턱과 청람그룹 입사 **두 가지**를 뜻하고 있었다 |
 | 2026-08-05 | 활동 바로가기(확정 버튼 우클릭 → 바탕화면 등록 → 더블클릭 실행) + 공용 ContextMenu | shortcuts/contextMenu(신규 systems), shortcutStore(신규), ContextMenu·ActivityConfirm(신규), desktopItems, Desktop, ActivityCommit, activityPreview | 설계자 지시. 경고 문구를 `previewWarnings`로 모은 것은 확정 화면이 셋이 되어 한 곳만 빠뜨리는 사고를 막기 위함 |

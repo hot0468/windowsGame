@@ -7,6 +7,7 @@ import {
   NOTICE_LIMIT,
   PAYDAY_INTERVAL,
   SCREENING_DAYS,
+  careerRank,
   findCareer,
   isWorkWeekday,
 } from '../data/careers'
@@ -104,6 +105,19 @@ export function applyTo(state: GameState, career: Career): GameState {
   }
 }
 
+/* ── 최고 경력 ─────────────────────────────────────────────────────────── */
+
+/**
+ * 이번 판에서 도달한 최고 직장을 갱신한다. **낮은 곳으로 옮겨도 기록은 내려가지 않는다.**
+ *
+ * 채용되는 지점이 하나(`advanceApplication`의 최종 합격)뿐이라 여기 한 줄이면 샐 곳이 없다.
+ * 읽는 쪽은 파산 엔딩 판정 하나다(`systems/ending.ts`의 `epitaphCareerId`).
+ */
+export function recordPeakCareer(state: GameState, careerId: string): GameState {
+  if (careerRank(careerId) <= careerRank(state.peakCareerId)) return state
+  return { ...state, peakCareerId: careerId }
+}
+
 /* ── 소식 ─────────────────────────────────────────────────────────────── */
 
 function notice(
@@ -171,20 +185,23 @@ function advanceApplication(state: GameState): { state: GameState; notices: JobN
         notices: [notice(state, 'final-fail', career.id, { reason: missing.join(' · ') })],
       }
     }
-    return {
-      state: {
-        ...state,
-        application: undefined,
-        employment: {
-          careerId: career.id,
-          hiredDay: state.day,
-          paydayDay: state.day + PAYDAY_INTERVAL,
-          attendedDays: [],
-          absences: 0,
-          // 입사 당일까지는 결근을 세지 않는다 — 다니지도 않은 날의 책임을 물을 수 없다.
-          checkedDay: state.day,
-        },
+    const hired: GameState = {
+      ...state,
+      application: undefined,
+      employment: {
+        careerId: career.id,
+        hiredDay: state.day,
+        paydayDay: state.day + PAYDAY_INTERVAL,
+        attendedDays: [],
+        absences: 0,
+        // 입사 당일까지는 결근을 세지 않는다 — 다니지도 않은 날의 책임을 물을 수 없다.
+        checkedDay: state.day,
       },
+    }
+    return {
+      // ⚠️ 최고 경력은 **채용되는 이 지점에서만** 올라간다. 해고(`enforceAttendance`)는
+      //    `employment`만 지우고 이 기록은 건드리지 않는다 — 그것이 규칙이다.
+      state: recordPeakCareer(hired, career.id),
       notices: [notice(state, 'hired', career.id, { amount: career.salary })],
     }
   }

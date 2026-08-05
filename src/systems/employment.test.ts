@@ -21,6 +21,7 @@ import {
   noticeMail,
   noticeMessages,
   passes,
+  recordPeakCareer,
   shortfalls,
   stageIndex,
 } from './employment'
@@ -158,6 +159,8 @@ describe('채용 절차', () => {
     expect(s.application).toBeUndefined()
     expect(s.employment?.careerId).toBe(entry.id)
     expect(s.employment?.paydayDay).toBe(s.employment!.hiredDay + PAYDAY_INTERVAL)
+    // 파산 엔딩이 보는 값이다 — 채용되는 이 지점 말고는 올라가는 곳이 없다.
+    expect(s.peakCareerId).toBe(entry.id)
     const hired = (s.jobNotices ?? []).find((n) => n.kind === 'hired')
     expect(hired?.amount).toBe(entry.salary)
   })
@@ -189,6 +192,8 @@ function employedAt(day: number, checkedDay = day): GameState {
     ...base,
     day,
     slot: 'morning',
+    // 채용됐다는 것은 최고 경력이 찍혔다는 뜻이다(`advanceEmployment`가 함께 찍는다).
+    peakCareerId: entry.id,
     employment: {
       careerId: entry.id,
       hiredDay: day,
@@ -316,6 +321,32 @@ describe('무단결근', () => {
     // 해고된 뒤에는 출근할 수 없고, 다시 지원할 수는 있다.
     expect(canRun(s, commute)).toBe(false)
     expect(canApply(s)).toBe(true)
+    // ⚠️ 다녔던 사실까지 없어지지는 않는다 — 파산 엔딩이 이 값을 본다.
+    expect(s.peakCareerId).toBe(entry.id)
+  })
+})
+
+/**
+ * 최고 경력 (2026-08-05, 직업 엔딩).
+ *
+ * 읽는 곳은 파산 엔딩 하나다(`systems/ending.ts`). **해고가 이 기록을 지우면 안 된다** —
+ * 해고는 이미 수입을 끊어 파산을 앞당기는데 비문까지 지우면 벌이 두 번이 된다.
+ */
+describe('최고 경력', () => {
+  it('더 높은 자리에 가면 올라간다', () => {
+    const base = createInitialState('테스터')
+    const s = recordPeakCareer(recordPeakCareer(base, CAREERS[0].id), CAREERS[3].id)
+    expect(s.peakCareerId).toBe(CAREERS[3].id)
+  })
+
+  it('낮은 자리로 옮겨도 내려가지 않는다', () => {
+    const base = createInitialState('테스터')
+    const s = recordPeakCareer(recordPeakCareer(base, CAREERS[3].id), CAREERS[0].id)
+    expect(s.peakCareerId).toBe(CAREERS[3].id)
+  })
+
+  it('없는 공고로는 기록되지 않는다', () => {
+    expect(recordPeakCareer(createInitialState('테스터'), '없는회사').peakCareerId).toBeUndefined()
   })
 })
 

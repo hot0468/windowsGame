@@ -7,10 +7,13 @@ import { describe, it, expect } from 'vitest'
 import { createInitialState, canRun, runActivity, skipSlot } from './turn'
 import { findActivity } from '../data/activities'
 import { ABSENCE_FIRE, ABSENCE_WARNING, CAREERS, PAYDAY_INTERVAL, findCareer } from '../data/careers'
+import { getLivingCost } from './economy'
 import { countConsecutive } from './burnout'
+import { getFailureEnding } from './ending'
+import { careerEnding } from '../data/endings'
 import { advanceEmployment, applyTo, passes } from './employment'
+import type { Activity, GameState } from '../types/game'
 import type { Career } from '../data/careers'
-import type { GameState } from '../types/game'
 
 const work = findActivity('work')!
 const game = findActivity('game')!
@@ -234,6 +237,135 @@ describe('정규직 공고 정의', () => {
     expect(commute.effects.money).toBeUndefined()
     expect(commute.scalesWithWage).toBeUndefined()
     expect(findCareer(CAREERS[0].id)!.salary).toBeGreaterThan(0)
+  })
+})
+
+/* ── 직업 엔딩 도달 가능성 (2026-08-05) ────────────────────────────────────
+ *
+ * 설계자 지시로 **직업 엔딩은 파산했을 때만 뜬다.** 그래서 "그 엔딩이 존재하는가"는
+ * 데이터 검사로 끝나지 않는다 — **그 회사에 실제로 들어갈 수 있어야** 하고, 그러고도
+ * 결국 굶어 죽어야 비로소 화면에 나온다. 아무도 볼 수 없는 엔딩은 버그다.
+ * 그래서 여기서는 단언이 아니라 **시뮬레이션으로** 다섯 자리 전부를 밟아 본다.
+ */
+
+/** 요건 스탯 → 그 스탯의 주 공급원. `prepFor`와 같은 표를 쓰되 순서를 정책이 정한다. */
+const REQUIREMENT_SOURCE: Record<string, Activity> = {
+  knowledge: study,
+  vocabulary: reading,
+  creativity: findActivity('writing')!,
+  charm: social,
+  sociability: club,
+  reputation: findActivity('sns')!,
+}
+
+const tutor = findActivity('work-tutor')!
+
+/** 아직 못 채운 요건과 남은 양. */
+function requirementGaps(state: GameState, career: Career): [string, number][] {
+  const need = { ...career.paper, ...career.person } as Record<string, number>
+  const stats = state.stats as unknown as Record<string, number>
+  return Object.entries(need)
+    .map(([key, min]) => [key, min - stats[key]] as [string, number])
+    .filter(([, gap]) => gap > 0)
+}
+
+/** 소지금이 이 일수치 생활비 아래로 내려가면 벌러 간다. */
+const RUNWAY_DAYS = 3
+/** 멘탈이 이 아래로 내려가면 회복부터 한다. */
+const MENTAL_FLOOR = 40
+
+/**
+ * **그 자리를 목표로 삼고 계획적으로 노는 플레이.**
+ *
+ * ⚠️ 위의 `playEmployed`(평범한 플레이)와 **일부러 다른 정책이다.** 첫 공고는 아무 생각
+ * 없이 굴러도 닿지만, 청람그룹(지식 150 · 어휘력 100 · 창의력 80 · 매력 80 · 친화력 80 ·
+ * 평판 70)은 계획 없이는 못 닿는다. 여기서 재는 질문이 "평범한 플레이가 우연히 닿는가"가
+ * 아니라 **"작정한 플레이어가 닿을 수 있는가"**이기 때문이다.
+ *
+ * 정책의 핵심 두 가지:
+ *  1. **지식 60을 먼저 채워 과외(105,000원)를 연다.** 편의점(60,000원)으로 벌면서 여섯 스탯을
+ *     키우는 것은 물가를 못 이긴다 — 지식은 어차피 요건이라 이 투자는 두 번 쓰인다.
+ *  2. **남은 격차가 작은 요건부터** 채운다. 필요 턴 수의 총합은 어차피 같고,
+ *     먼저 끝난 항목만큼 판단이 단순해진다.
+ */
+function playToward(career: Career, maxDays: number): { state: GameState; hiredDay: number | null } {
+  let state = createInitialState('목표')
+  let hiredDay: number | null = null
+
+  for (let guard = 0; guard < maxDays * 2 + 10; guard++) {
+    if (state.gameOver || state.day > maxDays) break
+    const earn = canRun(state, tutor) ? tutor : work
+
+    let next: GameState
+    if (canRun(state, commute)) next = runActivity(state, commute)
+    else if (canRun(state, jobInterview)) next = runActivity(state, jobInterview)
+    else if (
+      !state.employment &&
+      !state.application &&
+      qualified(state, career) &&
+      canRun(state, jobApply)
+    ) {
+      next = runActivity(applyTo(state, career), jobApply)
+    } else if (state.stats.mental < MENTAL_FLOOR && canRun(state, game)) {
+      next = runActivity(state, game)
+    } else if (
+      !state.employment &&
+      state.stats.money < getLivingCost(state.day) * RUNWAY_DAYS &&
+      canRun(state, earn)
+    ) {
+      next = runActivity(state, earn)
+    } else {
+      const remaining = requirementGaps(state, career).sort((a, b) => a[1] - b[1])
+      // 과외를 여는 지식 60이 최우선이다(그 회사가 어차피 지식을 요구할 때만).
+      if (state.stats.knowledge < 60 && (career.paper.knowledge ?? 0) >= 60) {
+        remaining.unshift(['knowledge', 0])
+      }
+      const pick = remaining.map(([key]) => REQUIREMENT_SOURCE[key]).find((a) => a && canRun(state, a))
+      if (pick) next = runActivity(state, pick)
+      else if (canRun(state, earn) && state.stats.mental > 20) next = runActivity(state, earn)
+      else if (canRun(state, game) && state.stats.mental < 95) next = runActivity(state, game)
+      else next = skipSlot(state)
+    }
+
+    const settled = advanceEmployment(next)
+    for (const n of settled.notices) if (n.kind === 'hired' && hiredDay === null) hiredDay = n.day
+    state = settled.state
+  }
+  return { state, hiredDay }
+}
+
+describe('직업 엔딩 — 아무도 볼 수 없는 엔딩은 없다', () => {
+  for (const career of CAREERS) {
+    it(`${career.company}에 취직한 뒤 파산해 그 회사의 엔딩으로 끝난다`, () => {
+      const run = playToward(career, 400)
+      expect(run.hiredDay, `${career.id}에 끝내 취직하지 못했다 — 도달 불가능한 엔딩이다`).not.toBeNull()
+      // 급여가 물가를 이기지 못하므로 취직한 판도 결국 굶어 죽는다. 그게 이 엔딩의 조건이다.
+      expect(run.state.gameOver, `${career.id}: 판이 끝나지 않았다`).toBe('bankrupt')
+      expect(run.state.peakCareerId).toBe(career.id)
+      const ending = getFailureEnding('bankrupt', run.state)
+      expect(ending.id).toBe(careerEnding(career.id)!.id)
+      expect(ending.isFailure).toBe(true)
+    })
+  }
+
+  it('직장을 가져 본 적 없는 판은 그냥 파산으로 끝난다', () => {
+    const { state } = playOptimally(1000)
+    expect(state.peakCareerId).toBeUndefined()
+    expect(getFailureEnding('bankrupt', state).id).toBe('bankrupt')
+  })
+
+  /**
+   * ⚠️ **비문에 새기는 것은 도달한 최고 직장이지 죽을 때의 직함이 아니다**
+   * (`systems/ending.ts`의 `epitaphCareerId`). 해고는 이미 수입을 끊어 파산을 앞당기는데,
+   * 거기에 기록까지 지우면 한 사건에 벌을 두 번 주는 것이다.
+   */
+  it('해고된 뒤 파산해도 다녔던 회사의 엔딩으로 끝난다', () => {
+    const run = playEmployed(CAREERS[0], 400, false)
+    expect(run.firedDay, '결근했는데도 해고되지 않았다').not.toBeNull()
+    expect(run.state.employment, '해고됐는데 재직 상태가 남아 있다').toBeUndefined()
+    expect(run.state.gameOver).toBe('bankrupt')
+    expect(run.state.peakCareerId).toBe(CAREERS[0].id)
+    expect(getFailureEnding('bankrupt', run.state).id).toBe(careerEnding(CAREERS[0].id)!.id)
   })
 })
 

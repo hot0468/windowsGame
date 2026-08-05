@@ -33,7 +33,8 @@ export function EndingModal() {
   /** 성취 엔딩에서 "엔딩 보기"를 눌렀을 때 최종 화면으로 전환한다. */
   const [confirmed, setConfirmed] = useState(false)
 
-  const failure = state?.gameOver ? getFailureEnding(state.gameOver) : null
+  // 파산 엔딩은 "어떤 사람으로 끝났는가"에 따라 갈린다 — 판정은 systems/ending.ts 하나가 한다.
+  const failure = state?.gameOver ? getFailureEnding(state.gameOver, state) : null
   const achievement = state && !state.gameOver
     ? checkAchievementEnding(state.stats, state.seenEndingIds)
     : null

@@ -202,6 +202,36 @@ describe('migrateSave — 정규직', () => {
     expect(r.state?.employment).toBeUndefined()
     expect(r.state?.application).toBeUndefined()
     expect(r.state?.jobNotices).toBeUndefined()
+    expect(r.state?.peakCareerId).toBeUndefined()
+  })
+
+  /* ── 최고 경력 (2026-08-05, 직업 엔딩) ─────────────────────────────────
+   * 파산 엔딩이 이 값 하나로 갈린다. 없거나 깨진 세이브가 크래시를 내면 안 되고,
+   * 없다고 해서 다니던 회사가 없던 일이 되어도 안 된다.
+   */
+  it('최고 경력을 그대로 되돌린다', () => {
+    const save = employed() as { state: Record<string, unknown> }
+    save.state.peakCareerId = 'cheongram-group'
+    expect(migrateSave(save).state?.peakCareerId).toBe('cheongram-group')
+  })
+
+  it('필드가 없던 세이브는 재직 중인 회사로 메운다 — 다니는 회사가 있는데 무직으로 죽을 수는 없다', () => {
+    const r = migrateSave(employed())
+    expect(r.state?.peakCareerId).toBe('dasom-office')
+  })
+
+  it('없는 공고를 가리키면 버린다 — 그러면 그냥 파산 엔딩이 된다', () => {
+    const save = employed() as { state: Record<string, unknown> }
+    save.state.peakCareerId = '없는회사'
+    save.state.employment = undefined
+    expect(migrateSave(save).state?.peakCareerId).toBeUndefined()
+  })
+
+  it('최고 경력이 없는 옛 세이브도 크래시 없이 열린다', () => {
+    const save = employed() as { state: Record<string, unknown> }
+    save.state.employment = undefined
+    expect(() => migrateSave(save)).not.toThrow()
+    expect(migrateSave(save).state?.peakCareerId).toBeUndefined()
   })
 
   it('없는 공고를 가리키는 재직 상태는 버린다 — 급여를 만들 근거가 없다', () => {

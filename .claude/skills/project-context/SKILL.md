@@ -19,14 +19,14 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 | 시간 구조 | 턴제, 일 단위. 1일 = 오전/오후 2슬롯. 밤은 자동 취침(체력 회복+정산) |
 | 게임 길이 | 제한 없음. 물가 상승으로 후반 생존이 불가능해져 자연 종결 (약 88~101일이 한계) |
 | 스탯 | 12종. ⚠️ **`stamina` = "행동력", `maxStamina` = "체력"으로 표시된다**(2026-08-03 개명, 코드 키는 그대로). "체력/최대 체력"은 같은 것의 현재값·상한처럼 읽혀 둘이 왜 나뉘는지 설명하지 못했다 — 실제 관계는 매일 쓰고 채우는 소모 자원 vs 운동으로 영구히 키우는 그릇이다. 규칙은 안 바뀌었다. 소모 자원: `stamina`/`maxStamina`, `mental`(0~100), `money`. 성장 스탯 **10종**: `knowledge`, `charm`, `sensitivity`, `reputation`, `morality`, `creativity`, `sociability`, `vocabulary`, `athletics`, `gaming`(게임). 상한은 `growthCap(key)`가 정한다 — 평판·도덕만 100, 나머지 999 |
-| 엔딩 | 멀티 엔딩 6종(대기업 합격/인플루언서/철인/현실주의자/번아웃/평범). 스탯 조합 판정 |
+| 엔딩 | **11종.** ①**성취 엔딩 4종**(인플루언서/철인/현실주의자/평범한 일상) — 스탯 조합으로 게임 **도중** 뜨고 [계속하기]로 물릴 수 있다 ②**직업 엔딩 5종**(공고 하나당 하나) — **파산했을 때만** 뜬다 ③**실패 엔딩 2종**(파산/번아웃). ⚠️ 2026-08-05에 `bigtech`(대기업)이 ①에서 ②로 옮겨졌다 — 아래 "직업 엔딩" 절 |
 | 엔딩 공개 | 비공개. 엔딩 도감에 한 번 본 엔딩만 해금 |
 | 활동 선택 | ⚠️ **바탕화면에 활동 아이콘은 없다**(`onDesktop` 전부 false). 활동을 실행하는 통로는 **넷**이다: ①카톡 대화창의 [만나러 가기](= `social`) ②**스케줄러 예약**(그 슬롯이 오면 자동 실행) ③**브라우저 사이트의 확정 버튼**(2026-08-04 신설 — 미디북스=`reading`·시집이=`movie`·아점=`writing`·**알바몬=알바 4종**) ④**바탕화면 바로 가기**(2026-08-05 신설 — ③의 확정 버튼을 우클릭해 등록한 것. 아이콘은 활동 아이콘이지만 `onDesktop`과 무관하다). 활동 **21종** 정의는 `data/activities.ts`에 그대로 있다(2026-08-05: 정규직 3종 — 지원서 제출·면접·출근 추가) |
 | 행동 비용 | **탐색 무료**, 확정 행동만 1턴 소모 |
 | 날짜 제한 | **없음.** 대신 ①매일 생활비 차감(0→파산) ②10일 주기 물가 인상(뉴스 예고) ③번아웃 누적 |
 | 알바비 | 물가보다 느리게 인상 → 고소득 알바 전환 압박 = 스탯 투자 이유 |
 | 정규직 | **2026-08-05 신설.** 알바(일용직)와 별개 축. 지원→서류→면접→최종의 며칠짜리 절차, 채용되면 **고용이 지속**되고 급여일마다 월급. 출근은 플레이어가 고르는 활동이고 무단결근이 쌓이면 해고. **급여는 물가 배율을 안 탄다** → 중반에 강하고 후반에 반드시 무너진다 |
-| 엔딩 도달 | 성취 엔딩은 [엔딩 보기]/[계속하기] 선택, 어느 쪽이든 도감 즉시 해금. 파산·번아웃은 강제 종료 |
+| 엔딩 도달 | 성취 엔딩은 [엔딩 보기]/[계속하기] 선택, 어느 쪽이든 도감 즉시 해금. 파산·번아웃·**직업 엔딩**은 강제 종료([계속하기] 없음) |
 | 체력 | `stamina`(일일 소모/취침 회복) / `maxStamina`(운동으로 영구 상승, 철인 엔딩 판정) 분리 |
 
 **전체 설계 문서:** `docs/superpowers/specs/2026-08-03-windows-desktop-life-sim-design.md`
@@ -94,7 +94,8 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - **바탕화면 항목 ≠ 활동.** 바탕화면 아이콘은 `src/data/desktopItems.ts`의 `DESKTOP_ITEMS`(타입 `DesktopItem`)가 단일 출처다. 활동 기반 항목은 `Activity.onDesktop` 플래그에서 자동 파생되고(id 하드코딩 필터 금지), 브라우저처럼 **스탯도 턴도 건드리지 않는 항목은 활동으로 위장시키지 않는다** — 가짜 활동을 만들면 번아웃 이력·엔딩 판정·밸런스 테스트에 없는 id가 섞인다. 폴더·휴지통도 여기에 추가한다. (구 `DESKTOP_ACTIVITIES`는 제거됨)
 - 창 종류는 `WindowKind`(`'exe' | 'ending' | 'stub'`). `'stub'`은 미구현 앱의 "준비 중" 안내 창(`StubApp`)이며 `OpenWindow.message`를 함께 쓴다. 새 앱은 stub으로 먼저 올리고 구현되면 kind만 바꾼다
 - 상한은 `src/systems/turn.ts`의 명명 상수: `MAX_STAMINA_CAP`(200) / `MENTAL_CAP`(100) / `GROWTH_STAT_CAP`(999). `clampStats`는 `GROWTH_STAT_KEYS`를 순회하므로 성장 스탯 추가 시 `types/game.ts`만 고치면 된다
-- 엔딩 조건 수치는 `balance.verify.test.ts`가 지킨다. 스탯 상한이 올라도 도달 기준은 그대로 둔다
+- 엔딩 조건 수치는 `balance.verify.test.ts`가 지킨다. 스탯 상한이 올라도 도달 기준은 그대로 둔다.
+  ⚠️ **직업 엔딩은 조건이 아니라 도달 가능성을 시뮬레이션으로 지킨다** — 아래 "직업 엔딩" 절
 - **z-order는 `src/data/layers.ts`의 `LAYERS` 상수가 단일 출처다.** 숫자를 컴포넌트에 흩뿌리지 않는다. 순서: `DESKTOP_ICON`(10) < `DESKTOP_PANEL`(100) < `WINDOW_BASE`(1000, windowStore.topZ 시작값) < `DESKTOP_PANEL_RAISED`(8000) < `TASKBAR`(9000) < `ENDING`(9500). CSS는 상수를 참조할 수 없어 Desktop.css/EndingModal.css에 같은 값을 주석과 함께 중복해 두었다 — **바꿀 때 반드시 양쪽을 함께 고친다**
 - **스탯창·날짜칸은 바탕화면 요소다 → 일반 창에 가려지는 것이 정상이다.** (설계자 명시 요구) 되찾는 수단은 작업 표시줄 시계 왼쪽의 패널 버튼이며, `src/store/desktopPanelStore.ts`가 패널별 z를 들고 `raise(id)`로 `DESKTOP_PANEL_RAISED` 위로 올린다.
   - ⚠️ **작업 표시줄 패널 버튼은 토글이다**(`toggle(id)`, 2026-08-03 변경). 예전에는 `raise`만 해서 한 번 누르면 이미 맨 앞이라 두 번째 클릭이 아무 일도 하지 않았고 되돌릴 수도 없었다. 지금은 **숨김 ↔ 표시**를 오가고, 켤 때 `raise`를 겸한다("창에 가려 안 보여서 눌렀다"도 한 번에 해결). 숨김 상태는 `visible` 레코드가 들고, 패널 컴포넌트가 `!visible`이면 렌더하지 않는다. 버튼은 `aria-pressed` + `.taskbar-panel-on` + 툴팁 문구로 상태를 알린다(색만으로 알리지 않는다)
@@ -358,6 +359,44 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
   뒤집어 찾는다** — 아이템 쪽에 활동 id를 또 적으면 같은 관계가 두 곳에 생긴다.
   `gym-pass`는 `effects`가 빈 유일한 물건이다(값은 잠금 해제 자체다).
 
+### 직업 엔딩 (2026-08-05 신설)
+설계자 지시: **"직업엔딩은 취직한 순간이 아닌 돈 없어서 죽은 후 뜨게 해."**
+- ⚠️ **취직은 엔딩이 아니다.** 예전에는 `bigtech`(대기업 합격)이 **지식 90 · 멘탈 40**이면 게임 도중
+  성취 엔딩으로 떴다. 정규직이 실제로 구현되면서 그 이름이 **두 가지 다른 것**을 뜻하게 돼
+  (스탯 문턱 / 청람그룹 입사) 조건을 없애고 **최상위 직업 엔딩**으로 흡수했다.
+  `ACHIEVEMENT_ENDINGS`에서 대기업을 빼면서 **최상위 티어는 인플루언서(tier 3)**가 됐다.
+  ⚠️ **스탯 조건을 되살리지 말 것**(`ending.test.ts`가 순회로 지킨다).
+- **id `bigtech`은 그대로 물려받았다** — 바꾸면 이미 도감을 해금해 둔 사람의 기록
+  (`metaStore`, 판을 넘어 남는다)이 끊긴다. 제목만 '대기업 합격' → **'대기업 사원'**.
+  나머지 넷은 `career-<공고id>`.
+- **데이터는 `data/endings.ts`의 `CAREER_ENDINGS`**(+`careerEnding(careerId)`).
+  `Ending.careerId`가 관계를 갖는다 — **엔딩 → 공고 방향으로만** 적는다(공고 쪽에 엔딩 id를
+  또 적으면 한쪽만 고쳐도 아무 테스트가 안 터진다). 공고와 **1:1**이고 `ending.test.ts`가
+  양방향으로 지킨다. 전부 `isFailure: true`(죽은 사람에게 [계속하기]를 줄 수 없다).
+- ⚠️ **비문에 새기는 것은 "도달한 최고 직장"이지 죽을 때의 직함이 아니다.**
+  판단은 **`systems/ending.ts`의 `epitaphCareerId` 한 함수**에 모아 뒀다 —
+  뒤집으려면 반환값 한 줄(`state.employment?.careerId`)만 고친다. 사유: 해고는 이미 수입을
+  끊어 파산을 앞당기는데 기록까지 지우면 **한 사건에 벌이 두 번**이고, 60일차에 대기업에
+  들어가 80일차에 잘려 85일차에 죽은 판이 "무직으로 죽었다"로 남는다.
+- **상태는 `GameState.peakCareerId`**(옵셔널). 올라가는 곳은 **채용되는 한 지점**뿐이다
+  (`employment.ts`의 `recordPeakCareer`, `advanceApplication`의 최종 합격에서 호출).
+  해고는 `employment`만 지우고 이 값은 건드리지 않는다. 서열은 `data/careers.ts`의
+  **`careerRank`**(= 배열 순서 = 급여 오름차순)이고 무직·모르는 id는 -1이다.
+- **판정은 `getFailureEnding(reason, state)`** 하나다: 파산이면 경력 엔딩(없으면 `bankrupt`),
+  **번아웃은 경력과 무관하게 `burnout`**(돈이 떨어져 죽는 것과 마음이 떨어져 죽는 것은
+  다른 죽음이고 직업이 설명하는 쪽은 전자다). `state`를 옵셔널로 두지 않는다 — 넘기지
+  않아도 되게 만들면 언젠가 빠뜨려 그 화면에서만 조용히 직업 엔딩이 안 뜬다.
+- ⚠️ **세이브 버전이 1 → 2로 올랐다.** zustand의 `migrate`는 **저장 버전이 다를 때만** 불린다 —
+  v1로 저장된 세이브는 `reviveState`를 한 번도 지나지 않아 `peakCareerId` 보정이 닿지 않았다.
+  보정 내용: 값이 없으면 **재직 중인 회사로 메운다**(다니는 회사가 있는데 무직으로 죽을 수는 없다).
+  해고된 뒤 저장된 옛 세이브는 복원할 흔적이 없어 무직으로 남는다.
+- ⚠️ **도달 가능성은 단언이 아니라 시뮬레이션으로 지킨다**(`balance.verify.test.ts`의
+  `playToward`). 아무도 볼 수 없는 엔딩은 버그이므로 **공고 5종 전부** "실제로 취직 → 결국 파산"을
+  밟는다. 정책이 `playEmployed`(평범한 플레이)와 다른 것은 의도다 — 청람그룹은 계획 없이는
+  못 닿는다. 핵심은 **지식 60을 먼저 채워 과외(105,000원)를 여는 것**이다(지식은 어차피 요건이라
+  이 투자가 두 번 쓰인다). 실측 채용일/파산일: 다솜 18/121 · 늘봄 39/142 · 물빛 54/66 ·
+  한밭 50/149 · **청람 96/97**.
+
 ### 쇼핑 · 택배 · 폴더 (2026-08-04 신설)
 - 흐름: **쇼핑에서 주문 → 다음 날 도착 → 토스트 → 아이템 인벤토리 폴더**.
 - 데이터: `data/items.ts`(`SHOP_ITEMS` — 이름·가격·아이콘·확장자·효과), `data/events.ts`(`EVENTS` — 이벤트 도감).
@@ -425,10 +464,10 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 ## 파일 맵
 - 진입: `index.html` → `src/main.tsx` → `src/App.tsx` (`loggedIn && state`로 잠금화면/바탕화면 분기)
 - 타입: `src/types/game.ts` — Stats, Activity, GameState 등 도메인 타입 전부
-- 데이터(수치): `src/data/` — **videos**(`VIDEOS`·`SHORTS`·`CHANNELS` — 너튜브 영상. 썸네일은 이미지가 아니라 그라데이션+글자다), **items**(`SHOP_ITEMS`·`fakeSize` — 쇼핑 물건), **events**(`EVENTS` — 이벤트 도감 정의), activities(활동 **21종** + `ACTIVITY_CATEGORIES`(묶음 라벨·순서) + `WORK_ACTIVITIES`(알바 4종 — `burnoutKey === 'work'`에서 파생한다. 목록을 따로 적으면 알바를 늘릴 때 한쪽만 고친다) + `activitiesOf`/`activitiesUnlockedBy`, `onDesktop` 플래그 — 현재 전부 false), **jobs**(`JOBS`·`jobsOf`·`findJob` — 알바몬 공고 8개. **수치가 없다**: `activityId`로 활동을 가리키기만 하고 급여·행동력은 활동에서 파생한다), **careers**(`CAREERS`·`findCareer`·채용 일정/급여 주기/결근 기준 상수 — 벼룩장터 정규직 공고 5개. ⚠️ 알바와 반대로 **급여(`salary`)를 여기가 갖는다** — 출근 활동은 하나뿐인데 회사마다 급여가 다르기 때문), **startMenu**(`START_MENU_ITEMS` — 시작 메뉴 항목), **messages**(`CHAT_APPS`·`THREADS`·`MAILBOX`·`MESSAGE_SCHEDULE` — 메신저/메일 콘텐츠), **banners**(`BANNERS` — 포털 배너존), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합, `openMaximized` 옵트인), **desktopIcons**(`DEFAULT_ICON_CELLS`·`DESKTOP_ICON_ORDER` — 아이콘 **기본 격자 배치**. 구 `Desktop.tsx`의 `ICON_COLUMNS`가 여기로 옮겨왔다), **sites**(`SITES`·`BOOKMARK_SITES`·`HOME_SITE_ID`·`findSite`·`resolveUrl` — 브라우저가 이동할 사이트 단일 출처. `activityId`가 사이트↔활동을 잇는다), **media**(`BOOKS`·`FILMS`·`WRITING_PROMPTS`·`MAIN_FILM_ID`·`findShowtime` — 미디북스·시집이·아점의 콘텐츠. ⚠️ `Film.section`이 `now`/`soon`/`arte`를 가르고 **`soon`만 회차가 없다**(아직 안 나온 영화는 예매 불가). 포스터도 이미지가 아니라 그라데이션이다), **news**(`NEWS_POOL`·`NEWS_VISIBLE_COUNT`·`TRENDING_TERMS` — 포털 뉴스/실검 정적 콘텐츠), layers(`LAYERS` — z-order 상수), shell(`SHELL` — 작업표시줄·타이틀바 높이 + **`DESKTOP_GRID`** — 바탕화면 아이콘 격자 수치·드래그 임계값), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(엔딩 6종), statMeta(스탯별 `icon`(다색)·`hudIcon`(단색) + 표시 순서), icons(`UI_ICONS` — OS 크롬 / `HUD_ICONS` — HUD 전용 단색 / `BROWSER_ICONS` — 브라우저 도구 모음 단색)
+- 데이터(수치): `src/data/` — **videos**(`VIDEOS`·`SHORTS`·`CHANNELS` — 너튜브 영상. 썸네일은 이미지가 아니라 그라데이션+글자다), **items**(`SHOP_ITEMS`·`fakeSize` — 쇼핑 물건), **events**(`EVENTS` — 이벤트 도감 정의), activities(활동 **21종** + `ACTIVITY_CATEGORIES`(묶음 라벨·순서) + `WORK_ACTIVITIES`(알바 4종 — `burnoutKey === 'work'`에서 파생한다. 목록을 따로 적으면 알바를 늘릴 때 한쪽만 고친다) + `activitiesOf`/`activitiesUnlockedBy`, `onDesktop` 플래그 — 현재 전부 false), **jobs**(`JOBS`·`jobsOf`·`findJob` — 알바몬 공고 8개. **수치가 없다**: `activityId`로 활동을 가리키기만 하고 급여·행동력은 활동에서 파생한다), **careers**(`CAREERS`·`findCareer`·**`careerRank`**(서열 = 배열 순서 = 급여 오름차순, 무직은 -1)·채용 일정/급여 주기/결근 기준 상수 — 벼룩장터 정규직 공고 5개. ⚠️ 알바와 반대로 **급여(`salary`)를 여기가 갖는다** — 출근 활동은 하나뿐인데 회사마다 급여가 다르기 때문), **startMenu**(`START_MENU_ITEMS` — 시작 메뉴 항목), **messages**(`CHAT_APPS`·`THREADS`·`MAILBOX`·`MESSAGE_SCHEDULE` — 메신저/메일 콘텐츠), **banners**(`BANNERS` — 포털 배너존), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합, `openMaximized` 옵트인), **desktopIcons**(`DEFAULT_ICON_CELLS`·`DESKTOP_ICON_ORDER` — 아이콘 **기본 격자 배치**. 구 `Desktop.tsx`의 `ICON_COLUMNS`가 여기로 옮겨왔다), **sites**(`SITES`·`BOOKMARK_SITES`·`HOME_SITE_ID`·`findSite`·`resolveUrl` — 브라우저가 이동할 사이트 단일 출처. `activityId`가 사이트↔활동을 잇는다), **media**(`BOOKS`·`FILMS`·`WRITING_PROMPTS`·`MAIN_FILM_ID`·`findShowtime` — 미디북스·시집이·아점의 콘텐츠. ⚠️ `Film.section`이 `now`/`soon`/`arte`를 가르고 **`soon`만 회차가 없다**(아직 안 나온 영화는 예매 불가). 포스터도 이미지가 아니라 그라데이션이다), **news**(`NEWS_POOL`·`NEWS_VISIBLE_COUNT`·`TRENDING_TERMS` — 포털 뉴스/실검 정적 콘텐츠), layers(`LAYERS` — z-order 상수), shell(`SHELL` — 작업표시줄·타이틀바 높이 + **`DESKTOP_GRID`** — 바탕화면 아이콘 격자 수치·드래그 임계값), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(**엔딩 11종** — `ACHIEVEMENT_ENDINGS` 4 + **`CAREER_ENDINGS` 5**(직업 엔딩, `careerEnding(careerId)`) + `FAILURE_ENDINGS` 2), statMeta(스탯별 `icon`(다색)·`hudIcon`(단색) + 표시 순서), icons(`UI_ICONS` — OS 크롬 / `HUD_ICONS` — HUD 전용 단색 / `BROWSER_ICONS` — 브라우저 도구 모음 단색)
 - 아이콘: `src/icons/` — AppIcon(공용 렌더 컴포넌트), bootstrap(시작 시 addCollection), generated.ts(자동 생성, 수정 금지). 생성기는 `scripts/build-icon-subset.mjs`
-- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티 + **`burnoutKeyOf`** — 이력에 넣는 키와 세는 키를 한 함수로 묶는다. ⚠️ 알바 4종이 `burnoutKey: 'work'`를 공유해 **종류를 바꿔 가며 일해도 번아웃을 우회할 수 없다**. 키가 갈라지면 페널티가 조용히 0이 된다), ending(티어 판정), **news**(오늘의 뉴스 선택 — 날짜 결정적), **browserHistory**(뒤로/앞으로 이력 계산), **messages**(턴별 메시지 편성 — 결정적), **search**(포털 검색), **schedule**(예약 실행), **employment**(정규직 — 지원·서류·면접·급여·결근·해고. `turn.ts`를 부르지만 반대는 없다), **desktopGrid**(바탕화면 아이콘 격자 스냅·빈 칸 찾기·경계 클램프), **shortcuts**(활동 바로 가기 id 생성 + `firstFreeCell`·`placeShortcuts`), **contextMenu**(`clampMenuPosition` — 메뉴가 화면 밖으로 나가면 뒤집는다), **delivery**(쇼핑·배송·사건 기록. ⚠️ `owns`/`inventoryOf`는 **turn.ts로 옮겨졌고 여기서 재수출**한다 — `canRun`이 보유를 봐야 해서 두면 순환이 된다). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지) + `data/activities.test.ts`(성장 스탯 10종 전부에 육성 경로가 있는지 목록 순회로 검사). 총 **362개** 테스트(`src/systems`+`src/store`+`src/data`)
-- 상태: `src/store/` — **shortcutStore**(활동 바로 가기 목록·영구, 판을 넘어 남는다), gameStore(세이브+loggedIn), metaStore(도감·영구), windowStore(창 목록 + 최소화/최대화 런타임 상태·휘발), desktopPanelStore(스탯창·날짜칸 z, 휘발), **desktopIconStore**(바탕화면 아이콘 격자 위치·영구, 옮긴 것만 저장), **browserStore**(즐겨찾기 id 목록 + 개발자 모드·영구, 기본 즐겨찾기 없음), **toastStore**(우하단 알림·휘발)
+- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티 + **`burnoutKeyOf`** — 이력에 넣는 키와 세는 키를 한 함수로 묶는다. ⚠️ 알바 4종이 `burnoutKey: 'work'`를 공유해 **종류를 바꿔 가며 일해도 번아웃을 우회할 수 없다**. 키가 갈라지면 페널티가 조용히 0이 된다), ending(티어 판정 + **직업 엔딩 판정** — `getFailureEnding(reason, state)`·**`epitaphCareerId`**(최고 경력 vs 현직을 고르는 단 하나의 지점)), **news**(오늘의 뉴스 선택 — 날짜 결정적), **browserHistory**(뒤로/앞으로 이력 계산), **messages**(턴별 메시지 편성 — 결정적), **search**(포털 검색), **schedule**(예약 실행), **employment**(정규직 — 지원·서류·면접·급여·결근·해고 + **`recordPeakCareer`**(최고 경력, 채용 지점에서만 올라간다). `turn.ts`를 부르지만 반대는 없다), **desktopGrid**(바탕화면 아이콘 격자 스냅·빈 칸 찾기·경계 클램프), **shortcuts**(활동 바로 가기 id 생성 + `firstFreeCell`·`placeShortcuts`), **contextMenu**(`clampMenuPosition` — 메뉴가 화면 밖으로 나가면 뒤집는다), **delivery**(쇼핑·배송·사건 기록. ⚠️ `owns`/`inventoryOf`는 **turn.ts로 옮겨졌고 여기서 재수출**한다 — `canRun`이 보유를 봐야 해서 두면 순환이 된다). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지) + `data/activities.test.ts`(성장 스탯 10종 전부에 육성 경로가 있는지 목록 순회로 검사). 총 **386개** 테스트(`src/systems`+`src/store`+`src/data`)
+- 상태: `src/store/` — **shortcutStore**(활동 바로 가기 목록·영구, 판을 넘어 남는다), gameStore(세이브+loggedIn, **persist version 2** — 1→2로 올려 옛 세이브가 `reviveState`를 반드시 한 번 지나게 했다), metaStore(도감·영구), windowStore(창 목록 + 최소화/최대화 런타임 상태·휘발), desktopPanelStore(스탯창·날짜칸 z, 휘발), **desktopIconStore**(바탕화면 아이콘 격자 위치·영구, 옮긴 것만 저장), **browserStore**(즐겨찾기 id 목록 + 개발자 모드·영구, 기본 즐겨찾기 없음), **toastStore**(우하단 알림·휘발)
 - UI: `src/components/`(**PanelOrnament** — 테두리 장식. ⚠️ HUD에서는 제거됐고 활동창·안내창·엔딩 모달만 쓴다 / **ContextMenu** — 공용 오른쪽 클릭 메뉴, `document.body`로 포탈), `window/`(Window·WindowManager — OS 창 크롬), `desktop/`(Desktop·HudPanel·StatPanel·CalendarPanel·Taskbar·**StartMenu**·**ToastHost**), `lockscreen/`, `apps/`(ExeApp·StubApp·EndingModal·BrowserApp·**ChatApp**(목록+대화)·**MailApp**·**SystemApps**(저장/작업관리자/명령프롬프트)·**SchedulerApp**·**ExplorerApp**(인벤토리·도감)·**ActivityConfirm**(바로 가기 실행 확인창)), `apps/sites/`(NeverPortal·**ShopSite**·ConstructionSite·**ActivityCommit**(사이트 공용 확정 패널)·**LibrarySite**(미디북스)·**CinemaSite**(시집이)·**PublishSite**(아점)·**AlbamonSite**(알바몬, 토큰 `--ab-*`)·**FleaSite**(벼룩장터, 토큰 `--fl-*`)), `apps/activityPreview.ts`(`previewActivity` 증감 미리보기 + **`previewWarnings`**(경고 문구 단일 출처) + **`blockReasons`**(왜 못 하는가) — 활동 창·사이트 확정 패널·바로 가기 확인창 셋이 공유)
 - 설정: `vite.config.ts`, `tsconfig.json`(+`.app`/`.node`), 전역 CSS `src/index.css`(**디자인 토큰 `:root` 단일 출처**)
 - 미구현(별도 계획 필요): 사이트 **내용**(슬로우캠퍼스·트위터 — 지금은 공용 준비 중 페이지. **쇼핑·너튜브·미디북스·시집이·아점·알바몬은 구현됨**), **솔리테어**(시작 메뉴 항목만 있고 창은 없다 — `kind: 'solitaire'`가 예약돼 있다), 엔딩 도감 UI, **랜덤 이벤트**(정의는 `data/events.ts`에 있고 발생 지점만 없다 — 도감 화면은 이미 동작한다), 휴지통, 은행/대출(설계상 1차 제외)

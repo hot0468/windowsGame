@@ -426,6 +426,18 @@ export interface GameState {
   application?: Application
   /** 재직 중인 회사. 없으면 무직이다. */
   employment?: Employment
+  /**
+   * **이번 판에서 도달한 최고 직장.** 해고되거나 그만둬도 내려가지 않는다.
+   *
+   * ⚠️ 이 필드의 유일한 독자는 **파산 엔딩 판정**이다(`systems/ending.ts`) —
+   * 직업 엔딩은 취직한 순간이 아니라 **돈이 떨어져 죽은 뒤**에 뜨고, 비문에 새기는 것은
+   * 죽을 때의 직함이 아니라 **가장 높이 갔던 자리**다. 판단의 근거와 뒤집는 법은
+   * `systems/ending.ts`의 `epitaphCareerId`에 한 곳으로 모아 뒀다.
+   *
+   * ⚠️ 옵셔널이다 — 이 필드가 생기기 전 세이브에는 없다. `gameStore`의 `reviveJob`이
+   * 재직 중인 회사로 메워 준다(`adBonusDay`·`plans`와 같은 규칙).
+   */
+  peakCareerId?: string
   /** 도착한 정규직 소식(메일·토스트의 원본). 오래된 것부터 잘라 낸다. */
   jobNotices?: JobNotice[]
 }
