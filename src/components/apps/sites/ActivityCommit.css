@@ -96,12 +96,20 @@
   color: var(--nv-text-2);
 }
 
+/*
+ * 확정 버튼을 감싼 상자. 오른쪽 클릭(바탕화면에 등록)을 받는 자리다.
+ * 버튼이 비활성일 때도 메뉴가 열려야 하므로 판정이 여기까지 내려와야 한다 —
+ * 아래 `.ac-btn:disabled { pointer-events: none }`이 그것을 만든다.
+ */
+.ac-commit {
+  margin-top: var(--sp-5);
+}
+
 .ac-btn {
   display: block;
   width: 100%;
   /* ux `touch-target-size`: 최소 44px. */
   min-height: 44px;
-  margin-top: var(--sp-5);
   border: none;
   border-radius: var(--r-md);
   background: var(--nv-text);
@@ -117,11 +125,26 @@
   background: var(--nv-text-2);
 }
 
-/* ux `disabled-states`: 색 + 커서 + disabled 속성으로 함께 알린다. */
+/* ux `disabled-states`: 색 + 커서 + disabled 속성으로 함께 알린다.
+   ⚠️ pointer-events를 끄는 것은 **오른쪽 클릭을 감싼 상자로 흘려보내기 위해서**다
+   (비활성 버튼은 마우스 이벤트를 발사하지 않는다 — 컴포넌트 주석 참조).
+   커서는 상자가 대신 알린다. */
 .ac-btn:disabled {
   background: var(--nv-surface-alt);
   color: var(--nv-text-3);
   cursor: default;
+  pointer-events: none;
+}
+
+/* 방금 등록했다는 알림. 초록만으로 알리지 않도록 문장 자체가 결과를 말한다. */
+.ac-added {
+  margin: var(--sp-2) 0 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 3px solid var(--nv-green);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: var(--nv-surface-alt);
+  font-size: var(--fs-sm);
+  color: var(--nv-text-2);
 }
 
 .ac-cost {

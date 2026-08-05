@@ -1,12 +1,14 @@
+import { useState } from 'react'
 import { UI_ICONS } from '../../../data/icons'
 import { STAT_META } from '../../../data/statMeta'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
-import { getLivingCost } from '../../../systems/economy'
+import { useShortcutStore } from '../../../store/shortcutStore'
 import { canRun } from '../../../systems/turn'
 import { STAT_NAMES } from '../../../types/game'
 import type { Activity } from '../../../types/game'
-import { previewActivity } from '../activityPreview'
+import { ContextMenu } from '../../ContextMenu'
+import { previewActivity, previewWarnings } from '../activityPreview'
 import './ActivityCommit.css'
 
 /** 이 패널에서만 쓰는 경고 글리프. 세 종류의 경고 문구가 공유한다(ExeApp과 같은 규칙). */
@@ -49,11 +51,19 @@ export function ActivityCommit({
 }) {
   const state = useGameStore((s) => s.state)
   const doActivity = useGameStore((s) => s.doActivity)
+  /** 이 활동의 바로 가기가 이미 바탕화면에 있는가. */
+  const registered = useShortcutStore((s) => s.activityIds.includes(activity.id))
+  const addShortcut = useShortcutStore((s) => s.add)
+  /** 열려 있는 오른쪽 클릭 메뉴의 커서 좌표. null이면 안 열려 있다. */
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  /** 방금 등록했는가. 성공을 조용히 넘기지 않기 위한 것이다(ux `success-feedback`). */
+  const [justAdded, setJustAdded] = useState(false)
   if (!state) return null
 
   const enough = canRun(state, activity)
   const ready = selection !== undefined
-  const { rows, efficiency, mentalPenalty, isBurnedOut } = previewActivity(state, activity)
+  const { rows, mentalPenalty } = previewActivity(state, activity)
+  const warnings = previewWarnings(state, activity)
 
   return (
     <section className="ac" aria-label={`${activity.label} 확정`}>
@@ -94,50 +104,79 @@ export function ActivityCommit({
         )}
       </ul>
 
-      {isBurnedOut && (
-        <p className="ac-warn">
+      {/* ⚠️ 경고 문구는 `previewWarnings` 하나가 만든다(번아웃·조건 미달·오후 생활비).
+          활동을 확정하는 화면이 셋이 되면서(활동 창·여기·바탕화면 바로 가기 확인창)
+          각자 적으면 한 곳만 빠뜨린 화면이 반드시 생긴다 — 그 사고는 "누르기 전에
+          비용을 알 수 없다"는 형태로 터진다. */}
+      {warnings.map((w) => (
+        <p key={w.id} className="ac-warn">
           <AppIcon name={WARN_ICON} size={15} />
-          <span>같은 일을 반복하고 있습니다. 효율이 {Math.round(efficiency * 100)}%입니다.</span>
+          <span>{w.text}</span>
         </p>
-      )}
+      ))}
 
-      {!enough && (
-        <p className="ac-warn">
-          <AppIcon name={WARN_ICON} size={15} />
-          <span>지금은 할 수 없습니다. 행동력이나 소지금이 부족합니다.</span>
-        </p>
-      )}
-
-      {/* ⚠️ 오후 슬롯의 생활비 차감 경고. 오후 행동은 하루를 끝내고 `sleep()`이 생활비를
-          빼 가는데, 이걸 안 적으면 "-15,000원"만 보고 눌렀다가 실제로는 그보다 훨씬
-          많이 빠져나간다. 활동 창(ExeApp)이 지는 약속과 같은 약속이다. */}
-      {state.slot === 'afternoon' && (
-        <p className="ac-warn">
-          <AppIcon name={WARN_ICON} size={15} />
-          <span>
-            지금 확정하면 하루가 끝나고 잠자리에 듭니다. 생활비{' '}
-            {getLivingCost(state.day).toLocaleString('ko-KR')}원이 차감됩니다. (행동력·멘탈은
-            회복됩니다)
-          </span>
-        </p>
-      )}
-
-      <button
-        type="button"
-        className="ac-btn"
-        disabled={!ready || !enough}
-        onClick={() => {
-          doActivity(activity)
-          onCommitted()
+      {/*
+       * ⚠️ 오른쪽 클릭은 **버튼이 아니라 이 감싼 상자**가 받는다.
+       * 확정 버튼은 못 고른 상태·조건 미달일 때 `disabled`인데, 비활성 버튼은
+       * 마우스 이벤트를 아예 발사하지 않는다. 바로 가기를 만들고 싶은 순간은
+       * 오히려 "지금은 못 하지만 자주 할 것 같다"일 때라 그때 막히면 안 된다.
+       * (`.ac-btn:disabled`의 `pointer-events: none`이 판정을 이 상자로 흘려보낸다.)
+       */}
+      <div
+        className="ac-commit"
+        onContextMenu={(e) => {
+          // 브라우저 기본 메뉴를 막지 않으면 그게 위에 떠서 우리 메뉴를 가린다.
+          e.preventDefault()
+          setMenu({ x: e.clientX, y: e.clientY })
         }}
-        title={ready ? '1턴을 소모합니다' : selectionHint}
       >
-        {actionLabel}
-      </button>
+        <button
+          type="button"
+          className="ac-btn"
+          disabled={!ready || !enough}
+          onClick={() => {
+            doActivity(activity)
+            onCommitted()
+          }}
+          title={ready ? '1턴을 소모합니다' : selectionHint}
+        >
+          {actionLabel}
+        </button>
+      </div>
       <p className="ac-cost">
         <AppIcon name={UI_ICONS.turnCost} size={13} />
-        1턴을 소모합니다
+        1턴을 소모합니다 · 오른쪽 클릭으로 바탕화면에 등록
       </p>
+
+      {/* ux `success-feedback`: 등록은 브라우저 창 뒤에서 일어나 눈에 안 보인다.
+          글자로 알리지 않으면 "눌렀는데 아무 일도 없었다"가 된다. */}
+      {justAdded && (
+        <p className="ac-added" role="status">
+          바탕화면에 「{activity.label}」 바로 가기를 만들었습니다.
+        </p>
+      )}
+
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          label={`${activity.label} 확정 버튼 메뉴`}
+          items={[
+            registered
+              ? // 이미 있으면 **말해 준다**. 조용히 하나 더 만들면 같은 아이콘이 둘이 된다.
+                { id: 'exists', label: '이미 바탕화면에 있습니다' }
+              : {
+                  id: 'add',
+                  label: '바탕화면에 등록',
+                  onSelect: () => {
+                    addShortcut(activity.id)
+                    setJustAdded(true)
+                  },
+                },
+          ]}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </section>
   )
 }

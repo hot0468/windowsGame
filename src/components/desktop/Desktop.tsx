@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
+import { findActivity } from '../../data/activities'
 import { DEFAULT_ICON_CELLS, DESKTOP_ICON_ORDER } from '../../data/desktopIcons'
-import { DESKTOP_ITEMS } from '../../data/desktopItems'
+import { DESKTOP_ITEMS, desktopEntries } from '../../data/desktopItems'
 import { DESKTOP_GRID } from '../../data/shell'
 import {
   cellKey,
@@ -11,12 +12,17 @@ import {
   resolveLayout,
   snapToCell,
 } from '../../systems/desktopGrid'
+import { placeShortcuts } from '../../systems/shortcuts'
 import { AppIcon } from '../../icons/AppIcon'
 import { useDesktopIconStore } from '../../store/desktopIconStore'
 import { useGameStore } from '../../store/gameStore'
+import { useShortcutStore } from '../../store/shortcutStore'
 import { useWindowStore } from '../../store/windowStore'
-import type { DesktopItem } from '../../types/game'
+import type { Activity, DesktopEntry, DesktopItem } from '../../types/game'
+import { ContextMenu } from '../ContextMenu'
+import type { ContextMenuItem } from '../ContextMenu'
 import { WindowManager } from '../window/WindowManager'
+import { ActivityConfirm } from '../apps/ActivityConfirm'
 import { EndingModal } from '../apps/EndingModal'
 import { CalendarPanel } from './CalendarPanel'
 import { StatPanel } from './StatPanel'
@@ -57,6 +63,15 @@ export function Desktop() {
   const place = useDesktopIconStore((s) => s.place)
   const resetLayout = useDesktopIconStore((s) => s.resetLayout)
 
+  /** 플레이어가 만든 활동 바로 가기. 내장 아이콘과 **같은 격자**에 산다. */
+  const shortcutIds = useShortcutStore((s) => s.activityIds)
+  const removeShortcut = useShortcutStore((s) => s.remove)
+
+  /** 열려 있는 오른쪽 클릭 메뉴(한 번에 하나). */
+  const [menu, setMenu] = useState<{ x: number; y: number; entry: DesktopEntry } | null>(null)
+  /** 실행 여부를 묻는 중인 활동. 바로 가기를 더블클릭하면 여기 들어온다. */
+  const [confirming, setConfirming] = useState<Activity | null>(null)
+
   /**
    * 격자 판 크기는 뷰포트가 정한다 — 창을 줄이면 칸도 줄어야 하고,
    * 그때 바깥으로 밀려난 아이콘은 `resolveLayout`이 안으로 끌어들인다.
@@ -70,10 +85,24 @@ export function Desktop() {
   }, [])
 
   const size = useMemo(() => gridSize(viewport.w, viewport.h), [viewport])
-  const layout = useMemo(
-    () => resolveLayout(DESKTOP_ICON_ORDER, DEFAULT_ICON_CELLS, storedCells, size),
-    [storedCells, size],
+
+  const entries = useMemo(() => desktopEntries(shortcutIds), [shortcutIds])
+  /** 실제로 그려지는 바로 가기만 칸을 차지한다(없는 활동을 가리키는 것은 빠진다). */
+  const shortcutEntryIds = useMemo(
+    () => entries.filter((e) => e.shortcut).map((e) => e.id),
+    [entries],
   )
+
+  /**
+   * ⚠️ **내장 아이콘을 먼저 배치하고, 바로 가기는 그 위에 얹는다**(2단계).
+   * 한 판에 섞어 돌리면 바로 가기 하나가 내장 아이콘의 기본 칸을 차지해 기본 배치가
+   * 통째로 밀린다 — 바로 가기를 만들었다고 원래 있던 아이콘이 움직이면 안 된다.
+   * 덕분에 바로 가기가 하나도 없을 때의 화면은 예전과 픽셀 단위로 같다.
+   */
+  const layout = useMemo(() => {
+    const base = resolveLayout(DESKTOP_ICON_ORDER, DEFAULT_ICON_CELLS, storedCells, size)
+    return placeShortcuts(shortcutEntryIds, base, storedCells, size)
+  }, [storedCells, shortcutEntryIds, size])
 
   /** 드래그 진행 상태는 ref(매 픽셀 재렌더가 필요 없는 값), 화면에 그릴 좌표만 state. */
   const dragRef = useRef<DragState | null>(null)
@@ -103,15 +132,57 @@ export function Desktop() {
   }
 
   /**
+   * 아이콘을 "연다". 내장 항목은 창을, **바로 가기는 실행 확인창**을 띄운다.
+   * ⚠️ 바로 가기가 곧바로 실행하지 않는 이유: 더블클릭 한 번으로 1턴이 사라지면
+   * 바탕화면이 지뢰밭이 된다(ux `confirmation-dialogs`).
+   */
+  const openEntry = (entry: DesktopEntry) => {
+    if (!entry.shortcut) {
+      openItem(entry.item)
+      return
+    }
+    const activity = findActivity(entry.activityId)
+    if (activity) setConfirming(activity)
+  }
+
+  /**
+   * 오른쪽 클릭 메뉴의 항목.
+   *
+   * ⚠️ **내장 아이콘에는 삭제가 없다**(설계자 요구이자 실제 윈도우의 규칙이다 —
+   * 시스템 아이콘은 지울 수 없다). 지울 수 있는 것은 **플레이어가 만든 것**뿐이라,
+   * 삭제 항목은 `entry.shortcut`이 참일 때만 붙는다.
+   *
+   * 바로 가기 삭제에 다시 확인을 받지 않는 이유(스케줄러의 예약 취소와 다른 판단):
+   * **되돌리는 비용이 거의 0이다.** 사이트의 확정 버튼을 다시 우클릭하면 그만이고,
+   * 옮겨 둔 칸까지 기억돼 있어 같은 자리로 돌아온다. 예약 취소는 다시 짜야 하지만
+   * 이건 아니다.
+   */
+  const menuItems = (entry: DesktopEntry): ContextMenuItem[] => [
+    { id: 'open', label: entry.shortcut ? '실행' : '열기', onSelect: () => openEntry(entry) },
+    ...(entry.shortcut
+      ? [
+          {
+            id: 'delete',
+            label: '바로 가기 삭제',
+            danger: true,
+            onSelect: () => removeShortcut(entry.activityId),
+          },
+        ]
+      : []),
+  ]
+
+  /**
    * ⚠️ 포인터 캡처는 **아이콘 버튼 자기 자신**에 건다.
    * (`Window`의 타이틀 바가 자식 캡션 버튼의 pointerup을 훔쳐 클릭이 죽었던 회귀와 다르다 —
    * 캡처 대상과 클릭 대상이 같은 요소면 click/dblclick은 그대로 성립한다.)
    * 캡처를 걸어야 커서가 아이콘 밖으로 나가도 pointermove가 계속 온다.
    */
-  const handlePointerDown = (e: ReactPointerEvent<HTMLButtonElement>, item: DesktopItem) => {
-    const origin = cellOrigin(layout[item.id])
+  const handlePointerDown = (e: ReactPointerEvent<HTMLButtonElement>, entry: DesktopEntry) => {
+    // 오른쪽 버튼은 드래그가 아니다 — 잡아 두면 메뉴를 여는 동안 아이콘이 딸려 온다.
+    if (e.button !== 0) return
+    const origin = cellOrigin(layout[entry.id])
     dragRef.current = {
-      id: item.id,
+      id: entry.id,
       dx: e.clientX - origin.x,
       dy: e.clientY - origin.y,
       startX: e.clientX,
@@ -172,35 +243,63 @@ export function Desktop() {
           기본 배치는 data/desktopIcons.ts, 옮긴 위치는 desktopIconStore, 계산은
           systems/desktopGrid.ts가 나눠 갖는다. */}
       <div className="desktop-icons">
-        {DESKTOP_ITEMS.map((item) => {
-          const cell = layout[item.id]
+        {entries.map((entry) => {
+          const cell = layout[entry.id]
           if (!cell) return null
-          const dragging = dragPos?.id === item.id
+          const dragging = dragPos?.id === entry.id
           const pos = dragging ? dragPos : cellOrigin(cell)
           return (
             <button
-              key={item.id}
+              key={entry.id}
               className={`desktop-icon${dragging ? ' desktop-icon-dragging' : ''}`}
               style={{ left: pos.x, top: pos.y }}
-              onPointerDown={(e) => handlePointerDown(e, item)}
+              onPointerDown={(e) => handlePointerDown(e, entry)}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
               onPointerCancel={handlePointerCancel}
               onDoubleClick={() => {
                 if (Date.now() - dragEndAt.current < DRAG_CLICK_GUARD) return
-                openItem(item)
+                openEntry(entry)
+              }}
+              // 오른쪽 클릭 = 메뉴. 브라우저 기본 메뉴를 막지 않으면 그게 위에 떠서
+              // 우리 메뉴를 가린다(스케줄러의 예약 취소와 같은 처리).
+              onContextMenu={(e) => {
+                e.preventDefault()
+                // 누른 아이콘에 포커스를 준다 — 실제 윈도우도 우클릭한 아이콘이 선택되고,
+                // 메뉴를 닫을 때 포커스가 돌아올 자리가 생긴다(ux `focus-management`).
+                e.currentTarget.focus()
+                setMenu({ x: e.clientX, y: e.clientY, entry })
               }}
               // 키보드로도 열려야 한다(ux `keyboard-nav`). 마우스는 더블클릭이지만
               // 키보드에는 "더블"이 없으므로 Enter/Space가 곧 실행이다.
               // onClick을 쓰지 않는 이유: 한 번 클릭으로 열리면 드래그로 잡을 수 없다.
               onKeyDown={(e) => {
+                // 키보드에도 메뉴로 가는 길을 둔다(ux `keyboard-shortcuts`:
+                // 마우스 전용 상호작용을 만들지 않는다). 윈도우의 메뉴 키와 같은 자리다.
+                if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+                  e.preventDefault()
+                  const r = e.currentTarget.getBoundingClientRect()
+                  setMenu({ x: r.left + r.width / 2, y: r.bottom, entry })
+                  return
+                }
                 if (e.key !== 'Enter' && e.key !== ' ') return
                 e.preventDefault()
-                openItem(item)
+                openEntry(entry)
               }}
             >
-              <AppIcon name={item.icon} size={38} className="desktop-icon-glyph" />
-              {item.label}
+              <span className="desktop-icon-art">
+                <AppIcon name={entry.icon} size={38} className="desktop-icon-glyph" />
+                {/*
+                 * 바로 가기 화살표. 실제 윈도우와 같은 자리(왼쪽 아래)에 붙는다.
+                 * ⚠️ 아이콘 세트가 아니라 **CSS 도형**이다 — 캡션 버튼·브라우저 도구 모음
+                 * 글리프와 같은 이유다(가는 단색 선이라 다색 플랫 아이콘과 성격이 다르고,
+                 * 어느 아이콘 위에도 같은 크기로 얹혀야 한다). 장식이 아니라 뜻이 있으므로
+                 * 형태만으로 알리지 않고 라벨 옆에 "(바로 가기)"를 스크린 리더용으로 덧댄다.
+                 */}
+                {entry.shortcut && <span className="desktop-icon-link" aria-hidden="true" />}
+              </span>
+              {entry.label}
+              {entry.shortcut && <span className="desktop-sr-only"> (바로 가기)</span>}
             </button>
           )
         })}
@@ -232,6 +331,23 @@ export function Desktop() {
       <Taskbar />
       {/* 알림은 작업 표시줄 위·엔딩 모달 아래에 뜬다. 턴이 넘어갈 때만 나타난다. */}
       <ToastHost />
+
+      {/* 아이콘 오른쪽 클릭 메뉴. 공용 부품이라 열고 닫는 것만 여기서 관리한다. */}
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          label={`${menu.entry.label} 메뉴`}
+          items={menuItems(menu.entry)}
+          onClose={() => setMenu(null)}
+        />
+      )}
+
+      {/* 바로 가기 실행 확인. 비용을 다 보여 준 뒤에만 1턴이 나간다. */}
+      {confirming && (
+        <ActivityConfirm activity={confirming} onClose={() => setConfirming(null)} />
+      )}
+
       <EndingModal />
     </div>
   )

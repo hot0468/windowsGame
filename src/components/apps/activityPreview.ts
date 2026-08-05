@@ -1,5 +1,8 @@
 import { burnoutKeyOf, getBurnoutPenalty } from '../../systems/burnout'
-import { getWageMultiplier } from '../../systems/economy'
+import { getLivingCost, getWageMultiplier } from '../../systems/economy'
+import { canRun, owns } from '../../systems/turn'
+import { findItem } from '../../data/items'
+import { STAT_NAMES } from '../../types/game'
 import type { Activity, GameState, Stats } from '../../types/game'
 
 /**
@@ -43,4 +46,85 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
   })
 
   return { rows, efficiency, mentalPenalty, isBurnedOut: efficiency < 1 }
+}
+
+/** 확정 전에 반드시 보여 줘야 하는 경고 한 줄. */
+export interface ActivityWarning {
+  /** 렌더 키. 같은 종류의 경고가 두 번 나오지 않는다. */
+  id: 'burnout' | 'blocked' | 'living'
+  text: string
+}
+
+/**
+ * "이 버튼을 누르면 치르게 되는 대가" 중 **숫자 줄로는 안 보이는 것**들.
+ *
+ * ⚠️ **이 목록이 곧 이 게임의 정직성 약속이다.** 활동을 확정하는 화면은 이제 셋이고
+ * (활동 창 · 사이트 확정 패널 · 바탕화면 바로 가기 확인창), 셋이 각자 경고를 적으면
+ * **한 곳만 빠뜨린 화면**이 반드시 생긴다. 그 사고는 "누르기 전에 비용을 알 수 없다"는
+ * 형태로 터진다 — 그래서 문구까지 여기 한 곳에 둔다.
+ *
+ * 판정은 만들지 않는다: 실행 가능 여부는 `canRun`, 효율은 `getBurnoutPenalty`,
+ * 생활비는 `getLivingCost`가 정하고 여기서는 **문장으로 옮기기만** 한다.
+ */
+export function previewWarnings(state: GameState, activity: Activity): ActivityWarning[] {
+  const { efficiency } = previewActivity(state, activity)
+  const warnings: ActivityWarning[] = []
+
+  if (efficiency < 1) {
+    warnings.push({
+      id: 'burnout',
+      text: `같은 일을 반복하고 있습니다. 효율이 ${Math.round(efficiency * 100)}%입니다.`,
+    })
+  }
+
+  if (!canRun(state, activity)) {
+    warnings.push({ id: 'blocked', text: '지금은 할 수 없습니다. 행동력이나 소지금이 부족합니다.' })
+  }
+
+  // ⚠️ 오후 행동은 하루를 끝내고 `sleep()`이 생활비를 빼 간다.
+  // 이걸 안 적으면 "-15,000원"만 보고 눌렀다가 실제로는 그보다 훨씬 많이 빠져나간다.
+  if (state.slot === 'afternoon') {
+    warnings.push({
+      id: 'living',
+      text: `지금 확정하면 하루가 끝나고 잠자리에 듭니다. 생활비 ${getLivingCost(
+        state.day,
+      ).toLocaleString('ko-KR')}원이 차감됩니다. (행동력·멘탈은 회복됩니다)`,
+    })
+  }
+
+  return warnings
+}
+
+/**
+ * **왜 지금 할 수 없는가.** `canRun`이 false일 때만 의미가 있다.
+ *
+ * ⚠️ **두 번째 판정 규칙이 아니다.** 막을지 말지는 `canRun` 혼자 정하고, 여기서는
+ * 그 판정이 본 것과 **같은 조건**을 훑어 사유만 글자로 만든다. 화면이 자기 기준으로
+ * 다시 판정하면 "버튼은 살아 있는데 눌러도 안 되는" 어긋남이 생긴다.
+ * (알바몬이 조건 미달 공고에 사유를 적는 것과 같은 방식이다.)
+ */
+export function blockReasons(state: GameState, activity: Activity): string[] {
+  const reasons: string[] = []
+
+  if (state.gameOver) {
+    reasons.push('게임이 끝나 더 이상 활동할 수 없습니다.')
+    // 게임이 끝났으면 나머지 조건은 따질 이유가 없다.
+    return reasons
+  }
+
+  if (activity.requiresItem && !owns(state, activity.requiresItem)) {
+    const item = findItem(activity.requiresItem)
+    reasons.push(`${item?.name ?? activity.requiresItem}이(가) 있어야 합니다 — 쇼핑에서 구입`)
+  }
+
+  for (const [key, required] of Object.entries(activity.requires ?? {})) {
+    const statKey = key as keyof Stats
+    const current = state.stats[statKey]
+    if (current >= required) continue
+    reasons.push(
+      `${STAT_NAMES[statKey]} ${required.toLocaleString('ko-KR')} 이상 필요 — 현재 ${current.toLocaleString('ko-KR')}`,
+    )
+  }
+
+  return reasons
 }

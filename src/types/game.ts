@@ -197,6 +197,35 @@ export interface DesktopItem {
 }
 
 /**
+ * 바탕화면 격자에 실제로 그려지는 아이콘 하나.
+ *
+ * ⚠️ **바탕화면에는 두 종류가 산다**: 내장 항목(`DESKTOP_ITEMS`)과 플레이어가 만든
+ * **활동 바로 가기**. 격자·드래그·저장은 둘에게 완전히 같아야 하므로(그래야 "내가 옮긴
+ * 것만 움직인다"는 약속이 한 종류에만 지켜지는 일이 없다) 화면 코드가 순회하는 목록은
+ * 하나여야 한다. 대신 **더블클릭했을 때 하는 일이 다르므로** 판별 가능한 합집합으로 둔다:
+ * 내장 항목은 창을 열고, 바로 가기는 실행 확인창을 띄운다.
+ *
+ * 목록을 만드는 곳은 `data/desktopItems.ts`의 `desktopEntries()`다.
+ */
+export type DesktopEntry =
+  | {
+      id: string
+      label: string
+      icon: IconName
+      shortcut: false
+      /** 내장 항목의 정의. 더블클릭하면 이 정의대로 창이 열린다. */
+      item: DesktopItem
+    }
+  | {
+      id: string
+      label: string
+      icon: IconName
+      shortcut: true
+      /** 확인 후 실행할 활동 id(`data/activities.ts`). */
+      activityId: string
+    }
+
+/**
  * 바탕화면 아이콘의 격자 좌표.
  *
  * **왜 픽셀이 아니라 칸인가:** 실제 윈도우의 "격자에 맞춤"과 같은 이유다.

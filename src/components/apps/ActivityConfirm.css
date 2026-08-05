@@ -1,0 +1,174 @@
+/*
+ * 바로 가기 실행 확인창. 바탕화면 위에 뜨는 OS 표면이므로 --os-* 토큰만 쓴다.
+ *
+ * 사이트의 확정 패널(.ac, --nv-*)과 같은 구조를 일부러 반복한다:
+ * 머리 → 증감 목록 → 경고 → 버튼 → 1턴 안내. **1턴을 쓰는 자리는 어디서나 같아야**
+ * 플레이어가 통로를 바꿀 때마다 다시 배우지 않는다.
+ */
+
+.acd-scrim {
+  position: fixed;
+  inset: 0;
+  /* style `blur-purpose`: 뒤를 눌러 닫을 수 있다는 신호. 40~60% 대신 게임 화면이
+     비쳐야 하므로 조금 옅게 두고 블러로 분리를 만든다. */
+  background: rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  /* LAYERS.DIALOG (src/data/layers.ts) — CSS는 TS 상수를 못 읽어 중복해 둔다.
+     바꿀 때 반드시 layers.ts와 함께 고친다. */
+  z-index: 9400;
+}
+
+.acd {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - var(--sp-8)));
+  padding: var(--sp-5);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-xl);
+  background: var(--os-surface);
+  box-shadow: var(--el-3);
+  color: var(--os-text);
+  /* 스크림보다 한 단 위. layers.ts의 DIALOG와 같은 단이다. */
+  z-index: 9401;
+}
+
+.acd-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--os-border);
+}
+
+.acd-kicker {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--os-text-3);
+}
+
+.acd-title {
+  margin: 2px 0 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.acd-effects {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--sp-1) var(--sp-5);
+  margin: var(--sp-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acd-effect {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  font-size: var(--fs-base);
+}
+
+.acd-effect-label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--os-text-2);
+}
+
+.acd-plus,
+.acd-minus {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.acd-plus {
+  color: var(--os-success);
+}
+
+.acd-minus {
+  color: var(--os-danger);
+}
+
+/* 경고 줄. 아이콘 + 문장이 함께 있어 색만으로 뜻을 전하지 않는다. */
+.acd-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: var(--sp-4) 0 0;
+  padding: var(--sp-3);
+  border-left: 3px solid var(--os-warn-border);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: var(--os-warn-bg);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: var(--os-warn-text);
+}
+
+/* 막힌 경우. 사유가 여러 줄이므로 목록으로 편다(ux `error-clarity`). */
+.acd-blocked-head {
+  margin: 0 0 var(--sp-1);
+  font-weight: 600;
+}
+
+.acd-reasons {
+  margin: 0;
+  padding-left: var(--sp-4);
+}
+
+.acd-btns {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-5);
+}
+
+.acd-btns button {
+  /* ux `touch-target-size`: 최소 44px. */
+  flex: 1;
+  min-height: 44px;
+  border-radius: var(--r-md);
+  font: inherit;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.acd-cancel {
+  border: 1px solid var(--os-border-strong);
+  background: var(--os-surface);
+  color: var(--os-text);
+}
+
+.acd-cancel:hover {
+  background: var(--os-fill);
+}
+
+/* 주 CTA는 하나다(style `primary-action`). 실행만 액센트를 입는다. */
+.acd-run {
+  border: 1px solid transparent;
+  background: var(--os-accent);
+  color: #fff;
+}
+
+.acd-run:hover {
+  background: var(--os-accent-hover);
+}
+
+.acd-run:active {
+  background: var(--os-accent-press);
+}
+
+.acd-cost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+}

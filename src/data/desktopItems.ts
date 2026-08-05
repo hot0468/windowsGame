@@ -1,5 +1,6 @@
-import { ACTIVITIES } from './activities'
-import type { DesktopItem } from '../types/game'
+import { ACTIVITIES, findActivity } from './activities'
+import { shortcutIdOf } from '../systems/shortcuts'
+import type { DesktopEntry, DesktopItem } from '../types/game'
 
 /**
  * 활동이 아닌 바탕화면 항목.
@@ -99,5 +100,43 @@ const ACTIVITY_ITEMS: DesktopItem[] = ACTIVITIES.filter((a) => a.onDesktop).map(
   activityId: a.id,
 }))
 
-/** 바탕화면에 그릴 항목 전체. Desktop 컴포넌트는 이 배열만 순회한다. */
+/** 바탕화면의 **내장** 항목 전체. 플레이어가 지울 수 없는 것들이다. */
 export const DESKTOP_ITEMS: DesktopItem[] = [...ACTIVITY_ITEMS, ...NON_ACTIVITY_ITEMS]
+
+/**
+ * 지금 바탕화면에 그릴 아이콘 전체 = **내장 항목 + 플레이어가 만든 바로 가기**.
+ * `Desktop` 컴포넌트는 이 목록 하나만 순회한다.
+ *
+ * ⚠️ **내장 항목이 항상 앞이다.** 격자 배치는 목록 순서대로 칸을 차지하므로,
+ * 바로 가기를 앞에 두면 그것이 늘어날 때마다 기본 배치가 통째로 밀린다.
+ *
+ * ⚠️ **없는 활동을 가리키는 바로 가기는 조용히 빠진다.** 활동 id가 바뀌거나 사라져도
+ * 아이콘 하나가 안 보일 뿐, 눌러도 아무 일 없는 아이콘이 남지는 않는다.
+ * (`shortcutStore`의 기록은 그대로 두어, id가 되살아나면 바로 가기도 되살아난다.)
+ */
+export function desktopEntries(shortcutActivityIds: readonly string[]): DesktopEntry[] {
+  const builtIn: DesktopEntry[] = DESKTOP_ITEMS.map((item) => ({
+    id: item.id,
+    label: item.label,
+    icon: item.icon,
+    shortcut: false,
+    item,
+  }))
+
+  const made: DesktopEntry[] = shortcutActivityIds.flatMap((activityId) => {
+    const activity = findActivity(activityId)
+    if (!activity) return []
+    return [
+      {
+        id: shortcutIdOf(activityId),
+        // 이름·아이콘은 활동에서 그대로 가져온다 — 여기 다시 적으면 두 번째 출처가 생긴다.
+        label: activity.label,
+        icon: activity.icon,
+        shortcut: true,
+        activityId,
+      },
+    ]
+  })
+
+  return [...builtIn, ...made]
+}

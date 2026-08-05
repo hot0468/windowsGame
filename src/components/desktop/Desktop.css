@@ -120,6 +120,79 @@
   border-color: rgba(255, 255, 255, 0.35);
 }
 
+/*
+ * 그림 자리. 바로 가기 화살표를 붙일 기준점을 만들기 위한 것뿐이라
+ * 폭을 그림과 같게(38px) 잡고 가운데로 민다 — 이렇게 해야 아래 여백(--sp-1)이
+ * 예전처럼 그대로 흘러나와 **기존 아이콘의 위치가 1px도 바뀌지 않는다**.
+ */
+.desktop-icon-art {
+  position: relative;
+  display: block;
+  width: 38px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/*
+ * 바로 가기 화살표 오버레이(왼쪽 아래). 실제 윈도우와 같은 자리·같은 뜻이다:
+ * "이건 원본이 아니라 가리키는 것".
+ *
+ * ⚠️ **아이콘 세트가 아니라 CSS 도형이다** — 캡션 버튼·브라우저 도구 모음 글리프와
+ * 같은 이유다. 흰 판 위의 가는 검정 화살표는 다색 플랫 아이콘과 성격이 다르고,
+ * 어떤 활동 아이콘 위에 얹혀도 크기와 색이 흔들리면 안 된다.
+ * 흰 판 = 이 요소, 화살대 = ::before, 화살촉 = ::after.
+ */
+.desktop-icon-link {
+  position: absolute;
+  left: -2px;
+  bottom: -2px;
+  width: 15px;
+  height: 15px;
+  border: 1px solid rgba(0, 0, 0, 0.28);
+  border-radius: 3px;
+  background: #fff;
+  /* 벽지 위에서 흰 판이 뜨도록 아주 얕은 그림자. 아이콘 그림자와 같은 계열이다. */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* 화살대: 왼쪽 아래에서 오른쪽 위로 가는 대각선. */
+.desktop-icon-link::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  bottom: 3px;
+  width: 9px;
+  height: 1.5px;
+  background: #1a1a1a;
+  transform: rotate(-45deg);
+  transform-origin: left center;
+}
+
+/* 화살촉: 오른쪽 위 모서리의 갈고리. */
+.desktop-icon-link::after {
+  content: '';
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  width: 6px;
+  height: 6px;
+  border-top: 1.5px solid #1a1a1a;
+  border-right: 1.5px solid #1a1a1a;
+}
+
+/* 스크린 리더 전용 글자("(바로 가기)"). 화살표는 aria-hidden이라 뜻을 말로도 전한다
+   (ux `color-not-only`의 형태판 — 그림만으로 알리지 않는다). */
+.desktop-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* 플랫 컬러 아이콘이라 색은 아이콘 자체가 갖는다.
    배경(바탕화면 그라데이션) 위에서 형태가 묻히지 않도록 그림자만 남긴다. */
 .desktop-icon-glyph {
