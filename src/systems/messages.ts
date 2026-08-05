@@ -36,6 +36,14 @@ export function messageTime(turn: number, indexInTurn: number): string {
 /** 대화창에 뿌릴 한 줄. 원본 메시지에 시각을 붙인 표시용 형태다. */
 export interface TimedMessage extends Message {
   time: string
+  /**
+   * 도착한 턴 번호. **정렬 키**다.
+   *
+   * ⚠️ 사서함에는 이제 두 출처가 섞인다: 편성표(결정적)와 **정규직 소식**(플레이어의
+   * 선택에 달려 있어 다시 계산할 수 없다 — `systems/employment.ts`). 시각 문자열만으로는
+   * 두 목록을 시간순으로 합칠 수 없어(같은 "오전 9:08"이 며칠에도 있다) 번호를 함께 준다.
+   */
+  turn: number
 }
 
 /** 이 턴에 **새로 도착하는** 메시지. 토스트가 이걸 띄운다. */
@@ -55,7 +63,7 @@ export function selectChannel(channel: string, day: number, slot: Slot): TimedMe
   const out: TimedMessage[] = []
   for (let t = 0; t <= now; t++) {
     scheduleAt(t).forEach((m, i) => {
-      if (m.channel === channel) out.push({ ...m, time: messageTime(t, i) })
+      if (m.channel === channel) out.push({ ...m, time: messageTime(t, i), turn: t })
     })
   }
   // 오래된 것부터 잘라 최근 것만 남긴다.

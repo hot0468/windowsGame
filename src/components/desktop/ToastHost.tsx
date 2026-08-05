@@ -4,6 +4,7 @@ import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useToastStore } from '../../store/toastStore'
 import { useWindowStore } from '../../store/windowStore'
+import { noticeMail } from '../../systems/employment'
 import { selectIncoming } from '../../systems/messages'
 import './ToastHost.css'
 
@@ -41,6 +42,8 @@ export function ToastHost() {
   const open = useWindowStore((s) => s.open)
   const arrivals = useGameStore((s) => s.arrivals)
   const clearArrivals = useGameStore((s) => s.clearArrivals)
+  const jobNotices = useGameStore((s) => s.jobNotices)
+  const clearJobNotices = useGameStore((s) => s.clearJobNotices)
 
   /**
    * 마지막으로 알림을 띄운 턴. 같은 턴에 리렌더가 여러 번 일어나도 한 번만 띄운다.
@@ -73,6 +76,20 @@ export function ToastHost() {
     )
     clearArrivals()
   }, [arrivals, day, push, clearArrivals])
+
+  /**
+   * 정규직 소식(서류 결과·합격·급여·경고·해고).
+   *
+   * ⚠️ **새 창구를 만들지 않는다** — 채널을 사서함으로 맞춰 기존 아웃룩 분기를 그대로 탄다.
+   * 누르면 아웃룩이 열리고, 같은 내용이 메일에도 남는다(토스트는 지나가지만 메일은 남는다).
+   */
+  useEffect(() => {
+    if (!jobNotices.length) return
+    push(
+      jobNotices.map((n) => ({ id: n.id, channel: MAILBOX.id, ...noticeMail(n) })),
+    )
+    clearJobNotices()
+  }, [jobNotices, push, clearJobNotices])
 
   if (!toasts.length) return null
 

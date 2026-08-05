@@ -1,0 +1,402 @@
+import { weekdayOf } from '../data/calendar'
+import {
+  ABSENCE_FIRE,
+  ABSENCE_WARNING,
+  INTERVIEW_LEAD_DAYS,
+  INTERVIEW_WINDOW_DAYS,
+  NOTICE_LIMIT,
+  PAYDAY_INTERVAL,
+  SCREENING_DAYS,
+  findCareer,
+  isWorkWeekday,
+} from '../data/careers'
+import { MAILBOX } from '../data/messages'
+import { STAT_NAMES } from '../types/game'
+import { messageTime, turnIndex } from './messages'
+import { clampStats } from './turn'
+import type { TimedMessage } from './messages'
+import type { Career, CareerRequirement } from '../data/careers'
+import type { Application, GameState, JobNotice, Stats } from '../types/game'
+
+/**
+ * 정규직 — 지원 · 서류 · 면접 · 최종 결과 · 급여 · 결근 · 해고.
+ *
+ * ## 이 파일이 있는 이유
+ * 알바(`data/jobs.ts`)는 **일용직**이다: 공고를 누르면 그 슬롯을 일하고 그날 일당을 받는다.
+ * 정규직은 **한 번 채용되면 고용이 지속된다** — 그래서 규칙이 "활동 하나"로는 표현되지 않고
+ * 날짜를 따라 스스로 진행되는 절차가 필요하다.
+ *
+ * ## 의존 방향
+ * ⚠️ `turn.ts`를 부르지만 **그 반대는 없다**(`schedule.ts`·`delivery.ts`와 같은 규칙).
+ * 턴 규칙이 고용을 모르는 채로 있어야 밸런스 테스트가 고용 없이도 성립한다.
+ * 예외는 딱 둘이고 `turn.ts` 안에 이유가 적혀 있다: `canRun`의 게이트와 `runActivity`의
+ * 출근·면접 기록. 둘 다 **활동을 실행하는 모든 통로가 지나는 지점**에 있어야만 새지 않는다.
+ *
+ * ## 결정성
+ * `Math.random`·`Date` 금지. 합격 판정은 **스탯 대 요건**만 보므로 굴림이 아예 없다
+ * (사유를 말해 줘야 하는데 주사위를 섞으면 그 설명이 거짓이 된다 — `data/careers.ts` 참조).
+ */
+
+/* ── 요건 판정 ─────────────────────────────────────────────────────────── */
+
+/**
+ * 모자란 요건을 사람이 읽는 문장으로 만든다.
+ *
+ * ⚠️ **판정과 사유가 같은 표를 본다.** 통과 여부는 이 배열이 비었는지로만 정하므로
+ * "떨어뜨렸는데 이유는 못 대는" 상태가 구조적으로 불가능하다.
+ */
+export function shortfalls(stats: Stats, need: CareerRequirement): string[] {
+  return Object.entries(need)
+    .filter(([key, min]) => stats[key as keyof Stats] < min)
+    .map(
+      ([key, min]) =>
+        `${STAT_NAMES[key as keyof Stats]} ${min} 이상 필요 — 현재 ${stats[key as keyof Stats]}`,
+    )
+}
+
+/** 그 단계를 통과하는가. */
+export function passes(stats: Stats, need: CareerRequirement): boolean {
+  return shortfalls(stats, need).length === 0
+}
+
+/* ── 지원 ─────────────────────────────────────────────────────────────── */
+
+/**
+ * 지원할 수 없는 이유. 비어 있으면 지원할 수 있다.
+ *
+ * ⚠️ **요건 미달은 여기 없다.** 미달인 채로도 지원할 수 있어야 한다 — 서류 결과가 나오는
+ * 날까지 공부해서 채우는 것이 이 시스템의 유일한 도박이기 때문이다. 대신 사이트가
+ * 부족한 요건을 글자로 미리 보여 준다(감추지 않는다 = 알바몬과 같은 규칙).
+ */
+export function applyBlockers(state: GameState): string[] {
+  const blockers: string[] = []
+  if (state.gameOver) blockers.push('게임이 끝나 더 이상 지원할 수 없습니다.')
+  if (state.employment) {
+    const career = findCareer(state.employment.careerId)
+    blockers.push(`${career?.company ?? '회사'}에 재직 중입니다. 한 번에 한 곳만 다닐 수 있습니다.`)
+  }
+  if (state.application) {
+    const career = findCareer(state.application.careerId)
+    blockers.push(`${career?.company ?? '지원한 곳'}의 결과를 기다리는 중입니다.`)
+  }
+  return blockers
+}
+
+export function canApply(state: GameState): boolean {
+  return applyBlockers(state).length === 0
+}
+
+/**
+ * 지원 기록을 만든다. **턴은 여기서 쓰지 않는다** —
+ * 비용은 `job-apply` 활동이 갖고, 호출부(`gameStore`)가 이 결과에 대고 `runActivity`를 부른다.
+ * 그래야 지원도 다른 확정 행동과 똑같이 번아웃·행동력·경고 미리보기를 지난다.
+ */
+export function applyTo(state: GameState, career: Career): GameState {
+  if (!canApply(state)) return state
+  return {
+    ...state,
+    application: {
+      careerId: career.id,
+      appliedDay: state.day,
+      stage: 'screening',
+      dueDay: state.day + SCREENING_DAYS,
+    },
+  }
+}
+
+/* ── 소식 ─────────────────────────────────────────────────────────────── */
+
+function notice(
+  state: GameState,
+  kind: JobNotice['kind'],
+  careerId: string,
+  extra?: { reason?: string; amount?: number },
+): JobNotice {
+  return {
+    // 같은 종류·같은 회사라도 날이 다르면 다른 소식이다(토스트 중복 제거 키를 겸한다).
+    id: `${kind}-${careerId}-${state.day}-${state.slot}`,
+    kind,
+    careerId,
+    day: state.day,
+    slot: state.slot,
+    ...extra,
+  }
+}
+
+/** 소식을 세이브에 쌓는다. 오래된 것부터 버린다 — 세이브가 무한히 커지면 안 된다. */
+function push(state: GameState, list: JobNotice[]): GameState {
+  if (!list.length) return state
+  return { ...state, jobNotices: [...(state.jobNotices ?? []), ...list].slice(-NOTICE_LIMIT) }
+}
+
+/* ── 하루 정산 ─────────────────────────────────────────────────────────── */
+
+/** 채용 절차를 진행한다. 결과가 나올 날이 됐을 때만 움직인다. */
+function advanceApplication(state: GameState): { state: GameState; notices: JobNotice[] } {
+  const app = state.application
+  if (!app) return { state, notices: [] }
+  const career = findCareer(app.careerId)
+  // 없는 공고를 가리키는 세이브(구버전 데이터)는 조용히 버린다 — 영원히 안 끝나는 것보다 낫다.
+  if (!career) return { state: { ...state, application: undefined }, notices: [] }
+
+  if (app.stage === 'screening' && state.day >= app.dueDay) {
+    const missing = shortfalls(state.stats, career.paper)
+    if (missing.length) {
+      return {
+        state: { ...state, application: undefined },
+        notices: [notice(state, 'screening-fail', career.id, { reason: missing.join(' · ') })],
+      }
+    }
+    const next: Application = {
+      ...app,
+      stage: 'interview',
+      dueDay: state.day + INTERVIEW_LEAD_DAYS,
+    }
+    return { state: { ...state, application: next }, notices: [notice(state, 'screening-pass', career.id)] }
+  }
+
+  if (app.stage === 'interview' && state.day > app.dueDay + INTERVIEW_WINDOW_DAYS) {
+    // 기한을 안 두면 통과한 지원이 영원히 남아 다른 곳에도 못 넣는 상태가 된다.
+    return {
+      state: { ...state, application: undefined },
+      notices: [notice(state, 'interview-miss', career.id)],
+    }
+  }
+
+  if (app.stage === 'final' && state.day >= app.dueDay) {
+    const missing = shortfalls(state.stats, career.person)
+    if (missing.length) {
+      return {
+        state: { ...state, application: undefined },
+        notices: [notice(state, 'final-fail', career.id, { reason: missing.join(' · ') })],
+      }
+    }
+    return {
+      state: {
+        ...state,
+        application: undefined,
+        employment: {
+          careerId: career.id,
+          hiredDay: state.day,
+          paydayDay: state.day + PAYDAY_INTERVAL,
+          attendedDays: [],
+          absences: 0,
+          // 입사 당일까지는 결근을 세지 않는다 — 다니지도 않은 날의 책임을 물을 수 없다.
+          checkedDay: state.day,
+        },
+      },
+      notices: [notice(state, 'hired', career.id, { amount: career.salary })],
+    }
+  }
+
+  return { state, notices: [] }
+}
+
+/**
+ * 무단결근 감사.
+ *
+ * **결근의 정의:** 지나간 근무일(월~금) 중 출근하지 않은 날. "지나간"이 중요하다 —
+ * 오늘은 아직 안 끝났으므로 세지 않는다. `checkedDay` 커서가 같은 날을 두 번 세는 것을 막는다
+ * (스케줄러가 여러 날을 한 번에 밀어도 그 사이의 근무일이 전부 감사된다).
+ */
+function auditAbsences(state: GameState): GameState {
+  const job = state.employment
+  if (!job) return state
+  const lastClosed = state.day - 1
+  if (lastClosed <= job.checkedDay) return state
+
+  let absences = job.absences
+  for (let d = job.checkedDay + 1; d <= lastClosed; d++) {
+    if (!isWorkWeekday(weekdayOf(d))) continue
+    if (!job.attendedDays.includes(d)) absences++
+  }
+  return { ...state, employment: { ...job, absences, checkedDay: lastClosed } }
+}
+
+/**
+ * 급여 지급.
+ *
+ * ⚠️ **해고보다 먼저 처리한다** — 이미 일한 주기의 급여는 받아야 한다.
+ * `while`인 이유: 스케줄러 연쇄로 여러 주기가 한 번에 지나갈 수 있다.
+ */
+function payWages(state: GameState): { state: GameState; notices: JobNotice[] } {
+  let current = state
+  const notices: JobNotice[] = []
+  for (let guard = 0; guard < 12; guard++) {
+    const job = current.employment
+    if (!job || current.day < job.paydayDay) break
+    const career = findCareer(job.careerId)
+    if (!career) break
+    notices.push(notice(current, 'payday', career.id, { amount: career.salary }))
+    const paydayDay = job.paydayDay + PAYDAY_INTERVAL
+    current = {
+      ...current,
+      stats: clampStats({ ...current.stats, money: current.stats.money + career.salary }),
+      employment: {
+        ...job,
+        paydayDay,
+        // 지난 주기의 출근부는 버린다 — 배열이 무한히 자라면 세이브가 커진다.
+        attendedDays: job.attendedDays.filter((d) => d >= job.paydayDay),
+      },
+    }
+  }
+  return { state: current, notices }
+}
+
+/** 경고와 해고. **경고 없이 해고하지 않는다** — 예고 없는 손실은 손실이 아니라 사고다. */
+function enforceAttendance(state: GameState): { state: GameState; notices: JobNotice[] } {
+  const job = state.employment
+  if (!job) return { state, notices: [] }
+  const career = findCareer(job.careerId)
+  if (!career) return { state, notices: [] }
+
+  if (job.absences >= ABSENCE_FIRE) {
+    return {
+      state: { ...state, employment: undefined },
+      notices: [
+        notice(state, 'fired', career.id, { reason: `무단결근 ${job.absences}회`, amount: job.absences }),
+      ],
+    }
+  }
+  if (job.absences >= ABSENCE_WARNING && job.warnedAt !== job.absences) {
+    return {
+      state: { ...state, employment: { ...job, warnedAt: job.absences } },
+      notices: [
+        notice(state, 'absence-warning', career.id, {
+          reason: `무단결근 ${job.absences}회 · ${ABSENCE_FIRE}회가 되면 해고됩니다`,
+          amount: job.absences,
+        }),
+      ],
+    }
+  }
+  return { state, notices: [] }
+}
+
+/**
+ * **턴이 넘어간 뒤** 고용을 하루치 진행시킨다(`gameStore.afterTurn`이 부른다).
+ *
+ * 순서가 규칙이다: 채용 절차 → 결근 감사 → **급여** → 경고/해고.
+ * 급여가 해고보다 앞인 것은 "이미 일한 대가는 받는다"이고, 결근 감사가 급여보다 앞인 것은
+ * 급여일에 지난 주기의 출근부를 버리기 때문이다(버린 뒤에 세면 전부 결근이 된다).
+ */
+export function advanceEmployment(state: GameState): { state: GameState; notices: JobNotice[] } {
+  const stepped = advanceApplication(state)
+  const audited = auditAbsences(stepped.state)
+  const paid = payWages(audited)
+  const enforced = enforceAttendance(paid.state)
+  const notices = [...stepped.notices, ...paid.notices, ...enforced.notices]
+  return { state: push(enforced.state, notices), notices }
+}
+
+/* ── 화면이 묻는 것들 ──────────────────────────────────────────────────── */
+
+/** 현재 재직 중인 회사. */
+export function currentCareer(state: GameState): Career | undefined {
+  return state.employment ? findCareer(state.employment.careerId) : undefined
+}
+
+/** 결과를 기다리는 지원의 회사. */
+export function pendingCareer(state: GameState): Career | undefined {
+  return state.application ? findCareer(state.application.careerId) : undefined
+}
+
+/** 절차의 단계 라벨. 화면이 문구를 다시 적지 않는다(ux `Progress Indicators`). */
+export const STAGE_LABELS: Record<Application['stage'], string> = {
+  screening: '서류 심사',
+  interview: '면접',
+  final: '최종 결과 대기',
+}
+
+/** 진행 표시용 단계 번호(1부터). 전체 단계 수는 `STAGE_COUNT`. */
+export const STAGE_COUNT = 3
+
+export function stageIndex(stage: Application['stage']): number {
+  return stage === 'screening' ? 1 : stage === 'interview' ? 2 : 3
+}
+
+/** 오늘 출근했는가. 출근부와 확정 패널이 같은 판정을 본다. */
+export function attendedToday(state: GameState): boolean {
+  return !!state.employment?.attendedDays.includes(state.day)
+}
+
+/** 오늘이 근무일인가. */
+export function isWorkday(day: number): boolean {
+  return isWorkWeekday(weekdayOf(day))
+}
+
+/**
+ * 소식 한 건을 메일 문장으로 바꾼다.
+ *
+ * ⚠️ **문구를 세이브에 넣지 않는 대신 여기서 매번 만든다**(`systems/messages.ts`와 같은 판단).
+ * 회사 이름·금액은 `data/careers.ts`에서 그때그때 읽으므로, 공고를 고쳐도 옛 소식이
+ * 낡은 숫자를 들고 있지 않다.
+ */
+export function noticeMail(n: JobNotice): { from: string; subject: string; text: string } {
+  const career = findCareer(n.careerId)
+  const company = career?.company ?? '회사'
+  const won = (v?: number) => `${(v ?? 0).toLocaleString('ko-KR')}원`
+  switch (n.kind) {
+    case 'screening-pass':
+      return {
+        from: `${company} 인사팀`,
+        subject: '[서류 합격] 면접 일정 안내',
+        text: '서류 심사를 통과하셨습니다. 벼룩장터의 채용 현황에서 면접 일정을 확인하고 기한 안에 방문해 주세요. 기한이 지나면 불참으로 처리됩니다.',
+      }
+    case 'screening-fail':
+      return {
+        from: `${company} 인사팀`,
+        subject: '[서류 결과] 지원해 주셔서 감사합니다',
+        text: `아쉽게도 이번 서류 심사에서는 함께하지 못하게 되었습니다. 부족했던 항목은 다음과 같습니다 — ${n.reason ?? '요건 미달'}.`,
+      }
+    case 'interview-miss':
+      return {
+        from: `${company} 인사팀`,
+        subject: '[면접 불참] 전형이 종료되었습니다',
+        text: '안내드린 기한까지 면접에 참석하지 않으셔서 전형을 종료합니다. 다시 지원하실 수 있습니다.',
+      }
+    case 'hired':
+      return {
+        from: `${company} 인사팀`,
+        subject: '[최종 합격] 입사 안내',
+        text: `최종 합격하셨습니다. 근무일은 월~금이며, 급여는 ${won(n.amount)}씩 지급됩니다. 근무일에 출근하지 않으면 무단결근으로 기록됩니다.`,
+      }
+    case 'final-fail':
+      return {
+        from: `${company} 인사팀`,
+        subject: '[최종 결과] 아쉽게도 인연이 닿지 않았습니다',
+        text: `면접 결과를 알려드립니다. 이번에는 함께하지 못하게 되었습니다. 부족했던 항목은 다음과 같습니다 — ${n.reason ?? '요건 미달'}.`,
+      }
+    case 'payday':
+      return {
+        from: `${company} 급여담당`,
+        subject: '급여명세서가 발행되었습니다',
+        text: `이번 급여 ${won(n.amount)}이 지급되었습니다. 명세서는 사내 시스템에서 확인하실 수 있습니다.`,
+      }
+    case 'absence-warning':
+      return {
+        from: `${company} 인사팀`,
+        subject: '[경고] 근태 확인 요청',
+        text: `무단결근이 확인되어 안내드립니다 — ${n.reason ?? ''}. 근무일에는 반드시 출근해 주시기 바랍니다.`,
+      }
+    case 'fired':
+      return {
+        from: `${company} 인사팀`,
+        subject: '[통보] 근로계약 해지 안내',
+        text: `반복된 무단결근(${n.reason ?? ''})으로 근로계약을 해지합니다. 남은 절차는 별도로 안내드리지 않습니다.`,
+      }
+  }
+}
+
+/**
+ * 사서함에 실을 정규직 메일.
+ *
+ * ⚠️ **새 알림 창구를 만들지 않는다.** 이미 아웃룩이 있고 토스트가 있으므로 채널을
+ * `MAILBOX.id`로 맞춰 그 둘을 그대로 탄다 — 창구가 셋이 되면 플레이어가 어디를 봐야
+ * 하는지 알 수 없다.
+ */
+export function noticeMessages(state: GameState): TimedMessage[] {
+  return (state.jobNotices ?? []).map((n, i) => {
+    const turn = turnIndex(n.day, n.slot)
+    return { id: n.id, channel: MAILBOX.id, ...noticeMail(n), time: messageTime(turn, i), turn }
+  })
+}

@@ -1,9 +1,34 @@
 import { burnoutKeyOf, getBurnoutPenalty } from '../../systems/burnout'
 import { getLivingCost, getWageMultiplier } from '../../systems/economy'
-import { canRun, owns } from '../../systems/turn'
+import { canRun, jobStageOpen, owns } from '../../systems/turn'
+import { applyBlockers, attendedToday, isWorkday } from '../../systems/employment'
 import { findItem } from '../../data/items'
 import { STAT_NAMES } from '../../types/game'
-import type { Activity, GameState, Stats } from '../../types/game'
+import type { Activity, GameState, JobStageGate, Stats } from '../../types/game'
+
+/**
+ * 정규직 게이트가 닫혀 있는 이유.
+ *
+ * ⚠️ **두 번째 판정이 아니다** — 막을지 말지는 `jobStageOpen`이 정하고, 여기서는
+ * 그것이 본 것과 같은 조건을 훑어 문장만 만든다(`blockReasons` 전체와 같은 규칙).
+ */
+function jobGateReason(state: GameState, gate: JobStageGate): string {
+  if (gate === 'employed') {
+    if (!state.employment) return '재직 중인 회사가 없습니다 — 벼룩장터에서 정규직에 지원하세요'
+    if (!isWorkday(state.day)) return '오늘은 근무일이 아닙니다 (근무일: 월~금)'
+    if (attendedToday(state)) return '오늘은 이미 출근했습니다'
+    return '지금은 출근할 수 없습니다'
+  }
+  if (gate === 'interview') {
+    const app = state.application
+    if (!app) return '진행 중인 지원이 없습니다'
+    if (app.stage === 'screening') return '아직 서류 심사 결과가 나오지 않았습니다'
+    if (app.stage === 'final') return '이미 면접을 봤습니다 — 최종 결과를 기다리는 중입니다'
+    return '면접일이 아직 되지 않았습니다'
+  }
+  // 'applying' — 사유는 `applyBlockers`가 만든다(두 번째 문구를 만들지 않는다).
+  return applyBlockers(state)[0] ?? '지금은 지원할 수 없습니다'
+}
 
 /**
  * "이 버튼을 누르면 무슨 일이 일어나는가"를 계산하는 **표시 전용** 어댑터.
@@ -78,7 +103,16 @@ export function previewWarnings(state: GameState, activity: Activity): ActivityW
   }
 
   if (!canRun(state, activity)) {
-    warnings.push({ id: 'blocked', text: '지금은 할 수 없습니다. 행동력이나 소지금이 부족합니다.' })
+    // ⚠️ **왜 못 하는지까지 적는다**(ux `error-clarity`). 예전에는 "행동력이나 소지금이
+    // 부족합니다" 한 문장뿐이었는데, 조건이 스탯·아이템·정규직 상태로 늘어나면서
+    // 그 문장이 거짓이 되는 경우가 생겼다(재직 중이 아니라 출근을 못 하는 것 등).
+    const reasons = blockReasons(state, activity)
+    warnings.push({
+      id: 'blocked',
+      text: reasons.length
+        ? `지금은 할 수 없습니다 — ${reasons.join(' · ')}`
+        : '지금은 할 수 없습니다. 행동력이나 소지금이 부족합니다.',
+    })
   }
 
   // ⚠️ 오후 행동은 하루를 끝내고 `sleep()`이 생활비를 빼 간다.
@@ -115,6 +149,11 @@ export function blockReasons(state: GameState, activity: Activity): string[] {
   if (activity.requiresItem && !owns(state, activity.requiresItem)) {
     const item = findItem(activity.requiresItem)
     reasons.push(`${item?.name ?? activity.requiresItem}이(가) 있어야 합니다 — 쇼핑에서 구입`)
+  }
+
+  // 정규직 게이트. 판정은 `jobStageOpen`이 하고 여기서는 사유만 글자로 옮긴다.
+  if (activity.requiresJobStage && !jobStageOpen(state, activity.requiresJobStage)) {
+    reasons.push(jobGateReason(state, activity.requiresJobStage))
   }
 
   for (const [key, required] of Object.entries(activity.requires ?? {})) {

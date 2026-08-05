@@ -1,7 +1,19 @@
 import { getLivingCost, getWageMultiplier } from './economy'
 import { burnoutKeyOf, getBurnoutPenalty, pushActivity } from './burnout'
+import { weekdayOf } from '../data/calendar'
+import { FINAL_DAYS, isWorkWeekday } from '../data/careers'
 import { GROWTH_STAT_KEYS, INITIAL_STATS } from '../types/game'
-import type { Activity, EventLog, GameState, GrowthStatKey, Slot, Stats } from '../types/game'
+import type {
+  Activity,
+  Application,
+  Employment,
+  EventLog,
+  GameState,
+  GrowthStatKey,
+  JobStageGate,
+  Slot,
+  Stats,
+} from '../types/game'
 
 /** 취침 시 회복되는 체력 비율 (maxStamina 기준). */
 const SLEEP_RECOVERY_RATIO = 0.6
@@ -76,14 +88,47 @@ export function owns(state: GameState, itemId: string): boolean {
 }
 
 /**
+ * 정규직 상태 게이트.
+ *
+ * ⚠️ **규칙이 아니라 판정만 여기 있다.** 채용 절차·급여·결근은 전부
+ * `systems/employment.ts`가 갖고, 여기서는 `canRun`이 물어볼 수 있게 상태를 읽기만 한다
+ * (`owns`가 `requiresItem`을 위해 여기 있는 것과 같은 이유 — 활동을 실행하는 통로가
+ * 넷이라 판정이 `canRun` 밖에 있으면 그중 하나가 반드시 게이트를 통과한다).
+ */
+export function jobStageOpen(state: GameState, gate: JobStageGate): boolean {
+  if (gate === 'employed') {
+    const job = state.employment
+    if (!job) return false
+    // 근무일이 아닌 날의 출근은 슬롯만 먹고 아무 일도 일어나지 않는다(급여는 급여일에 온다).
+    if (!isWorkWeekday(weekdayOf(state.day))) return false
+    // 하루에 두 번 출근할 수는 없다 — 두 번 세면 결근 계산과 출근부가 어긋난다.
+    return !job.attendedDays.includes(state.day)
+  }
+  if (gate === 'interview') {
+    const app = state.application
+    return !!app && app.stage === 'interview' && state.day >= app.dueDay
+  }
+  // 'applying': 지금 **새로 지원할 수 있는 상태인가**. 한 번에 한 곳만 넣을 수 있고,
+  // 다니는 회사가 있으면 넣지 않는다. 사유 문구는 `systems/employment.ts`의 `applyBlockers`가
+  // 만든다 — 여기서는 판정만 한다.
+  //
+  // ⚠️ "이미 지원했는가"가 아니라 "지원할 수 있는가"인 이유: 이 게이트는 **누르기 전에**
+  // 물어보는 것이다. 실행된 뒤의 상태를 조건으로 걸면 확정 버튼이 영영 비활성이 된다
+  // (CDP 실측으로 잡은 버그).
+  return !state.employment && !state.application
+}
+
+/**
  * 요구 스탯과 요구 아이템을 모두 충족하고 게임오버가 아니어야 실행 가능하다.
  *
  * ⚠️ **아이템 조건도 여기서 본다.** 화면에서만 막으면 스케줄러에 미리 넣어 둔 예약이
  * 잠금을 그대로 통과한다 — 그 경로로 들어오면 회원권 없이 회원 요금(무료)으로 운동하게 된다.
+ * 정규직 게이트(`requiresJobStage`)도 같은 이유로 여기 있다.
  */
 export function canRun(state: GameState, activity: Activity): boolean {
   if (state.gameOver) return false
   if (activity.requiresItem && !owns(state, activity.requiresItem)) return false
+  if (activity.requiresJobStage && !jobStageOpen(state, activity.requiresJobStage)) return false
   if (!activity.requires) return true
   return Object.entries(activity.requires).every(
     ([key, required]) => state.stats[key as keyof Stats] >= required,
@@ -154,6 +199,38 @@ function detectGameOver(stats: Stats): GameState['gameOver'] {
   return null
 }
 
+/**
+ * 정규직 활동이 남기는 **사실**을 기록한다.
+ *
+ * ⚠️ **여기 있어야 하는 이유는 `canRun`과 같다.** 활동을 실행하는 통로가 넷이고
+ * (사이트 확정 버튼 · 스케줄러 예약 · 바탕화면 바로 가기 · 카톡 제안) 그중 어느 하나라도
+ * 이 기록을 빠뜨리면 "출근했는데 결근으로 세는" 또는 "면접을 봤는데 절차가 안 넘어가는"
+ * 형태로 조용히 터진다. `runActivity`는 그 넷이 모두 지나는 유일한 지점이다.
+ *
+ * 판단은 활동 id가 아니라 **게이트**로 한다 — id로 분기하면 활동을 하나 더 만들 때 샌다.
+ * 그 밖의 규칙(결근 감사·급여·해고)은 전부 `systems/employment.ts`에 있다.
+ */
+function stampJob(
+  state: GameState,
+  activity: Activity,
+): { employment?: Employment; application?: Application } {
+  const { employment, application } = state
+  if (activity.requiresJobStage === 'employed' && employment) {
+    return {
+      application,
+      employment: { ...employment, attendedDays: [...employment.attendedDays, state.day] },
+    }
+  }
+  if (activity.requiresJobStage === 'interview' && application) {
+    // 면접을 봤으면 최종 결과를 기다리는 단계로 넘어간다.
+    return {
+      employment,
+      application: { ...application, stage: 'final', dueDay: state.day + FINAL_DAYS },
+    }
+  }
+  return { employment, application }
+}
+
 /** 활동을 실행하고 다음 슬롯 상태를 반환한다. 원본은 변경하지 않는다. */
 export function runActivity(state: GameState, activity: Activity): GameState {
   if (state.gameOver) return state
@@ -164,11 +241,15 @@ export function runActivity(state: GameState, activity: Activity): GameState {
   const withEffects = applyEffects(state.stats, activity, state.day, efficiency)
   withEffects.mental -= mentalPenalty
 
+  // ⚠️ 기록은 **턴을 넘기기 전**에 뽑는다 — 오후 행동은 날짜를 바꾸므로
+  //    넘긴 뒤에 찍으면 "다음 날 출근한 것"이 된다.
+  const stamped = stampJob(state, activity)
   const advanced = advance(state, withEffects)
   const stats = clampStats(advanced.stats)
 
   return {
     ...state,
+    ...stamped,
     day: advanced.day,
     slot: advanced.slot,
     stats,

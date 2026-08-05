@@ -1,5 +1,5 @@
 // 이 파일은 `npm run icons`(scripts/build-icon-subset.mjs)가 생성한다. 직접 수정하지 말 것.
-// src/에서 실제로 쓰는 아이콘 125개만 담은 축소 세트다 —
+// src/에서 실제로 쓰는 아이콘 130개만 담은 축소 세트다 —
 // 전체 세트(8천여 개)를 번들에 넣지 않기 위한 것이다.
 import type { IconifyJSON } from '@iconify/react/offline'
 
@@ -61,12 +61,15 @@ export const mdiLight: IconifyJSON = {
   "height": 24
 }
 
-/** mdi — 사용 중인 61개 */
+/** mdi — 사용 중인 63개 */
 export const mdi: IconifyJSON = {
   "prefix": "mdi",
   "icons": {
     "account": {
       "body": "<path fill=\"currentColor\" d=\"M12 4a4 4 0 0 1 4 4a4 4 0 0 1-4 4a4 4 0 0 1-4-4a4 4 0 0 1 4-4m0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4\"/>"
+    },
+    "alert-circle-outline": {
+      "body": "<path fill=\"currentColor\" d=\"M11 15h2v2h-2zm0-8h2v6h-2zm1-5C6.47 2 2 6.5 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 18a8 8 0 0 1-8-8a8 8 0 0 1 8-8a8 8 0 0 1 8 8a8 8 0 0 1-8 8\"/>"
     },
     "arm-flex-outline": {
       "body": "<path fill=\"currentColor\" d=\"M7 7.76v8.49h4.08l.6-.91c1.16-1.79 3.25-2.59 4.79-2.59c.53 0 .98.09 1.32.25c.91.41 1.16 1.18 1.21 1.74c.08 1.13-.5 2.29-1.5 2.97c-.9.62-3.06 1.29-5.63 1.29c-1.75 0-4.26-.31-6.75-1.7c.29-2.45.88-6.42 1.88-9.54M7 3C4 7.09 3 18.34 3 18.34C5.9 20.31 9.08 21 11.87 21c2.99 0 5.52-.79 6.77-1.64c3-2.04 3.3-6.65 0-8.18c-.64-.29-1.38-.43-2.17-.43c-2.3 0-4.97 1.21-6.47 3.5H9V7.09h2L12 4z\"/>"
@@ -112,6 +115,9 @@ export const mdi: IconifyJSON = {
     },
     "chat-processing-outline": {
       "body": "<path fill=\"currentColor\" d=\"M12 3C6.5 3 2 6.58 2 11a7.22 7.22 0 0 0 2.75 5.5c0 .6-.42 2.17-2.75 4.5c2.37-.11 4.64-1 6.47-2.5c1.14.33 2.34.5 3.53.5c5.5 0 10-3.58 10-8s-4.5-8-10-8m0 14c-4.42 0-8-2.69-8-6s3.58-6 8-6s8 2.69 8 6s-3.58 6-8 6m5-5v-2h-2v2zm-4 0v-2h-2v2zm-4 0v-2H7v2z\"/>"
+    },
+    "check-circle-outline": {
+      "body": "<path fill=\"currentColor\" d=\"M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8m4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4l8-8z\"/>"
     },
     "chevron-down": {
       "body": "<path fill=\"currentColor\" d=\"M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6l-6-6z\"/>"
@@ -253,7 +259,7 @@ export const mdi: IconifyJSON = {
   "height": 24
 }
 
-/** fluent-color — 사용 중인 51개 */
+/** fluent-color — 사용 중인 54개 */
 export const fluentColor: IconifyJSON = {
   "prefix": "fluent-color",
   "icons": {
@@ -284,6 +290,16 @@ export const fluentColor: IconifyJSON = {
     },
     "briefcase-24": {
       "body": "<g fill=\"none\"><path fill=\"url(#SVGzrGP1bSw)\" fill-rule=\"evenodd\" d=\"M13.75 2A2.25 2.25 0 0 1 16 4.25V6l-4 2.31L8 6V4.25A2.25 2.25 0 0 1 10.25 2zm-3.5 1.5a.75.75 0 0 0-.75.75V6h5V4.25a.75.75 0 0 0-.75-.75z\" clip-rule=\"evenodd\"/><path fill=\"url(#SVG40XRKePu)\" d=\"M3 11h18v5.75A3.25 3.25 0 0 1 17.75 20H6.25A3.25 3.25 0 0 1 3 16.75z\"/><path fill=\"url(#SVGiHPn8bin)\" d=\"M3 11h18v5.75A3.25 3.25 0 0 1 17.75 20H6.25A3.25 3.25 0 0 1 3 16.75z\"/><path fill=\"url(#SVGnlbMbwZH)\" d=\"M3 9.25A3.25 3.25 0 0 1 6.25 6h11.5A3.25 3.25 0 0 1 21 9.25v3A1.75 1.75 0 0 1 19.25 14H4.75A1.75 1.75 0 0 1 3 12.25z\"/><path fill=\"url(#SVGX7Xlhe2t)\" d=\"M13 11h-2a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1\"/><defs><linearGradient id=\"SVGzrGP1bSw\" x1=\"7.637\" x2=\"9.95\" y1=\"2.631\" y2=\"9.253\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#0094f0\"/><stop offset=\"1\" stop-color=\"#163697\"/></linearGradient><linearGradient id=\"SVG40XRKePu\" x1=\"3.643\" x2=\"8.505\" y1=\"12.688\" y2=\"29.266\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#0fafff\"/><stop offset=\"1\" stop-color=\"#cc23d1\"/></linearGradient><linearGradient id=\"SVGnlbMbwZH\" x1=\"4.8\" x2=\"13.623\" y1=\"6.332\" y2=\"16.375\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#80f1e6\"/><stop offset=\".552\" stop-color=\"#40c4f5\"/><stop offset=\"1\" stop-color=\"#00a2fa\"/></linearGradient><linearGradient id=\"SVGX7Xlhe2t\" x1=\"12\" x2=\"12\" y1=\"11\" y2=\"15\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#b8f5ff\"/><stop offset=\".844\" stop-color=\"#7cecff\"/></linearGradient><radialGradient id=\"SVGiHPn8bin\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(0 9 -20.0637 0 12 11)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".337\" stop-color=\"#194694\"/><stop offset=\".747\" stop-color=\"#367af2\" stop-opacity=\"0\"/></radialGradient></defs></g>",
+      "width": 24,
+      "height": 24
+    },
+    "building-24": {
+      "body": "<g fill=\"none\"><path fill=\"url(#SVGNA3dywjJ)\" d=\"M4 4.25A2.25 2.25 0 0 1 6.25 2h8a2.25 2.25 0 0 1 2.25 2.25V9.5h1.25A2.25 2.25 0 0 1 20 11.75v9.5a.75.75 0 0 1-.75.75H4.75a.75.75 0 0 1-.75-.75z\"/><path fill=\"url(#SVGrLoGkbRc)\" d=\"M16.5 18.25c0-.69-.56-1.25-1.25-1.25H12l-1 2.5l1 2.5h4.5z\"/><path fill=\"url(#SVGAbxKsd9F)\" d=\"M7.5 18.25c0-.69.56-1.25 1.25-1.25H12v5H7.5z\"/><path fill=\"url(#SVGWawrddXY)\" d=\"M7.5 6.5a1 1 0 1 0 2 0a1 1 0 0 0-2 0m1 6a1 1 0 1 0 0 2a1 1 0 0 0 0-2m0-3.5a1 1 0 1 0 0 2a1 1 0 0 0 0-2M12 5.5a1 1 0 1 0 0 2a1 1 0 0 0 0-2m0 7a1 1 0 1 0 0 2a1 1 0 0 0 0-2m3.5 0a1 1 0 1 0 0 2a1 1 0 0 0 0-2M12 9a1 1 0 1 0 0 2a1 1 0 0 0 0-2\"/><defs><linearGradient id=\"SVGNA3dywjJ\" x1=\"4\" x2=\"23.081\" y1=\"2.625\" y2=\"22.168\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#29c3ff\"/><stop offset=\"1\" stop-color=\"#2764e7\"/></linearGradient><linearGradient id=\"SVGrLoGkbRc\" x1=\"12.359\" x2=\"16.131\" y1=\"17.422\" y2=\"20.102\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#0067bf\"/><stop offset=\"1\" stop-color=\"#003580\"/></linearGradient><linearGradient id=\"SVGAbxKsd9F\" x1=\"7.661\" x2=\"11.106\" y1=\"17.938\" y2=\"21.159\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#0067bf\"/><stop offset=\"1\" stop-color=\"#003580\"/></linearGradient><linearGradient id=\"SVGWawrddXY\" x1=\"10.2\" x2=\"13.488\" y1=\"4.5\" y2=\"16.337\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#fdfdfd\"/><stop offset=\"1\" stop-color=\"#b3e0ff\"/></linearGradient></defs></g>",
+      "width": 24,
+      "height": 24
+    },
+    "building-multiple-24": {
+      "body": "<g fill=\"none\"><path fill=\"url(#SVGoqKxgbbE)\" fill-rule=\"evenodd\" d=\"M14 4.25V22H3.75a.75.75 0 0 1-.75-.75v-17A2.25 2.25 0 0 1 5.25 2h6.5A2.25 2.25 0 0 1 14 4.25\" clip-rule=\"evenodd\"/><path fill=\"url(#SVG7jTG4bQl)\" fill-opacity=\".2\" fill-rule=\"evenodd\" d=\"M14 4.25V22H3.75a.75.75 0 0 1-.75-.75v-17A2.25 2.25 0 0 1 5.25 2h6.5A2.25 2.25 0 0 1 14 4.25\" clip-rule=\"evenodd\"/><path fill=\"url(#SVG0nxXEdEw)\" fill-rule=\"evenodd\" d=\"M14 4.25V22H3.75a.75.75 0 0 1-.75-.75v-17A2.25 2.25 0 0 1 5.25 2h6.5A2.25 2.25 0 0 1 14 4.25\" clip-rule=\"evenodd\"/><path fill=\"url(#SVGeMrtmbHT)\" d=\"M8 6a1 1 0 1 1-2 0a1 1 0 0 1 2 0\"/><path fill=\"url(#SVGeMrtmbHT)\" d=\"M8 12a1 1 0 1 1-2 0a1 1 0 0 1 2 0\"/><path fill=\"url(#SVGeMrtmbHT)\" d=\"M8 9a1 1 0 1 1-2 0a1 1 0 0 1 2 0\"/><path fill=\"url(#SVGeMrtmbHT)\" d=\"M8 15a1 1 0 1 1-2 0a1 1 0 0 1 2 0\"/><path fill=\"url(#SVGeMrtmbHT)\" d=\"M8 18a1 1 0 1 1-2 0a1 1 0 0 1 2 0\"/><path fill=\"url(#SVGkDIjtb1U)\" d=\"M18.75 5A2.25 2.25 0 0 1 21 7.25v14a.75.75 0 0 1-.75.75h-9.247A1 1 0 0 1 10 21V7.25A2.25 2.25 0 0 1 12.25 5z\"/><path fill=\"url(#SVGbIcYUb6D)\" d=\"M13 19a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v3h-5z\"/><path fill=\"url(#SVGcRFDOepZ)\" d=\"M15 9a1 1 0 1 1-2 0a1 1 0 0 1 2 0\"/><path fill=\"url(#SVGcRFDOepZ)\" d=\"M15 12a1 1 0 1 1-2 0a1 1 0 0 1 2 0\"/><path fill=\"url(#SVGcRFDOepZ)\" d=\"M15 15a1 1 0 1 1-2 0a1 1 0 0 1 2 0\"/><path fill=\"url(#SVGcRFDOepZ)\" d=\"M18 9a1 1 0 1 1-2 0a1 1 0 0 1 2 0\"/><path fill=\"url(#SVGcRFDOepZ)\" d=\"M18 12a1 1 0 1 1-2 0a1 1 0 0 1 2 0\"/><path fill=\"url(#SVGcRFDOepZ)\" d=\"M18 15a1 1 0 1 1-2 0a1 1 0 0 1 2 0\"/><defs><linearGradient id=\"SVGoqKxgbbE\" x1=\"3.393\" x2=\"15.293\" y1=\"5.75\" y2=\"12.55\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#a3a3ff\"/><stop offset=\"1\" stop-color=\"#5750e2\"/></linearGradient><linearGradient id=\"SVG7jTG4bQl\" x1=\"6.85\" x2=\"10.7\" y1=\"4.5\" y2=\"4.5\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#30116e\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#30116e\"/></linearGradient><linearGradient id=\"SVG0nxXEdEw\" x1=\"10.838\" x2=\"10.66\" y1=\"8.094\" y2=\"2.001\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#a3a3ff\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#a3a3ff\"/></linearGradient><linearGradient id=\"SVGeMrtmbHT\" x1=\"5.333\" x2=\"8\" y1=\"4.333\" y2=\"19.667\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#fdfdfd\"/><stop offset=\"1\" stop-color=\"#d1d1ff\"/></linearGradient><linearGradient id=\"SVGkDIjtb1U\" x1=\"10\" x2=\"25.941\" y1=\"5.531\" y2=\"18.736\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#3bd5ff\"/><stop offset=\"1\" stop-color=\"#2764e7\"/></linearGradient><linearGradient id=\"SVGbIcYUb6D\" x1=\"13.804\" x2=\"16.474\" y1=\"18.75\" y2=\"22.218\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#0067bf\"/><stop offset=\"1\" stop-color=\"#003580\"/></linearGradient><linearGradient id=\"SVGcRFDOepZ\" x1=\"14.5\" x2=\"18.706\" y1=\"7.111\" y2=\"16.575\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#fdfdfd\"/><stop offset=\"1\" stop-color=\"#b3e0ff\"/></linearGradient></defs></g>",
       "width": 24,
       "height": 24
     },
@@ -334,6 +350,11 @@ export const fluentColor: IconifyJSON = {
     },
     "document-folder-24": {
       "body": "<g fill=\"none\"><path fill=\"url(#SVGdFie5cDw)\" d=\"M8 6.25A2.25 2.25 0 0 1 10.25 4h7.5A2.25 2.25 0 0 1 20 6.25v8.5A2.25 2.25 0 0 1 17.75 17h-7.5A2.25 2.25 0 0 1 8 14.75z\"/><path fill=\"url(#SVGXYfMve6h)\" d=\"M8 6.25A2.25 2.25 0 0 1 10.25 4h7.5A2.25 2.25 0 0 1 20 6.25v8.5A2.25 2.25 0 0 1 17.75 17h-7.5A2.25 2.25 0 0 1 8 14.75z\"/><path fill=\"url(#SVGCfFQgeqH)\" d=\"M4 4.25A2.25 2.25 0 0 1 6.25 2h9a2.25 2.25 0 0 1 2.25 2.25v10.5A2.25 2.25 0 0 1 15.25 17h-9A2.25 2.25 0 0 1 4 14.75z\"/><path fill=\"url(#SVGBFc5OckO)\" d=\"M5.25 8A2.25 2.25 0 0 0 3 10.25v8.5A3.25 3.25 0 0 0 6.25 22h11.5A3.25 3.25 0 0 0 21 18.75v-1.5A2.25 2.25 0 0 0 18.75 15h-2.846a.75.75 0 0 1-.55-.24l-5.61-6.04A2.25 2.25 0 0 0 8.097 8z\"/><defs><linearGradient id=\"SVGdFie5cDw\" x1=\"21.8\" x2=\"23.639\" y1=\"19.5\" y2=\"5.773\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#bb45ea\"/><stop offset=\"1\" stop-color=\"#9c6cfe\"/></linearGradient><linearGradient id=\"SVGXYfMve6h\" x1=\"20\" x2=\"17\" y1=\"8.5\" y2=\"8.5\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".338\" stop-color=\"#5750e2\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#5750e2\"/></linearGradient><linearGradient id=\"SVGBFc5OckO\" x1=\"6.857\" x2=\"6.857\" y1=\"8\" y2=\"27.091\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".241\" stop-color=\"#ffd638\"/><stop offset=\".637\" stop-color=\"#fab500\"/><stop offset=\".985\" stop-color=\"#ca6407\"/></linearGradient><radialGradient id=\"SVGCfFQgeqH\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(8.775 -11.5 18.53666 14.14428 8.05 14)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".228\" stop-color=\"#2764e7\"/><stop offset=\".685\" stop-color=\"#5cd1ff\"/><stop offset=\"1\" stop-color=\"#6ce0ff\"/></radialGradient></defs></g>",
+      "width": 24,
+      "height": 24
+    },
+    "document-text-24": {
+      "body": "<g fill=\"none\"><path fill=\"url(#SVG8vVuobfw)\" d=\"M6 22h12a2 2 0 0 0 2-2V9l-5-2l-2-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2\"/><path fill=\"url(#SVG4wnbzb0z)\" fill-opacity=\".5\" d=\"M6 22h12a2 2 0 0 0 2-2V9l-5-2l-2-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2\"/><path fill=\"url(#SVG81X8GbEl)\" d=\"M13 7.5V2l7 7h-5.5A1.5 1.5 0 0 1 13 7.5\"/><path fill=\"url(#SVGAXz21b6B)\" fill-opacity=\".9\" d=\"M8.75 11.5a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5zm0 2.75a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5zm0 2.75a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5z\"/><defs><linearGradient id=\"SVG8vVuobfw\" x1=\"15.2\" x2=\"16.822\" y1=\"2\" y2=\"18.87\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#6ce0ff\"/><stop offset=\"1\" stop-color=\"#4894fe\"/></linearGradient><linearGradient id=\"SVG81X8GbEl\" x1=\"16.488\" x2=\"14.738\" y1=\"4.917\" y2=\"7.833\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#9ff0f9\"/><stop offset=\"1\" stop-color=\"#b3e0ff\"/></linearGradient><linearGradient id=\"SVGAXz21b6B\" x1=\"16\" x2=\"8.196\" y1=\"21.3\" y2=\"8.58\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#9deaff\"/><stop offset=\"1\" stop-color=\"#fff\"/></linearGradient><radialGradient id=\"SVG4wnbzb0z\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"rotate(133.623 9.771 5.739)scale(12.562 7.41695)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".362\" stop-color=\"#4a43cb\"/><stop offset=\"1\" stop-color=\"#4a43cb\" stop-opacity=\"0\"/></radialGradient></defs></g>",
       "width": 24,
       "height": 24
     },

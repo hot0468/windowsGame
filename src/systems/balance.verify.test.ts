@@ -6,7 +6,10 @@
 import { describe, it, expect } from 'vitest'
 import { createInitialState, canRun, runActivity, skipSlot } from './turn'
 import { findActivity } from '../data/activities'
+import { ABSENCE_FIRE, ABSENCE_WARNING, CAREERS, PAYDAY_INTERVAL, findCareer } from '../data/careers'
 import { countConsecutive } from './burnout'
+import { advanceEmployment, applyTo, passes } from './employment'
+import type { Career } from '../data/careers'
 import type { GameState } from '../types/game'
 
 const work = findActivity('work')!
@@ -46,6 +49,191 @@ describe('무한 플레이 차단', () => {
     while (!state.gameOver && state.day <= 100) state = skipSlot(state)
     expect(state.gameOver).toBe('bankrupt')
     expect(state.day).toBeLessThan(20)
+  })
+})
+
+/* ── 정규직 (2026-08-05) ───────────────────────────────────────────────────
+ *
+ * ⚠️ **위의 알바 시뮬레이션을 약화시키지 않는다.** 정규직은 경로를 하나 더 여는 것이지
+ * 기존 경로를 바꾸는 것이 아니므로, 여기서는 **새 경로에 대해 같은 두 가지**를 증명한다:
+ *  (a) 규칙대로 출근하는 재직자가 **첫 급여일까지 자동으로 파산하지 않는다**
+ *  (b) 그럼에도 **판은 결국 끝난다**(고정 급여 vs 지수적 생활비)
+ */
+
+const commute = findActivity('commute')!
+const jobApply = findActivity('job-apply')!
+const jobInterview = findActivity('job-interview')!
+const study = findActivity('study')!
+const reading = findActivity('reading')!
+const social = findActivity('social')!
+const club = findActivity('club')!
+
+/** 그 회사의 서류·면접 요건을 모두 채웠는가. */
+function qualified(state: GameState, career: Career): boolean {
+  return passes(state.stats, career.paper) && passes(state.stats, career.person)
+}
+
+/**
+ * 요건을 채우기 위해 지금 해야 할 활동. 없으면 undefined(= 이미 다 채웠다).
+ * 스탯 하나당 주 공급원 하나만 본다 — 최적해가 아니라 **평범한 플레이**를 재는 것이 목적이다.
+ */
+function prepFor(state: GameState, career: Career) {
+  const need = { ...career.paper, ...career.person }
+  if ((need.knowledge ?? 0) > state.stats.knowledge) return study
+  if ((need.vocabulary ?? 0) > state.stats.vocabulary) return reading
+  if ((need.creativity ?? 0) > state.stats.creativity) return findActivity('writing')!
+  if ((need.charm ?? 0) > state.stats.charm) return social
+  if ((need.sociability ?? 0) > state.stats.sociability) return club
+  if ((need.reputation ?? 0) > state.stats.reputation) return findActivity('sns')!
+  return undefined
+}
+
+interface EmployedRun {
+  state: GameState
+  /** 채용된 날. null이면 끝까지 취직하지 못했다. */
+  hiredDay: number | null
+  /** 급여를 받은 날들. */
+  paydays: number[]
+  /** 채용된 뒤 **첫 급여를 받기 전까지**의 최저 소지금. 0 이하면 급여를 못 버틴 것이다. */
+  lowestBeforeFirstPay: number
+  /** 해고된 날. null이면 안 잘렸다. */
+  firedDay: number | null
+}
+
+/**
+ * 정규직을 목표로 하는 플레이.
+ *
+ * `attend`가 false면 **일부러 결근한다** — 경고·해고 경로를 재기 위한 것이다.
+ */
+function playEmployed(career: Career, maxDays: number, attend = true): EmployedRun {
+  let state = createInitialState('정규직')
+  let hiredDay: number | null = null
+  let firedDay: number | null = null
+  const paydays: number[] = []
+  let lowestBeforeFirstPay = Number.POSITIVE_INFINITY
+
+  for (let guard = 0; guard < maxDays * 2 + 10; guard++) {
+    if (state.gameOver || state.day > maxDays) break
+
+    let next: GameState
+    if (attend && canRun(state, commute)) {
+      next = runActivity(state, commute)
+    } else if (canRun(state, jobInterview)) {
+      next = runActivity(state, jobInterview)
+    } else if (
+      !state.employment &&
+      !state.application &&
+      qualified(state, career) &&
+      canRun(state, jobApply)
+    ) {
+      next = runActivity(applyTo(state, career), jobApply)
+    } else if (state.stats.mental < 30 && canRun(state, game)) {
+      next = runActivity(state, game)
+    } else if (
+      // 취직 전에는 요건부터 채운다. 단 잔고가 얇으면 벌이가 먼저다.
+      !state.employment &&
+      state.stats.money > 120_000 &&
+      prepFor(state, career) &&
+      canRun(state, prepFor(state, career)!)
+    ) {
+      next = runActivity(state, prepFor(state, career)!)
+    } else if (canRun(state, work) && state.stats.mental > 20) {
+      next = runActivity(state, work)
+    } else if (canRun(state, game) && state.stats.mental < 95) {
+      next = runActivity(state, game)
+    } else {
+      next = skipSlot(state)
+    }
+
+    const settled = advanceEmployment(next)
+    for (const n of settled.notices) {
+      if (n.kind === 'hired' && hiredDay === null) hiredDay = n.day
+      if (n.kind === 'payday') paydays.push(n.day)
+      if (n.kind === 'fired' && firedDay === null) firedDay = n.day
+    }
+    state = settled.state
+    // 첫 급여 전의 구간만 잰다 — "취직했는데 첫 월급 전에 굶어 죽는가"가 질문이다.
+    if (hiredDay !== null && paydays.length === 0) {
+      lowestBeforeFirstPay = Math.min(lowestBeforeFirstPay, state.stats.money)
+    }
+  }
+
+  return { state, hiredDay, paydays, lowestBeforeFirstPay, firedDay }
+}
+
+describe('정규직 — 살아남을 수 있는가', () => {
+  const entry = CAREERS[0]
+
+  it('평범한 플레이로 실제 채용까지 간다', () => {
+    const run = playEmployed(entry, 200)
+    expect(run.hiredDay, '끝까지 취직하지 못했다').not.toBeNull()
+    // 절차 자체가 최소 9일(서류 3 + 면접 안내 2 + 최종 4)이므로 그보다 빠를 수 없다.
+    expect(run.hiredDay!).toBeGreaterThanOrEqual(10)
+  })
+
+  it('규칙대로 출근하면 첫 급여일까지 파산하지 않는다', () => {
+    const run = playEmployed(entry, 200)
+    expect(run.paydays.length, '급여를 한 번도 못 받았다').toBeGreaterThan(0)
+    expect(run.paydays[0]).toBe(run.hiredDay! + PAYDAY_INTERVAL)
+    // 첫 급여 전 소지금이 0 이하로 간 적이 없어야 "자동 파산"이 아니다.
+    expect(run.lowestBeforeFirstPay).toBeGreaterThan(0)
+  })
+
+  it('규칙대로 출근하면 해고되지 않는다', () => {
+    const run = playEmployed(entry, 200)
+    expect(run.firedDay).toBeNull()
+    expect(run.state.employment?.absences ?? 0).toBeLessThan(ABSENCE_WARNING)
+  })
+
+  it('정규직으로도 결국 판은 끝난다 — 고정 급여가 물가를 이기지 못한다', () => {
+    const run = playEmployed(entry, 400)
+    expect(run.state.gameOver).toBe('bankrupt')
+    // 알바만 하는 플레이(60~120일)보다 오래 버티되, 무한 플레이는 아니다.
+    expect(run.state.day).toBeLessThanOrEqual(220)
+  })
+
+  it('출근하지 않으면 경고를 거쳐 해고된다 — 예고 없이 잃지 않는다', () => {
+    const run = playEmployed(entry, 200, false)
+    expect(run.hiredDay, '취직 자체를 못 했다').not.toBeNull()
+    expect(run.firedDay, '결근을 계속했는데도 해고되지 않았다').not.toBeNull()
+    // 해고보다 경고가 먼저 왔어야 한다.
+    const notices = run.state.jobNotices ?? []
+    const warned = notices.find((n) => n.kind === 'absence-warning')
+    const fired = notices.find((n) => n.kind === 'fired')
+    expect(warned, '경고 없이 해고됐다').toBeDefined()
+    expect(warned!.day).toBeLessThanOrEqual(fired!.day)
+    expect(warned!.amount).toBe(ABSENCE_WARNING)
+    expect(fired!.amount).toBe(ABSENCE_FIRE)
+  })
+})
+
+describe('정규직 공고 정의', () => {
+  it('id가 중복되지 않고 급여가 오름차순이다 — 어려운 자리가 더 받아야 한다', () => {
+    const ids = CAREERS.map((c) => c.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (let i = 1; i < CAREERS.length; i++) {
+      expect(CAREERS[i].salary).toBeGreaterThan(CAREERS[i - 1].salary)
+    }
+  })
+
+  it('요건이 상한을 넘지 않는다 — 평판·도덕의 상한은 100이다', () => {
+    for (const c of CAREERS) {
+      expect(c.person.reputation ?? 0).toBeLessThanOrEqual(100)
+      expect(c.paper.knowledge ?? 0).toBeLessThanOrEqual(999)
+    }
+  })
+
+  it('서류는 이력서 스탯을, 면접은 사람 스탯을 본다', () => {
+    const paperKeys = new Set(CAREERS.flatMap((c) => Object.keys(c.paper)))
+    const personKeys = new Set(CAREERS.flatMap((c) => Object.keys(c.person)))
+    for (const k of paperKeys) expect(['knowledge', 'vocabulary', 'creativity']).toContain(k)
+    for (const k of personKeys) expect(['charm', 'reputation', 'sociability']).toContain(k)
+  })
+
+  it('출근 활동은 돈을 만지지 않는다 — 급여의 단일 출처는 공고다', () => {
+    expect(commute.effects.money).toBeUndefined()
+    expect(commute.scalesWithWage).toBeUndefined()
+    expect(findCareer(CAREERS[0].id)!.salary).toBeGreaterThan(0)
   })
 })
 

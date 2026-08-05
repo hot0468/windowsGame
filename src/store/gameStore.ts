@@ -13,16 +13,84 @@ import { findActivity } from '../data/activities'
 import { findItem } from '../data/items'
 import { clearPlan, planWeekly, runPlans, setPlan } from '../systems/schedule'
 import { collect, order, owns, recordEvent } from '../systems/delivery'
+import { advanceEmployment, applyTo, canApply } from '../systems/employment'
+import { findCareer } from '../data/careers'
+import type { Career } from '../data/careers'
 import type { OfferOption } from '../data/messages'
 import type { ShopItem } from '../data/items'
 import type { SkippedPlan } from '../systems/schedule'
-import type { Activity, GameState, Slot, Stats } from '../types/game'
+import type {
+  Activity,
+  Application,
+  Employment,
+  GameState,
+  JobNotice,
+  Slot,
+  Stats,
+} from '../types/game'
 
 /**
  * 세이브에 반드시 유한한 숫자로 들어 있어야 하는 스탯 키.
  * INITIAL_STATS에서 파생시켜, 스탯이 추가돼도 검증에서 빠지지 않게 한다.
  */
 const REQUIRED_STAT_KEYS = Object.keys(INITIAL_STATS) as (keyof Stats)[]
+
+/**
+ * 정규직 상태 복원.
+ *
+ * ⚠️ **정규직이 생기기 전의 세이브에는 이 필드들이 아예 없다** — 그때는 전부 undefined가 되고,
+ * 그것이 곧 "지원한 적도 취직한 적도 없다"라 마이그레이션이 필요 없다.
+ * 값 검증이 다른 옵셔널 필드보다 빡빡한 이유는 **이 상태가 돈을 만들기 때문**이다:
+ * 없는 공고를 가리키거나 숫자가 NaN이면 급여가 NaN이 되고, `NaN <= 0`이 false라
+ * 파산 판정이 영영 안 걸린다(스탯 검증과 같은 사고 형태).
+ */
+function reviveJob(
+  saved: Partial<GameState>,
+): Pick<GameState, 'application' | 'employment' | 'jobNotices'> {
+  const app = saved.application
+  const application: Application | undefined =
+    app &&
+    findCareer(app.careerId) &&
+    Number.isFinite(app.appliedDay) &&
+    Number.isFinite(app.dueDay) &&
+    (app.stage === 'screening' || app.stage === 'interview' || app.stage === 'final')
+      ? {
+          careerId: app.careerId,
+          appliedDay: Number(app.appliedDay),
+          stage: app.stage,
+          dueDay: Number(app.dueDay),
+        }
+      : undefined
+
+  const job = saved.employment
+  const employment: Employment | undefined =
+    job &&
+    findCareer(job.careerId) &&
+    Number.isFinite(job.hiredDay) &&
+    Number.isFinite(job.paydayDay) &&
+    Number.isFinite(job.checkedDay) &&
+    Number.isFinite(job.absences)
+      ? {
+          careerId: job.careerId,
+          hiredDay: Number(job.hiredDay),
+          paydayDay: Number(job.paydayDay),
+          attendedDays: Array.isArray(job.attendedDays)
+            ? job.attendedDays.filter((d): d is number => Number.isFinite(d))
+            : [],
+          absences: Number(job.absences),
+          checkedDay: Number(job.checkedDay),
+          warnedAt: Number.isFinite(job.warnedAt) ? Number(job.warnedAt) : undefined,
+        }
+      : undefined
+
+  return {
+    application,
+    employment,
+    jobNotices: Array.isArray(saved.jobNotices)
+      ? (saved.jobNotices.filter((n) => n && typeof n.id === 'string') as JobNotice[])
+      : undefined,
+  }
+}
 
 /**
  * 저장된 세이브를 검증해 안전한 GameState로 되돌린다.
@@ -55,6 +123,7 @@ function reviveState(raw: unknown): GameState | null {
   if (day < 1) return null
 
   return {
+    ...reviveJob(saved),
     playerName: defaults.playerName,
     day,
     slot: saved.slot === 'afternoon' ? 'afternoon' : 'morning',
@@ -110,7 +179,15 @@ export function selectPersistedState(state: GameState | null): { state: GameStat
 function afterTurn(next: GameState) {
   const ran = runPlans(next)
   const got = collect(ran.state)
-  return { state: got.state, skippedPlans: ran.skipped, arrivals: got.arrived }
+  // ⚠️ 고용 정산은 **예약 연쇄가 끝난 뒤**에 한 번 돈다. 커서(`checkedDay`)와
+  //    급여 루프가 밀린 날짜를 따라잡도록 돼 있어, 며칠이 한 번에 흘러도 새지 않는다.
+  const job = advanceEmployment(got.state)
+  return {
+    state: job.state,
+    skippedPlans: ran.skipped,
+    arrivals: got.arrived,
+    jobNotices: job.notices,
+  }
 }
 
 interface GameStore {
@@ -160,6 +237,20 @@ interface GameStore {
    */
   arrivals: ShopItem[]
   clearArrivals: () => void
+  /**
+   * 정규직 공고에 지원한다. **1턴을 쓴다**(`job-apply` 활동이 비용을 갖는다).
+   *
+   * 기록을 먼저 만들고 활동을 실행하는 순서가 중요하다 — `canRun`의 `'applying'` 게이트가
+   * "낼 서류가 정해져 있는가"를 보기 때문이다. 조건이 안 되면 **아무것도 하지 않는다**
+   * (반쪽 상태: 지원은 됐는데 턴은 안 쓴, 또는 그 반대를 남기지 않는다).
+   */
+  applyToCareer: (career: Career) => void
+  /**
+   * 방금 도착한 정규직 소식. **휘발**이다 — 토스트를 띄우고 나면 비운다
+   * (`arrivals`·`skippedPlans`와 같은 규칙). 원본은 `state.jobNotices`가 들고 있다.
+   */
+  jobNotices: JobNotice[]
+  clearJobNotices: () => void
   markEndingSeen: (endingId: string) => void
   reset: () => void
 }
@@ -187,6 +278,21 @@ export const useGameStore = create<GameStore>()(
 
       arrivals: [],
       clearArrivals: () => set({ arrivals: [] }),
+
+      jobNotices: [],
+      clearJobNotices: () => set({ jobNotices: [] }),
+
+      applyToCareer: (career) => {
+        const current = get().state
+        if (!current || !canApply(current)) return
+        const activity = findActivity('job-apply')
+        if (!activity || !canRun(current, activity)) return
+        // ⚠️ 게이트를 **먼저** 묻고 기록을 만든다. 기록을 먼저 만들면 그 기록 자체가
+        //    "이미 지원한 상태"가 되어 게이트가 닫힌다.
+        const applied = applyTo(current, career)
+        if (applied === current) return
+        set(afterTurn(runActivity(applied, activity)))
+      },
 
       orderItem: (item) => {
         const current = get().state

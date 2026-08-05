@@ -149,3 +149,70 @@ describe('selectPersistedState — 끝난 게임 세이브 정리', () => {
     expect(migrateSave(selectPersistedState(alive)).state?.gameOver).toBeNull()
   })
 })
+
+/**
+ * 정규직 상태의 세이브 왕복 (2026-08-05).
+ *
+ * ⚠️ **이 상태는 돈을 만든다.** 없는 공고를 가리키거나 숫자가 NaN인 채로 통과하면
+ * 급여가 NaN이 되고, `NaN <= 0`이 false라 파산 판정이 영영 안 걸린다 —
+ * 스탯 검증이 막는 것과 정확히 같은 형태의 사고다.
+ */
+describe('migrateSave — 정규직', () => {
+  const employed = () => ({
+    state: {
+      ...createInitialState('직장인'),
+      day: 30,
+      application: {
+        careerId: 'nulbom-edu',
+        appliedDay: 28,
+        stage: 'screening' as const,
+        dueDay: 31,
+      },
+      employment: {
+        careerId: 'dasom-office',
+        hiredDay: 20,
+        paydayDay: 35,
+        attendedDays: [21, 22],
+        absences: 1,
+        checkedDay: 29,
+      },
+      jobNotices: [
+        {
+          id: 'hired-dasom-office-20-morning',
+          kind: 'hired' as const,
+          careerId: 'dasom-office',
+          day: 20,
+          slot: 'morning' as const,
+        },
+      ],
+    },
+  })
+
+  it('재직·지원·소식을 그대로 되돌린다 — 새로고침해도 절차가 이어진다', () => {
+    const r = migrateSave(employed())
+    expect(r.state?.employment?.careerId).toBe('dasom-office')
+    expect(r.state?.employment?.attendedDays).toEqual([21, 22])
+    expect(r.state?.employment?.absences).toBe(1)
+    expect(r.state?.application?.stage).toBe('screening')
+    expect(r.state?.jobNotices).toHaveLength(1)
+  })
+
+  it('정규직이 생기기 전의 세이브는 무직으로 읽힌다 — 마이그레이션이 필요 없다', () => {
+    const r = migrateSave({ state: createInitialState('구버전') })
+    expect(r.state?.employment).toBeUndefined()
+    expect(r.state?.application).toBeUndefined()
+    expect(r.state?.jobNotices).toBeUndefined()
+  })
+
+  it('없는 공고를 가리키는 재직 상태는 버린다 — 급여를 만들 근거가 없다', () => {
+    const save = employed()
+    save.state.employment.careerId = '없는회사'
+    expect(migrateSave(save).state?.employment).toBeUndefined()
+  })
+
+  it('숫자가 깨진 재직 상태는 버린다 — NaN 급여는 파산 판정을 무력화한다', () => {
+    const save = employed()
+    ;(save.state.employment as { paydayDay: number }).paydayDay = Number.NaN
+    expect(migrateSave(save).state?.employment).toBeUndefined()
+  })
+})

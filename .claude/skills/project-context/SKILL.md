@@ -21,10 +21,11 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 | 스탯 | 12종. ⚠️ **`stamina` = "행동력", `maxStamina` = "체력"으로 표시된다**(2026-08-03 개명, 코드 키는 그대로). "체력/최대 체력"은 같은 것의 현재값·상한처럼 읽혀 둘이 왜 나뉘는지 설명하지 못했다 — 실제 관계는 매일 쓰고 채우는 소모 자원 vs 운동으로 영구히 키우는 그릇이다. 규칙은 안 바뀌었다. 소모 자원: `stamina`/`maxStamina`, `mental`(0~100), `money`. 성장 스탯 **10종**: `knowledge`, `charm`, `sensitivity`, `reputation`, `morality`, `creativity`, `sociability`, `vocabulary`, `athletics`, `gaming`(게임). 상한은 `growthCap(key)`가 정한다 — 평판·도덕만 100, 나머지 999 |
 | 엔딩 | 멀티 엔딩 6종(대기업 합격/인플루언서/철인/현실주의자/번아웃/평범). 스탯 조합 판정 |
 | 엔딩 공개 | 비공개. 엔딩 도감에 한 번 본 엔딩만 해금 |
-| 활동 선택 | ⚠️ **바탕화면에 활동 아이콘은 없다**(`onDesktop` 전부 false). 활동을 실행하는 통로는 **넷**이다: ①카톡 대화창의 [만나러 가기](= `social`) ②**스케줄러 예약**(그 슬롯이 오면 자동 실행) ③**브라우저 사이트의 확정 버튼**(2026-08-04 신설 — 미디북스=`reading`·시집이=`movie`·아점=`writing`·**알바몬=알바 4종**) ④**바탕화면 바로 가기**(2026-08-05 신설 — ③의 확정 버튼을 우클릭해 등록한 것. 아이콘은 활동 아이콘이지만 `onDesktop`과 무관하다). 활동 **18종** 정의는 `data/activities.ts`에 그대로 있다 |
+| 활동 선택 | ⚠️ **바탕화면에 활동 아이콘은 없다**(`onDesktop` 전부 false). 활동을 실행하는 통로는 **넷**이다: ①카톡 대화창의 [만나러 가기](= `social`) ②**스케줄러 예약**(그 슬롯이 오면 자동 실행) ③**브라우저 사이트의 확정 버튼**(2026-08-04 신설 — 미디북스=`reading`·시집이=`movie`·아점=`writing`·**알바몬=알바 4종**) ④**바탕화면 바로 가기**(2026-08-05 신설 — ③의 확정 버튼을 우클릭해 등록한 것. 아이콘은 활동 아이콘이지만 `onDesktop`과 무관하다). 활동 **21종** 정의는 `data/activities.ts`에 그대로 있다(2026-08-05: 정규직 3종 — 지원서 제출·면접·출근 추가) |
 | 행동 비용 | **탐색 무료**, 확정 행동만 1턴 소모 |
 | 날짜 제한 | **없음.** 대신 ①매일 생활비 차감(0→파산) ②10일 주기 물가 인상(뉴스 예고) ③번아웃 누적 |
 | 알바비 | 물가보다 느리게 인상 → 고소득 알바 전환 압박 = 스탯 투자 이유 |
+| 정규직 | **2026-08-05 신설.** 알바(일용직)와 별개 축. 지원→서류→면접→최종의 며칠짜리 절차, 채용되면 **고용이 지속**되고 급여일마다 월급. 출근은 플레이어가 고르는 활동이고 무단결근이 쌓이면 해고. **급여는 물가 배율을 안 탄다** → 중반에 강하고 후반에 반드시 무너진다 |
 | 엔딩 도달 | 성취 엔딩은 [엔딩 보기]/[계속하기] 선택, 어느 쪽이든 도감 즉시 해금. 파산·번아웃은 강제 종료 |
 | 체력 | `stamina`(일일 소모/취침 회복) / `maxStamina`(운동으로 영구 상승, 철인 엔딩 판정) 분리 |
 
@@ -164,7 +165,7 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
   - ⚠️ Pretendard는 Segoe UI보다 획이 얇아 **같은 색이 더 낮은 대비로 합성된다.**
     교체 실측에서 `--hud-text-3`가 5.53→4.55:1로 떨어져 `#585e68`→`#4e545e`로 내렸다
     (실측 최저 5.21:1). 폰트를 바꾸면 색도 다시 재야 한다
-- ⚠️ **브라우저는 사이트 컨테이너다** (2026-08-03 신설). `src/data/sites.ts`의 `SITES`가 사이트 단일 출처이고(id·가짜 URL·제목·아이콘·`render`·안내 문구·`bookmark` 플래그·`activityId`), `BrowserApp`은 **`site.render`로만 분기한다**(`'portal' | 'construction' | 'shop' | 'library' | 'cinema' | 'publish' | 'tube' | 'jobs'`). 사이트 id로 분기하는 순간 "데이터 한 줄 + 컴포넌트 하나"로 사이트를 늘리는 구조가 무너진다. 새 사이트 추가 = SITES에 항목 하나 + (새 종류라면) `render` 값 하나와 컴포넌트 하나
+- ⚠️ **브라우저는 사이트 컨테이너다** (2026-08-03 신설). `src/data/sites.ts`의 `SITES`가 사이트 단일 출처이고(id·가짜 URL·제목·아이콘·`render`·안내 문구·`bookmark` 플래그·`activityId`), `BrowserApp`은 **`site.render`로만 분기한다**(`'portal' | 'construction' | 'shop' | 'library' | 'cinema' | 'publish' | 'tube' | 'jobs' | 'career'`). 사이트 id로 분기하는 순간 "데이터 한 줄 + 컴포넌트 하나"로 사이트를 늘리는 구조가 무너진다. 새 사이트 추가 = SITES에 항목 하나 + (새 종류라면) `render` 값 하나와 컴포넌트 하나
   - ⚠️ **사이트 아이콘은 서로 겹치면 안 된다**(`sites.test.ts`가 지킨다). 아이콘은 탭 파비콘·포털 퀵메뉴·즐겨찾기 줄 세 자리에 흐르는 **정체성**이라 둘이 같으면 구분이 사라진다. 그래서 극장(시집이)이 `fluent-color:video-24`를 가져가면서 너튜브는 `content-view-24`로 옮겼다
   - ⚠️ **"즐겨찾기"가 두 곳에 있고 서로 다른 것이다.** ①**브라우저 크롬의 즐겨찾기 줄**(주소창 아래) = `browserStore.bookmarks`(영구 저장, 주소창 별표로 추가·삭제). ②**네이놈 포털 홈의 카테고리 바로가기 줄** = 정적 `BOOKMARK_SITES`. ②는 사이트 콘텐츠(네이버 서비스 바로가기)라 플레이어가 바꾸는 대상이 아니다. `sites.ts`의 `bookmark: true` 플래그는 이제 **②만** 담당한다
   - ⚠️ **①에는 기본 즐겨찾기가 없다**(설계자 지시, 저장 버전 2). 플레이어가 별표로 직접 등록한다 — 미리 채워 두면 "내가 고른 것"이라는 감각이 사라지고, 빈 줄이 별표를 쓰라는 안내가 된다. v1에 저장된 기본 5개는 `migrate`가 비운다
@@ -179,7 +180,8 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
   - 포털의 **검색창**은 여전히 장식이다 — 자유 검색은 설계 문서 6장의 1차 제외 항목이라 항상 "검색 결과가 없습니다"로 끝난다. 실시간 검색어는 `siteId`가 있으면 이동, 없으면 같은 안내로 끝난다
   - ⚠️ **네이놈 포털은 "모던"으로 리스타일됐다**(2026-08-03 설계자 지시). **되살리지 말 것:** 검색창의 3px 초록 테두리, 카드 제목 밑 2px 초록 밑줄, 즐겨찾기 줄의 위아래 가로줄, 목록 항목마다 그은 구분선 — 이 넷이 "옛날 포털"을 만들던 요소다. 지금은 **1.5px 초록 링 + 브랜드 글자("네")를 품은 알약 검색창**(두께가 문제였지 초록이 문제가 아니었다), **원형 아이콘 판 퀵메뉴**(네모 타일 아님), 큰 모서리(`--r-xl`) 카드, **리드 기사 1건 + 출처·시각 메타 줄**이 붙은 뉴스 목록이다. 뉴스 시각은 인덱스에서 뽑는다 — `Date`를 쓰면 창을 열 때마다 바뀌어 결정성이 깨진다. 로고 서체는 `--font-logo`(SB 어그로). **사이트 아이콘(`SITES[].icon`)은 `fluent-color`** — 퀵메뉴·즐겨찾기 줄·브라우저 탭 파비콘 세 자리에 같은 아이콘이 흘러가므로 한 곳만 바꿔도 정체성이 일치한다. ⚠️ **검색 실행 글리프만 단색(`mdi:magnify` + 브랜드 초록)**이다 — OS 크롬과 같은 규칙(정체성을 가진 대상은 컬러, 컨트롤 글리프는 단색)이고, 단색이라야 CSS로 초록을 입힐 수 있다. 근거: style `Bento Grids`(모듈형 타일·16~24px 모서리·subtle border), ux `whitespace-balance`. **브랜드 초록은 로고·태그·포커스에만** 남긴다 — 테두리까지 초록이면 초록이 흔해져 아무것도 강조하지 못한다
   - **탐색은 무료라는 규칙을 코드로 지킨다:** 브라우저 크롬(주소·이력·즐겨찾기)은 `gameStore`를 **읽기만** 한다. 상태를 바꾸는 자리는 **셋뿐**이고 전부 명시적 버튼이다: ①배너존 광고 보상(턴 없음) ②쇼핑 주문(턴 없음) ③**활동 사이트 3종의 확정 버튼(1턴)**. 그 밖에 스탯을 건드리는 코드를 사이트에 넣지 말 것. 실측으로 지킨다 — CDP로 세 사이트를 둘러보는 동안 **세이브 문자열이 바이트 단위로 동일**함을 확인했다(344/364/372자 불변)
-  - ⚠️ **활동을 실행하는 사이트 4종** (2026-08-04 신설, 2026-08-05 알바몬 추가). **미디북스**(밀리의 서재 패러디, `render: 'library'` → `reading`) · **시집이**(CGV 패러디 = **극장 예매**, `'cinema'` → `movie`) · **아점**(포스타입 패러디, `'publish'` → `writing`) · **알바몬**(`'jobs'` → **알바 4종**). 이것이 브라우저를 **활동 실행의 세 번째 통로**로 만든다.
+  - ⚠️ **활동을 실행하는 사이트 5종** (2026-08-04 신설, 2026-08-05 알바몬·벼룩장터 추가). **미디북스**(밀리의 서재 패러디, `render: 'library'` → `reading`) · **시집이**(CGV 패러디 = **극장 예매**, `'cinema'` → `movie`) · **아점**(포스타입 패러디, `'publish'` → `writing`) · **알바몬**(`'jobs'` → **알바 4종** = 일용직) · **벼룩장터**(생활정보지 패러디, `'career'` → **정규직** 지원/면접/출근). 이것이 브라우저를 **활동 실행의 세 번째 통로**로 만든다.
+    - ⚠️ **알바몬과 벼룩장터는 다른 것이다.** 알바몬 = 일용직(그 슬롯 일하고 그날 받는다), 벼룩장터 = 정규직(채용되면 지속된다). 색 계열도 갈라 뒀다(알바몬 하늘색 `--ab-*` #0369A1 / 벼룩장터 남색 `--fl-*` #2563EB, color `Classifieds / Buy-Sell`) — 구인 사이트가 둘이라 색까지 같으면 어디 있는지 알 수 없다. 벼룩장터의 판형은 style `Editorial Grid / Magazine`(굵은 제호 가로줄·구역 구분선·작은 모서리)에 style `Data-Dense Dashboard`(촘촘한 목록)를 섞은 것이다. 자세한 규칙은 아래 "정규직" 절
     - ⚠️ **알바몬만 활동이 여럿이다**(2026-08-05). `Site.activityId`는 "아무것도 안 고른 상태의 기본값"(= `work`)이고, 실제 실행 활동은 **고른 공고**(`data/jobs.ts`의 `Job.activityId`)가 정한다. 공고는 8개인데 활동은 4종이라 **같은 직종 2개씩**이 같은 활동을 가리킨다 — 같은 직종이면 일당이 같아야 표시가 거짓이 되지 않기 때문이다. **공고에 급여를 다시 적지 않는다**: 카드의 일당은 `previewActivity`가 돌려준 money 행을 그대로 읽어 확정 패널과 같은 숫자를 쓴다
     - ⚠️ **조건 미달 공고는 감추지 않고 비활성으로 보여 주고 사유를 글자로 적는다**("매력 12 이상 필요 — 현재 10"). 감추면 "스탯을 키우면 더 좋은 일자리가 열린다"는 사실을 알 길이 없어 이 사이트의 존재 이유가 사라진다(잠긴 활동을 고르기 판에서 감추지 않는 것과 같은 규칙). 판정은 `canRun`이 하고 화면은 **사유만 파생**한다 — 두 번째 판정 규칙을 만들지 않는다
     - **활동은 `Site.activityId`로 가리키기만 한다** — 수치를 사이트에 다시 적으면 밸런스 테스트가 못 보는 두 번째 출처가 생긴다(카톡 [만나러 가기]와 같은 규칙). id가 실제 활동인지는 `sites.test.ts`가 목록을 순회하며 지킨다(오타 하나가 "눌러도 아무 일 없는 버튼"이 되는 것을 막는다)
@@ -290,6 +292,55 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
   고소득 알바 전환 압박"**을 구현한 것이라, 조건이 걸린 알바가 편의점보다 벌이가 좋아야 한다
   (`activities.test.ts`가 지킨다). ⚠️ **편의점의 조건을 늘리지 말 것** — 첫날 돈 벌 길이 사라진다.
   ⚠️ **넷 다 `burnoutKey: 'work'`다.** 없으면 종류를 돌려 가며 일해 연속 노동의 대가를 한 번도 치르지 않는다.
+### 정규직 (2026-08-05 신설)
+- ⚠️ **알바(`data/jobs.ts`)와 구조가 다르다.** 알바는 **일용직**(공고를 누르면 그 슬롯을 일하고
+  그날 일당). 정규직은 **한 번 채용되면 고용이 지속**되므로 `GameState`에 상태가 남는다
+  (`application` · `employment` · `jobNotices`, 셋 다 옵셔널 = 구버전 세이브는 무직으로 읽힌다).
+- **수치는 전부 `data/careers.ts`**, **규칙은 전부 `systems/employment.ts`**, **화면은
+  `apps/sites/FleaSite.tsx`**(벼룩장터, 토큰 `--fl-*`). 사이트 `render: 'career'`.
+- ⚠️ **급여의 단일 출처는 공고(`Career.salary`)다.** 출근 활동(`commute`)은 **돈을 한 푼도
+  만지지 않는다** — 출근은 하나뿐인데 회사마다 급여가 다르므로 활동에 두면 반드시 갈라진다
+  (알바와 정확히 반대 방향의 같은 원칙). `balance.verify.test.ts`가 이걸 지킨다.
+- ⚠️ **급여는 물가 배율(`scalesWithWage`)을 타지 않는다.** 연봉은 계약이고 물가는 계약을 안 본다 —
+  이 한 줄이 "고용이 경제를 무의미하게 만들지 않는다"를 보장한다(실측: 122일차 파산).
+- **수치**: 급여 주기 15일(격주) · 급여 170만~460만(공고 5종) · 서류 3일 · 면접 안내 2일 ·
+  면접 기한 3일 · 최종 4일(지원→입사 최소 9일) · 경고 3회 / 해고 6회 · 근무일 월~금.
+  ⚠️ 30일(월급) 주기도 파산하지는 않았지만 100일 판에서 급여가 **두 번**뿐이라 리듬이 안 돌아왔다.
+- ⚠️ **합격 판정에 무작위가 없다.** 탈락은 **무엇이 모자랐는지** 말해 줘야 하는데(ux `error-clarity`)
+  주사위를 섞으면 그 설명이 거짓이 된다. 불확실성은 **결과가 나오는 날까지의 지연**이 맡는다 —
+  지원한 날 모자라도 결과일까지 채우면 통과한다(이것이 이 시스템의 유일한 도박이고
+  굴림보다 낫다: 플레이어가 개입할 수 있다). 판정·사유의 단일 출처는 `shortfalls()`.
+- **서류는 지식·어휘력·창의력, 면접은 매력·평판·친화력**을 본다. 여덟 줄이 영원히 0이던
+  성장 스탯이 처음으로 결과를 가르는 자리다.
+- ⚠️ **`turn.ts`에 정규직이 두 군데 들어가 있고 그건 의도다**(나머지는 전부 `employment.ts`):
+  ①`canRun`의 `requiresJobStage` 게이트 ②`runActivity`의 출근·면접 기록. 활동을 실행하는
+  통로가 넷이라(사이트 확정 버튼·스케줄러·바로 가기·카톡 제안) 그 밖에 두면 하나가 반드시 샌다.
+  ⚠️ 기록은 **턴을 넘기기 전에** 찍는다 — 오후 행동은 날짜를 바꾼다.
+- ⚠️ **게이트는 "이미 했는가"가 아니라 "지금 할 수 있는가"를 묻는다**(CDP 실측으로 잡은 버그).
+  `'applying'`을 "지원 기록이 있는가"로 두었더니 확정 버튼이 영영 비활성이었다.
+  지금은 `!employment && !application`이고, `gameStore.applyToCareer`가 **게이트를 먼저 묻고
+  기록을 만든다**(순서를 뒤집으면 자기가 만든 기록에 자기가 막힌다).
+- ⚠️ **`Activity.requiresPick`**(신설): 고른 대상이 있어야 뜻이 성립하는 활동. 현재 `job-apply`뿐.
+  **스케줄러 고르기 판**(`plannableOf`)과 **바탕화면 바로 가기 등록**(ActivityCommit 우클릭 메뉴)
+  둘 다에서 뺀다 — 둘 다 "나중에 실행"이라 그 시점엔 고른 공고가 없고 턴만 먹는다.
+  `activitiesOf`에서는 **빼지 않는다**(그러면 "묶음의 합 = 활동 전체" 불변식이 깨진다).
+- **결근의 정의**: 지나간 근무일 중 출근하지 않은 날. **오늘과 입사일은 세지 않는다**(안 끝났거나
+  책임을 물을 수 없다). `employment.checkedDay` 커서가 같은 날을 두 번 세는 것을 막는다 —
+  스케줄러가 며칠을 한 번에 밀어도 그 사이가 전부 감사된다.
+- **정산 순서가 규칙이다**(`advanceEmployment`): 채용 절차 → 결근 감사 → **급여** → 경고/해고.
+  급여가 해고보다 앞인 것은 "이미 일한 대가는 받는다", 감사가 급여보다 앞인 것은 급여일에
+  지난 주기 출근부를 버리기 때문(버린 뒤에 세면 전부 결근이 된다).
+- ⚠️ **소식(`JobNotice`)은 세이브에 남는다 — 메시지 규칙의 유일한 예외다.** 편성표 메일은
+  (day,slot)만으로 다시 계산되지만 정규직 소식은 **플레이어가 언제 어디에 지원했는지**에
+  달려 있어 재계산이 불가능하다. 대신 **사실만**(종류·회사·날·사유·금액) 남기고 **문장은
+  `noticeMail()`이 매번 만든다** — 공고를 고쳐도 옛 소식이 낡은 숫자를 들고 있지 않다.
+  채널은 `MAILBOX.id`라 **아웃룩과 토스트를 그대로 탄다**(새 알림 창구를 만들지 않는다).
+  ⚠️ 그래서 `TimedMessage`에 **`turn`(정렬 키)**이 생겼다 — 시각 문자열("오전 9:08")은
+  며칠에도 같은 값이라 두 출처를 시간순으로 합칠 수 없다.
+- 확정 UI는 여전히 `ActivityCommit` 하나다. 지원만 `onCommit`으로 동작을 바꾼다
+  ("어느 회사인가"를 함께 넘겨야 해서) — 대가를 보여 주는 넷은 **활동**에서 나오므로 그대로다.
+- ⚠️ **`previewWarnings`의 '지금은 할 수 없습니다'가 이제 사유를 함께 적는다**(`blockReasons` 재사용).
+  조건이 스탯·아이템·정규직 상태로 늘면서 "행동력이나 소지금이 부족합니다" 한 문장이 거짓이 됐다.
 - ⚠️ **`athletics`(운동)와 `maxStamina`(체력)는 다른 스탯이다.** 기존 운동 활동들은
   그릇(maxStamina)만 키웠다. 운동 스탯을 올리는 것은 `running`이다.
 - ⚠️ **`Activity.requiresItem`은 아이템 잠금이다.** 판정은 **`systems/turn.ts`의 `canRun`
@@ -374,11 +425,11 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 ## 파일 맵
 - 진입: `index.html` → `src/main.tsx` → `src/App.tsx` (`loggedIn && state`로 잠금화면/바탕화면 분기)
 - 타입: `src/types/game.ts` — Stats, Activity, GameState 등 도메인 타입 전부
-- 데이터(수치): `src/data/` — **videos**(`VIDEOS`·`SHORTS`·`CHANNELS` — 너튜브 영상. 썸네일은 이미지가 아니라 그라데이션+글자다), **items**(`SHOP_ITEMS`·`fakeSize` — 쇼핑 물건), **events**(`EVENTS` — 이벤트 도감 정의), activities(활동 **18종** + `ACTIVITY_CATEGORIES`(묶음 라벨·순서) + `WORK_ACTIVITIES`(알바 4종 — `burnoutKey === 'work'`에서 파생한다. 목록을 따로 적으면 알바를 늘릴 때 한쪽만 고친다) + `activitiesOf`/`activitiesUnlockedBy`, `onDesktop` 플래그 — 현재 전부 false), **jobs**(`JOBS`·`jobsOf`·`findJob` — 알바몬 공고 8개. **수치가 없다**: `activityId`로 활동을 가리키기만 하고 급여·행동력은 활동에서 파생한다), **startMenu**(`START_MENU_ITEMS` — 시작 메뉴 항목), **messages**(`CHAT_APPS`·`THREADS`·`MAILBOX`·`MESSAGE_SCHEDULE` — 메신저/메일 콘텐츠), **banners**(`BANNERS` — 포털 배너존), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합, `openMaximized` 옵트인), **desktopIcons**(`DEFAULT_ICON_CELLS`·`DESKTOP_ICON_ORDER` — 아이콘 **기본 격자 배치**. 구 `Desktop.tsx`의 `ICON_COLUMNS`가 여기로 옮겨왔다), **sites**(`SITES`·`BOOKMARK_SITES`·`HOME_SITE_ID`·`findSite`·`resolveUrl` — 브라우저가 이동할 사이트 단일 출처. `activityId`가 사이트↔활동을 잇는다), **media**(`BOOKS`·`FILMS`·`WRITING_PROMPTS`·`MAIN_FILM_ID`·`findShowtime` — 미디북스·시집이·아점의 콘텐츠. ⚠️ `Film.section`이 `now`/`soon`/`arte`를 가르고 **`soon`만 회차가 없다**(아직 안 나온 영화는 예매 불가). 포스터도 이미지가 아니라 그라데이션이다), **news**(`NEWS_POOL`·`NEWS_VISIBLE_COUNT`·`TRENDING_TERMS` — 포털 뉴스/실검 정적 콘텐츠), layers(`LAYERS` — z-order 상수), shell(`SHELL` — 작업표시줄·타이틀바 높이 + **`DESKTOP_GRID`** — 바탕화면 아이콘 격자 수치·드래그 임계값), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(엔딩 6종), statMeta(스탯별 `icon`(다색)·`hudIcon`(단색) + 표시 순서), icons(`UI_ICONS` — OS 크롬 / `HUD_ICONS` — HUD 전용 단색 / `BROWSER_ICONS` — 브라우저 도구 모음 단색)
+- 데이터(수치): `src/data/` — **videos**(`VIDEOS`·`SHORTS`·`CHANNELS` — 너튜브 영상. 썸네일은 이미지가 아니라 그라데이션+글자다), **items**(`SHOP_ITEMS`·`fakeSize` — 쇼핑 물건), **events**(`EVENTS` — 이벤트 도감 정의), activities(활동 **21종** + `ACTIVITY_CATEGORIES`(묶음 라벨·순서) + `WORK_ACTIVITIES`(알바 4종 — `burnoutKey === 'work'`에서 파생한다. 목록을 따로 적으면 알바를 늘릴 때 한쪽만 고친다) + `activitiesOf`/`activitiesUnlockedBy`, `onDesktop` 플래그 — 현재 전부 false), **jobs**(`JOBS`·`jobsOf`·`findJob` — 알바몬 공고 8개. **수치가 없다**: `activityId`로 활동을 가리키기만 하고 급여·행동력은 활동에서 파생한다), **careers**(`CAREERS`·`findCareer`·채용 일정/급여 주기/결근 기준 상수 — 벼룩장터 정규직 공고 5개. ⚠️ 알바와 반대로 **급여(`salary`)를 여기가 갖는다** — 출근 활동은 하나뿐인데 회사마다 급여가 다르기 때문), **startMenu**(`START_MENU_ITEMS` — 시작 메뉴 항목), **messages**(`CHAT_APPS`·`THREADS`·`MAILBOX`·`MESSAGE_SCHEDULE` — 메신저/메일 콘텐츠), **banners**(`BANNERS` — 포털 배너존), desktopItems(`DESKTOP_ITEMS` — 바탕화면 아이콘 단일 출처, 활동/비활동 통합, `openMaximized` 옵트인), **desktopIcons**(`DEFAULT_ICON_CELLS`·`DESKTOP_ICON_ORDER` — 아이콘 **기본 격자 배치**. 구 `Desktop.tsx`의 `ICON_COLUMNS`가 여기로 옮겨왔다), **sites**(`SITES`·`BOOKMARK_SITES`·`HOME_SITE_ID`·`findSite`·`resolveUrl` — 브라우저가 이동할 사이트 단일 출처. `activityId`가 사이트↔활동을 잇는다), **media**(`BOOKS`·`FILMS`·`WRITING_PROMPTS`·`MAIN_FILM_ID`·`findShowtime` — 미디북스·시집이·아점의 콘텐츠. ⚠️ `Film.section`이 `now`/`soon`/`arte`를 가르고 **`soon`만 회차가 없다**(아직 안 나온 영화는 예매 불가). 포스터도 이미지가 아니라 그라데이션이다), **news**(`NEWS_POOL`·`NEWS_VISIBLE_COUNT`·`TRENDING_TERMS` — 포털 뉴스/실검 정적 콘텐츠), layers(`LAYERS` — z-order 상수), shell(`SHELL` — 작업표시줄·타이틀바 높이 + **`DESKTOP_GRID`** — 바탕화면 아이콘 격자 수치·드래그 임계값), calendar(날짜 환산·날짜칸 배치), economy(물가 구간 6단계), endings(엔딩 6종), statMeta(스탯별 `icon`(다색)·`hudIcon`(단색) + 표시 순서), icons(`UI_ICONS` — OS 크롬 / `HUD_ICONS` — HUD 전용 단색 / `BROWSER_ICONS` — 브라우저 도구 모음 단색)
 - 아이콘: `src/icons/` — AppIcon(공용 렌더 컴포넌트), bootstrap(시작 시 addCollection), generated.ts(자동 생성, 수정 금지). 생성기는 `scripts/build-icon-subset.mjs`
-- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티 + **`burnoutKeyOf`** — 이력에 넣는 키와 세는 키를 한 함수로 묶는다. ⚠️ 알바 4종이 `burnoutKey: 'work'`를 공유해 **종류를 바꿔 가며 일해도 번아웃을 우회할 수 없다**. 키가 갈라지면 페널티가 조용히 0이 된다), ending(티어 판정), **news**(오늘의 뉴스 선택 — 날짜 결정적), **browserHistory**(뒤로/앞으로 이력 계산), **messages**(턴별 메시지 편성 — 결정적), **search**(포털 검색), **schedule**(예약 실행), **desktopGrid**(바탕화면 아이콘 격자 스냅·빈 칸 찾기·경계 클램프), **shortcuts**(활동 바로 가기 id 생성 + `firstFreeCell`·`placeShortcuts`), **contextMenu**(`clampMenuPosition` — 메뉴가 화면 밖으로 나가면 뒤집는다), **delivery**(쇼핑·배송·사건 기록. ⚠️ `owns`/`inventoryOf`는 **turn.ts로 옮겨졌고 여기서 재수출**한다 — `canRun`이 보유를 봐야 해서 두면 순환이 된다). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지) + `data/activities.test.ts`(성장 스탯 10종 전부에 육성 경로가 있는지 목록 순회로 검사). 총 **323개** 테스트(`src/systems`+`src/store`+`src/data`)
+- 로직(순수함수): `src/systems/` — turn(활동 실행·슬롯 전환·취침 정산·게임오버 판정), economy(생활비·알바비), burnout(연속 페널티 + **`burnoutKeyOf`** — 이력에 넣는 키와 세는 키를 한 함수로 묶는다. ⚠️ 알바 4종이 `burnoutKey: 'work'`를 공유해 **종류를 바꿔 가며 일해도 번아웃을 우회할 수 없다**. 키가 갈라지면 페널티가 조용히 0이 된다), ending(티어 판정), **news**(오늘의 뉴스 선택 — 날짜 결정적), **browserHistory**(뒤로/앞으로 이력 계산), **messages**(턴별 메시지 편성 — 결정적), **search**(포털 검색), **schedule**(예약 실행), **employment**(정규직 — 지원·서류·면접·급여·결근·해고. `turn.ts`를 부르지만 반대는 없다), **desktopGrid**(바탕화면 아이콘 격자 스냅·빈 칸 찾기·경계 클램프), **shortcuts**(활동 바로 가기 id 생성 + `firstFreeCell`·`placeShortcuts`), **contextMenu**(`clampMenuPosition` — 메뉴가 화면 밖으로 나가면 뒤집는다), **delivery**(쇼핑·배송·사건 기록. ⚠️ `owns`/`inventoryOf`는 **turn.ts로 옮겨졌고 여기서 재수출**한다 — `canRun`이 보유를 봐야 해서 두면 순환이 된다). 각각 `.test.ts` 동반 + `balance.verify.test.ts`(밸런스 회귀 방지) + `data/activities.test.ts`(성장 스탯 10종 전부에 육성 경로가 있는지 목록 순회로 검사). 총 **362개** 테스트(`src/systems`+`src/store`+`src/data`)
 - 상태: `src/store/` — **shortcutStore**(활동 바로 가기 목록·영구, 판을 넘어 남는다), gameStore(세이브+loggedIn), metaStore(도감·영구), windowStore(창 목록 + 최소화/최대화 런타임 상태·휘발), desktopPanelStore(스탯창·날짜칸 z, 휘발), **desktopIconStore**(바탕화면 아이콘 격자 위치·영구, 옮긴 것만 저장), **browserStore**(즐겨찾기 id 목록 + 개발자 모드·영구, 기본 즐겨찾기 없음), **toastStore**(우하단 알림·휘발)
-- UI: `src/components/`(**PanelOrnament** — 테두리 장식. ⚠️ HUD에서는 제거됐고 활동창·안내창·엔딩 모달만 쓴다 / **ContextMenu** — 공용 오른쪽 클릭 메뉴, `document.body`로 포탈), `window/`(Window·WindowManager — OS 창 크롬), `desktop/`(Desktop·HudPanel·StatPanel·CalendarPanel·Taskbar·**StartMenu**·**ToastHost**), `lockscreen/`, `apps/`(ExeApp·StubApp·EndingModal·BrowserApp·**ChatApp**(목록+대화)·**MailApp**·**SystemApps**(저장/작업관리자/명령프롬프트)·**SchedulerApp**·**ExplorerApp**(인벤토리·도감)·**ActivityConfirm**(바로 가기 실행 확인창)), `apps/sites/`(NeverPortal·**ShopSite**·ConstructionSite·**ActivityCommit**(사이트 공용 확정 패널)·**LibrarySite**(미디북스)·**CinemaSite**(시집이)·**PublishSite**(아점)·**AlbamonSite**(알바몬, 토큰 `--ab-*`)), `apps/activityPreview.ts`(`previewActivity` 증감 미리보기 + **`previewWarnings`**(경고 문구 단일 출처) + **`blockReasons`**(왜 못 하는가) — 활동 창·사이트 확정 패널·바로 가기 확인창 셋이 공유)
+- UI: `src/components/`(**PanelOrnament** — 테두리 장식. ⚠️ HUD에서는 제거됐고 활동창·안내창·엔딩 모달만 쓴다 / **ContextMenu** — 공용 오른쪽 클릭 메뉴, `document.body`로 포탈), `window/`(Window·WindowManager — OS 창 크롬), `desktop/`(Desktop·HudPanel·StatPanel·CalendarPanel·Taskbar·**StartMenu**·**ToastHost**), `lockscreen/`, `apps/`(ExeApp·StubApp·EndingModal·BrowserApp·**ChatApp**(목록+대화)·**MailApp**·**SystemApps**(저장/작업관리자/명령프롬프트)·**SchedulerApp**·**ExplorerApp**(인벤토리·도감)·**ActivityConfirm**(바로 가기 실행 확인창)), `apps/sites/`(NeverPortal·**ShopSite**·ConstructionSite·**ActivityCommit**(사이트 공용 확정 패널)·**LibrarySite**(미디북스)·**CinemaSite**(시집이)·**PublishSite**(아점)·**AlbamonSite**(알바몬, 토큰 `--ab-*`)·**FleaSite**(벼룩장터, 토큰 `--fl-*`)), `apps/activityPreview.ts`(`previewActivity` 증감 미리보기 + **`previewWarnings`**(경고 문구 단일 출처) + **`blockReasons`**(왜 못 하는가) — 활동 창·사이트 확정 패널·바로 가기 확인창 셋이 공유)
 - 설정: `vite.config.ts`, `tsconfig.json`(+`.app`/`.node`), 전역 CSS `src/index.css`(**디자인 토큰 `:root` 단일 출처**)
 - 미구현(별도 계획 필요): 사이트 **내용**(슬로우캠퍼스·트위터 — 지금은 공용 준비 중 페이지. **쇼핑·너튜브·미디북스·시집이·아점·알바몬은 구현됨**), **솔리테어**(시작 메뉴 항목만 있고 창은 없다 — `kind: 'solitaire'`가 예약돼 있다), 엔딩 도감 UI, **랜덤 이벤트**(정의는 `data/events.ts`에 있고 발생 지점만 없다 — 도감 화면은 이미 동작한다), 휴지통, 은행/대출(설계상 1차 제외)
 

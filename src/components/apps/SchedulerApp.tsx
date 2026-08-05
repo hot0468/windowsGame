@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ACTIVITIES, ACTIVITY_CATEGORIES, activitiesOf } from '../../data/activities'
+import { ACTIVITIES, ACTIVITY_CATEGORIES, plannableOf } from '../../data/activities'
 import { dateOf, dayOf } from '../../data/calendar'
 import { findItem } from '../../data/items'
 import { AppIcon } from '../../icons/AppIcon'
@@ -93,7 +93,7 @@ export function SchedulerApp() {
   })
 
   /** 고르기 판에서 **화면 순서상** 첫 항목. 포커스를 여기에 준다. */
-  const firstPickId = ACTIVITY_CATEGORIES.flatMap((c) => activitiesOf(c.id))[0]?.id
+  const firstPickId = ACTIVITY_CATEGORIES.flatMap((c) => plannableOf(c.id))[0]?.id
 
   const nowIndex = state.day * 2 + (state.slot === 'afternoon' ? 1 : 0)
   const isPast = (day: number, slot: Slot) =>
@@ -215,7 +215,7 @@ export function SchedulerApp() {
             */}
             <div className="sch-picker-list">
               {ACTIVITY_CATEGORIES.map((cat) => {
-                const list = activitiesOf(cat.id)
+                const list = plannableOf(cat.id)
                 if (!list.length) return null
                 return (
                   <section key={cat.id} className="sch-pick-group" aria-label={cat.label}>

@@ -113,6 +113,58 @@ export const ACTIVITIES: Activity[] = [
     burnoutKey: 'work',
   },
   {
+    /*
+     * ── 정규직 3종 (2026-08-05, 벼룩장터와 함께 신설) ──
+     * 알바가 "그 슬롯을 일하고 그날 받는" 일용직이라면, 이 셋은 **한 번 채용되면 지속되는**
+     * 고용의 부품이다. 셋 다 `requiresJobStage`로 잠겨 있고 판정은 `canRun` 하나가 한다.
+     *
+     * 지원서 제출. 어디에 지원하는지는 **벼룩장터에서 고른 공고**가 정하므로 활동에는
+     * 회사가 없다 — 그래서 `requiresPick`이다(예약이나 바로 가기로 실행하면 고른 공고가 없다).
+     */
+    id: 'job-apply',
+    label: '지원서 제출',
+    icon: 'fluent-color:document-text-24',
+    category: 'living',
+    description: '이력서를 다듬어 넣는다. 결과는 며칠 뒤에 온다.',
+    effects: { stamina: -8, mental: -3, vocabulary: 1 },
+    requires: { stamina: 8 },
+    requiresJobStage: 'applying',
+    requiresPick: true,
+  },
+  {
+    /*
+     * 면접. 서류를 통과해야, 그리고 기한 안이어야 갈 수 있다.
+     * 예약은 허용한다 — 면접 날짜를 달력에 적어 두는 것은 실제로 하는 일이다.
+     */
+    id: 'job-interview',
+    label: '면접',
+    icon: 'fluent-color:people-community-24',
+    category: 'living',
+    description: '정장을 꺼내 입는다. 30분 동안 사람이 평가된다.',
+    effects: { charm: 2, sociability: 1, stamina: -15, mental: -6 },
+    requires: { stamina: 15 },
+    requiresJobStage: 'interview',
+  },
+  {
+    /*
+     * 출근. **돈을 한 푼도 만지지 않는다** — 급여는 급여일에 회사(`data/careers.ts`)가 준다.
+     * 여기 금액을 적으면 같은 급여가 두 곳에 생긴다.
+     *
+     * ⚠️ **번아웃 키가 알바('work')와 다르다.** 출근은 안 하면 잘리는 **의무**라,
+     * 알바와 같은 키를 주면 "규칙대로 다녔다"는 이유로 효율이 깎이고 빠져나갈 길이 없다.
+     * 대신 하루 한 번만 갈 수 있고(`canRun`), 나머지 한 슬롯은 온전히 남는다 —
+     * 그 남은 슬롯이 급여일까지 버티는 다리이자 스탯을 올리는 자리다.
+     */
+    id: 'commute',
+    label: '출근',
+    icon: 'fluent-color:building-24',
+    category: 'living',
+    description: '회사에 간다. 하루가 통째로 지나가지만 급여일은 다가온다.',
+    effects: { sociability: 1, stamina: -20, mental: -5 },
+    requires: { stamina: 20 },
+    requiresJobStage: 'employed',
+  },
+  {
     id: 'exercise',
     label: '운동',
     icon: 'fluent-color:sport-24',
@@ -285,9 +337,20 @@ export function findActivity(id: string): Activity | undefined {
   return ACTIVITIES.find((a) => a.id === id)
 }
 
-/** 그 묶음에 속한 활동. 고르기 판이 배열 순서대로 그린다. */
+/** 그 묶음에 속한 활동. 배열 순서를 그대로 따른다. */
 export function activitiesOf(category: ActivityCategory): Activity[] {
   return ACTIVITIES.filter((a) => a.category === category)
+}
+
+/**
+ * **나중에 실행하기로 예약할 수 있는** 활동(스케줄러 고르기 판·바탕화면 바로 가기).
+ *
+ * ⚠️ `activitiesOf`와 따로 있는 이유: 대상을 골라야만 뜻이 성립하는 활동이 생겼다
+ * (지원서 제출 — `requiresPick`). 그렇다고 `activitiesOf`에서 빼면 "묶음을 모두 합치면
+ * 활동 전체가 된다"는 불변식이 깨져 다른 화면이 그 활동을 영영 못 보게 된다.
+ */
+export function plannableOf(category: ActivityCategory): Activity[] {
+  return activitiesOf(category).filter((a) => !a.requiresPick)
 }
 
 /**

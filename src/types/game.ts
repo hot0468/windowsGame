@@ -124,6 +124,25 @@ export interface Activity {
    * 아이템을 잃더라도 실행 시점에 다시 막힌다.
    */
   requiresItem?: string
+  /**
+   * 정규직 상태 게이트. `requiresItem`과 같은 규칙이다 — 판정은 `canRun` 하나가 한다.
+   *
+   *  - `'employed'` : 재직 중이고 **오늘 아직 출근하지 않았어야** 한다(출근).
+   *  - `'interview'`: 면접 차례가 왔고 아직 기한이 남아 있어야 한다(면접).
+   *  - `'applying'` : 결과를 기다리는 지원이 **막 만들어졌어야** 한다(지원서 제출).
+   *
+   * ⚠️ 화면에서만 막으면 스케줄러에 미리 넣어 둔 예약이 게이트를 그대로 통과한다.
+   */
+  requiresJobStage?: JobStageGate
+  /**
+   * **고른 대상이 있어야 뜻이 성립하는 활동**(생략 = 아니다).
+   *
+   * ⚠️ 현재 유일한 사례가 지원서 제출이다: "어디에 지원하는가"는 활동이 들고 있지 않고
+   * **벼룩장터에서 고른 공고**가 정한다. 그래서 대상 없이 실행될 수 있는 두 통로를 막는다 —
+   * **스케줄러 예약**과 **바탕화면 바로 가기**. 둘 다 "나중에 실행"이라 그 시점엔 고른 것이
+   * 없고, 그러면 턴만 먹고 아무 일도 일어나지 않는다.
+   */
+  requiresPick?: boolean
   /** 알바비 배율(economy)을 money에 적용할지 여부. 알바 활동만 true. */
   scalesWithWage?: boolean
   /**
@@ -276,6 +295,84 @@ export interface EventLog {
   day: number
 }
 
+/* ── 정규직 (2026-08-05 신설) ─────────────────────────────────────────────
+ *
+ * 알바(`data/jobs.ts`)는 **일용직**이다: 공고를 누르면 그 슬롯을 일하고 그날 일당을 받는다.
+ * 정규직은 구조가 다르다 — **한 번 채용되면 고용이 지속된다.** 그래서 알바와 달리
+ * 세이브에 상태가 남는다(판에 속한 것이므로 `gameStore`가 아니라 `GameState`에 둔다).
+ *
+ * 규칙은 전부 `systems/employment.ts`에, 수치는 전부 `data/careers.ts`에 있다.
+ * 여기에는 **모양만** 적는다(`Plan`과 같은 이유 — types가 systems를 import하면 방향이 뒤집힌다).
+ */
+
+/** 활동이 요구하는 정규직 상태. `Activity.requiresJobStage`가 쓴다. */
+export type JobStageGate = 'employed' | 'interview' | 'applying'
+
+/** 채용 절차의 단계. 지원 → 서류 심사 → 면접 → 최종 결과. */
+export type ApplicationStage = 'screening' | 'interview' | 'final'
+
+/**
+ * 진행 중인 지원 한 건. 동시에 **하나만** 둔다 —
+ * 여러 곳에 넣어 두고 되는 곳에 가는 것은 이 게임의 "한 번에 하나를 고른다"와 어긋난다.
+ */
+export interface Application {
+  careerId: string
+  appliedDay: number
+  stage: ApplicationStage
+  /**
+   * 이 단계가 결판나는 날.
+   * `screening`·`final`은 **결과가 나오는 날**, `interview`는 **면접을 볼 수 있게 되는 날**이다.
+   */
+  dueDay: number
+}
+
+/** 재직 상태. 채용되면 생기고, 해고되면 사라진다. */
+export interface Employment {
+  careerId: string
+  hiredDay: number
+  /** 다음 급여일. 이 날이 오면 월급이 들어오고 다음 급여일이 잡힌다. */
+  paydayDay: number
+  /** 이번 급여 주기에 출근한 날. 결근 감사와 출근부 표시가 같은 배열을 본다. */
+  attendedDays: number[]
+  /** 누적 무단결근. **주기가 바뀌어도 초기화하지 않는다** — 해고는 진짜 손실이어야 한다. */
+  absences: number
+  /** 결근 감사를 마친 마지막 날. 같은 날을 두 번 세지 않는 커서다. */
+  checkedDay: number
+  /** 경고 메일을 보낸 시점의 결근 수. 같은 경고를 매 턴 반복하지 않기 위함이다. */
+  warnedAt?: number
+}
+
+/** 정규직 소식의 종류. 문구는 `systems/employment.ts`가 만든다. */
+export type JobNoticeKind =
+  | 'screening-pass'
+  | 'screening-fail'
+  | 'interview-miss'
+  | 'hired'
+  | 'final-fail'
+  | 'payday'
+  | 'absence-warning'
+  | 'fired'
+
+/**
+ * 도착한 정규직 소식 한 건.
+ *
+ * ⚠️ **메시지 본문을 저장하지 않는다**(`systems/messages.ts`와 같은 규칙). 다만 이 소식들은
+ * 편성표와 달리 **(day, slot)만으로 다시 만들 수 없다** — 플레이어가 언제 어디에 지원했는지에
+ * 달려 있기 때문이다. 그래서 **사실만**(종류·회사·날짜·사유·금액) 남기고 문장은 매번 만든다.
+ */
+export interface JobNotice {
+  /** 렌더 키이자 토스트 중복 제거 키. */
+  id: string
+  kind: JobNoticeKind
+  careerId: string
+  day: number
+  slot: Slot
+  /** 탈락·경고의 사유. 무엇이 모자랐는지 그대로 적는다(ux `error-clarity`). */
+  reason?: string
+  /** 급여 등 금액. */
+  amount?: number
+}
+
 export interface GameState {
   playerName: string
   day: number
@@ -320,6 +417,17 @@ export interface GameState {
   deliveries?: Delivery[]
   /** 이벤트 도감에 실릴 기록. */
   events?: EventLog[]
+  /**
+   * 아래 셋도 옵셔널이다 — **정규직이 생기기 전의 세이브에는 없다.**
+   * 없으면 "지원한 적도 취직한 적도 없다"가 되므로 마이그레이션이 필요 없다
+   * (`adBonusDay`·`plans`와 같은 규칙).
+   */
+  /** 결과를 기다리는 지원. 동시에 하나뿐이다. */
+  application?: Application
+  /** 재직 중인 회사. 없으면 무직이다. */
+  employment?: Employment
+  /** 도착한 정규직 소식(메일·토스트의 원본). 오래된 것부터 잘라 낸다. */
+  jobNotices?: JobNotice[]
 }
 
 export const INITIAL_STATS: Stats = {

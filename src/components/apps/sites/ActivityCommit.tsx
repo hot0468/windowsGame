@@ -38,6 +38,7 @@ export function ActivityCommit({
   actionLabel,
   selection,
   selectionHint,
+  onCommit,
   onCommitted,
 }: {
   activity: Activity
@@ -47,6 +48,15 @@ export function ActivityCommit({
   selection?: string
   /** 안 골랐을 때 무엇을 하면 되는지(ux `empty-states`). */
   selectionHint: string
+  /**
+   * 확정을 다르게 처리해야 할 때의 대체 동작(기본은 `doActivity(activity)`).
+   *
+   * ⚠️ **정규직 지원 하나를 위한 구멍이다.** 지원은 "1턴을 쓰는 활동"이면서 동시에
+   * "어느 회사에 넣는가"라는 값을 함께 넘겨야 해서 `doActivity(activity)`만으로는 안 된다.
+   * 그래도 이 패널을 쓰는 이유는 넷의 약속(증감 미리보기·번아웃·조건·오후 생활비)이
+   * 전부 **활동**에서 나오기 때문이다 — 넘기는 활동이 같으면 보여 주는 대가도 같다.
+   */
+  onCommit?: () => void
   onCommitted: () => void
 }) {
   const state = useGameStore((s) => s.state)
@@ -135,7 +145,8 @@ export function ActivityCommit({
           className="ac-btn"
           disabled={!ready || !enough}
           onClick={() => {
-            doActivity(activity)
+            if (onCommit) onCommit()
+            else doActivity(activity)
             onCommitted()
           }}
           title={ready ? '1턴을 소모합니다' : selectionHint}
@@ -162,7 +173,12 @@ export function ActivityCommit({
           y={menu.y}
           label={`${activity.label} 확정 버튼 메뉴`}
           items={[
-            registered
+            activity.requiresPick
+              ? // ⚠️ **고른 대상이 있어야 뜻이 성립하는 활동은 바로 가기로 만들지 않는다**
+                //    (지원서 제출). 바로 가기는 "나중에 실행"이라 그 시점엔 고른 공고가 없고,
+                //    그러면 턴만 먹고 아무 일도 일어나지 않는다 — 스케줄러에서 뺀 것과 같은 이유다.
+                { id: 'nopick', label: '여기서만 실행할 수 있습니다' }
+              : registered
               ? // 이미 있으면 **말해 준다**. 조용히 하나 더 만들면 같은 아이콘이 둘이 된다.
                 { id: 'exists', label: '이미 바탕화면에 있습니다' }
               : {

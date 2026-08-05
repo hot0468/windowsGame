@@ -15,6 +15,8 @@ export type SiteRender =
   | 'publish'
   | 'tube'
   | 'jobs'
+  /** 벼룩장터 — 정규직 구인. 알바('jobs')와 달리 채용 절차와 재직 상태를 다룬다. */
+  | 'career'
 
 /** 가짜 브라우저가 이동할 수 있는 사이트 하나. */
 export interface Site {
@@ -84,6 +86,27 @@ export const SITES: Site[] = [
       title: '오늘 할 수 있는 일자리',
       desc: '비교해 보고 지원하세요',
       gradient: 'linear-gradient(135deg, #16324f 0%, #2f6ea8 100%)',
+    },
+  },
+  {
+    /*
+     * 벼룩장터 — **정규직** 구인. 알바몬(일용직)과 나란히 두되 성격이 다르다:
+     * 여기서는 한 번 채용되면 고용이 지속되고, 지원 → 서류 → 면접 → 최종 결과라는
+     * 며칠짜리 절차를 지난다. 이름은 생활정보지(벼룩시장) 패러디이고 실존 상호가 아니다.
+     */
+    id: 'flea',
+    url: 'https://www.byeorukjangteo.com',
+    title: '벼룩장터',
+    icon: 'fluent-color:building-multiple-24',
+    render: 'career',
+    // 아무 공고도 안 고른 상태의 확정 패널이 그릴 활동. 실제 실행은 화면 상태가 정한다
+    // (지원 / 면접 / 출근). 알바몬의 기본값 규칙과 같다.
+    activityId: 'job-apply',
+    promo: {
+      tag: '벼룩장터',
+      title: '정규직 구인·구직',
+      desc: '지원하고, 면접 보고, 월급 받으세요',
+      gradient: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
     },
   },
   {
