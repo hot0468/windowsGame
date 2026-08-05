@@ -4,6 +4,9 @@ CLAUDE.md의 변경 이력 표에서 옮겨온 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-05 | 디자인 스킬·CDP 실측을 신규 화면으로 한정, 검증 분량 규칙 신설, 컨텍스트 문서 250줄 상한 | CLAUDE.md, game-pipeline, project-context | 작업당 20~30만 토큰·20~30분이 들었고, 원인은 모든 작업에 685줄 스킬 로드 + 실클릭 검증 + 40개대 테스트를 요구한 것이었다 |
+| 2026-08-05 | 자동 진행 — 멈출 이유가 생길 때까지 슬롯을 계속 넘기고 요약을 보여 준다 | data/systems/autoAdvance(신규), AutoLogApp(신규), gameStore, CalendarPanel, schedule | 판을 1년까지 늘리기 전에 "길어진 판이 견딜 만한가"를 먼저 재기 위함. 매 슬롯 클릭이 강제되면 날짜만 늘고 깊이는 안 는다 |
+| 2026-08-05 | 활동 바로가기(확정 버튼 우클릭 → 바탕화면 등록 → 더블클릭 실행) + 공용 ContextMenu | shortcuts/contextMenu(신규 systems), shortcutStore(신규), ContextMenu·ActivityConfirm(신규), desktopItems, Desktop, ActivityCommit, activityPreview | 설계자 지시. 경고 문구를 `previewWarnings`로 모은 것은 확정 화면이 셋이 되어 한 곳만 빠뜨리는 사고를 막기 위함 |
 | 2026-08-05 | 직업 엔딩 5종 — 취직이 아니라 **파산했을 때** 뜬다. `bigtech`의 스탯 조건 삭제, `GameState.peakCareerId` 신설, 세이브 version 2 | endings, careers, ending, employment, gameStore, types, EndingModal | 설계자 지시("직업엔딩은 취직한 순간이 아닌 돈 없어서 죽은 후 뜨게 해"). 취직은 결말이 아니라 도중의 사건이고, '대기업 합격'이라는 이름이 스탯 문턱과 청람그룹 입사 **두 가지**를 뜻하고 있었다 |
 | 2026-08-05 | 알바 4종 + 알바몬 사이트 신설, `Activity.burnoutKey`로 번아웃 키 공유 | activities, jobs(신규), AlbamonSite(신규), sites, burnout, turn, SchedulerApp | 설계 문서의 "고소득 알바 전환 압박"이 알바가 하나뿐이라 구현되지 않았음. 알바를 늘리면 번갈아 일해 번아웃을 우회할 수 있어 키를 묶음 |
 | 2026-08-04 | `Window`에 `bareTitle`·`dark` 옵션, 열릴 때 위치 클램프. HUD 테두리 장식 제거 | Window, WindowManager, HudPanel | 레퍼런스 충실도 + 창이 작업표시줄 아래로 빠지던 문제 |

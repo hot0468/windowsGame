@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { activitiesUnlockedBy } from '../../../data/activities'
-import { SHOP_ITEMS } from '../../../data/items'
+import { BUYABLE_ITEMS } from '../../../data/items'
 import { LOTTERY_NAME, LOTTERY_PRIZES, MAX_TICKETS_PER_BUY, TICKET_PRICE } from '../../../data/lottery'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
@@ -152,7 +152,7 @@ export function ShopSite() {
       )}
 
       <ul className="shop-grid">
-        {SHOP_ITEMS.map((item) => {
+        {BUYABLE_ITEMS.map((item) => {
           const isOwned = owns(state, item.id)
           const isShipping = shipping.includes(item.id)
           const buyable = canOrder(state, item)

@@ -184,9 +184,11 @@ describe('runActivity — 스탯 적용', () => {
 })
 
 describe('스탯 상한', () => {
-  it('성장 스탯 10종은 999를 상한으로 한다', () => {
+  it('성장 스탯 11종은 999를 상한으로 한다', () => {
     expect(GROWTH_STAT_CAP).toBe(999)
-    expect(GROWTH_STAT_KEYS).toHaveLength(10)
+    // 예의범절(manners) 추가로 10 → 11이 됐다. 개수를 박아 두는 이유는 스탯을 늘리면서
+    // STAT_NAMES·STAT_META·INITIAL_STATS 갱신을 빠뜨리는 사고를 여기서 잡기 위해서다.
+    expect(GROWTH_STAT_KEYS).toHaveLength(11)
   })
 
   it('상한을 넘긴 성장 스탯은 각자의 상한으로 끌어내린다', () => {

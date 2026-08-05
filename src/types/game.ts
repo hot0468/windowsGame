@@ -1,7 +1,8 @@
 /**
- * 12종 스탯.
+ * 15종 스탯.
  * - 소모 자원: stamina(일일 소모/취침 회복), mental(0~100), money
- * - 성장 스탯: maxStamina(운동으로 영구 상승, 상한 200) + GROWTH_STAT_KEYS 10종(상한 999)
+ * - 성장 스탯: maxStamina(운동으로 영구 상승, 상한 200) + GROWTH_STAT_KEYS 11종
+ *   (상한은 `growthCap`이 정한다 — 평판·도덕·예의범절만 100, 나머지 999)
  */
 export interface Stats {
   stamina: number
@@ -28,11 +29,14 @@ export interface Stats {
   athletics: number
   /** 게임 */
   gaming: number
+  /** 예의범절 */
+  manners: number
 }
 
 /**
- * 999 상한을 공유하는 성장 스탯 키.
- * maxStamina는 상한 규칙이 다르므로(200) 여기에 넣지 않는다.
+ * 성장 스탯 키. 상한은 `systems/turn.ts`의 `growthCap(key)`가 정한다
+ * (기본 999, 평판·도덕·예의범절만 100).
+ * maxStamina는 상한 규칙도 성격도 다르므로(200, 운동으로 키우는 그릇) 여기에 넣지 않는다.
  */
 export const GROWTH_STAT_KEYS = [
   'knowledge',
@@ -45,6 +49,7 @@ export const GROWTH_STAT_KEYS = [
   'vocabulary',
   'athletics',
   'gaming',
+  'manners',
 ] as const
 
 export type GrowthStatKey = (typeof GROWTH_STAT_KEYS)[number]
@@ -77,6 +82,7 @@ export const STAT_NAMES: Record<keyof Stats, string> = {
   vocabulary: '어휘력',
   athletics: '운동',
   gaming: '게임',
+  manners: '예의범절',
 }
 
 /** 활동이 스탯에 주는 변화량. 없는 키는 변화 없음. */
@@ -584,6 +590,14 @@ export interface GameState {
    * `NaN <= 0`이 false가 되어 **파산이 영영 안 걸린다.**
    */
   lottery?: LotteryState
+  /**
+   * 강의별 수강 횟수(`강의 id → 들은 횟수`). **옵셔널이다** — 들은 적 없으면 없다.
+   *
+   * ⚠️ **수료증 발급의 근거이므로 세이브에 남는다**(메시지처럼 재계산할 수 없다 —
+   * 플레이어가 어느 강의를 몇 번 들었는지에 달려 있다). 발급된 수료증 자체는
+   * `inventory`에 들어가므로 이 값은 **진행도만** 든다.
+   */
+  courses?: Record<string, number>
 }
 
 export const INITIAL_STATS: Stats = {
@@ -603,4 +617,5 @@ export const INITIAL_STATS: Stats = {
   vocabulary: 0,
   athletics: 0,
   gaming: 0,
+  manners: 0,
 }

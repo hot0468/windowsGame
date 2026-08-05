@@ -14,6 +14,7 @@ import {
   navigate,
 } from '../../systems/browserHistory'
 import { AlbamonSite } from './sites/AlbamonSite'
+import { CampusSite } from './sites/CampusSite'
 import { CinemaSite } from './sites/CinemaSite'
 import { ConstructionSite } from './sites/ConstructionSite'
 import { FleaSite } from './sites/FleaSite'
@@ -311,6 +312,7 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         {site?.render === 'cinema' && <CinemaSite site={site} />}
         {site?.render === 'publish' && <PublishSite site={site} />}
         {site?.render === 'jobs' && <AlbamonSite site={site} />}
+        {site?.render === 'campus' && <CampusSite site={site} />}
         {site?.render === 'career' && <FleaSite site={site} />}
         {/* ⚠️ 은행·부동산은 활동을 실행하지 않는다 — 거래도 계약도 턴을 쓰지 않으므로
             확정 패널이 없다. 이 둘이 파는 것은 슬롯이 아니라 **며칠**이다. */}
