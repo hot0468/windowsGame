@@ -500,6 +500,33 @@ export interface LotteryState {
   pending: number
 }
 
+/* ── 자격증 (2026-08-05 O넷) ──────────────────────────────────────────────
+ *
+ * 규칙은 전부 `systems/certification.ts`에, 수치는 전부 `data/certs.ts`에 있다.
+ * 여기에는 **모양만** 적는다(`Plan`·`Employment`·`BankState`와 같은 이유).
+ */
+
+/**
+ * 응시 기록 한 건.
+ *
+ * ⚠️ **사실만 남기고 문장은 매번 만든다**(`JobNotice`와 같은 규칙) — 종목 이름과
+ * 응시료를 여기 적어 두면 `data/certs.ts`를 고쳤을 때 옛 기록이 낡은 값을 들고 있게 된다.
+ *
+ * ⚠️ 다만 **결과(`passed`)와 사유(`reason`)는 사실이므로 남긴다.** 판정은 발표일 시점의
+ * 스탯으로 하는데 그 뒤로 스탯은 계속 변하므로, 저장하지 않으면 나중에 다시 계산할 수 없다.
+ */
+export interface ExamRecord {
+  /** `data/certs.ts`의 종목 id. */
+  certId: string
+  takenDay: number
+  /** 이 날이 되면 발표된다. 그때의 스탯으로 판정한다. */
+  resultDay: number
+  /** 발표 전에는 undefined다. */
+  passed?: boolean
+  /** 불합격 사유(모자란 요건). 합격이면 없다(ux `error-clarity`). */
+  reason?: string
+}
+
 export interface GameState {
   playerName: string
   day: number
@@ -598,6 +625,13 @@ export interface GameState {
    * `inventory`에 들어가므로 이 값은 **진행도만** 든다.
    */
   courses?: Record<string, number>
+  /**
+   * 응시 이력. **옵셔널이다** — 응시한 적 없으면 없고, O넷이 생기기 전 세이브는
+   * "응시한 적 없음"으로 읽힌다(마이그레이션 불필요 — `courses`·`plans`와 같은 규칙).
+   *
+   * ⚠️ 합격한 자격증 자체는 `inventory`에 들어가므로 이 배열은 **절차만** 든다.
+   */
+  exams?: ExamRecord[]
 }
 
 export const INITIAL_STATS: Stats = {

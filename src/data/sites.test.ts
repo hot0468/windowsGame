@@ -58,6 +58,7 @@ describe('사이트 목록', () => {
     expect(PROMO_SITES.map((s) => s.id)).toEqual([
       'albamon',
       'flea',
+      'onet',
       'shopping',
       'bank',
       'realty',
@@ -100,18 +101,32 @@ describe('활동을 실행하는 사이트', () => {
 
   it('활동을 실행하는 render 종류는 activityId를 반드시 갖는다', () => {
     for (const site of SITES.filter((s) =>
-      ['library', 'cinema', 'publish', 'jobs', 'career', 'campus'].includes(s.render),
+      ['library', 'cinema', 'publish', 'jobs', 'career', 'campus', 'cert', 'twitter'].includes(
+        s.render,
+      ),
     )) {
       expect(site.activityId).toBeDefined()
     }
   })
 
-  it('여섯 사이트가 서로 다른 활동을 실행한다', () => {
-    // 알바몬의 'work'·벼룩장터의 'job-apply'·슬로우캠퍼스의 'study'는 **아무것도 안 고른
-    // 상태의 기본값**이다 — 실제로 무엇을 실행할지는 알바몬은 `data/jobs.ts`의 공고가,
-    // 슬로우캠퍼스는 `data/courses.ts`의 강의가, 벼룩장터는 지금의 고용 상태가 정한다.
+  it('여덟 사이트가 서로 다른 활동을 실행한다', () => {
+    // 알바몬의 'work'·벼룩장터의 'job-apply'·O넷의 'exam'·슬로우캠퍼스의 'study'는
+    // **아무것도 안 고른 상태의 기본값**이다 — 실제로 무엇을 실행할지는 알바몬은
+    // `data/jobs.ts`의 공고가, 슬로우캠퍼스는 `data/courses.ts`의 강의가, O넷은
+    // `data/certs.ts`의 종목이, 벼룩장터는 지금의 고용 상태가 정한다.
+    // ⚠️ 트위터의 'sns'는 기본값이 아니라 **유일한 실행 활동이다** — 타임라인에는 고를 것이
+    // 없다(미디북스·시집이·아점과 달리 목록에서 무엇을 고르든 실행되는 것은 이 하나다).
     const ids = SITES.map((s) => s.activityId).filter((id) => id !== undefined)
-    expect(ids).toEqual(['work', 'job-apply', 'study', 'reading', 'movie', 'writing'])
+    expect(ids).toEqual([
+      'work',
+      'job-apply',
+      'exam',
+      'study',
+      'sns',
+      'reading',
+      'movie',
+      'writing',
+    ])
     // ⚠️ 이 검사가 본체다: 두 사이트가 조용히 같은 활동을 실행하면 안 된다.
     expect(new Set(ids).size).toBe(ids.length)
   })
