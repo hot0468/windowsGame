@@ -67,6 +67,41 @@ export const UI_ICONS = {
 } as const satisfies Record<string, IconName>
 
 /**
+ * 모바일 셸(휴대폰 UI) 크롬 글리프.
+ *
+ * ⚠️ **전부 단색(`mdi`)이고 `-outline` 변형을 우선한다.** 하단바 항목은 현재 위치를
+ * 액센트 색으로 물들여야 하는데(`currentColor`), 다색 아이콘에는 CSS `color`가
+ * 통하지 않는다 — 셸 크롬 = 단색이라는 규칙이 여기서도 그대로다.
+ * 홈 화면 **앱 그리드의 아이콘은 여기가 아니다** — `desktopEntries`가 주는
+ * 다색(fluent-color) 아이콘을 그대로 쓴다(앱 정체성 = 컬러).
+ *
+ * ⚠️ 하단바는 **아이콘만 두지 않는다**(ux `nav-label-icon`) — 글자 라벨이 함께 붙고,
+ * 현재 위치는 색만이 아니라 **글자 굵기 + 아래 표식**으로도 알린다(`color-not-only`).
+ */
+export const MOBILE_ICONS = {
+  /** 하단바: 홈(앱 그리드)으로. */
+  home: 'mdi:view-grid-outline',
+  /** 하단바: 뒤로/앱 닫기. ux `back-behavior` — 앱 뷰에서 항상 보여야 한다. */
+  back: 'mdi:arrow-left',
+  /** 하단바: 스탯 시트 열기. 데스크톱의 스탯창을 대신하는 유일한 창구다. */
+  stats: 'mdi:chart-box-outline',
+  /** 하단바: 데스크톱 셸로 전환. */
+  desktop: 'mdi:monitor',
+  /** 상태바: 소지금. */
+  money: 'mdi:wallet-outline',
+  /** 상태바: 행동력. */
+  stamina: 'mdi:lightning-bolt-outline',
+  /** 시트 닫기. */
+  close: 'mdi:close',
+  /**
+   * 데스크톱 시작 메뉴의 "휴대폰 모드" 항목.
+   * ⚠️ 시작 메뉴의 나머지 글리프는 mdi-light이지만 **mdi-light에는 휴대폰 글리프가 없다**
+   * (phone = 유선 수화기뿐이라 뜻이 어긋난다). 같은 단색 계열인 mdi로 내려온다.
+   */
+  phone: 'mdi:cellphone',
+} as const satisfies Record<string, IconName>
+
+/**
  * 가짜 브라우저 도구 모음 글리프.
  *
  * 브라우저 크롬은 OS 창의 일부이므로 셸 규칙을 따른다 — **단색 `mdi-light` 라인**이다.

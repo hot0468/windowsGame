@@ -127,9 +127,11 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         >
           <span className="browser-glyph browser-glyph-back" aria-hidden="true" />
         </button>
+        {/* ⚠️ `browser-btn-forward`는 모바일 셸이 이 버튼 하나를 집어 접기 위한 표식이다
+            (`MobileShell.css`). 순서 셀렉터로 고르면 버튼이 하나 늘 때 엉뚱한 것이 사라진다. */}
         <button
           type="button"
-          className="browser-btn"
+          className="browser-btn browser-btn-forward"
           onClick={() => setHistory(goForward)}
           disabled={!forwardEnabled}
           aria-label="앞으로"

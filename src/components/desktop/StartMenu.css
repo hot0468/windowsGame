@@ -108,3 +108,14 @@
   flex: 0 0 auto;
   color: var(--os-text);
 }
+
+/*
+ * 셸 전환 항목. 목록(START_MENU_ITEMS)에 속하지 않으므로 메뉴 맨 아래에
+ * 구분선을 두고 떨어뜨린다 — "창을 여는 것"과 성격이 다르다는 신호다.
+ */
+.start-shell {
+  margin-top: var(--sp-2);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--os-border);
+  border-radius: 0 0 var(--r-md) var(--r-md);
+}

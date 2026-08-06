@@ -1,0 +1,765 @@
+/*
+ * 모바일 셸(휴대폰 UI).
+ *
+ * 시각 언어: ui-ux-pro-max style `Glassmorphism` + color `Gaming`.
+ * 어두운 벽지 위에 반투명 유리 크롬(상태바·하단바)이 얹히는, 폰 홈 화면의 표준 형태다.
+ * 색은 전역 `--mo-*` 토큰만 쓰고 간격·타입·모서리는 기존 전역 토큰(`--sp-*`·`--fs-*`·`--r-*`)만 쓴다.
+ * ⚠️ `--sp-7`은 존재하지 않는다 — 없는 var를 쓰면 그 선언이 조용히 무효가 된다.
+ *
+ * ⚠️ CSS는 TS 상수를 못 읽으므로 아래 수치가 `data/shell.ts`의 `MOBILE_SHELL`,
+ * `data/layers.ts`의 `LAYERS`와 중복돼 있다 — 바꿀 때 반드시 함께 고친다:
+ *   상태바 52 = MOBILE_SHELL.STATUS_BAR_HEIGHT
+ *   하단바 60 = MOBILE_SHELL.NAV_BAR_HEIGHT
+ *   탭 대상 44 = MOBILE_SHELL.TOUCH_TARGET
+ *   z 9000 = LAYERS.MOBILE_CHROME / 9300 = LAYERS.MOBILE_SHEET
+ */
+
+.mo {
+  position: fixed;
+  inset: 0;
+  /* ux `viewport-units`: 100vh는 모바일 주소창 높이만큼 잘린다. */
+  height: 100dvh;
+  font-family: var(--font-base);
+  color: var(--mo-fg);
+  /* 벽지. 이미지가 아니라 그라데이션이다(오프라인 규칙 — 바탕화면과 같다). */
+  background:
+    radial-gradient(120% 80% at 15% 0%, #2a1f5c 0%, transparent 60%),
+    radial-gradient(100% 70% at 90% 100%, #1b3a5c 0%, transparent 55%),
+    var(--mo-bg);
+  /* ux `horizontal-scroll`: 셸 자체는 절대 가로로 밀리지 않는다. */
+  overflow: hidden;
+}
+
+/* 스크린 리더 전용 보충 설명. */
+.mo-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ── 상단 상태바 (유리) ───────────────────────────────── */
+
+.mo-status {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* 52px = MOBILE_SHELL.STATUS_BAR_HEIGHT */
+  height: 52px;
+  z-index: 9000; /* LAYERS.MOBILE_CHROME */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-4);
+  border: 0;
+  border-bottom: 1px solid var(--mo-glass-border);
+  background: var(--mo-glass);
+  -webkit-backdrop-filter: blur(var(--mo-blur));
+  backdrop-filter: blur(var(--mo-blur));
+  color: var(--mo-fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mo-status-date {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  font-size: var(--fs-base);
+  font-weight: 600;
+}
+
+.mo-status-slot {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--mo-fg-dim);
+}
+
+.mo-status-metrics {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.mo-status-metric {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+  /* 단색 mdi 글리프라 currentColor로 물든다. */
+  color: var(--mo-fg);
+}
+
+/* ── 홈 화면 앱 그리드 ────────────────────────────────── */
+
+.mo-home {
+  position: absolute;
+  /* ux `fixed-element-offset`: 고정 크롬 높이만큼 비운다(52 / 60). */
+  top: 52px;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--sp-4) var(--sp-3) var(--sp-6);
+}
+
+.mo-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  /* 좁은 폭에서 4열, 넓어지면 자연히 늘어난다. 데스크톱 격자 좌표는 여기서 무시하고
+     `desktopEntries`의 배열 순서대로 흐른다(설계 제약 E). */
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: var(--sp-3) var(--sp-2);
+}
+
+.mo-app {
+  width: 100%;
+  /* ux `touch-target-size`: 최소 44×44. 실제로는 그보다 크다. */
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-1);
+  border: 0;
+  border-radius: var(--r-lg);
+  background: transparent;
+  color: var(--mo-fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.mo-app:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 아이콘 판. 폰 홈 화면의 라운드 스퀘어다. */
+.mo-app-art {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-xl);
+  border: 1px solid var(--mo-glass-border);
+  background: var(--mo-surface);
+  /* ⚠️ 안에 다색(fluent-color) 아이콘이 들어온다 — color를 입히지 않는다. */
+}
+
+.mo-app-name {
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+  text-align: center;
+  /* 두 줄까지만. 길면 말줄임. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* ── 전체화면 앱 뷰 ──────────────────────────────────── */
+
+.mo-app-view {
+  position: absolute;
+  top: 52px;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  /* 유리가 아니라 불투명 표면이다 — 앱 내용물(밝은 사이트)이 벽지와 겹쳐 읽히면 안 된다. */
+  background: var(--mo-surface);
+  /* 아래에서 밀려 올라온다. */
+  animation: mo-app-in 160ms ease-out;
+}
+
+@keyframes mo-app-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.mo-app-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--mo-glass-border);
+  background: var(--mo-glass);
+  -webkit-backdrop-filter: blur(var(--mo-blur));
+  backdrop-filter: blur(var(--mo-blur));
+}
+
+/* ux `back-behavior`: 앱 상단에 뒤로 가는 길이 **항상 보인다**. */
+.mo-app-back {
+  flex: 0 0 auto;
+  width: 44px; /* MOBILE_SHELL.TOUCH_TARGET */
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--mo-fg);
+  cursor: pointer;
+}
+
+.mo-app-back:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mo-app-title {
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--mo-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+ * 앱 내용물. 사이트 내부 반응형은 이번 범위 밖이므로 넘치는 것을 전제로 만든다 —
+ * ⚠️ 넘침을 **이 상자 안에 가둬** 셸(.mo)이 가로로 밀리지 않게 한다(ux `horizontal-scroll`).
+ * 앱들은 창 안에 놓인다는 전제로 만들어졌으므로 밝은 표면을 배경으로 깔아 준다.
+ */
+/*
+ * 앱 본문.
+ *
+ * ⚠️ **데스크톱 `.win-body`와 같은 계약을 진다 — 패딩 `--sp-5`(20px).**
+ * 앱 CSS 몇몇이 이 패딩을 음수 마진으로 상쇄해 가장자리까지 칠한다(탐색기 등).
+ * 여기서 패딩을 빼면 그 음수 마진이 상쇄할 것을 잃고 **상자 밖으로 20px씩 삐져나가**
+ * 가로 스크롤이 생긴다. 셸이 둘이어도 앱이 딛는 바닥은 하나여야 한다.
+ *
+ * ⚠️ **`--vh`는 이 안에서 `100vh`를 대신한다.** 앱들은 `calc(100vh - N)`으로 높이를
+ * 정하는데 그 N은 데스크톱 크롬(타이틀 바 40 + 본문 패딩 40 + 작업 표시줄 44 + 숨 16)을
+ * 상정한 값이다. 모바일에는 그 크롬이 없고 대신 상태바·앱바·하단바가 있으므로,
+ * 뺄셈의 기준 자체를 바꿔 준다 — 앱마다 뺄셈을 두 벌씩 적는 것을 막는 유일한 방법이다.
+ * (`SHELL.MOBILE_SHELL`의 STATUS_BAR_HEIGHT 52 + APP_BAR_HEIGHT 60 + NAV_BAR_HEIGHT 60,
+ *  거기에 이 패딩 위아래 40을 더해 172 + 40 = 212. 값을 바꾸면 저 상수도 함께 고친다.)
+ */
+.mo-app-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--sp-5);
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--os-surface-alt);
+  color: var(--os-text);
+}
+
+/*
+ * 앱이 `100vh`로 잰 높이를 모바일 본문 높이로 되돌린다.
+ * `100dvh`를 쓰는 것은 주소창이 접히고 펴지는 모바일 브라우저 때문이다
+ * (ux `viewport-units`). 실제 적용은 각 앱 CSS가 `100vh` 대신 `var(--vh, 100vh)`를
+ * 읽어야 성립하므로, 그렇게 고친 앱만 이 값을 탄다.
+ */
+.mo-app-view {
+  --vh: calc(100dvh - 212px);
+}
+
+/*
+ * ⚠️ 앱들은 `calc(var(--vh) - N)` 형태라 `--vh`만 바꾸면 **N이 두 번 빠진다**
+ * (`--vh`가 이미 크롬을 뺀 값이기 때문). 그 N을 되돌려 주는 것이 이 규칙이다.
+ * 데스크톱에는 이 클래스가 없으므로 `--vh`도 이 보정도 없고, 폴백 `100vh`가 그대로 산다.
+ */
+.mo-app-body .chat-app,
+.mo-app-body .chat,
+.mo-app-body .cmd-app {
+  --vh: calc(100dvh - 112px);
+}
+
+/*
+ * ⚠️ **캡션 회피 여백을 0으로 되돌린다.**
+ * 데스크톱 `bareTitle` 창은 타이틀 바가 본문 위에 겹쳐 뜨므로 앱이 48px을 비운다.
+ * 모바일에는 겹쳐지는 타이틀 바가 없고 앱 바가 흐름 안에 따로 있어, 그 48px이
+ * 앱 바 아래 빈 띠로 남는다(375px 화면에서 작지 않다). 값의 출처가 `ChatApp.css`의
+ * `--chat-caption-gap` 하나이므로 여기서 한 줄로 되돌린다.
+ */
+.mo-app-body .chat-app,
+.mo-app-body .chat {
+  --chat-caption-gap: var(--sp-3);
+}
+
+.mo-app-body .ex {
+  --vh: calc(100dvh - 52px);
+}
+
+/*
+ * ⚠️ **가장자리에 붙어야 하는 앱은 본문 패딩을 걷어낸다.**
+ * 데스크톱이 `.win-body:has(> .browser)`로 하는 것과 **같은 판단·같은 방식**이다 —
+ * 브라우저 크롬·메일 3단·탐색기 도구 모음은 창 가장자리에 붙어야 "프로그램"으로 읽히고,
+ * 375px에서는 좌우 20px씩 40px이 곧 주소창이 잘리는 폭이다(실측: 주소가 "https"만 남았다).
+ * ⚠️ **`.mo-app-body`의 기본 패딩 자체를 없애면 안 된다** — 음수 마진으로 그것을
+ * 상쇄하는 앱들이 상자 밖으로 삐져나간다(위 `.mo-app-body` 주석 참조).
+ */
+.mo-app-body:has(> .browser),
+.mo-app-body:has(> .mail),
+.mo-app-body:has(> .chat-app),
+.mo-app-body:has(> .chat),
+.mo-app-body:has(> .cmd-app) {
+  padding: 0;
+}
+
+/*
+ * ⚠️ **탐색기(`.ex`)를 이 목록에 넣지 말 것.** 탐색기는 `.win-body`의 패딩을
+ * **음수 마진으로 상쇄해** 가장자리까지 칠하는 방식이라, 패딩을 0으로 만들면
+ * 그 마진이 상쇄할 것을 잃고 상자 밖으로 20px씩 삐져나간다(실측 415px / 375px).
+ * 이미 패딩 덕에 가장자리에 붙어 있으므로 손댈 이유도 없다.
+ */
+
+/* 패딩이 사라지면 그만큼 세로가 늘어난다 — 뺄셈 보정에서 40px을 되돌린다. */
+.mo-app-body:has(> .mail) .mail {
+  --vh: calc(100dvh - 32px);
+}
+
+.mo-app-body:has(> .chat-app) .chat-app,
+.mo-app-body:has(> .chat) .chat,
+.mo-app-body:has(> .cmd-app) .cmd-app {
+  --vh: calc(100dvh - 72px);
+}
+
+/*
+ * ── 모바일 브라우저 크롬 축약 ─────────────────────────────
+ *
+ * 데스크톱 크롬은 **탭 줄 + 도구 모음 + 즐겨찾기 줄** 세 층(약 130px)이다.
+ * 812px짜리 폰 화면에서 그 셋은 셸 크롬(상태바 52 + 앱바 60 + 하단바 60)에 더해져
+ * 사이트가 실제로 쓸 세로를 절반 가까이 먹는다. 실제 모바일 브라우저도 같은 이유로
+ * 주소창 한 줄만 남기므로 여기서도 그 관행을 따른다.
+ *
+ * ⚠️ **지우는 것이 아니라 이 셸에서만 감춘다.** 데스크톱은 세 층 그대로다 —
+ * 규칙을 `BrowserApp.css`가 아니라 여기 두는 이유가 그것이다.
+ * ⚠️ **탭의 ✕가 창을 닫는 유일한 길이 아니다** — 모바일에는 앱 바의 뒤로와
+ * 하단바의 [뒤로], Esc가 이미 있으므로 탭 줄을 감춰도 갇히지 않는다.
+ * ⚠️ **즐겨찾기는 사라지지 않는다** — 포털 홈의 퀵메뉴와 ⋮ 메뉴가 같은 곳으로 간다.
+ */
+.mo-app-body .browser-tabs,
+.mo-app-body .browser-bookmarks {
+  display: none;
+}
+
+/* 주소창 한 줄만 남으므로 위아래 숨을 조금 준다(탭 줄이 지던 여백을 대신한다). */
+.mo-app-body .browser-toolbar {
+  padding: var(--sp-2);
+  gap: var(--sp-2);
+}
+
+/*
+ * ux `touch-target-size`: 도구 모음 버튼은 데스크톱에서 32px 정사각(마우스 기준)이라
+ * 폰에서는 최소 탭 대상에 미달한다. 셸 상수 `MOBILE_SHELL.TOUCH_TARGET`(44)에 맞춘다.
+ */
+.mo-app-body .browser-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* ux `readable-font-size`: 모바일 입력은 16px 미만이면 iOS가 화면을 확대한다. */
+.mo-app-body .browser-addr-input {
+  font-size: var(--fs-lg);
+}
+
+/*
+ * ⚠️ **[앞으로]만 접는다.** 버튼 넷이 44px씩 차지하면 주소창에 "https"밖에 안 남는다
+ * (실측). 셋 중 [앞으로]를 고른 것은 **뒤로 간 뒤에만** 쓸모가 생기는 유일한 버튼이기
+ * 때문이다 — [뒤로]는 사이트 안 이동(포털 → 상세)에 필요하고 **앱 바의 뒤로와 다른
+ * 동작이다**(그쪽은 앱을 닫는다). [새로 고침]은 언제나 유효하다.
+ * 실제 모바일 브라우저도 앞으로는 메뉴 안에 넣는다.
+ */
+.mo-app-body .browser-btn-forward {
+  display: none;
+}
+
+/* 주소가 잘리지 않게 알약이 남는 폭을 다 쓴다. */
+.mo-app-body .browser-addr {
+  margin-left: 0;
+}
+
+.mo-app-body .mail,
+.mo-app-body .sch {
+  --vh: calc(100dvh - 72px);
+}
+
+/* ── 하단 내비게이션 바 ───────────────────────────────── */
+
+.mo-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  /* 60px = MOBILE_SHELL.NAV_BAR_HEIGHT */
+  height: 60px;
+  z-index: 9000; /* LAYERS.MOBILE_CHROME */
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--mo-glass-border);
+  background: var(--mo-glass);
+  -webkit-backdrop-filter: blur(var(--mo-blur));
+  backdrop-filter: blur(var(--mo-blur));
+}
+
+.mo-nav-item {
+  position: relative;
+  flex: 1 1 0;
+  /* ux `touch-target-size`: 최소 44×44. 실제 높이는 60이다. */
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  background: transparent;
+  /* 비활성 항목도 보조 글자 대비 3:1을 넘겨야 한다. */
+  color: var(--mo-fg-dim);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ux `nav-label-icon`: 아이콘만 두지 않는다 — 라벨이 항상 붙는다. */
+.mo-nav-label {
+  font-size: var(--fs-xs);
+  line-height: 1.2;
+}
+
+/*
+ * ⚠️ **비활성 항목에 `opacity`를 쓰지 않는다.** 0.4를 걸었더니 하단바 라벨이
+ * 합성 대비 **2.07:1**로 떨어졌다(실측). 흐리게 만드는 가장 쉬운 방법이 곧
+ * 글자를 못 읽게 만드는 방법이었다.
+ * 대신 **색만** 한 단 낮춰 4.5:1을 지키고, 못 누른다는 사실은 `disabled` 속성과
+ * 커서가 알린다(색만으로 상태를 말하지 않는다는 규칙과도 맞는다).
+ */
+.mo-nav-item:disabled {
+  color: var(--mo-nav-off);
+  cursor: default;
+}
+
+/* ⚠️ 홈은 **현재 위치이면서 동시에 비활성**이다(이미 홈이라 누를 데가 없다).
+   그때도 "여기 있다"는 표시가 더 우선하므로 활성 색이 비활성 색을 이겨야 한다. */
+.mo-nav-item.mo-nav-on:disabled {
+  color: var(--mo-nav-on);
+}
+
+/*
+ * 현재 위치. ux `nav-state-active` + `color-not-only`:
+ * 색(액센트)·**글자 굵기**·**위쪽 표식 막대** 셋이 함께 움직인다 —
+ * 색각 이상이나 흑백 화면에서도 어디에 있는지가 읽힌다.
+ * 액센트는 어두운 유리 위에서 대비가 모자라므로 **밝게 올린 보라**를 쓴다
+ * (--mo-accent 원색은 표식 막대처럼 글자가 아닌 자리에만).
+ */
+.mo-nav-on {
+  color: var(--mo-nav-on);
+}
+
+.mo-nav-on .mo-nav-label {
+  font-weight: 700;
+}
+
+.mo-nav-on::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 3px;
+  border-radius: 0 0 var(--r-sm) var(--r-sm);
+  background: var(--mo-accent);
+}
+
+/* ── 스탯 시트 (바텀 시트) ────────────────────────────── */
+
+.mo-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 9300; /* LAYERS.MOBILE_SHEET */
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.mo-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* 하단바를 덮는다 — 시트가 열려 있는 동안은 시트가 화면의 주인이다.
+     닫는 길은 헤더의 ✕·바깥 탭·Esc 셋이다. */
+  z-index: 9300; /* LAYERS.MOBILE_SHEET */
+  max-height: 88dvh;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--mo-glass-border);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  /* 시트는 유리가 아니라 불투명이다 — 숫자 위에 벽지가 비치면 읽기가 나빠진다. */
+  background: var(--mo-surface);
+  box-shadow: var(--el-3);
+  animation: mo-sheet-in 200ms ease-out;
+}
+
+@keyframes mo-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.mo-sheet-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  border-bottom: 1px solid var(--mo-glass-border);
+}
+
+.mo-sheet-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--mo-fg);
+}
+
+.mo-sheet-sub {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--mo-fg-dim);
+}
+
+.mo-sheet-close {
+  flex: 0 0 auto;
+  width: 44px; /* MOBILE_SHELL.TOUCH_TARGET */
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--mo-fg);
+  cursor: pointer;
+}
+
+.mo-sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--sp-3) var(--sp-4) var(--sp-6);
+}
+
+.mo-rule {
+  height: 1px;
+  margin: var(--sp-3) 0;
+  border: 0;
+  background: var(--mo-glass-border);
+}
+
+/* 자원 한 줄 */
+.mo-row {
+  padding: var(--sp-1) 0;
+}
+
+.mo-row-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.mo-row-icon {
+  flex: 0 0 auto;
+  color: var(--mo-fg-dim);
+}
+
+.mo-row-label {
+  font-size: var(--fs-md);
+  color: var(--mo-fg);
+}
+
+.mo-row-value {
+  margin-left: auto;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--mo-fg);
+}
+
+/* 경고. 색만으로 말하지 않도록 굵기도 함께 올린다. */
+.mo-row-warn {
+  color: #fca5a5;
+  font-weight: 700;
+}
+
+.mo-row-max,
+.mo-row-unit {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--mo-fg-dim);
+}
+
+.mo-bar {
+  display: block;
+  height: 4px;
+  margin-top: var(--sp-1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.mo-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  border-radius: 999px;
+  background: var(--mo-accent);
+  transition: transform 240ms ease-out;
+}
+
+/* 성장 스탯 칸 */
+.mo-cells {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--sp-1) var(--sp-2);
+}
+
+.mo-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mo-cell-icon {
+  flex: 0 0 auto;
+  color: var(--mo-fg-dim);
+}
+
+.mo-cell-name {
+  font-size: var(--fs-sm);
+  color: var(--mo-fg);
+}
+
+.mo-cell-value {
+  margin-left: auto;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--mo-fg);
+}
+
+/*
+ * 등급 뱃지. ⚠️ **등급별 색은 없다** — 글자 자체가 F·C·B·A·S·SS 순서를 말한다
+ * (데스크톱 스탯창과 같은 규칙). 상위 두 등급만 같은 액센트를 **채워** 구분한다.
+ */
+.mo-rank {
+  flex: 0 0 auto;
+  min-width: 22px;
+  padding: 0 var(--sp-1);
+  border: 1px solid var(--mo-glass-border);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--mo-fg-dim);
+}
+
+.mo-rank-top {
+  border-color: transparent;
+  background: var(--mo-accent);
+  color: #ffffff;
+}
+
+/* 생활비 메모 */
+.mo-note {
+  margin: var(--sp-2) 0 0;
+}
+
+.mo-note-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 2px 0;
+  font-size: var(--fs-sm);
+  color: var(--mo-fg-dim);
+}
+
+.mo-note-row dt,
+.mo-note-row dd {
+  margin: 0;
+}
+
+.mo-note-row dd {
+  font-variant-numeric: tabular-nums;
+  color: var(--mo-fg);
+}
+
+/* 시간을 미는 버튼 */
+.mo-sheet-actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.mo-btn {
+  flex: 1 1 0;
+  min-height: 44px; /* MOBILE_SHELL.TOUCH_TARGET */
+  border: 1px solid var(--mo-glass-border);
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--mo-fg);
+  font: inherit;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mo-btn:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.mo-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* 자동 진행 중. 색만이 아니라 글자("멈추기")도 함께 바뀐다. */
+.mo-btn-on {
+  border-color: transparent;
+  background: var(--mo-accent);
+  color: #ffffff;
+}
+
+/* 포커스 링. 어두운 표면 위이므로 액센트가 아니라 밝은 링을 쓴다. */
+.mo :focus-visible {
+  outline: 2px solid var(--mo-nav-on);
+  outline-offset: 2px;
+}
+
+/* ux `reduced-motion`: 움직임을 줄여 달라는 설정을 존중한다. */
+@media (prefers-reduced-motion: reduce) {
+  .mo-app-view,
+  .mo-sheet {
+    animation: none;
+  }
+
+  .mo-fill {
+    transition: none;
+  }
+}

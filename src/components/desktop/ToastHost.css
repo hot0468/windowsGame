@@ -7,6 +7,7 @@
   /* 작업 표시줄(44px) 바로 위. ⚠️ SHELL.TASKBAR_HEIGHT의 CSS 중복이므로 함께 고친다. */
   right: var(--sp-4);
   bottom: calc(44px + var(--sp-3));
+  /* 셸이 둘이므로 바닥 기준도 둘이다 — 아래 .mo .toasts 규칙 참조. */
   z-index: 9200; /* LAYERS.TASKBAR(9000)보다 위, 엔딩 모달(9500)보다 아래 */
   display: flex;
   flex-direction: column;
@@ -133,4 +134,24 @@
 
 .toast-x::after {
   transform: rotate(-45deg);
+}
+
+/*
+ * ⚠️ **모바일 셸에서는 하단바(60px)가 바닥을 차지한다** — 데스크톱 작업 표시줄(44px)
+ * 기준을 그대로 두면 토스트가 하단바에 깔린다(실측으로 잡았다).
+ * 셸이 감싸는 클래스로 갈라 두면 데스크톱 규칙은 손대지 않아도 된다.
+ *
+ * 60px = MOBILE_SHELL.NAV_BAR_HEIGHT (data/shell.ts의 CSS 중복 — 함께 고친다)
+ */
+.mo .toasts {
+  /* 좁은 화면이므로 좌우 여백을 맞춰 가운데로 편다. */
+  left: var(--sp-3);
+  right: var(--sp-3);
+  bottom: calc(60px + var(--sp-3));
+  align-items: stretch;
+}
+
+.mo .toast {
+  /* 320px 고정폭은 375px 화면에서 오른쪽으로 넘친다 — 폭을 화면에 맡긴다. */
+  width: auto;
 }
