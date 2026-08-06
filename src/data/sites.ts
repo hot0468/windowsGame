@@ -39,6 +39,13 @@ export type SiteRender =
    */
   | 'realty'
   /**
+   * 하이마루 — 전자기기 양판점. **쇼핑('shop')과 같은 부류다**: 물건을 팔고, 주문은
+   * 턴을 쓰지 않으며(`activityId` 없음), 효과는 다음 날 도착해야 난다
+   * (`systems/delivery.ts`를 그대로 탄다 — 새 배송 경로를 만들지 않는다).
+   * 컬리엔마트와 갈라 둔 것은 **진열 축**뿐이다(`ShopItem.store`).
+   */
+  | 'tech'
+  /**
    * 트위터 — 3열 타임라인. 미디북스('library')와 같은 부류다: **고르는 것이 없고**
    * 사이트가 가리키는 활동(`sns`) 하나를 확정 패널이 그대로 실행한다.
    * 탭·검색·트렌드는 전부 목록을 거를 뿐 게임 상태를 **읽기만** 한다.
@@ -179,6 +186,32 @@ export const SITES: Site[] = [
       title: '필요한 건 여기서',
       desc: '아이템을 한자리에서',
       gradient: 'linear-gradient(135deg, #6a2f8a 0%, #c2529a 100%)',
+    },
+  },
+  {
+    /*
+     * 하이마루 — **전자기기 양판점**. 쇼핑(컬리엔마트) 바로 뒤에 두는 것이 자리의 뜻이다:
+     * 같은 "물건을 사는 곳"이고 배송 규칙도 똑같다. 다른 것은 진열하는 물건뿐이다
+     * (`ShopItem.store === 'tech'`).
+     *
+     * ⚠️ **은행·부동산과 같이 `activityId`가 없다** — 주문은 턴을 쓰지 않으므로 확정
+     * 패널(`ActivityCommit`)도 없다(`sites.test.ts`가 지킨다). 비용은 슬롯이 아니라
+     * **돈과 배송 하루**다.
+     *
+     * 이름은 가전 양판점 상호("하이마트")의 호의적 패러디이고 실존 상호가 아니다.
+     * ⚠️ 아이콘은 다른 사이트 열셋과 겹치지 않아야 한다(`sites.test.ts`가 지킨다).
+     */
+    id: 'himaru',
+    url: 'https://www.himaru.co.kr',
+    title: '하이마루',
+    icon: 'fluent-color:phone-laptop-24',
+    render: 'tech',
+    notice: '주문한 기기는 다음 날 도착합니다.',
+    promo: {
+      tag: '하이마루',
+      title: '전자기기 전문관',
+      desc: '장비를 갖추면 할 수 있는 일이 늘어납니다',
+      gradient: 'linear-gradient(135deg, #9a3412 0%, #ea580c 100%)',
     },
   },
   {

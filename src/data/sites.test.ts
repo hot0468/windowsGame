@@ -60,6 +60,7 @@ describe('사이트 목록', () => {
       'flea',
       'onet',
       'shopping',
+      'himaru',
       'bank',
       'realty',
     ])
@@ -97,6 +98,14 @@ describe('활동을 실행하는 사이트', () => {
     const realty = findSite('realty')!
     expect(realty.render).toBe('realty')
     expect(realty.activityId).toBeUndefined()
+  })
+
+  it('하이마루도 활동을 실행하지 않는다 — 주문은 턴을 쓰지 않는다', () => {
+    // ⚠️ 쇼핑과 같은 규칙이다. `activityId`가 붙는 순간 확정 패널이 생기고 주문이
+    //    1턴을 먹기 시작한다 — 전자기기의 비용은 슬롯이 아니라 **돈과 배송 하루**다.
+    const himaru = findSite('himaru')!
+    expect(himaru.render).toBe('tech')
+    expect(himaru.activityId).toBeUndefined()
   })
 
   it('활동을 실행하는 render 종류는 activityId를 반드시 갖는다', () => {

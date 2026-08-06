@@ -4,6 +4,7 @@ CLAUDE.md의 변경 이력 표에서 옮겨온 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-05 | **스탯 랭크 F·C·B·A·S·SS** 신설 + **예의범절 스탯** 추가(상한 100, 예절 교육·다도 모임 2종이 올린다) | rank(신규 systems+test), types, turn(`growthCap`), statMeta, activities, StatPanel, Desktop.css | 설계자 지시. 랭크를 **상한 대비 비율**로 잰 것은 상한이 다른 스탯(평판 100 / 지식 999)을 나란히 읽게 하기 위함 — 절대값으로 재면 "지식 A와 평판 A 중 무엇이 더 대단한가"에 답할 수 없다. 예의범절을 자원 줄이 아니라 그리드에 둔 것은 **실측 결과다**: 자원 줄에 두면 패널이 589px이 되어 720px 화면에서 스탯창에 세로 스크롤바가 생겼다(544px로 회수) |
 | 2026-08-05 | 슬로우캠퍼스(온라인 강의) — 강의 8종 **단건 결제**, 같은 강의 3회 수강 시 수료증 아이템 발급 → 잠긴 외주 활동 2종 해금 | courses(신규 data+systems), CampusSite(신규), items(`buyable`·`BUYABLE_ITEMS`), activities(외주 2종), sites, types, gameStore, ShopSite | 미구현 사이트 둘 중 하나. 구독은 설계자 지시로 제외했다(지속 상태는 밤 정산이 필요해 은행·이사와 같은 무게가 된다). 수료증의 번아웃 키를 알바(`work`)와 가른 것은 `WORK_ACTIVITIES`에 섞이면 "알바는 넷"·"조건 없는 알바는 편의점뿐" 불변식이 깨지기 때문 |
 | 2026-08-05 | 이사(방구석부동산) + 복권(쇼핑 판매대) 신설. **생활비를 `물가 구간 × 집 배율`로 재구성** | economy(`getLivingCost(state)`·`livingCostForDay`·`tierCostFor`), housing/lottery(신규 data+systems), RealtySite(신규), ShopSite, turn, autoAdvance, gameStore, StatPanel 등 생활비를 읽는 곳 전부 | 잘한 플레이가 시간을 벌어야 하는데 장치가 은행뿐이었다. 이사는 죽음의 원인(생활비)을 직접 깎고 복권은 분산을 준다. 생활비가 플레이어 상태에 의존하게 되면서 **읽는 곳이 하나라도 옛 경로에 남으면 그 화면만 거짓 숫자를 말하므로** 호출부를 전부 옮겼다 |
 | 2026-08-05 | 밤 정산 순서 수정 — 급여가 우선한다. 게임오버는 밤이 다 정산된 뒤 한 번만 확정 | turn(`nightPayoutPending`·`settleGameOver`), employment(`advanceEmployment` 말미), gameStore, employment.test | 파산 판정이 생활비 차감과 급여 입금 **사이**에 있어, 급여일이 잔고 바닥나는 밤과 겹치면 월급 167만원을 손에 쥔 채 "파산"이 떴다 |

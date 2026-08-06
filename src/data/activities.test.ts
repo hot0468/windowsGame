@@ -7,7 +7,7 @@ import {
   activitiesUnlockedBy,
   findActivity,
 } from './activities'
-import { SHOP_ITEMS, findItem } from './items'
+import { SHOP_ITEMS, buyableFor, findItem } from './items'
 import { burnoutKeyOf } from '../systems/burnout'
 import { GROWTH_STAT_KEYS, STAT_NAMES } from '../types/game'
 import type { GrowthStatKey } from '../types/game'
@@ -189,5 +189,35 @@ describe('아이템 잠금', () => {
   it('잠긴 활동이 있는 물건은 실제로 상점에 있다', () => {
     const locked = ACTIVITIES.filter((a) => a.requiresItem).map((a) => a.requiresItem)
     for (const id of locked) expect(SHOP_ITEMS.some((i) => i.id === id)).toBe(true)
+  })
+
+  /*
+   * ── 하이마루 잠금 해제형 (2026-08-06) ──
+   * `gym-pass` ← `gym-member`와 **같은 구조**이므로 같은 방식으로 지킨다.
+   */
+  it('개인방송은 방송 장비로 잠겨 있다', () => {
+    expect(findActivity('stream')?.requiresItem).toBe('streamkit')
+  })
+
+  it('방송 장비가 여는 활동을 아이템 쪽에서도 찾을 수 있다', () => {
+    expect(activitiesUnlockedBy('streamkit').map((a) => a.id)).toEqual(['stream'])
+  })
+
+  it('방송 장비는 실제로 하이마루에서 판다 (살 수 없으면 영영 잠긴 활동이다)', () => {
+    expect(buyableFor('tech').some((i) => i.id === 'streamkit')).toBe(true)
+  })
+
+  it('잠금 해제형 기기는 스탯을 주지 않는다 — 값어치는 활동을 여는 것이다', () => {
+    // ⚠️ 스탯까지 붙이면 "장비를 사면 방송을 잘하게 된다"는 이상한 말이 된다.
+    //    `gym-pass`·수료증과 같은 규칙이다.
+    expect(findItem('streamkit')!.effects).toEqual({})
+  })
+
+  it('개인방송은 알바·외주 어느 번아웃 축에도 섞이지 않는다', () => {
+    // ⚠️ 'work'면 WORK_ACTIVITIES 불변식("알바는 넷")이 깨지고,
+    //    'gig'·'cert-gig'면 다른 시스템의 연속 노동 페널티를 물려받는다.
+    const stream = findActivity('stream')!
+    expect(burnoutKeyOf(stream)).toBe('stream')
+    expect(WORK_ACTIVITIES.map((a) => a.id)).not.toContain('stream')
   })
 })

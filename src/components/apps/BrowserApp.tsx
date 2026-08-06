@@ -25,6 +25,7 @@ import { NeverPortal } from './sites/NeverPortal'
 import { PublishSite } from './sites/PublishSite'
 import { RealtySite } from './sites/RealtySite'
 import { ShopSite } from './sites/ShopSite'
+import { TechSite } from './sites/TechSite'
 import { TubeSite } from './sites/TubeSite'
 import { TwitterSite } from './sites/TwitterSite'
 import './BrowserApp.css'
@@ -309,6 +310,7 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         {!site && <p className="browser-error">페이지를 찾을 수 없습니다.</p>}
         {site?.render === 'portal' && <NeverPortal onNavigate={goToSite} />}
         {site?.render === 'shop' && <ShopSite />}
+        {site?.render === 'tech' && <TechSite site={site} />}
         {site?.render === 'tube' && <TubeSite />}
         {/* 활동을 실행하는 사이트 3종. 둘러보기는 여전히 무료이고,
             각 사이트 안의 확정 버튼(ActivityCommit) 하나만 1턴을 쓴다. */}
