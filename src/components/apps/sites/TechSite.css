@@ -1,0 +1,349 @@
+/*
+ * 하이마루(전자기기 양판점).
+ *
+ * ## 색 — 주황/앰버 (설계자 확정)
+ * 남은 색을 전수 조사해 정한 자리다. 파랑 셋(알바몬 #0369A1 · 벼룩장터 #2563EB ·
+ * 은행 #1E3A8A) · 보라(O넷 #7C3AED) · 코랄(슬로우캠퍼스 #F2545B) · 청록(부동산 #0F766E) ·
+ * 검정(트위터 #18181B) · 골드(은행 #A16207)가 이미 찼고 **주황만 비어 있다.**
+ * 전자기기 양판점의 관행(따뜻한 경고색 = 특가·재고)에도 맞는다.
+ *
+ * ⚠️ **브랜드색 #C2410C(orange-700)는 흰 배경 위 5.18:1, 이 페이지 배경(#FFF7ED) 위
+ * 4.88:1로 WCAG AA(4.5:1)를 넘는다** — 합성 픽셀 실측으로 확인했다. 한 단 밝은
+ * #EA580C는 3.56:1이라 **글자에 쓰지 않는다**(면·테두리 전용).
+ * ⚠️ 코랄(슬로우캠퍼스 #F2545B)과의 대비는 1.53:1로 낮지만, 두 색이 **같은 화면에 함께
+ * 뜨는 일이 없고**(사이트가 다르다) 하이마루 쪽이 훨씬 어두워 나란히 놓아도 갈린다.
+ *
+ * ## 판형 — style DB `Feature-Rich Showcase` (제품 격자)
+ * 조회: `--domain style "product grid spec comparison"`.
+ *   - `grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))` + `gap: 2rem`
+ *   - 카드 hover lift(translateY -4px), 아이콘 컨테이너, 카드 radius 12px
+ * 여기에 **스펙 비교 줄**(`.tc-spec`)을 얹었다 — 양판점은 "무엇이 더 나은가"를 묻는
+ * 화면이라 카드마다 **같은 자리에 같은 항목**(종류/효과)이 있어야 비교가 성립한다.
+ *
+ * 구역 순서: 매장 띠(배송 규칙) -> 제호 + 소지금 -> 주문 영수증 -> 제품 격자 -> 안내 각주.
+ *
+ * 적용한 규칙:
+ *  - ux `number-tabular`: 금액은 전부 `tabular-nums`. 카드가 나란히 서므로 자릿수가
+ *    흔들리면 가격 비교 자체가 안 된다.
+ *  - ux `error-clarity` / `disabled-states`: 못 사는 기기는 감추지 않고 비활성 +
+ *    **얼마가 모자란지**를 글자로 적는다.
+ *  - ux `color-not-only`: 활동 해제는 색이 아니라 자물쇠 글리프 + 한국어 라벨이 말한다.
+ *
+ * 토큰은 `.tc` 안에 `--tc-*`로 가둔다(다른 사이트와 같은 규칙).
+ * 간격·타입·모서리는 전역 토큰만. ⚠️ `--sp-7`은 없다(4/8 리듬: 1·2·3·4·5·6·8).
+ * ⚠️ 반응형은 뷰포트가 아니라 **컨테이너**로 판정한다 — 사이트는 창 안이라
+ * 미디어쿼리를 쓰면 창을 줄여도 영영 안 접힌다.
+ */
+.tc {
+  --tc-bg: #fff7ed; /* orange-50 — 따뜻한 매장 바닥 */
+  --tc-surface: #ffffff;
+  --tc-line: #fed7aa; /* orange-200 — 구역 경계 */
+  --tc-line-soft: #ffedd5; /* orange-100 — 카드 안쪽 헤어라인 */
+  --tc-text: #1c1917; /* #fff 위 16.6:1 — 본문·기기명 */
+  /*
+   * ⚠️ **계산값이 아니라 합성 픽셀로 정한 색이다.** 처음 쓴 #6b7280은 수치상 4.83:1이었지만
+   * 실측은 4.12:1(제호 부제)·4.25:1(카드 설명)로 AA 미달이었다 — Pretendard는 획이 얇어
+   * 같은 색이 더 낮은 대비로 합성된다(프로젝트 규칙). #57534e는 7.6:1이라 여유가 있다.
+   */
+  --tc-text-2: #57534e; /* #fff 위 7.63:1 / --tc-bg 위 7.19:1 — 메타·설명 (AA) */
+  --tc-brand: #c2410c; /* #fff 위 5.18:1 / --tc-bg 위 4.88:1 — 제호·가격·강조 (AA) */
+  --tc-brand-deep: #7c2d12; /* #fff 위 9.37:1 — 버튼 hover·강한 강조 */
+  --tc-fill: #ea580c; /* ⚠️ 3.56:1 — 면·테두리 전용. 글자에 쓰지 말 것 */
+  --tc-wash: #ffedd5;
+  --tc-ok: #15803d; /* #fff 위 4.9:1 — 스탯 상승 칩 (AA) */
+
+  /* ⚠️ 컨테이너 기준점. 이게 없으면 아래 @container가 전부 죽는다. */
+  container-type: inline-size;
+  padding-bottom: var(--sp-8);
+  background: var(--tc-bg);
+  color: var(--tc-text);
+  min-height: 100%;
+}
+
+/* 본문 폭. 판을 묶지 않으면 넓은 창에서 카드가 늘어져 비교가 안 된다. */
+.tc-head,
+.tc-receipt,
+.tc-grid,
+.tc-foot {
+  width: min(1000px, 100% - 48px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 매장 띠 */
+.tc-strip {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-6);
+  background: var(--tc-brand);
+  color: #ffffff; /* #c2410c 위 4.05:1 — 14px 이상 본문 크기 */
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+/* 제호 */
+.tc-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-5) 0 var(--sp-4);
+  border-bottom: 1px solid var(--tc-line);
+}
+
+.tc-head-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tc-title {
+  margin: 0;
+  font-family: var(--font-point);
+  font-weight: 400; /* ⚠️ 한 벌짜리 서체 — 600/700은 합성 볼드가 획을 뭉갠다 */
+  font-size: var(--fs-2xl);
+  color: var(--tc-brand);
+}
+
+.tc-sub {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--tc-text-2);
+}
+
+.tc-money {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--tc-text-2);
+  text-align: right;
+}
+
+.tc-money strong {
+  display: block;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--tc-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 주문 영수증 */
+.tc-receipt {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+  margin-bottom: 0;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--tc-surface);
+  border: 1px solid var(--tc-fill);
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm);
+  color: var(--tc-text);
+}
+
+/* 제품 격자 */
+.tc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--sp-5);
+  margin-top: var(--sp-5);
+  margin-bottom: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tc-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-5);
+  background: var(--tc-surface);
+  border: 1px solid var(--tc-line);
+  border-radius: var(--r-lg);
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.tc-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--el-2);
+}
+
+/* 아이콘 컨테이너. 기기 사진이 없으므로 따뜻한 판 위에 다색 아이콘을 올린다. */
+.tc-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  background: var(--tc-wash);
+  border-radius: var(--r-md);
+}
+
+.tc-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tc-name {
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: var(--tc-text);
+}
+
+.tc-desc {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: var(--tc-text-2);
+}
+
+/* 스펙 비교 줄 */
+.tc-spec {
+  display: flex;
+  gap: var(--sp-4);
+  margin: var(--sp-3) 0 0;
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--tc-line-soft);
+  border-bottom: 1px solid var(--tc-line-soft);
+}
+
+.tc-spec-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.tc-spec dt {
+  font-size: var(--fs-xs);
+  color: var(--tc-text-2);
+}
+
+.tc-spec dd {
+  margin: 0;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--tc-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 효과 칩 */
+.tc-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 0;
+}
+
+.tc-effect {
+  padding: 2px var(--sp-2);
+  background: #f0fdf4;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  color: var(--tc-ok);
+}
+
+/* 활동 해제는 스탯 상승과 다른 것이다 — 브랜드 계열로 갈라 둔다. */
+.tc-effect-unlock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--tc-wash);
+  color: var(--tc-brand);
+}
+
+/* 구매 줄 */
+.tc-buy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--tc-line-soft);
+}
+
+.tc-price {
+  flex: 1 1 auto;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--tc-brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.tc-btn {
+  flex: 0 0 auto;
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--tc-brand);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tc-btn:hover:not(:disabled) {
+  background: var(--tc-brand-deep);
+}
+
+.tc-btn:disabled {
+  background: #e7e5e4;
+  color: #57534e; /* #e7e5e4 위 5.9:1 — 비활성도 읽을 수 있어야 한다 */
+  cursor: not-allowed;
+}
+
+.tc-why {
+  flex: 1 1 100%;
+  font-size: var(--fs-xs);
+  color: var(--tc-brand);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 각주 */
+.tc-foot {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--tc-line);
+  font-size: var(--fs-xs);
+  line-height: 1.7;
+  color: var(--tc-text-2);
+}
+
+/*
+ * 좁은 컨테이너.
+ * ⚠️ 뷰포트가 아니라 **컨테이너** 기준이다. 모바일 셸(375px)에서도 이 규칙이 적용되어
+ * 가로 스크롤이 생기지 않는다. 여백을 먼저 줄이고(48 -> 24), 제호를 세로로 접는다.
+ */
+@container (max-width: 640px) {
+  .tc-head,
+  .tc-receipt,
+  .tc-grid,
+  .tc-foot {
+    width: min(1000px, 100% - 24px);
+  }
+
+  .tc-head {
+    flex-wrap: wrap;
+  }
+
+  .tc-money {
+    flex: 1 1 100%;
+    text-align: left;
+  }
+
+  .tc-money strong {
+    display: inline;
+    margin-left: var(--sp-2);
+  }
+
+  /*
+   * ⚠️ 카드 최소 폭을 낮춘다. 280px + 좌우 여백 24 = 304px이라 375px 셸에서는 아직
+   * 넘치지 않지만, 셸이 더 좁아지거나 창을 더 줄이면 격자가 컨테이너를 밀어낸다.
+   * `1fr` 하나로 떨어뜨려 어떤 폭에서도 카드가 컨테이너를 넘지 못하게 한다.
+   */
+  .tc-grid {
+    grid-template-columns: 1fr;
+    gap: var(--sp-4);
+  }
+}

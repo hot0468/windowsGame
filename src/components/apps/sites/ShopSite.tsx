@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { activitiesUnlockedBy } from '../../../data/activities'
-import { BUYABLE_ITEMS } from '../../../data/items'
+import { buyableFor } from '../../../data/items'
 import { LOTTERY_NAME, LOTTERY_PRIZES, MAX_TICKETS_PER_BUY, TICKET_PRICE } from '../../../data/lottery'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
@@ -152,7 +152,9 @@ export function ShopSite() {
       )}
 
       <ul className="shop-grid">
-        {BUYABLE_ITEMS.map((item) => {
+        {/* ⚠️ 전자기기는 하이마루로 옮겨 갔다(`ShopItem.store`) — 목록을 여기서
+            거르지 않고 `buyableFor`가 파생시킨다. 두 번째 출처를 만들지 않는다. */}
+        {buyableFor('shop').map((item) => {
           const isOwned = owns(state, item.id)
           const isShipping = shipping.includes(item.id)
           const buyable = canOrder(state, item)

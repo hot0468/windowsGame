@@ -305,6 +305,33 @@ export const ACTIVITIES: Activity[] = [
     burnoutKey: 'cert-gig',
     scalesWithWage: true,
   },
+  /*
+   * ── 전자기기가 여는 활동 (2026-08-06 하이마루) ──
+   * ⚠️ **`gym-member`·수료증 외주·자격증 일감과 같은 구조다**: 물건이 기존 조건을
+   * 우회시키는 게 아니라 **새 선택지를 연다**. 판정은 `requiresItem` → `canRun` 하나가
+   * 하므로 스케줄러 예약·바탕화면 바로 가기도 똑같이 막힌다.
+   *
+   * ⚠️ **번아웃 키가 `'stream'`이다 — 제4의 키를 새로 준다.**
+   *  - `'work'`면 `WORK_ACTIVITIES`(= `burnoutKey === 'work'`에서 파생)에 섞여 들어가
+   *    "알바는 넷"·"조건 없는 알바는 편의점뿐"이라는 알바몬 공고의 불변식이 깨진다.
+   *  - `'gig'`면 슬로우캠퍼스 수료증 외주와 한 덩어리가 되고, `'cert-gig'`면 O넷
+   *    자격증 일감과 한 덩어리가 된다 — 어느 쪽이든 **다른 시스템의 페널티를 물려받는다**
+   *    (강의를 들은 사람이 방송까지 같은 연속 노동으로 세이게 된다).
+   * 활동이 하나뿐이라 키를 공유할 상대는 아직 없지만, 키를 갖는 것 자체가 "이 축은
+   * 따로 센다"는 규칙이다(`'cert-gig'`를 만든 것과 같은 판단).
+   */
+  {
+    id: 'stream',
+    label: '개인방송',
+    icon: 'fluent-color:mic-24',
+    category: 'living',
+    description: '장비를 켜고 두 시간을 떠든다. 동시 접속자는 대체로 한 자릿수다.',
+    effects: { money: 55000, reputation: 2, sociability: 3, stamina: -22, mental: -8 },
+    requires: { stamina: 22 },
+    requiresItem: 'streamkit',
+    burnoutKey: 'stream',
+    scalesWithWage: true,
+  },
   {
     id: 'social',
     label: '메신저',

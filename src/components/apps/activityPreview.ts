@@ -2,7 +2,7 @@ import { burnoutKeyOf, getBurnoutPenalty } from '../../systems/burnout'
 import { getLivingCost, getWageMultiplier } from '../../systems/economy'
 import { canRun, jobStageOpen, owns } from '../../systems/turn'
 import { applyBlockers, attendedToday, isWorkday } from '../../systems/employment'
-import { findItem } from '../../data/items'
+import { findItem, storeNameOf } from '../../data/items'
 import { STAT_NAMES } from '../../types/game'
 import type { Activity, GameState, JobStageGate, Stats } from '../../types/game'
 
@@ -149,7 +149,12 @@ export function blockReasons(state: GameState, activity: Activity): string[] {
 
   if (activity.requiresItem && !owns(state, activity.requiresItem)) {
     const item = findItem(activity.requiresItem)
-    reasons.push(`${item?.name ?? activity.requiresItem}이(가) 있어야 합니다 — 쇼핑에서 구입`)
+    // ⚠️ 가게 이름을 여기 적지 않는다 — 물건이 어느 사이트에 있는지는 `store`가 알고 있다.
+    // 굳혀 두면 전자기기를 하이마루로 옮긴 순간 이 문장만 거짓이 된다.
+    const where = storeNameOf(activity.requiresItem)
+    reasons.push(
+      `${item?.name ?? activity.requiresItem}이(가) 있어야 합니다${where ? ` — ${where}에서 구입` : ''}`,
+    )
   }
 
   // 정규직 게이트. 판정은 `jobStageOpen`이 하고 여기서는 사유만 글자로 옮긴다.

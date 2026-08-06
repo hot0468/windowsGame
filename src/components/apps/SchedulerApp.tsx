@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ACTIVITIES, ACTIVITY_CATEGORIES, plannableOf } from '../../data/activities'
 import { dateOf, dayOf } from '../../data/calendar'
-import { findItem } from '../../data/items'
+import { findItem, storeNameOf } from '../../data/items'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { owns } from '../../systems/delivery'
@@ -254,7 +254,12 @@ export function SchedulerApp() {
                             <span className="sch-pick-name">{a.label}</span>
                             {locked ? (
                               <span className="sch-pick-lock">
-                                {need?.name ?? a.requiresItem} 필요 — 쇼핑에서 구입
+                                {/* ⚠️ 가게 이름은 `storeNameOf`가 정한다 — 여기 굳혀 두면
+                                    전자기기를 하이마루로 옮긴 순간 이 문장만 거짓이 된다. */}
+                                {need?.name ?? a.requiresItem} 필요
+                                {a.requiresItem && storeNameOf(a.requiresItem)
+                                  ? ` — ${storeNameOf(a.requiresItem)}에서 구입`
+                                  : ''}
                               </span>
                             ) : (
                               <>
