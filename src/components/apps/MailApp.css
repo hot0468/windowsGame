@@ -6,7 +6,7 @@
    그대로 두면 창은 화면에 맞는데 내용만 넘쳐 세로 스크롤바가 생긴다.
    Window.tsx에 prop을 늘리지 않으려고 브라우저와 같은 :has로 좁힌다. */
 .win-body:has(> .mail) {
-  max-height: calc(100vh - 140px);
+  max-height: calc(var(--vh, 100vh) - 140px);
   /* 패딩을 음수 마진으로 되돌리던 방식은 **높이 계산을 어긋나게 한다** —
      본문의 내용 상자는 패딩만큼 작아지는데 자식은 마진으로 그만큼 커져 40px이 넘친다.
      여기서 패딩을 아예 없애는 편이 정확하다(브라우저 창과 같은 방식). */
@@ -17,7 +17,7 @@
   display: flex;
   /* 세로는 메신저 목록 창과 같은 값으로 맞춘다(설계자 지시).
      ⚠️ 아웃룩은 타이틀 바가 있는 일반 창이라 그 40px을 더 빼야 한다. */
-  min-height: min(560px, calc(100vh - 140px));
+  min-height: min(560px, calc(var(--vh, 100vh) - 140px));
 }
 
 /* ── 1단: 폴더 ── */
@@ -219,3 +219,78 @@
   color: var(--os-text-3);
 }
 
+
+
+/*
+ * ── 폰 판형 (1단, 목록 ↔ 본문 전환) ─────────────────────
+ *
+ * ⚠️ **데스크톱 3단은 그대로다.** 이 규칙은 `.mail-mobile`이 붙었을 때만 산다.
+ * 폴더 132 + 목록 236 + 본문은 375px에 들어가지 않으므로(실측 61px 넘침,
+ * 본문 칸이 화면 밖으로 밀려 읽을 수 없었다) 폰에서만 한 단으로 접는다.
+ *
+ * 전환 방식은 실제 모바일 메일 앱과 같다: 목록을 보다가 하나를 고르면 본문이
+ * 목록을 **덮고**, [목록으로]가 되돌린다(`back-behavior`).
+ */
+.mail-mobile {
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* 폴더는 세로 트리가 아니라 가로 탭 줄이 된다 — 두 개뿐이라 줄 하나로 충분하다. */
+.mail-mobile .mail-folders {
+  flex: 0 0 auto;
+  flex-direction: row;
+  gap: var(--sp-2);
+  border-right: none;
+  border-bottom: 1px solid var(--os-border);
+}
+
+.mail-mobile .mail-folder {
+  /* ux `touch-target-size`: 최소 44px(셸 상수 `MOBILE_SHELL.TOUCH_TARGET`). */
+  min-height: 44px;
+}
+
+/* 목록은 남는 세로를 다 쓴다(고정 236px 폭을 버린다). */
+.mail-mobile .mail-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  border-right: none;
+}
+
+.mail-mobile .mail-item {
+  min-height: 44px;
+}
+
+/* 본문을 펼치면 목록·폴더는 자리를 비운다 — 한 화면에 하나만 산다. */
+.mail-reading .mail-folders,
+.mail-reading .mail-list {
+  display: none;
+}
+
+.mail-mobile .mail-view {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ux `back-behavior`: 본문이 목록을 덮으므로 돌아갈 길이 **항상 보인다**.
+   ⚠️ `.mail-view`는 block이라 `align-self`가 먹지 않는다 — 인라인 블록으로 폭을 글자에 맞춘다
+   (가로로 늘어난 버튼은 "돌아가기"가 아니라 배너로 읽힌다). */
+.mail-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: var(--sp-2);
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-md);
+  background: var(--os-surface);
+  font-size: var(--fs-base);
+  color: var(--os-text);
+  cursor: pointer;
+}
+
+.mail-back:hover {
+  background: var(--os-hover);
+}

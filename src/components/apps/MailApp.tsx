@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { MAILBOX } from '../../data/messages'
+import { useShell } from '../../hooks/useShell'
 import { useGameStore } from '../../store/gameStore'
 import { examMessages } from '../../systems/certification'
 import { noticeMessages } from '../../systems/employment'
@@ -35,6 +36,12 @@ function isAd(m: TimedMessage): boolean {
  */
 export function MailApp() {
   const state = useGameStore((s) => s.state)
+  /*
+   * ⚠️ **폰에서는 3단이 성립하지 않는다**(폴더 132 + 목록 236 + 본문이 375px를 넘는다).
+   * 그래서 모바일에서만 **목록 ↔ 본문 전환**으로 접는다 — 실제 모바일 메일 앱과 같다.
+   * 데스크톱은 3단 그대로다(레퍼런스가 스펙이라는 규칙).
+   */
+  const mobile = useShell() === 'mobile'
   const [folder, setFolder] = useState<FolderId>('inbox')
   /** 선택된 메일. 목록 순서가 아니라 id로 잡는다 — 새 메일이 와도 선택이 밀리지 않는다. */
   const [selected, setSelected] = useState<string | null>(null)
@@ -57,10 +64,16 @@ export function MailApp() {
     ...examMessages(state),
   ].sort((a, b) => b.turn - a.turn)
   const mails = all.filter((m) => (folder === 'ad' ? isAd(m) : !isAd(m)))
-  const current = mails.find((m) => m.id === selected) ?? mails[0]
+  /*
+   * ⚠️ **데스크톱은 아무것도 안 고르면 첫 메일을 편다**(읽기 창이 늘 차 있어야 3단이 성립).
+   * 모바일은 그 기본값을 쓰지 않는다 — 앱을 열자마자 본문이 떠 있으면 목록을 볼 수 없다.
+   */
+  const current = mails.find((m) => m.id === selected) ?? (mobile ? undefined : mails[0])
+  /** 폰에서 본문 화면에 들어와 있는가. 데스크톱에서는 늘 false(두 칸이 함께 보인다). */
+  const reading = mobile && !!current
 
   return (
-    <div className="mail">
+    <div className={`mail${mobile ? ' mail-mobile' : ''}${reading ? ' mail-reading' : ''}`}>
       <nav className="mail-folders" aria-label="메일 분류">
         {FOLDERS.map((f) => {
           const count = all.filter((m) => (f.id === 'ad' ? isAd(m) : !isAd(m))).length
@@ -113,6 +126,17 @@ export function MailApp() {
 
       {current ? (
         <article className="mail-view">
+          {/* ux `back-behavior`: 폰에서 본문은 목록을 **덮으므로** 돌아갈 길이 보여야 한다.
+              데스크톱은 두 칸이 나란히 있어 필요 없다. */}
+          {mobile && (
+            <button
+              type="button"
+              className="mail-back"
+              onClick={() => setSelected(null)}
+            >
+              목록으로
+            </button>
+          )}
           <h3 className="mail-view-subject">{current.subject ?? '(제목 없음)'}</h3>
           <p className="mail-view-from">
             <span className="mail-avatar" aria-hidden="true">

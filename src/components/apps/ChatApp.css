@@ -6,6 +6,18 @@
  * 레일과 패널 헤더는 장식이 아니라 골격이라 빼면 "앱"이 아니라 "목록 하나"가 된다.
  */
 
+/*
+ * ⚠️ **캡션 회피 여백은 변수 하나가 쥔다.**
+ * bareTitle 창은 타이틀 바가 본문 **위에 겹쳐** 뜨므로 앱이 직접 그 자리를 비운다(48px).
+ * 그런데 모바일 셸에는 겹쳐지는 타이틀 바가 없고 앱 바가 흐름 안에 따로 있어,
+ * 같은 48px이 **쓸모없는 빈 띠**가 된다. 자리가 다섯 군데라 각자 고치면 반드시 하나를
+ * 빠뜨리므로 값을 여기 모으고 모바일 셸이 `MobileShell.css`에서 0으로 되돌린다.
+ */
+.chat-app,
+.chat {
+  --chat-caption-gap: 48px;
+}
+
 /* ── 목록 창 ── */
 .chat-app {
   display: flex;
@@ -16,7 +28,7 @@
      창 안에 세로 스크롤바가 생긴다 — 창은 이미 화면에 맞게 줄었는데 내용만 더 큰 상태다.
      세 앱이 같은 값을 쓴다(ChatApp의 .chat-app/.chat, MailApp의 .mail).
      ⚠️ 100px = 작업 표시줄 44 + 위아래 숨 56. Window.css의 .win-bare 상한과 같은 값이다. */
-  min-height: min(560px, calc(100vh - 100px));
+  min-height: min(560px, calc(var(--vh, 100vh) - 100px));
 }
 
 .chat-rail {
@@ -27,7 +39,7 @@
   justify-content: space-between;
   /* ⚠️ 위쪽 48px = 캡션 버튼(타이틀 바 40px)을 비켜 나기 위한 여백.
      bareTitle 창은 타이틀 바가 본문 위에 겹쳐 뜨므로 앱이 직접 자리를 비운다. */
-  padding: 48px 0 var(--sp-4);
+  padding: var(--chat-caption-gap) 0 var(--sp-4);
   background: var(--chat-rail-bg);
 }
 
@@ -86,7 +98,7 @@
   justify-content: space-between;
   gap: var(--sp-3);
   /* 캡션 버튼 아래로 내려 앉는다(위 .chat-rail 주석 참조). */
-  padding: 48px var(--sp-4) var(--sp-3);
+  padding: var(--chat-caption-gap) var(--sp-4) var(--sp-3);
 }
 
 .chat-panel-title {
@@ -302,7 +314,7 @@
      창 안에 세로 스크롤바가 생긴다 — 창은 이미 화면에 맞게 줄었는데 내용만 더 큰 상태다.
      세 앱이 같은 값을 쓴다(ChatApp의 .chat-app/.chat, MailApp의 .mail).
      ⚠️ 100px = 작업 표시줄 44 + 위아래 숨 56. Window.css의 .win-bare 상한과 같은 값이다. */
-  min-height: min(560px, calc(100vh - 100px));
+  min-height: min(560px, calc(var(--vh, 100vh) - 100px));
   background: var(--chat-thread-bg);
 }
 
@@ -312,7 +324,7 @@
   gap: var(--sp-3);
   /* 위쪽 48px = 캡션 버튼(타이틀 바 40px)을 비켜 나기 위한 여백.
      bareTitle 창은 타이틀 바가 본문 위에 겹쳐 뜨므로 앱이 직접 자리를 비운다. */
-  padding: 48px var(--sp-4) var(--sp-3);
+  padding: var(--chat-caption-gap) var(--sp-4) var(--sp-3);
 }
 
 .chat-head-body {
@@ -521,7 +533,7 @@
 
 /* 제목·칩이 없는 골격(네이트온). 도구 글리프 줄만 남으므로 위 여백이 더 필요하다. */
 .chat-panel-head-plain {
-  padding: 48px var(--sp-4) var(--sp-3);
+  padding: var(--chat-caption-gap) var(--sp-4) var(--sp-3);
 }
 
 /* 프로필이 **원형**이다(카톡은 둥근 사각). 같은 목록이라도 이 하나로 인상이 갈린다. */
@@ -537,7 +549,7 @@
 
 /* 레일이 짙은 남보라 한 덩어리다 — 글리프는 흰 계열로 뒤집힌다. */
 .chat-layout-plain .chat-rail {
-  padding-top: 48px;
+  padding-top: var(--chat-caption-gap);
 }
 
 /* ── 오픈채팅 ── */

@@ -140,7 +140,7 @@
 .cmd-app {
   display: flex;
   flex-direction: column;
-  min-height: min(420px, calc(100vh - 100px));
+  min-height: min(420px, calc(var(--vh, 100vh) - 100px));
   background: #0c0c0c;
 }
 
