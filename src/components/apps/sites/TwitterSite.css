@@ -226,10 +226,102 @@
   transform: translateX(-50%);
 }
 
-/* 작성창 자리 = 확정 패널. 여백만 준다(패널의 모양은 ActivityCommit이 정한다). */
+/* 작성창 자리. 누르면 실행 확인창이 뜬다(입력창은 만들지 않는다 — 장식 금지). */
 .tw-compose {
   padding: var(--sp-3);
   border-bottom: 1px solid var(--tw-line);
+}
+
+/* 레퍼런스의 작성 입력줄과 같은 모양이되 동작은 버튼이다.
+   ux `touch-target-size`: 최소 44px. */
+.tw-compose-btn {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--tw-line-strong);
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-base);
+  text-align: left;
+  color: var(--tw-text-2);
+  cursor: pointer;
+}
+
+.tw-compose-btn:hover {
+  background: var(--tw-wash);
+  color: var(--tw-text);
+}
+
+/* ── 올릴 그림 고르기 (2026-08-08) ─────────────────────────
+   ⚠️ 썸네일은 **이미지 파일이 아니라 그라데이션 + 등급 글자**다(아바타·트윗 첨부와
+   같은 오프라인 규칙). 가로 스크롤인 이유는 그림이 무한히 쌓이기 때문이고,
+   세로로 늘리면 타임라인이 화면 밖으로 밀려난다. */
+.tw-arts {
+  padding: var(--sp-3);
+  border-bottom: 1px solid var(--tw-line);
+}
+
+.tw-arts-head {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--tw-text-2);
+}
+
+.tw-art-list {
+  display: flex;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0 0 var(--sp-1);
+  list-style: none;
+  overflow-x: auto;
+}
+
+.tw-art {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 108px;
+  padding: var(--sp-2);
+  border: 1px solid var(--tw-line-strong);
+  border-radius: var(--r-md);
+  background: var(--tw-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tw-art:hover {
+  background: var(--tw-wash);
+}
+
+/* 등급 글자를 판 한가운데 크게 둔다 — 잘 그렸는지는 그림이 아니라 등급이 말한다. */
+.tw-art-thumb {
+  display: grid;
+  place-items: center;
+  height: 60px;
+  margin-bottom: var(--sp-1);
+  border-radius: var(--r-sm);
+  background: linear-gradient(135deg, #1e293b 0%, #64748b 100%);
+  color: #ffffff; /* 어두운 판 위 흰 글자 — 합성 대비 7:1 이상 */
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+
+.tw-art-name {
+  overflow: hidden;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--tw-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tw-art-gain {
+  font-size: var(--fs-xs);
+  color: var(--tw-text-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .tw-posted {

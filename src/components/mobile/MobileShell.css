@@ -293,6 +293,8 @@
 .mo-app-body .chat-app,
 .mo-app-body .chat {
   --chat-caption-gap: var(--sp-3);
+  /* 증기도 같은 이유다 — 폰에는 캡션 버튼이 없으므로 오른쪽 여백을 되돌린다. */
+  --st-caption-gap: var(--sp-4);
 }
 
 .mo-app-body .ex {

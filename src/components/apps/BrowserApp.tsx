@@ -26,6 +26,7 @@ import { PublishSite } from './sites/PublishSite'
 import { RealtySite } from './sites/RealtySite'
 import { ShopSite } from './sites/ShopSite'
 import { TechSite } from './sites/TechSite'
+import { WearSite } from './sites/WearSite'
 import { TubeSite } from './sites/TubeSite'
 import { TwitterSite } from './sites/TwitterSite'
 import './BrowserApp.css'
@@ -311,9 +312,10 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         {site?.render === 'portal' && <NeverPortal onNavigate={goToSite} />}
         {site?.render === 'shop' && <ShopSite />}
         {site?.render === 'tech' && <TechSite site={site} />}
+        {site?.render === 'wear' && <WearSite site={site} />}
         {site?.render === 'tube' && <TubeSite />}
-        {/* 활동을 실행하는 사이트 3종. 둘러보기는 여전히 무료이고,
-            각 사이트 안의 확정 버튼(ActivityCommit) 하나만 1턴을 쓴다. */}
+        {/* 활동을 실행하는 사이트들. 둘러보기는 여전히 무료이고,
+            항목을 눌러 뜬 확인창(ActivityConfirm)의 실행 버튼만 1턴을 쓴다. */}
         {site?.render === 'library' && <LibrarySite site={site} />}
         {site?.render === 'cinema' && <CinemaSite site={site} />}
         {site?.render === 'publish' && <PublishSite site={site} />}

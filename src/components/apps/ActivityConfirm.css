@@ -56,6 +56,37 @@
   line-height: 1.4;
 }
 
+/* 활동의 증감이 아닌 사실(수강료·응시료·고른 회차). 증감 목록 위에 둔다 —
+   "무엇을 확정하는가"가 "얼마나 변하는가"보다 먼저 읽혀야 한다. */
+.acd-notes {
+  margin: var(--sp-4) 0 0;
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--os-fill);
+  font-size: var(--fs-sm);
+}
+
+.acd-note {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.acd-note + .acd-note {
+  margin-top: var(--sp-1);
+}
+
+.acd-note dt {
+  color: var(--os-text-3);
+}
+
+.acd-note dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
 .acd-effects {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -161,6 +192,31 @@
 
 .acd-run:active {
   background: var(--os-accent-press);
+}
+
+/* 바탕화면 등록. 주 CTA(실행)와 경쟁하지 않도록 글자 버튼으로 둔다
+   (style `primary-action`: 화면당 주 CTA는 하나). */
+.acd-shortcut {
+  display: block;
+  width: 100%;
+  margin-top: var(--sp-3);
+  padding: var(--sp-2);
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+  cursor: pointer;
+}
+
+.acd-shortcut:hover:not(:disabled) {
+  background: var(--os-fill);
+}
+
+.acd-shortcut:disabled {
+  color: var(--os-text-3);
+  cursor: default;
 }
 
 .acd-cost {

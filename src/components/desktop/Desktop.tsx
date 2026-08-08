@@ -86,7 +86,6 @@ export function Desktop() {
 
   const storedCells = useDesktopIconStore((s) => s.cells)
   const place = useDesktopIconStore((s) => s.place)
-  const resetLayout = useDesktopIconStore((s) => s.resetLayout)
 
   /** 플레이어가 만든 활동 바로 가기. 내장 아이콘과 **같은 격자**에 산다. */
   const shortcutIds = useShortcutStore((s) => s.activityIds)
@@ -111,7 +110,18 @@ export function Desktop() {
 
   const size = useMemo(() => gridSize(viewport.w, viewport.h), [viewport])
 
-  const entries = useMemo(() => desktopEntries(shortcutIds), [shortcutIds])
+  /**
+   * 조건부 항목(클립스튜디오·갤러리)이 나타날지 판정할 재료.
+   * ⚠️ 셀렉터는 **배열이 아니라 원본 참조**를 고른다 — 여기서 map으로 새 배열을 만들면
+   * 매 렌더 새 값이 되어 zustand가 무한 갱신을 돈다. 변환은 `useMemo`가 한다.
+   */
+  const inventory = useGameStore((s) => s.state?.inventory)
+  const ownedIds = useMemo(() => (inventory ?? []).map((i) => i.id), [inventory])
+
+  const entries = useMemo(
+    () => desktopEntries(shortcutIds, ownedIds),
+    [shortcutIds, ownedIds],
+  )
   /** 실제로 그려지는 바로 가기만 칸을 차지한다(없는 활동을 가리키는 것은 빠진다). */
   const shortcutEntryIds = useMemo(
     () => entries.filter((e) => e.shortcut).map((e) => e.id),
@@ -260,8 +270,6 @@ export function Desktop() {
     setDragPos(null)
   }
 
-  const hasMoved = Object.keys(storedCells).length > 0
-
   return (
     <div className={`desktop ${slot === 'afternoon' ? 'desktop-dusk' : 'desktop-day'}`}>
       {/* 아이콘은 **격자 칸에 절대 배치**된다(실제 윈도우의 "자동 정렬 끔 + 격자에 맞춤").
@@ -329,23 +337,11 @@ export function Desktop() {
           )
         })}
 
-        {/*
-         * 되돌리는 길. 옮긴 적이 있을 때만 나타난다.
-         *
-         * ux `gesture-alternative`("gesture-only 상호작용에 의존하지 말고 눈에 보이는
-         * 컨트롤을 둔다") + `undo-support`. 흩뜨려 놓고 나면 localStorage를 비우는 것
-         * 말고는 돌아올 길이 없다는 게 이 기능의 유일한 막다른 길이었다.
-         *
-         * **오른쪽 클릭 메뉴를 만들지 않은 이유:** 메뉴는 항목 하나를 위해 열기·닫기·
-         * 바깥 클릭·키보드 이동을 전부 새로 만들어야 하고, 그 메뉴가 존재한다는 사실도
-         * 따로 알려야 한다. 버튼은 **필요해진 순간에만 나타나** 스스로를 설명한다
-         * (기본 화면은 예전과 픽셀 단위로 같게 유지된다).
-         */}
-        {hasMoved && (
-          <button className="desktop-restore" onClick={resetLayout}>
-            아이콘 위치 초기화
-          </button>
-        )}
+        {/* ⚠️ **[아이콘 위치 초기화]는 여기 없다 — 작업 표시줄 트레이로 옮겼다.**
+            바탕화면 왼쪽 아래에 띄워 두었더니 프로그램 열이 바닥까지 차는 순간
+            마지막 아이콘의 이름을 덮었다. 아이콘은 위에서부터 채워지고 바로 가기까지
+            아래로 자라므로, **아이콘 판 안의 어떤 고정 자리도 언젠가는 가려진다.**
+            되돌리기 버튼을 다시 바탕화면에 놓지 말 것. */}
       </div>
 
       {/* 스탯창·날짜칸은 바탕화면 요소다 — 일반 창에 가려지는 것이 정상이며,

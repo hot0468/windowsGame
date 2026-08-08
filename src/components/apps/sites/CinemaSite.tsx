@@ -4,7 +4,7 @@ import { FILMS, MAIN_FILM_ID, findShowtime } from '../../../data/media'
 import { AppIcon } from '../../../icons/AppIcon'
 import type { Film, FilmSection } from '../../../data/media'
 import type { Site } from '../../../data/sites'
-import { ActivityCommit } from './ActivityCommit'
+import { ActivityConfirm } from '../ActivityConfirm'
 import './CinemaSite.css'
 
 /**
@@ -14,7 +14,7 @@ import './CinemaSite.css'
  * (행동력 -15 · 15,000원 · 멘탈 +8) — 자세한 사유는 `data/activities.ts`.
  *
  * **둘러보기는 무료다.** 포스터를 넘기고 회차를 고르는 동안 게임 상태는 움직이지 않는다.
- * 스탯을 움직이는 코드는 `ActivityCommit` 안의 확정 버튼 하나뿐이다.
+ * 스탯을 움직이는 코드는 회차를 눌렀을 때 뜨는 `ActivityConfirm`의 실행 버튼 하나뿐이다.
  *
  * ## 구조 (레퍼런스: 실제 멀티플렉스 홈)
  * 프로모션 띠 → 유틸 줄(로고) → 내비 → 히어로 배너 → 현재 상영작 TOP 5 →
@@ -180,25 +180,24 @@ export function CinemaSite({ site }: { site: Site }) {
         <span>내 진짜 주인은 바로 나! · 시집이 단독 개봉</span>
       </div>
 
-      <ActivityCommit
-        activity={activity}
-        actionLabel="예매하기"
-        selection={
-          picked
-            ? `「${picked.film.title}」 ${picked.showtime.time} ${picked.showtime.screen}`
-            : undefined
-        }
-        selectionHint="포스터를 눌러 회차를 고르세요."
-        onCommitted={() => {
-          setTicket(
-            picked
-              ? `「${picked.film.title}」 ${picked.showtime.time} ${picked.showtime.screen}`
-              : null,
-          )
-          setPickedId(null)
-          setOpenFilmId(null)
-        }}
-      />
+      {/* 회차를 누르면 곧바로 확인창이 뜬다 — 확정 패널은 폐기됐다(설계자 지시). */}
+      {picked && (
+        <ActivityConfirm
+          activity={activity}
+          kicker="시집이 예매"
+          title={`「${picked.film.title}」을(를) 예매하시겠습니까?`}
+          actionLabel="예매하기"
+          notes={[
+            { label: '회차', value: `${picked.showtime.time} · ${picked.showtime.screen}` },
+            { label: '잔여 좌석', value: `${picked.showtime.seats}석` },
+          ]}
+          onCommitted={() => {
+            setTicket(`「${picked.film.title}」 ${picked.showtime.time} ${picked.showtime.screen}`)
+            setOpenFilmId(null)
+          }}
+          onClose={() => setPickedId(null)}
+        />
+      )}
 
       <footer className="cine-foot">
         <p className="cine-foot-logo">시집이</p>

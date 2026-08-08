@@ -1,18 +1,21 @@
 import { useState } from 'react'
 import { findActivity } from '../../../data/activities'
+import { PAYOUT_INTERVAL_DAYS, WON_PER_FOLLOWER, artTitle } from '../../../data/artworks'
 import { TRENDING_TERMS } from '../../../data/news'
+import { countLabel, findAccount, tweetAge, TWEETS } from '../../../data/tweets'
+import { artGrade } from '../../../systems/artwork'
 import {
-  countLabel,
-  findAccount,
-  followersFrom,
-  tweetAge,
-  TWEETS,
-} from '../../../data/tweets'
+  daysToPayout,
+  followerGain,
+  postableArtworks,
+  totalFollowers,
+  weeklyIncome,
+} from '../../../systems/twitter'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
 import type { Site } from '../../../data/sites'
 import type { Tweet } from '../../../data/tweets'
-import { ActivityCommit } from './ActivityCommit'
+import { ActivityConfirm } from '../ActivityConfirm'
 import './TwitterSite.css'
 
 /**
@@ -33,7 +36,7 @@ import './TwitterSite.css'
  * - 우 **트렌드**: `data/news.ts`의 `TRENDING_TERMS`를 그대로 쓰고, 누르면 그 단어로 거른다.
  *
  * ⚠️ **탐색은 무료다.** 탭 전환·검색·트렌드 클릭은 `gameStore`를 **읽기만** 한다.
- * 상태를 바꾸는 자리는 작성창 자리에 놓인 확정 패널(`ActivityCommit`) 하나뿐이고,
+ * 상태를 바꾸는 자리는 작성창을 눌렀을 때 뜨는 확인창(`ActivityConfirm`) 하나뿐이고,
  * 실행 활동은 기존 `sns`다(`Site.activityId`로 가리키기만 한다 — 수치를 여기 적으면
  * 밸런스 테스트가 못 보는 두 번째 출처가 생긴다).
  *
@@ -46,12 +49,21 @@ export function TwitterSite({ site }: { site: Site }) {
   const [query, setQuery] = useState('')
   /** 방금 게시했는가. 목록이 그대로라 무슨 일이 있었는지 글자로 남긴다. */
   const [posted, setPosted] = useState(false)
+  /** 작성창을 눌렀는가. 글만 올릴 때는 고를 항목이 없어 작성창 자체가 그 자리다. */
+  const [composing, setComposing] = useState(false)
+  /** 올리려고 고른 그림 id. 그림 업로드는 **고를 것이 있는** 유일한 경로다. */
+  const [pickedArt, setPickedArt] = useState<string | null>(null)
+  const postArtwork = useGameStore((s) => s.postArtwork)
 
   if (!state) return null
 
   const activity = findActivity(site.activityId ?? '')
   const handle = handleOf(state.playerName)
-  const followers = followersFrom(state.stats.reputation)
+  /* ⚠️ **평판 파생값이 아니라 합계다**(2026-08-08). 그림 업로드로 번 몫이 붙으므로
+     `followersFrom` 하나로는 더 이상 참이 아니다 — 합치는 곳은 `totalFollowers` 하나다. */
+  const followers = totalFollowers(state)
+  const postable = postableArtworks(state)
+  const picked = pickedArt ? postable.find((a) => a.id === pickedArt) : undefined
 
   const q = query.trim()
   const shown = TWEETS.filter((t) => (tab === 'following' ? t.following : true)).filter((t) =>
@@ -87,11 +99,24 @@ export function TwitterSite({ site }: { site: Site }) {
               <span className="tw-me-handle">@{handle}</span>
             </span>
           </div>
-          {/* 평판에서 뽑은 파생값이다(읽기 전용). 무엇에서 나온 숫자인지 함께 적는다. */}
+          {/* 무엇에서 나온 숫자인지 함께 적는다 — 두 출처가 합쳐진 값이라 더 그렇다. */}
           <p className="tw-me-stats">
             <b>{countLabel(followers)}</b> 팔로워
-            <span className="tw-me-note">평판 {state.stats.reputation}에서 환산</span>
+            <span className="tw-me-note">
+              평판 {state.stats.reputation} 환산
+              {state.twitter && state.twitter.gained > 0
+                ? ` + 그림 ${countLabel(state.twitter.gained)}`
+                : ''}
+            </span>
           </p>
+          {/* ⚠️ 올린 적이 있어야 그린다 — 정산 커서(`paidDay`)가 그때 처음 생긴다.
+              장식이 아니라 **실제로 그날 들어오는 금액**이다. */}
+          {state.twitter && (
+            <p className="tw-me-stats">
+              <b>{weeklyIncome(state).toLocaleString('ko-KR')}원</b> 주간 수익
+              <span className="tw-me-note">{daysToPayout(state)}일 뒤 정산</span>
+            </p>
+          )}
         </nav>
 
         {/* ── 중앙: 탭 + 작성(확정) + 타임라인 ───────────────── */}
@@ -119,25 +144,99 @@ export function TwitterSite({ site }: { site: Site }) {
 
           {/*
             ⚠️ 레퍼런스의 작성창("무슨 일이 일어나고 있나요?") 자리다.
-            **별도 작성 UI를 만들지 않는다** — 확정 버튼이 둘로 보이면 안 되고,
-            이 패널이 지는 약속 넷(증감 미리보기·번아웃·조건 미달·오후 생활비)을
-            따로 만들면 반드시 하나를 빠뜨린다.
+            **입력창은 만들지 않는다** — 받은 글이 게임 어디에도 쓰이지 않아 장식이 된다
+            (아점의 본문 입력창을 뺀 것과 같은 이유). 누르면 확인창이 뜨는 자리일 뿐이다.
           */}
           {activity && (
             <div className="tw-compose">
-              <ActivityCommit
-                activity={activity}
-                actionLabel="게시하기"
-                selection="피드를 올리고 남의 피드를 내린다"
-                selectionHint="게시하면 1턴이 지납니다."
-                onCommitted={() => setPosted(true)}
-              />
+              <button
+                type="button"
+                className="tw-compose-btn"
+                onClick={() => setComposing(true)}
+              >
+                무슨 일이 일어나고 있나요?
+              </button>
               {posted && (
                 <p className="tw-posted" role="status">
                   게시했습니다. 타임라인에 남은 사람들의 하루는 계속 흐릅니다.
                 </p>
               )}
             </div>
+          )}
+
+          {/*
+            ⚠️ **그림 업로드 자리.** 여기가 이 사이트에서 유일하게 "고를 것이 있는" 곳이다
+            (원래 트위터는 고를 것이 없는 활동 사이트였다 — 그 규칙이 그림으로 깨졌다).
+            올릴 그림이 없으면 **줄 자체를 안 그린다** — 빈 목록은 장식이다.
+            등급을 칩으로 적는 이유는 ux `color-not-only`: 팔로워가 얼마나 느는지는
+            등급이 정하는데, 그림 자체는 그라데이션이라 잘 그렸는지 눈으로는 알 수 없다.
+          */}
+          {activity && postable.length > 0 && (
+            <div className="tw-arts">
+              <p className="tw-arts-head">올릴 그림 고르기</p>
+              <ul className="tw-art-list">
+                {postable.map((work) => (
+                  <li key={work.id}>
+                    <button
+                      type="button"
+                      className="tw-art"
+                      onClick={() => setPickedArt(work.id)}
+                      title={`${artTitle(work.serial)} · ${work.day}일차에 그렸다`}
+                    >
+                      <span className="tw-art-thumb" aria-hidden="true">
+                        {artGrade(work)}
+                      </span>
+                      <span className="tw-art-name">{artTitle(work.serial)}</span>
+                      <span className="tw-art-gain">
+                        {followerGain(work) > 0
+                          ? `팔로워 +${countLabel(followerGain(work))}`
+                          : '반응 없음'}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {activity && picked && (
+            <ActivityConfirm
+              activity={activity}
+              kicker="트위터"
+              title={`「${artTitle(picked.serial)}」을(를) 올리시겠습니까?`}
+              actionLabel="올리기"
+              /* ⚠️ 등급과 팔로워 증가분은 활동 증감에 안 잡힌다 — 그래서 `notes`다
+                 (수강료·응시료와 같은 규칙: 사이트가 따로 그리면 그 창만 거짓을 말한다). */
+              notes={[
+                { label: '그림 등급', value: `${artGrade(picked)}등급` },
+                {
+                  label: '늘어나는 팔로워',
+                  value:
+                    followerGain(picked) > 0
+                      ? `+${followerGain(picked).toLocaleString('ko-KR')}명`
+                      : '없음 — 등급이 낮아 아무도 보지 않는다',
+                },
+                {
+                  label: '주간 정산',
+                  value: `팔로워 1명당 ${WON_PER_FOLLOWER}원씩 ${PAYOUT_INTERVAL_DAYS}일마다`,
+                },
+              ]}
+              onCommit={() => postArtwork(picked.id)}
+              onCommitted={() => setPosted(true)}
+              onClose={() => setPickedArt(null)}
+            />
+          )}
+
+          {activity && composing && (
+            <ActivityConfirm
+              activity={activity}
+              kicker="트위터"
+              title="지금 겪은 것을 올리시겠습니까?"
+              actionLabel="게시하기"
+              notes={[{ label: '올리면', value: '피드를 올리고 남의 피드를 내린다' }]}
+              onCommitted={() => setPosted(true)}
+              onClose={() => setComposing(false)}
+            />
           )}
 
           <ul className="tw-feed">

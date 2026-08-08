@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { BOOKMARK_SITES, findSite, HOME_SITE_ID, PROMO_SITES, resolveUrl, SITES } from './sites'
+import {
+  BOOKMARK_SITES,
+  findSite,
+  HOME_SITE_ID,
+  PROMO_SITES,
+  resolveUrl,
+  SITES,
+  STORE_SITES,
+} from './sites'
 import { TRENDING_TERMS } from './news'
 import { findActivity } from './activities'
 import { BOOKS, FILMS, findShowtime, WRITING_PROMPTS } from './media'
@@ -55,16 +63,17 @@ describe('사이트 목록', () => {
 
   it('퀵메뉴와 하단 소개 섹션은 겹치지 않는다', () => {
     // 같은 사이트가 화면에 두 번 나오면 어느 쪽이 본체인지 알 수 없다.
-    expect(PROMO_SITES.map((s) => s.id)).toEqual([
-      'albamon',
-      'flea',
-      'onet',
-      'shopping',
-      'himaru',
-      'bank',
-      'realty',
-    ])
+    expect(PROMO_SITES.map((s) => s.id)).toEqual(['albamon', 'flea', 'onet', 'bank', 'realty'])
     for (const s of PROMO_SITES) expect(s.bookmark).toBeUndefined()
+  })
+
+  it('가게는 상단 쇼핑 섹션에만 뜬다 (하단 소개와 겹치지 않는다)', () => {
+    // 물건을 파는 곳은 뉴스 위 상단 섹션이 그린다 — 하단에도 있으면 같은 카드가 둘이 된다.
+    expect(STORE_SITES.map((s) => s.id)).toEqual(['shopping', 'himaru', 'mujinjang'])
+    for (const s of STORE_SITES) {
+      expect(s.promo).toBeDefined() // 카드 부품이 같으므로 소개 문구가 없으면 빈 카드가 뜬다
+      expect(PROMO_SITES).not.toContain(s)
+    }
   })
 
   it('실시간 검색어의 siteId는 실제 사이트를 가리킨다 (죽은 링크 방지)', () => {

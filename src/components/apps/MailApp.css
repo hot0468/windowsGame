@@ -292,5 +292,5 @@
 }
 
 .mail-back:hover {
-  background: var(--os-hover);
+  background: var(--os-fill);
 }

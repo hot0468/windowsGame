@@ -251,8 +251,11 @@
  * 이 창에서만 상한을 푼다 — 실제 높이는 `.sch`의 min-height가 정한다.
  */
 /* 파일 탐색기도 같은 이유다 — 목록 창이라 세로로 커야 하고, 실제 높이는 `.ex`가 정한다. */
+/* 솔리테어도 같다 — 작업 더미가 13장까지 쌓이는 판이라 60vh에서 잘리면 아랫장이 안 보인다. */
+/* ⚠️ 증기는 여기 없다 — `bareTitle` 창이라 아래 `.win-bare .win-body`가 상한을 따로 쥔다. */
 .win-body:has(> .sch),
-.win-body:has(> .ex) {
+.win-body:has(> .ex),
+.win-body:has(> .sol) {
   max-height: none;
 }
 

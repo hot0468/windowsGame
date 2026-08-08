@@ -36,8 +36,8 @@ import './BankSite.css'
  *
  * ## 이 사이트가 다른 사이트와 다른 점
  * ⚠️ **활동을 실행하지 않는 유일한 사이트다.** 미디북스·시집이·아점·알바몬·벼룩장터는
- * 전부 확정 패널(`ActivityCommit`)로 **1턴을 쓰는데**, 은행 거래는 **턴을 쓰지 않는다**
- * (쇼핑 주문과 같은 규칙 — "탐색은 무료"). 그래서 `ActivityCommit`도 `activityId`도 없다.
+ * 전부 항목을 눌러 뜬 확인창(`ActivityConfirm`)으로 **1턴을 쓰는데**, 은행 거래는
+ * **턴을 쓰지 않는다**(쇼핑 주문과 같은 규칙 — "탐색은 무료"). 그래서 확인창도 `activityId`도 없다.
  *
  * 대신 이 사이트가 지는 약속은 **"누르기 전에 대가를 전부 보여 준다"**로 같다:
  *  - 예금에 넣으면 그 돈이 **오늘 밤 생활비로 안 쓰인다**는 사실을 적는다.
@@ -60,7 +60,18 @@ import './BankSite.css'
  * - ux `disabled-states`·`error-clarity`: 못 하는 거래는 **비활성 + 사유를 글자로**.
  * - ux `confirmation-dialogs`·`destructive-emphasis`: 대출은 확인을 거치고 구역을 분리한다.
  * - ux `empty-states`: 내역이 없으면 무엇을 하면 되는지 적는다.
+ * - ux `tabs`: 예금·대출·거래 내역은 탭으로 접는다. ⚠️ **잔액 요약(KPI)만 상시**다 —
+ *   어느 탭에 있든 "지금 얼마인가"가 판단의 전제이고, 대출 위험도 빚 칸이 상시로 알린다.
  */
+
+/** 탭 셋. 라벨과 부제가 여기 하나에만 있다(구 `.bank-sec-head`가 지던 자리). */
+const TABS = [
+  { id: 'deposit', label: '예금', note: '맡긴 돈에는 매일 밤 이자가 붙습니다' },
+  { id: 'loan', label: '대출', note: '한도는 직장이 정합니다' },
+  { id: 'ledger', label: '거래 내역', note: '최근 것이 위에 옵니다' },
+] as const
+
+type TabId = (typeof TABS)[number]['id']
 
 /** 금액 서식. 화면 전체가 이 함수 하나만 쓴다(자리마다 다르게 적으면 표가 어긋난다). */
 function won(v: number): string {
@@ -142,6 +153,7 @@ export function BankSite({ site }: { site: Site }) {
   const [loanInput, setLoanInput] = useState(String(LOAN_MIN))
   /** 대출 확인 단계. ux `confirmation-dialogs` — 되돌릴 수 없는 조작은 두 번 묻는다. */
   const [confirmLoan, setConfirmLoan] = useState(false)
+  const [tab, setTab] = useState<TabId>('deposit')
 
   if (!state) return null
 
@@ -224,13 +236,44 @@ export function BankSite({ site }: { site: Site }) {
         </p>
       </section>
 
-      {/* ── 예금 ─────────────────────────────────────── */}
-      <section className="bank-sec" aria-label="예금">
-        <h2 className="bank-sec-head">
-          예금
-          <span className="bank-sec-note">맡긴 돈에는 매일 밤 이자가 붙습니다</span>
-        </h2>
+      {/* ── 탭 줄 (ux tabs) ─────────────────────────── */}
+      <div className="bank-tabs" role="tablist" aria-label="은행 업무">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            id={`bank-tab-${t.id}`}
+            aria-selected={tab === t.id}
+            aria-controls={`bank-panel-${t.id}`}
+            /* 로빙 탭인덱스 — 탭 줄은 Tab 한 번, 안에서는 좌우 화살표로 옮긴다. */
+            tabIndex={tab === t.id ? 0 : -1}
+            className={`bank-tab${tab === t.id ? ' bank-tab-on' : ''}`}
+            onClick={() => setTab(t.id)}
+            onKeyDown={(e) => {
+              const dir = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+              if (!dir) return
+              e.preventDefault()
+              const i = TABS.findIndex((x) => x.id === tab)
+              const next = TABS[(i + dir + TABS.length) % TABS.length]
+              setTab(next.id)
+              document.getElementById(`bank-tab-${next.id}`)?.focus()
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+        <span className="bank-sec-note">{TABS.find((t) => t.id === tab)?.note}</span>
+      </div>
 
+      {/* ── 예금 ─────────────────────────────────────── */}
+      <section
+        className="bank-sec"
+        role="tabpanel"
+        id="bank-panel-deposit"
+        aria-labelledby="bank-tab-deposit"
+        hidden={tab !== 'deposit'}
+      >
         <div className="bank-cards">
           {/* 자유예금 */}
           <div className="bank-card">
@@ -347,12 +390,13 @@ export function BankSite({ site }: { site: Site }) {
       </section>
 
       {/* ── 대출 ─────────────────────────────────────── */}
-      <section className="bank-sec" aria-label="대출">
-        <h2 className="bank-sec-head">
-          대출
-          <span className="bank-sec-note">한도는 직장이 정합니다</span>
-        </h2>
-
+      <section
+        className="bank-sec"
+        role="tabpanel"
+        id="bank-panel-loan"
+        aria-labelledby="bank-tab-loan"
+        hidden={tab !== 'loan'}
+      >
         <div className="bank-cards">
           <div className="bank-card bank-card-loan">
             <h3 className="bank-card-title">
@@ -480,11 +524,13 @@ export function BankSite({ site }: { site: Site }) {
       </section>
 
       {/* ── 거래 내역 ────────────────────────────────── */}
-      <section className="bank-sec" aria-label="거래 내역">
-        <h2 className="bank-sec-head">
-          거래 내역
-          <span className="bank-sec-note">최근 것이 위에 옵니다</span>
-        </h2>
+      <section
+        className="bank-sec"
+        role="tabpanel"
+        id="bank-panel-ledger"
+        aria-labelledby="bank-tab-ledger"
+        hidden={tab !== 'ledger'}
+      >
         {bank.ledger.length === 0 ? (
           /* ux empty-states — 빈 표 대신 무엇을 하면 되는지 적는다. */
           <p className="bank-empty">

@@ -6,18 +6,18 @@ import { useGameStore } from '../../../store/gameStore'
 import { blockReason, sessionsOf, isCompleted } from '../../../systems/courses'
 import type { Course } from '../../../data/courses'
 import type { Site } from '../../../data/sites'
-import { ActivityCommit } from './ActivityCommit'
+import { ActivityConfirm } from '../ActivityConfirm'
 import './CampusSite.css'
 
 /**
- * 슬로우캠퍼스 — 온라인 강의 사이트. 확정 버튼이 강의가 가리키는 활동을 실행한다.
+ * 슬로우캠퍼스 — 온라인 강의 사이트. 강의를 누르면 그 강의가 가리키는 활동이 확인창에 오른다.
  *
  * **둘러보기는 무료다.** 목록을 넘기고 강의를 고르는 동안 게임 상태는 읽기만 한다 —
- * 스탯을 움직이는 코드는 `ActivityCommit`의 확정 버튼 하나뿐이다.
+ * 스탯을 움직이는 코드는 확인창(`ActivityConfirm`)의 실행 버튼 하나뿐이다.
  *
  * ## 구조 (레퍼런스: 실제 온라인 클래스 사이트 홈)
  * 상단 띠(마감 임박) → 헤더(로고·검색·로그인) → 카테고리 네비 →
- * [좌측 필터(분류·난이도) | 본문(Top3 순위 → 전체 강의 격자)] → 확정 패널 → 푸터.
+ * [좌측 필터(분류·난이도) | 본문(Top3 순위 → 전체 강의 격자)] → 푸터.
  *
  * ⚠️ **구독은 만들지 않는다**(설계자 지시). 레퍼런스 최상단의 구독 CTA 자리에는
  * 대신 **수료증 안내**를 둔다 — 이 사이트가 실제로 파는 것은 강의 단건이고,
@@ -179,47 +179,37 @@ export function CampusSite({ site }: { site: Site }) {
             )}
           </section>
 
+          {/*
+            강의를 누르면 곧바로 확인창이 뜬다 — 확정 패널은 폐기됐다(설계자 지시).
+            ⚠️ 수강료는 활동의 비용이 아니라 사이트가 따로 받는 돈이라 미리보기에 안 잡힌다.
+            `notes`로 넘겨 같은 창에서 알린다 — 누르기 전에 비용을 다 알 수 있어야 한다.
+          */}
           {picked && pickedActivity && (
-            <section className="cam-sec">
-              <div className="cam-receipt">
-                <div className="cam-receipt-row">
-                  <span className="cam-receipt-label">수강 신청</span>
-                  <strong className="cam-receipt-title">{picked.title}</strong>
-                </div>
-                <div className="cam-receipt-row">
-                  <span className="cam-receipt-label">수강료</span>
-                  <strong className="cam-receipt-price">
-                    {picked.price.toLocaleString()}원
-                  </strong>
-                </div>
-                <div className="cam-receipt-row">
-                  <span className="cam-receipt-label">수강 이력</span>
-                  <span className="cam-receipt-prog">
-                    {sessionsOf(state, picked.id)} / {CERTIFICATE_SESSIONS}회
-                    {picked.certificateItemId
+            <ActivityConfirm
+              activity={pickedActivity}
+              kicker="슬로우캠퍼스"
+              title={`『${picked.title}』을(를) 수강하시겠습니까?`}
+              actionLabel={`${picked.price.toLocaleString()}원 결제하고 수강하기`}
+              notes={[
+                { label: '수강료', value: `${picked.price.toLocaleString()}원` },
+                {
+                  label: '수강 이력',
+                  value: `${sessionsOf(state, picked.id)} / ${CERTIFICATE_SESSIONS}회${
+                    picked.certificateItemId
                       ? isCompleted(state, picked.id)
-                        ? ' — 수료증 발급 완료'
-                        : ' — 다 들으면 수료증이 나옵니다'
-                      : ' — 이 강의에는 수료증이 없습니다'}
-                  </span>
-                </div>
-                {/* ⚠️ 수강료는 활동의 비용이 아니므로 ActivityCommit의 미리보기에 안 잡힌다.
-                    여기서 따로 알린다 — 누르기 전에 비용을 다 알 수 있어야 한다. */}
-                {blocked && <p className="cam-blocked">{blocked}</p>}
-              </div>
-
-              <ActivityCommit
-                activity={pickedActivity}
-                actionLabel={`${picked.price.toLocaleString()}원 결제하고 수강하기`}
-                selection={blocked ? undefined : picked.title}
-                selectionHint={blocked ?? '수강할 강의를 고르세요.'}
-                onCommit={() => {
-                  takeCourse(picked)
-                  setTaken(picked.title)
-                }}
-                onCommitted={() => setPickedId(null)}
-              />
-            </section>
+                        ? ' · 수료증 발급 완료'
+                        : ' · 다 들으면 수료증'
+                      : ' · 수료증 없음'
+                  }`,
+                },
+              ]}
+              blocked={blocked ?? undefined}
+              onCommit={() => {
+                takeCourse(picked)
+                setTaken(picked.title)
+              }}
+              onClose={() => setPickedId(null)}
+            />
           )}
 
           {taken && <p className="cam-done">『{taken}』 수강을 마쳤습니다.</p>}

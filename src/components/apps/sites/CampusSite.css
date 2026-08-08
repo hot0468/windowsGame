@@ -342,45 +342,6 @@
   font-size: var(--fs-xs);
 }
 
-/* ── 결제 요약 ── */
-.cam-receipt {
-  padding: var(--sp-4);
-  margin-bottom: var(--sp-4);
-  border: 1px solid var(--cm-line);
-  border-radius: var(--r-lg);
-  background: #fafafa;
-}
-.cam-receipt-row {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-3);
-  padding: var(--sp-1) 0;
-}
-.cam-receipt-label {
-  flex: 0 0 72px;
-  color: var(--cm-text-2);
-  font-size: var(--fs-xs);
-}
-.cam-receipt-title {
-  font-weight: 700;
-}
-.cam-receipt-price {
-  color: var(--cm-coral);
-  font-size: var(--fs-md);
-}
-.cam-receipt-prog {
-  color: var(--cm-text-2);
-  font-size: var(--fs-xs);
-}
-/* 못 듣는 이유. 색만이 아니라 글자로 사유를 적는다(ux `error-clarity`). */
-.cam-blocked {
-  margin: var(--sp-2) 0 0;
-  padding: var(--sp-2) var(--sp-3);
-  border-radius: var(--r-sm);
-  background: #fdecec;
-  color: #a3282e; /* #fdecec 위 6.4:1 */
-  font-size: var(--fs-xs);
-}
 .cam-done {
   margin: 0;
   padding: var(--sp-3);

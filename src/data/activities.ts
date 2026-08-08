@@ -186,6 +186,36 @@ export const ACTIVITIES: Activity[] = [
   },
   {
     /*
+     * 클립스튜디오. **타블렛(팬 또는 액정)을 사야 열린다** — `requiresItem`이 배열인
+     * 유일한 활동이고, 그것이 "장비 차이는 여는 문이 아니라 결과의 등급"이라는 결정이다
+     * (`systems/turn.ts`의 `ownsRequired`, 등급은 `systems/artwork.ts`).
+     *
+     * ⚠️ **실행할 때마다 그림 한 장이 갤러리에 쌓인다**(`producesArt`). 이 게임에서
+     * 활동이 아이템을 만들어 내는 유일한 자리다 — 그 그림이 트위터 업로드의 재료이고,
+     * 그래서 이 활동은 스탯만 올리는 활동과 성격이 다르다(쌓인 것이 나중에 돈이 된다).
+     *
+     * 수치는 개인방송(`stream`)과 나란히 읽히게 잡았다: 돈을 **한 푼도 주지 않는 대신**
+     * 행동력을 덜 먹고 멘탈도 덜 깎는다(-18 / -3 vs -22 / -8). 그리는 것 자체가 수입이
+     * 아니라 **재고를 쌓는 일**이고, 값은 올렸을 때 팔로워로 돌아온다.
+     * 예술 +12는 `ART_MASTERY`(300) 기준 24회면 S 언저리가 되도록 잡은 값이다 —
+     * 여기를 키우면 `data/artworks.ts`의 기준도 함께 봐야 한다.
+     *
+     * 번아웃 키가 따로인 이유는 `stream`·`gig`와 같다: 남의 키를 빌리면 그쪽 불변식
+     * (알바는 넷 / 외주는 수료증 계열)이 조용히 깨진다.
+     */
+    id: 'draw',
+    label: '클립스튜디오',
+    icon: 'fluent-color:paint-brush-24',
+    category: 'leisure',
+    description: '타블렛을 켜고 한 장을 끝까지 그린다. 마지막 10분이 제일 길다.',
+    effects: { art: 12, creativity: 9, sensitivity: 2, stamina: -18, mental: -3 },
+    requires: { stamina: 18 },
+    requiresItem: ['pen-tablet', 'lcd-tablet'],
+    producesArt: true,
+    burnoutKey: 'draw',
+  },
+  {
+    /*
      * 헬스장 1일권. 회원권으로 가는 것(gym-member)과 효과가 같고 **돈만 더 든다** —
      * 그래서 회원권 쪽에 `requiresItem` 잠금이 걸려 있어야만 이 활동이 존재 이유를 갖는다.
      * 잠금이 없던 동안 1일권은 순수하게 열등한 선택지였다(2026-08-04 수정).
@@ -212,6 +242,41 @@ export const ACTIVITIES: Activity[] = [
     effects: { maxStamina: 6, stamina: -20, mental: 2 },
     requires: { stamina: 20 },
     requiresItem: 'gym-pass',
+  },
+  /*
+   * ── 미용실 2종 (2026-08-08) ──
+   * ⚠️ **헬스장과 완전히 같은 구조다**(1회권 / 정기권 잠금). 다른 것은 올리는 스탯뿐:
+   * 헬스장이 `maxStamina`(그릇)를 키운다면 미용실은 **매력**을 키운다.
+   * 같은 구조를 되풀이하는 것이 의도다 — 플레이어가 "오픈채팅에서 파는 것은 이렇게
+   * 동작한다"를 한 번만 배우면 된다(`gym-pass` ← `gym-member`와 같은 방향).
+   *
+   * ⚠️ **`social`(메신저, 매력 5 · 멘탈 +8)과 성격을 갈라 뒀다.** 미용실은 멘탈을 거의
+   * 안 주는 대신 행동력이 싸다 — 둘이 같은 값이면 매력을 올리는 방법이 하나로 줄어든다.
+   */
+  {
+    /* 1회 방문. 정기권으로 가는 것(salon-member)과 효과가 같고 **돈만 더 든다**. */
+    id: 'salon-visit',
+    label: '미용실 (1회)',
+    icon: 'fluent-color:person-starburst-24',
+    category: 'body',
+    description: '커트하고 드라이까지 받는다. 거울 속이 조금 낯설다.',
+    effects: { charm: 6, mental: 2, stamina: -10, money: -25000 },
+    requires: { stamina: 10, money: 25000 },
+  },
+  {
+    /*
+     * 정기권 소지자 전용. 갈 때 돈이 나가지 않는 대신 **정기권을 먼저 사야 한다**
+     * (쇼핑 또는 미용실 오픈채팅 — 둘 다 같은 아이템 `salon-pass`를 주문한다).
+     * 판정은 `canRun`이 하므로 예약해 뒀다가 실행되는 경로도 똑같이 막힌다.
+     */
+    id: 'salon-member',
+    label: '미용실 (정기권)',
+    icon: 'fluent-color:person-starburst-24',
+    category: 'body',
+    description: '정기권으로 간다. 추가 비용은 없다.',
+    effects: { charm: 6, mental: 2, stamina: -10 },
+    requires: { stamina: 10 },
+    requiresItem: 'salon-pass',
   },
   /*
    * ── 수료증이 여는 활동 2종 (2026-08-05 슬로우캠퍼스) ──
@@ -510,5 +575,9 @@ export function plannableOf(category: ActivityCategory): Activity[] {
  * 같은 관계가 두 곳에 생겨 한쪽만 고치는 사고가 난다. `requiresItem` 하나에서 뒤집어 찾는다.
  */
 export function activitiesUnlockedBy(itemId: string): Activity[] {
-  return ACTIVITIES.filter((a) => a.requiresItem === itemId)
+  // ⚠️ `requiresItem`은 문자열이거나 **배열("그중 아무거나 하나")**이다. 문자열만 보면
+  //    타블렛 둘이 여는 클립스튜디오가 두 가게 화면 어디에도 "이걸 왜 사나"를 못 적는다.
+  return ACTIVITIES.filter((a) =>
+    Array.isArray(a.requiresItem) ? a.requiresItem.includes(itemId) : a.requiresItem === itemId,
+  )
 }

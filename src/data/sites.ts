@@ -30,7 +30,7 @@ export type SiteRender =
   | 'cert'
   /**
    * 네이놈은행 — 예금·대출. ⚠️ **활동을 실행하지 않는 유일한 "기능 사이트"다**
-   * (`activityId`가 없다). 거래는 턴을 쓰지 않으므로 확정 패널(`ActivityCommit`)도 없다.
+   * (`activityId`가 없다). 거래는 턴을 쓰지 않으므로 실행 확인창(`ActivityConfirm`)도 없다.
    */
   | 'bank'
   /**
@@ -45,6 +45,12 @@ export type SiteRender =
    * 컬리엔마트와 갈라 둔 것은 **진열 축**뿐이다(`ShopItem.store`).
    */
   | 'tech'
+  /**
+   * 무진장 — 의류 쇼핑몰. **하이마루와 같은 부류다**(물건을 팔고 턴을 쓰지 않는다).
+   * 다른 것은 파는 물건의 성격뿐이다: 옷은 도착해도 스탯을 주지 않고,
+   * **가지고 있는 동안 TPO가 맞는 활동의 성장 상승분을 키운다**(`ShopItem.outfit`).
+   */
+  | 'wear'
   /**
    * 트위터 — 3열 타임라인. 미디북스('library')와 같은 부류다: **고르는 것이 없고**
    * 사이트가 가리키는 활동(`sns`) 하나를 확정 패널이 그대로 실행한다.
@@ -194,8 +200,8 @@ export const SITES: Site[] = [
      * 같은 "물건을 사는 곳"이고 배송 규칙도 똑같다. 다른 것은 진열하는 물건뿐이다
      * (`ShopItem.store === 'tech'`).
      *
-     * ⚠️ **은행·부동산과 같이 `activityId`가 없다** — 주문은 턴을 쓰지 않으므로 확정
-     * 패널(`ActivityCommit`)도 없다(`sites.test.ts`가 지킨다). 비용은 슬롯이 아니라
+     * ⚠️ **은행·부동산과 같이 `activityId`가 없다** — 주문은 턴을 쓰지 않으므로 실행
+     * 확인창(`ActivityConfirm`)도 없다(`sites.test.ts`가 지킨다). 비용은 슬롯이 아니라
      * **돈과 배송 하루**다.
      *
      * 이름은 가전 양판점 상호("하이마트")의 호의적 패러디이고 실존 상호가 아니다.
@@ -212,6 +218,26 @@ export const SITES: Site[] = [
       title: '전자기기 전문관',
       desc: '장비를 갖추면 할 수 있는 일이 늘어납니다',
       gradient: 'linear-gradient(135deg, #9a3412 0%, #ea580c 100%)',
+    },
+  },
+  {
+    /*
+     * 무진장 — 의류. 하이마루 뒤에 두는 것이 자리의 뜻이다(둘 다 "물건을 사는 곳").
+     * ⚠️ **은행·부동산·하이마루와 같이 `activityId`가 없다** — 주문은 턴을 쓰지 않는다.
+     * 이름은 실존 패션 플랫폼의 호의적 패러디이고 실존 상호가 아니다.
+     */
+    id: 'mujinjang',
+    url: 'https://www.mujinjang.com',
+    title: '무진장',
+    // ⚠️ O넷이 `ribbon-star-24`를 쓴다 — 사이트 아이콘은 서로 겹치면 안 된다(`sites.test.ts`).
+    icon: 'fluent-color:ribbon-24',
+    render: 'wear',
+    notice: '주문한 옷은 다음 날 도착합니다.',
+    promo: {
+      tag: '무진장',
+      title: '때와 장소에 맞는 옷',
+      desc: '갖춰 입으면 같은 일을 해도 조금 더 남습니다',
+      gradient: 'linear-gradient(135deg, #831843 0%, #be185d 100%)',
     },
   },
   {
@@ -337,8 +363,22 @@ export const HOME_SITE_ID = 'never'
 /** 포털 홈 퀵메뉴에 그릴 사이트. 컴포넌트가 id를 나열하지 않는다. */
 export const BOOKMARK_SITES: Site[] = SITES.filter((s) => s.bookmark)
 
-/** 포털 홈 하단 소개 섹션에 그릴 사이트. 퀵메뉴와 겹치지 않는다. */
-export const PROMO_SITES: Site[] = SITES.filter((s) => s.promo)
+/**
+ * 물건을 파는 사이트. 포털 홈에서 **상단 쇼핑 섹션**으로 올라간다(설계자 지시).
+ *
+ * ⚠️ **`Site`에 플래그를 더하지 않는다** — "물건을 파는 곳"은 `render`가 이미 아는 사실이고
+ * (`'shop'`=네이놈쇼핑 / `'tech'`=하이마루), 플래그를 더하면 같은 사실이 두 곳에 적혀
+ * 한쪽만 고치는 사고가 난다. 새 가게가 생기면 `render` 값 하나가 여기에 늘어난다.
+ */
+export const STORE_SITES: Site[] = SITES.filter(
+  (s) => s.render === 'shop' || s.render === 'tech' || s.render === 'wear',
+)
+
+/**
+ * 포털 홈 하단 소개 섹션에 그릴 사이트. 퀵메뉴와 겹치지 않는다.
+ * ⚠️ **가게는 여기서 빠진다** — 위 `STORE_SITES`가 상단에서 이미 그린다(같은 카드가 둘이 된다).
+ */
+export const PROMO_SITES: Site[] = SITES.filter((s) => s.promo && !STORE_SITES.includes(s))
 
 export function findSite(id: string): Site | undefined {
   return SITES.find((s) => s.id === id)

@@ -29,14 +29,14 @@ import { STAT_NAMES } from '../../../types/game'
 import type { Career } from '../../../data/careers'
 import type { Site } from '../../../data/sites'
 import type { GameState, Stats } from '../../../types/game'
-import { ActivityCommit } from './ActivityCommit'
+import { ActivityConfirm } from '../ActivityConfirm'
 import './FleaSite.css'
 
 /**
  * 벼룩장터 — **정규직** 구인. 알바몬(일용직)과 나란히 서지만 하는 일이 다르다.
  *
  * **둘러보기는 무료다.** 공고를 넘기고 요건을 확인하는 동안 게임 상태는 **읽기만** 한다 —
- * 턴을 쓰는 자리는 화면 아래 확정 패널(`ActivityCommit`) 하나뿐이고, 그 패널이 무엇을
+ * 턴을 쓰는 자리는 항목을 눌렀을 때 뜨는 확인창(`ActivityConfirm`) 하나뿐이고, 그 창이 무엇을
  * 확정하는지는 **지금의 고용 상태**가 정한다: 무직이면 지원, 면접 차례면 면접, 재직 중이면 출근.
  *
  * ## 시각 언어 (레퍼런스가 스펙이다)
@@ -90,6 +90,8 @@ export function FleaSite({ site }: { site: Site }) {
   const state = useGameStore((s) => s.state)
   const applyToCareer = useGameStore((s) => s.applyToCareer)
   const [pickedId, setPickedId] = useState<string | null>(null)
+  /** 면접·출근 버튼을 눌렀는가. 이 둘은 고를 공고가 없어 `pickedId`로 열 수 없다. */
+  const [acting, setActing] = useState(false)
   const [query, setQuery] = useState('')
   /** 방금 지원한 곳. 확정 후 목록이 그대로라 무슨 일이 있었는지 글자로 남긴다. */
   const [receipt, setReceipt] = useState<string | null>(null)
@@ -104,7 +106,7 @@ export function FleaSite({ site }: { site: Site }) {
   const blockers = applyBlockers(state)
   const shown = CAREERS.filter((c) => matches(c, query))
 
-  /** 확정 패널이 무엇을 확정하는가. 고용 상태 하나가 정한다. */
+  /** 어떤 활동을 확정하는가. 고용 상태 하나가 정한다. */
   const mode: 'commute' | 'interview' | 'apply' = job
     ? 'commute'
     : app?.stage === 'interview'
@@ -113,6 +115,8 @@ export function FleaSite({ site }: { site: Site }) {
   const commitActivity = findActivity(
     mode === 'commute' ? 'commute' : mode === 'interview' ? 'job-interview' : (site.activityId ?? ''),
   )
+  /** 확인창이 무엇을 확정하는가. null이면 창이 닫혀 있다. */
+  const confirming = mode === 'apply' ? picked : acting ? (career ?? applied) : undefined
 
   return (
     <div className="flea">
@@ -205,6 +209,10 @@ export function FleaSite({ site }: { site: Site }) {
                       : '오늘은 근무일이고 아직 출근하지 않았습니다.'
                     : '오늘은 근무일이 아닙니다.'}
                 </p>
+                {/* 출근은 고를 공고가 없다 — 이 카드가 곧 항목이라 버튼도 여기 붙는다. */}
+                <button type="button" className="flea-act" onClick={() => setActing(true)}>
+                  출근하기
+                </button>
               </div>
             ) : app && applied ? (
               <div className="flea-status">
@@ -237,9 +245,15 @@ export function FleaSite({ site }: { site: Site }) {
                     </div>
                   )}
                 </dl>
-                {app.stage === 'interview' && state.day < app.dueDay && (
-                  <p className="flea-note">면접일이 되면 아래에서 면접을 볼 수 있습니다.</p>
-                )}
+                {app.stage === 'interview' &&
+                  (state.day < app.dueDay ? (
+                    <p className="flea-note">면접일이 되면 여기서 면접을 볼 수 있습니다.</p>
+                  ) : (
+                    /* 면접도 고를 공고가 없다 — 이 카드가 곧 항목이라 버튼도 여기 붙는다. */
+                    <button type="button" className="flea-act" onClick={() => setActing(true)}>
+                      면접 보러 가기
+                    </button>
+                  ))}
               </div>
             ) : (
               /* ux `Empty States`: 빈 화면 대신 무엇을 하면 되는지 적는다. */
@@ -338,43 +352,40 @@ export function FleaSite({ site }: { site: Site }) {
           ))}
         </section>
 
-        {commitActivity && mode === 'apply' && (
-          <ActivityCommit
+        {/*
+          공고를 누르면 곧바로 확인창이 뜬다 — 확정 패널은 폐기됐다(설계자 지시).
+          면접·출근은 고를 공고가 없으므로 '내 채용 현황' 카드의 버튼이 같은 창을 연다.
+        */}
+        {commitActivity && confirming && (
+          <ActivityConfirm
             activity={commitActivity}
-            actionLabel="지원하기"
-            selection={
-              picked && !blockers.length ? `${picked.company} · ${picked.title}` : undefined
+            kicker="벼룩장터"
+            title={
+              mode === 'apply'
+                ? `${confirming.company}에 지원하시겠습니까?`
+                : mode === 'interview'
+                  ? `${confirming.company} 면접을 보러 가시겠습니까?`
+                  : `${confirming.company}에 출근하시겠습니까?`
             }
-            selectionHint={
-              blockers.length ? blockers[0] : '지원할 공고를 고르세요. 요건이 모자라도 넣을 수 있습니다.'
+            actionLabel={
+              mode === 'apply' ? '지원하기' : mode === 'interview' ? '면접 보러 가기' : '출근하기'
             }
-            onCommit={() => picked && applyToCareer(picked)}
-            onCommitted={() => {
+            notes={[{ label: '공고', value: confirming.title }]}
+            blocked={mode === 'apply' ? blockers[0] : undefined}
+            onCommit={mode === 'apply' && picked ? () => applyToCareer(picked) : undefined}
+            onCommitted={() =>
               setReceipt(
-                picked ? `${picked.company}에 지원서를 넣었습니다. 결과는 메일로 옵니다.` : null,
+                mode === 'apply'
+                  ? `${confirming.company}에 지원서를 넣었습니다. 결과는 메일로 옵니다.`
+                  : mode === 'interview'
+                    ? '면접을 봤습니다. 최종 결과는 메일로 옵니다.'
+                    : '출근했습니다. 급여는 급여일에 들어옵니다.',
               )
+            }
+            onClose={() => {
               setPickedId(null)
+              setActing(false)
             }}
-          />
-        )}
-
-        {commitActivity && mode === 'interview' && applied && (
-          <ActivityCommit
-            activity={commitActivity}
-            actionLabel="면접 보러 가기"
-            selection={`${applied.company} · ${applied.title}`}
-            selectionHint="면접일이 아직 되지 않았습니다."
-            onCommitted={() => setReceipt('면접을 봤습니다. 최종 결과는 메일로 옵니다.')}
-          />
-        )}
-
-        {commitActivity && mode === 'commute' && career && (
-          <ActivityCommit
-            activity={commitActivity}
-            actionLabel="출근하기"
-            selection={`${career.company} · ${career.title}`}
-            selectionHint="오늘은 출근할 수 없습니다."
-            onCommitted={() => setReceipt('출근했습니다. 급여는 급여일에 들어옵니다.')}
           />
         )}
 

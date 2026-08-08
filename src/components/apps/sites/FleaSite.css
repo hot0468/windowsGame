@@ -162,6 +162,29 @@
   font-weight: 700;
 }
 
+/*
+ * 면접·출근 버튼. 이 둘은 고를 공고가 없어 카드 자체가 항목이므로 버튼이 카드 안에 있다
+ * (지원은 공고 카드를 누르는 것이 곧 실행이라 이 버튼이 없다).
+ * ux `touch-target-size`: 최소 44px.
+ */
+.flea-act {
+  width: 100%;
+  min-height: 44px;
+  margin-top: var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: var(--fl-primary);
+  font: inherit;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+}
+
+.flea-act:hover {
+  background: var(--fl-fg);
+}
+
 /* ── 채용이 보는 스탯 (레퍼런스의 "업직종별" 아이콘 격자 자리) ── */
 .flea-tile-label {
   margin: 0 0 var(--sp-2);

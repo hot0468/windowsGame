@@ -63,7 +63,7 @@
 /* 본문 폭. 판을 묶지 않으면 넓은 창에서 카드가 늘어져 비교가 안 된다. */
 .tc-head,
 .tc-receipt,
-.tc-grid,
+.tc-sec,
 .tc-foot {
   width: min(1000px, 100% - 48px);
   margin-left: auto;
@@ -139,14 +139,66 @@
   color: var(--tc-text);
 }
 
+/* ── 진열 구역 ───────────────────────────────────────────
+ *
+ * 양판점의 매대 표지판과 같은 자리다: **제목 띠 + 그 아래 진열**. 띠만 흰 판이고
+ * 본문은 매장 바닥색(`--tc-bg`)이라, 카드가 지금까지처럼 흰 판으로 떠오른다 —
+ * 구역 상자를 통째로 흰색으로 칠하면 카드와 같은 색이 되어 경계가 사라진다.
+ * 색은 전부 기존 `--tc-*`다(새 토큰 없음).
+ */
+.tc-sec {
+  margin-top: var(--sp-5);
+  border: 1px solid var(--tc-line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.tc-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  /* 좌우 여백은 아래 격자(`.tc-grid`)와 같아야 제목과 첫 카드가 한 선에 선다. */
+  padding: var(--sp-3) var(--sp-5);
+  background: var(--tc-surface);
+  border-bottom: 1px solid var(--tc-line);
+}
+
+.tc-sec-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--tc-text);
+}
+
+.tc-sec-desc {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  color: var(--tc-text-2);
+}
+
+/* 제목과 설명을 가르는 슬래시. 포털 섹션 머리줄의 구분자와 같은 자리다. */
+.tc-sec-desc::before {
+  content: '/';
+  margin-right: var(--sp-3);
+  color: var(--tc-line);
+}
+
+.tc-sec-count {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: var(--fs-sm);
+  color: var(--tc-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
 /* 제품 격자 */
 .tc-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--sp-5);
-  margin-top: var(--sp-5);
-  margin-bottom: 0;
-  padding: 0;
+  margin: 0;
+  padding: var(--sp-5);
   list-style: none;
 }
 
@@ -318,7 +370,7 @@
 @container (max-width: 640px) {
   .tc-head,
   .tc-receipt,
-  .tc-grid,
+  .tc-sec,
   .tc-foot {
     width: min(1000px, 100% - 24px);
   }
@@ -345,5 +397,11 @@
   .tc-grid {
     grid-template-columns: 1fr;
     gap: var(--sp-4);
+    padding: var(--sp-4);
+  }
+
+  /* 격자 여백이 줄었으므로 제목 줄도 함께 줄인다(한 선 유지). */
+  .tc-sec-head {
+    padding: var(--sp-3) var(--sp-4);
   }
 }

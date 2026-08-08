@@ -3,6 +3,7 @@ import { formatGameDate } from '../../data/calendar'
 import { UI_ICONS } from '../../data/icons'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
+import { useDesktopIconStore } from '../../store/desktopIconStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { useWindowStore } from '../../store/windowStore'
 import type { DesktopPanelId } from '../../store/desktopPanelStore'
@@ -30,6 +31,9 @@ export function Taskbar() {
   const activate = useWindowStore((s) => s.activate)
   const toggle = useDesktopPanelStore((s) => s.toggle)
   const panelVisible = useDesktopPanelStore((s) => s.visible)
+  /** 옮긴 아이콘이 하나라도 있는가 — 되돌리기 버튼은 그때만 나타난다. */
+  const hasMovedIcons = useDesktopIconStore((s) => Object.keys(s.cells).length > 0)
+  const resetIconLayout = useDesktopIconStore((s) => s.resetLayout)
 
   if (!state) return null
 
@@ -37,10 +41,34 @@ export function Taskbar() {
 
   return (
     <div className="taskbar">
-      {/* 윈도우 11처럼 시작 버튼+창 목록을 가운데 정렬한다.
+      {/* 왼쪽 끝 묶음. 윈도우 11처럼 시작 버튼+창 목록을 가운데 정렬하는데,
           패널 버튼·시계는 윈도우에서도 우측 트레이에 고정되는 요소라 가운데로 끌고 오지 않는다.
-          이 스페이서가 오른쪽 트레이와 같은 폭을 차지해 가운데 묶음을 광학적 중심에 맞춘다. */}
-      <div className="taskbar-spacer" aria-hidden="true" />
+          이 칸이 오른쪽 트레이와 **같은 폭**을 차지해 가운데 묶음을 광학적 중심에 맞춘다 —
+          그래서 여기에 버튼이 있든 없든 시작 버튼은 제자리에 있다. */}
+      <div className="taskbar-spacer">
+        {/*
+         * 아이콘 배치 되돌리기. **옮긴 적이 있을 때만** 나타난다.
+         *
+         * ux `gesture-alternative`+`undo-support`: 흩뜨려 놓고 나면 localStorage를
+         * 비우는 것 말고는 돌아올 길이 없다는 게 드래그 기능의 유일한 막다른 길이다.
+         *
+         * ⚠️ **바탕화면 위로 되돌리지 말 것.** 예전에는 왼쪽 아래에 떠 있었는데,
+         * 프로그램 열이 바닥까지 차자 마지막 아이콘의 이름을 덮었다(사용자 지적).
+         * 아이콘은 위에서부터 채워지고 바로 가기까지 아래로 자라므로 아이콘 판 안에는
+         * 안전한 고정 자리가 없다. 작업 표시줄 **왼쪽 끝**이 그 자리다(설계자 지시).
+         * 토글이 아니므로 `aria-pressed`도 `-on` 상태도 갖지 않는다.
+         */}
+        {hasMovedIcons && (
+          <button
+            className="taskbar-panel"
+            onClick={resetIconLayout}
+            title="아이콘 위치 초기화"
+            aria-label="아이콘 위치 초기화"
+          >
+            <AppIcon name={UI_ICONS.resetIcons} size={20} />
+          </button>
+        )}
+      </div>
 
       {/* 시작 버튼도 트레이와 같은 mdi-light 라인 글리프다 — 사유는 data/icons.ts 참조
           (다색 격자는 아크릴 위에서 1.03:1로 사실상 보이지 않았다). */}

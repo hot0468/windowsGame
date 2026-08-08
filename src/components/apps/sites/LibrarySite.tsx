@@ -4,18 +4,18 @@ import { BOOKS, BOOK_BANNERS, BOOK_CATEGORIES, BOOK_EVENTS } from '../../../data
 import { AppIcon } from '../../../icons/AppIcon'
 import type { Book } from '../../../data/media'
 import type { Site } from '../../../data/sites'
-import { ActivityCommit } from './ActivityCommit'
+import { ActivityConfirm } from '../ActivityConfirm'
 import './LibrarySite.css'
 
 /**
  * 미디북스 — 전자책 구독 사이트. 확정 버튼이 `reading`(독서) 활동을 실행한다.
  *
  * **둘러보기는 무료다.** 목록을 넘기고 책을 고르는 동안 게임 상태는 읽지도 쓰지도 않는다 —
- * 스탯을 움직이는 코드는 `ActivityCommit` 안의 확정 버튼 하나뿐이다.
+ * 스탯을 움직이는 코드는 책을 눌렀을 때 뜨는 `ActivityConfirm`의 실행 버튼 하나뿐이다.
  *
  * ## 구조 (레퍼런스: 실제 전자책 스토어 홈)
  * 헤더(로고·검색·로그인) → 카테고리 탭 → 배너 캐러셀 → 퀵메뉴 →
- * 지금 많이 읽는 작품(순위) → 오늘의 발견 → 이벤트 → 새로 나온 작품 → 확정 패널 → 푸터.
+ * 지금 많이 읽는 작품(순위) → 오늘의 발견 → 이벤트 → 새로 나온 작품 → 푸터.
  *
  * ⚠️ **동작하는 것만 컨트롤로 만든다**(너튜브·시집이·아점과 같은 규칙).
  * 카테고리 탭·배너 화살표·표지 클릭은 실제로 동작하고, 검색·로그인·퀵메뉴 원형은
@@ -176,16 +176,18 @@ export function LibrarySite({ site }: { site: Site }) {
         </ul>
       </section>
 
-      <ActivityCommit
-        activity={activity}
-        actionLabel="읽기"
-        selection={picked ? `「${picked.title}」 · ${picked.author}` : undefined}
-        selectionHint="읽을 책을 한 권 고르세요."
-        onCommitted={() => {
-          setReadTitle(picked?.title ?? null)
-          setPickedId(null)
-        }}
-      />
+      {/* 책을 누르면 곧바로 확인창이 뜬다 — 확정 패널은 폐기됐다(설계자 지시). */}
+      {picked && (
+        <ActivityConfirm
+          activity={activity}
+          kicker="미디북스"
+          title={`「${picked.title}」을(를) 읽으시겠습니까?`}
+          actionLabel="읽기"
+          notes={[{ label: '지은이', value: picked.author }]}
+          onCommitted={() => setReadTitle(picked.title)}
+          onClose={() => setPickedId(null)}
+        />
+      )}
 
       <footer className="lib-foot">
         <p className="lib-foot-logo">MIDIBOOKS</p>

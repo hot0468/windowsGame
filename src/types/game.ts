@@ -31,6 +31,12 @@ export interface Stats {
   gaming: number
   /** 예의범절 */
   manners: number
+  /**
+   * 예술. **창의력과 다른 것이다** — 창의력이 "떠올리는 힘"이라면 예술은
+   * **손으로 끝까지 그려 내는 숙련**이다. 그래서 창의력은 여러 활동이 조금씩 올리지만
+   * 예술은 실제로 그리는 활동(`draw`)만 올린다.
+   */
+  art: number
 }
 
 /**
@@ -50,6 +56,7 @@ export const GROWTH_STAT_KEYS = [
   'athletics',
   'gaming',
   'manners',
+  'art',
 ] as const
 
 export type GrowthStatKey = (typeof GROWTH_STAT_KEYS)[number]
@@ -83,6 +90,7 @@ export const STAT_NAMES: Record<keyof Stats, string> = {
   athletics: '운동',
   gaming: '게임',
   manners: '예의범절',
+  art: '예술',
 }
 
 /** 활동이 스탯에 주는 변화량. 없는 키는 변화 없음. */
@@ -128,8 +136,12 @@ export interface Activity {
    * 스탯 조건(`requires`)과 달리 **시간이 지나도 저절로 충족되지 않는다** — 사야 열린다.
    * 판정은 `systems/turn.ts`의 `canRun` 하나가 하므로, 스케줄러가 예약해 둔 뒤에
    * 아이템을 잃더라도 실행 시점에 다시 막힌다.
+   *
+   * ⚠️ **배열이면 "그중 아무거나 하나"다**(AND가 아니라 OR). 타블렛 둘이 같은 그리기
+   * 활동을 여는 것이 이 형태의 존재 이유다 — 장비 등급이 다를 뿐 여는 문은 하나이므로,
+   * 활동을 둘로 쪼개면 바탕화면에 클립스튜디오 아이콘이 둘 생긴다.
    */
-  requiresItem?: string
+  requiresItem?: string | string[]
   /**
    * 정규직 상태 게이트. `requiresItem`과 같은 규칙이다 — 판정은 `canRun` 하나가 한다.
    *
@@ -160,6 +172,14 @@ export interface Activity {
    * **하고 있는 일의 성격**이므로, 알바는 전부 같은 키('work')를 공유한다.
    */
   burnoutKey?: string
+  /**
+   * **실행할 때마다 그림 한 장이 갤러리에 생긴다**(생략 = 아니다).
+   *
+   * ⚠️ 활동 id로 분기하지 않는 이유는 `requiresJobStage`와 같다 — id를 박으면
+   * 그리는 활동을 하나 더 만들 때 그쪽만 조용히 그림을 안 남긴다. 실제 생성은
+   * `runActivity`가 한다(실행 통로가 넷이라 그 밖에 두면 하나가 반드시 샌다).
+   */
+  producesArt?: boolean
   /** 바탕화면에 아이콘을 띄울지 여부. 나머지 활동은 정의만 보존된다. */
   onDesktop?: boolean
 }
@@ -185,6 +205,8 @@ export type WindowKind =
   /** 아이템 인벤토리·이벤트 도감. 파일 탐색기 UI로 그린다. */
   | 'folder'
   | 'scheduler'
+  /** 증기 — 가짜 스팀 클라이언트. 라이브러리에서 게임을 켜 시간을 보낸다. */
+  | 'steam'
   /**
    * 자동 진행 요약. **며칠이 조용히 사라지지 않게 하는 창구다** —
    * 토스트는 5초 뒤 없어지고 메일은 열어야 보이지만 이 창은 진행이 끝나면 스스로 뜬다.
@@ -224,6 +246,18 @@ export interface DesktopItem {
   appId?: string
   /** kind가 'folder'일 때 어느 폴더를 열지. */
   folderId?: FolderId
+  /**
+   * **이 물건을 가져야 바탕화면에 나타나는 항목**(생략 = 항상 보인다).
+   * 배열이면 "그중 아무거나 하나"다(`Activity.requiresItem`과 같은 규칙).
+   *
+   * ⚠️ **`DESKTOP_ITEMS`에서는 빠지지 않는다** — 기본 격자 좌표(`DEFAULT_ICON_CELLS`)가
+   * 이 배열에서 파생되므로, 빼 버리면 물건을 산 순간 좌표가 없는 아이콘이 된다.
+   * 거르는 곳은 화면이 순회하는 목록(`desktopEntries`) 하나다.
+   *
+   * ⚠️ 그래서 **조건부 항목은 자기 열의 맨 뒤에 둔다**. 중간에 두면 아직 없는 아이콘이
+   * 차지한 칸이 빈 자리로 남아 열 가운데가 뚫린다.
+   */
+  requiresItem?: string | string[]
 }
 
 /**
@@ -291,8 +325,8 @@ export interface Plan {
 export type GameOverReason = 'bankrupt' | 'burnout'
 
 /** 세이브에 포함되는 게임 진행 상태. */
-/** 파일 탐색기로 여는 폴더. 둘뿐이라 유니온으로 둔다 — 늘어나면 그때 데이터로 뺀다. */
-export type FolderId = 'inventory' | 'codex'
+/** 파일 탐색기로 여는 폴더. 셋뿐이라 유니온으로 둔다 — 더 늘어나면 그때 데이터로 뺀다. */
+export type FolderId = 'inventory' | 'codex' | 'gallery'
 
 /** 배송 중인 주문. `day`에 도착한다. */
 export interface Delivery {
@@ -527,6 +561,65 @@ export interface ExamRecord {
   reason?: string
 }
 
+/* ── 그림 · 트위터 (2026-08-08 신설) ──────────────────────────────────────
+ *
+ * 수치는 `data/artworks.ts`에, 규칙은 `systems/artwork.ts`·`systems/twitter.ts`에 있다.
+ * 여기에는 **모양만** 적는다(`Plan`·`BankState`와 같은 이유).
+ */
+
+/**
+ * 그린 그림 한 장. 클립스튜디오를 켤 때마다 갤러리에 한 장씩 쌓인다.
+ *
+ * ⚠️ **등급을 저장하지 않는다 — 그릴 때의 사실만 남기고 등급은 매번 계산한다**
+ * (`JobNotice`·`BankEntry`와 같은 규칙). 등급 기준(`ART_MASTERY`)을 나중에 손보면
+ * 저장된 등급은 낡은 값이 되는데, 그 그림으로 얻은 팔로워는 이미 지급된 뒤다.
+ *
+ * ⚠️ 반대로 **그릴 때의 스탯과 장비는 사실이므로 남긴다.** 판정은 그린 시점의 실력으로
+ * 하는데 그 뒤로 스탯은 계속 오르므로, 저장하지 않으면 옛 그림이 저절로 명작이 된다
+ * (`ExamRecord.passed`를 남기는 것과 같은 이유).
+ */
+export interface Artwork {
+  /** 렌더 키이자 게시 여부의 판정 키. 일련번호가 들어 있어 절대 겹치지 않는다. */
+  id: string
+  /** 몇 번째로 그린 그림인가. 제목을 결정적으로 고르는 시드이기도 하다. */
+  serial: number
+  day: number
+  slot: Slot
+  /** 그릴 때의 예술 스탯. */
+  art: number
+  /** 그릴 때의 창의력 스탯. */
+  creativity: number
+  /** 그릴 때 쓴 장비. 액정이 등급에 보너스를 준다. */
+  tool: 'pen' | 'lcd'
+}
+
+/**
+ * 트위터 활동 상태. **옵셔널이다** — 그림을 올린 적 없으면 없다
+ * (`lottery`·`courses`와 같은 규칙 — 마이그레이션이 필요 없다).
+ *
+ * ⚠️ **팔로워를 여기에 저장하는 것이 기존 규칙의 예외다.** 원래 팔로워는
+ * `followersFrom(reputation)`으로 **파생**시켰다(읽기 전용). 그림 업로드가 팔로워를
+ * 직접 늘리게 되면서 재계산이 불가능해졌으므로(무엇을 언제 올렸는지에 달려 있다)
+ * **평판에서 온 몫 + 그림으로 번 몫**을 더해 쓴다. 합치는 곳은
+ * `systems/twitter.ts`의 `totalFollowers` 하나다.
+ */
+export interface TwitterState {
+  /** 그림 업로드로 얻은 팔로워 누적. 평판에서 오는 몫은 여기 안 들어간다. */
+  gained: number
+  /** 이미 올린 그림 id. 같은 그림을 다시 올려 팔로워를 반복해서 벌 수 없다. */
+  postedIds: string[]
+  /**
+   * 마지막으로 수익을 정산한 날. `Employment.checkedDay`·`BankState.accruedDay`와 같은
+   * 커서라 같은 주를 두 번 정산하지 않는다.
+   *
+   * ⚠️ **`turn.ts`의 `nightPayoutPending`이 보는 값이 이 날짜다**(금액이 아니다).
+   * 정산은 시각이 오면 일어나는 일이라 복권처럼 미리 담아 둘 `pending`이 없다 —
+   * 정기예금 만기(`TermDeposit.matureDay`)와 정확히 같은 형태다. 이 커서를 안 보면
+   * **정산금이 들어오기 직전 밤에 굶어 죽는다.**
+   */
+  paidDay: number
+}
+
 export interface GameState {
   playerName: string
   day: number
@@ -632,6 +725,28 @@ export interface GameState {
    * ⚠️ 합격한 자격증 자체는 `inventory`에 들어가므로 이 배열은 **절차만** 든다.
    */
   exams?: ExamRecord[]
+  /**
+   * 증기(가짜 스팀) 게임별 실행 횟수(`게임 id → 켠 횟수`). **옵셔널이다** —
+   * 켠 적 없으면 없고, 증기가 생기기 전 세이브는 "켠 적 없음"으로 읽힌다
+   * (마이그레이션 불필요 — `courses`·`exams`와 같은 규칙).
+   *
+   * ⚠️ **플레이 시간(분)을 저장하지 않는다** — 시간은 횟수에서 파생되는 표시값이고
+   * (`data/steam.ts`의 `playtimeLabel`), 둘 다 저장하면 어긋날 수 있는 값이 둘이 된다.
+   */
+  steam?: Record<string, number>
+  /**
+   * 그린 그림. **옵셔널이다** — 그린 적 없으면 없다(`courses`·`exams`와 같은 규칙).
+   * 갤러리 폴더가 읽는 목록이고, 트위터 업로드가 고르는 대상이다.
+   */
+  artworks?: Artwork[]
+  /**
+   * 트위터 활동(업로드·팔로워·주간 정산). **옵셔널이다** — 올린 적 없으면 없다.
+   *
+   * ⚠️ `reviveState`의 검증이 `courses`보다 빡빡하다(`lottery`와 같은 이유 —
+   * **돈을 만드는 상태다**). `gained`가 NaN이면 정산금이 NaN이 되어 소지금으로 흘러
+   * `NaN <= 0`이 false가 되고 **파산이 영영 안 걸린다.**
+   */
+  twitter?: TwitterState
 }
 
 export const INITIAL_STATS: Stats = {
@@ -652,4 +767,5 @@ export const INITIAL_STATS: Stats = {
   athletics: 0,
   gaming: 0,
   manners: 0,
+  art: 0,
 }

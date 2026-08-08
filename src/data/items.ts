@@ -37,13 +37,39 @@ export interface ShopItem {
    * 옮길 때 두 곳을 고쳐야 하고, 한쪽만 고치면 같은 물건이 두 가게에 동시에 뜬다.
    */
   store?: ItemStore
+  /**
+   * **TPO 옷**. 가지고 있기만 하면 여기 적힌 활동의 **성장 상승분이 조금 커진다**
+   * (`systems/turn.ts`의 `outfitBonusFor` → `runActivity`).
+   *
+   * ⚠️ **지속 효과(매 턴 적용)가 아니다.** 밤 정산을 건드리지 않고 활동을 실행하는
+   * 순간에만 곱해지므로, "지속 효과를 만들지 않는다"는 규칙(위 전자기기 주석)은 그대로다.
+   *
+   * ⚠️ **관계를 활동 쪽에 다시 적지 않는다.** "이 옷이 어디에 맞는가"는 여기만 알고,
+   * 화면은 `outfitsFor(activityId)`로 뒤집어 찾는다(`requiresItem`·`activitiesUnlockedBy`와
+   * 같은 방향). 양쪽에 적으면 한쪽만 고치는 사고가 난다.
+   */
+  outfit?: {
+    /** 이 옷이 어울리는 활동 id 목록. */
+    fits: string[]
+  }
 }
 
 /**
- * 물건이 진열되는 가게.
- * 'shop' = 컬리엔마트(생활잡화 + 복권), 'tech' = 하이마루(전자기기 양판점).
+ * TPO가 맞을 때 성장 상승분에 얹히는 비율. **옷마다 다르게 두지 않는다** —
+ * 옷이 갈리는 축은 값이 아니라 **덮는 활동 수**(=가격)여야 "무엇이 더 센 옷인가"를
+ * 계산하는 놀이가 생기지 않는다.
+ *
+ * ⚠️ **겹쳐 쌓이지 않는다**(`outfitBonusFor`는 가장 좋은 하나만 본다) — 옷을 다 사면
+ * 배수가 되는 구조는 "물건은 지름길이 아니다"라는 이 파일의 규칙을 깬다.
  */
-export type ItemStore = 'shop' | 'tech'
+export const OUTFIT_BONUS = 0.2
+
+/**
+ * 물건이 진열되는 가게.
+ * 'shop' = 컬리엔마트(생활잡화 + 복권), 'tech' = 하이마루(전자기기 양판점),
+ * 'wear' = 무진장(의류).
+ */
+export type ItemStore = 'shop' | 'tech' | 'wear'
 
 export const SHOP_ITEMS: ShopItem[] = [
   {
@@ -75,6 +101,24 @@ export const SHOP_ITEMS: ShopItem[] = [
     price: 90000,
     desc: '한 달권. 등록하는 순간이 가장 건강하다.',
     icon: 'fluent-color:contact-card-24',
+    ext: '.pass',
+    effects: {},
+  },
+  {
+    /*
+     * 미용실 정기권. ⚠️ **`gym-pass`와 완전히 같은 부류다** — 스탯을 주지 않고
+     * (`effects: {}`) `salon-member` 활동을 여는 것이 값어치의 전부다.
+     *
+     * 가격 150,000원은 1회 25,000원의 **6회분**이다(헬스장과 같은 규칙 —
+     * 7번째 방문부터 이득이 나므로 "이번 달에 여섯 번 넘게 갈 것인가"가 판단이 된다).
+     * 미용실 오픈채팅의 [정기권 끊을게요]도 같은 아이템을 주문한다 — 잠금 해제 경로를
+     * 둘로 나누면 한쪽만 고치는 사고가 나므로 물건은 하나다.
+     */
+    id: 'salon-pass',
+    name: '미용실 정기권',
+    price: 150000,
+    desc: '결제할 때만 원장님이 이름을 불러 준다.',
+    icon: 'fluent-color:premium-24',
     ext: '.pass',
     effects: {},
   },
@@ -219,6 +263,42 @@ export const SHOP_ITEMS: ShopItem[] = [
     store: 'tech',
   },
   /*
+   * ── 타블렛 2종 (2026-08-08) ──
+   *
+   * ⚠️ **둘 다 잠금 해제형이다**(`gym-pass`·`streamkit`과 같은 구조: `effects`가 비어 있다).
+   * 값어치는 **클립스튜디오(`draw` 활동)를 여는 것**이고, 여기에 스탯까지 붙이면
+   * "장비를 사면 그림을 잘 그리게 된다"는 이상한 말이 된다 — 켜고 그려야 는다.
+   *
+   * ⚠️ **둘이 같은 문을 연다**(`Activity.requiresItem`이 배열인 이유). 활동을 둘로 쪼개면
+   * 바탕화면에 클립스튜디오 아이콘이 둘 생긴다. 대신 갈리는 것은 **그림 등급 보너스**뿐이고
+   * 그 판정은 `systems/artwork.ts` 하나가 갖는다(수치는 `data/artworks.ts`).
+   *
+   * 가격 관계가 이 둘의 존재 이유다: 팬 220,000원은 방송 장비(340,000)보다 싸서
+   * **중반 이전에 닿는 첫 창작 장비**이고, 액정 1,150,000원은 방음 부스(1,650,000) 아래·
+   * 카메라(880,000) 위라 **판을 어느 정도 굴린 뒤의 목표**가 된다. 액정을 사도 팬으로 그린
+   * 그림이 소급해서 좋아지지는 않는다(`Artwork.tool`을 그릴 때 박아 둔다).
+   */
+  {
+    id: 'pen-tablet',
+    name: '팬 타블렛',
+    price: 220000,
+    desc: '화면을 보면서 손은 딴 데를 그린다. 익숙해지는 데 일주일쯤 걸린다.',
+    icon: 'fluent-color:document-edit-24',
+    ext: '.tab',
+    effects: {},
+    store: 'tech',
+  },
+  {
+    id: 'lcd-tablet',
+    name: '액정 타블렛',
+    price: 1150000,
+    desc: '화면 위에 그대로 그린다. 손목을 올려 둘 자리부터 고민하게 된다.',
+    icon: 'fluent-color:video-24',
+    ext: '.tab',
+    effects: {},
+    store: 'tech',
+  },
+  /*
    * ── 수료증 2종 (2026-08-05 슬로우캠퍼스) ──
    * ⚠️ **살 수 없는 아이템이다.** `SHOP_ITEMS`에 있지만 쇼핑 목록에서는 빠진다
    * (`BUYABLE_ITEMS`가 `buyable !== false`로 거른다) — 돈으로 사면 강의를 들을 이유가
@@ -297,6 +377,65 @@ export const SHOP_ITEMS: ShopItem[] = [
     effects: {},
     buyable: false,
   },
+  /*
+   * ── 의류 4종 (2026-08-08 무진장) ──
+   *
+   * ⚠️ **이 물건들은 도착해도 스탯을 주지 않는다**(`effects: {}` — `gym-pass`·`streamkit`과
+   * 같은 부류다). 값어치는 **가지고 있는 동안 TPO가 맞는 활동의 성장 상승분이 커지는 것**이고,
+   * 여기에 도착 보너스까지 붙이면 "옷을 사면 그 자리에서 사람이 나아진다"는 이상한 말이 된다.
+   *
+   * ⚠️ **입고 벗는 상태를 만들지 않는다.** 가지고 있으면 적용이다 — 옷을 갈아입는 조작을
+   * 넣으면 활동을 고를 때마다 한 단계가 더 붙고, 그 단계는 "맞는 옷을 고른다"는 뻔한
+   * 정답이 있어 선택이 아니라 절차가 된다(설계자가 구독을 뺀 것과 같은 판단).
+   *
+   * ⚠️ **가격은 덮는 활동 수를 따른다**(보너스는 `OUTFIT_BONUS` 하나로 같다).
+   * 셋을 덮는 옷이 싸고 다섯을 덮는 옷이 비싸다 — 그래야 "무엇을 먼저 살 것인가"가
+   * 세기 비교가 아니라 **내가 무엇을 자주 하는가**의 문제가 된다.
+   */
+  {
+    id: 'sportswear',
+    name: '기능성 운동복',
+    price: 45000,
+    desc: '땀이 빨리 마른다. 입고 나가면 안 뛰기가 민망해진다.',
+    icon: 'fluent-color:sport-24',
+    ext: '.wear',
+    effects: {},
+    store: 'wear',
+    outfit: { fits: ['gym-day', 'gym-member', 'running', 'exercise'] },
+  },
+  {
+    id: 'homewear',
+    name: '극세사 홈웨어',
+    price: 32000,
+    desc: '한번 입으면 바깥에 나갈 이유가 사라진다.',
+    icon: 'fluent-color:home-24',
+    ext: '.wear',
+    effects: {},
+    store: 'wear',
+    outfit: { fits: ['game', 'reading', 'writing', 'draw'] },
+  },
+  {
+    id: 'outing-jacket',
+    name: '나들이 재킷',
+    price: 98000,
+    desc: '어디에 입어도 무난하다. 무난하다는 말이 칭찬인 옷이다.',
+    icon: 'fluent-color:ribbon-24',
+    ext: '.wear',
+    effects: {},
+    store: 'wear',
+    outfit: { fits: ['social', 'movie', 'club', 'salon-visit', 'salon-member'] },
+  },
+  {
+    id: 'suit',
+    name: '면접용 정장',
+    price: 150000,
+    desc: '1년에 몇 번 입지만 그 몇 번이 중요하다.',
+    icon: 'fluent-color:briefcase-24',
+    ext: '.wear',
+    effects: {},
+    store: 'wear',
+    outfit: { fits: ['job-apply', 'job-interview', 'commute'] },
+  },
 ]
 
 /**
@@ -321,6 +460,7 @@ export function buyableFor(store: ItemStore): ShopItem[] {
 export const STORE_NAMES: Record<ItemStore, string> = {
   shop: '쇼핑',
   tech: '하이마루',
+  wear: '무진장',
 }
 
 /**
@@ -337,8 +477,52 @@ export function storeNameOf(itemId: string): string | undefined {
   return STORE_NAMES[item.store ?? 'shop']
 }
 
+/**
+ * 이 활동에 어울리는 옷들. **관계는 `ShopItem.outfit.fits`에만 적혀 있고 여기서 뒤집는다**
+ * (`activitiesUnlockedBy`와 같은 방향) — 활동 쪽에도 적으면 한쪽만 고치는 사고가 난다.
+ */
+export function outfitsFor(activityId: string): ShopItem[] {
+  return SHOP_ITEMS.filter((i) => i.outfit?.fits.includes(activityId))
+}
+
+/** 옷 전체. 무진장 진열과 테스트가 쓴다(컴포넌트가 id를 나열하지 않는다). */
+export const OUTFIT_ITEMS: ShopItem[] = SHOP_ITEMS.filter((i) => i.outfit)
+
 export function findItem(id: string): ShopItem | undefined {
   return SHOP_ITEMS.find((i) => i.id === id)
+}
+
+/**
+ * 요구 아이템 필드를 **항상 목록으로** 편다(`Activity.requiresItem`·`DesktopItem.requiresItem`).
+ *
+ * ⚠️ **이 정규화가 한 곳에만 있어야 한다.** 필드가 `string | string[]`이 되면서
+ * 읽는 자리가 다섯(실행 판정·바탕화면 표시·잠금 사유·스케줄러 고르기 판·테스트)이 됐는데,
+ * 각자 `Array.isArray`를 적으면 한 곳이 배열을 문자열로 다뤄 **조건이 조용히 통과한다**.
+ */
+export function requiredItemIds(required: string | string[] | undefined): string[] {
+  if (!required) return []
+  return Array.isArray(required) ? required : [required]
+}
+
+/**
+ * 요구 아이템의 사람이 읽는 이름. 여럿이면 **"또는"으로 잇는다** — AND가 아니라 OR이므로
+ * "팬 타블렛과 액정 타블렛이 있어야 합니다"는 거짓이 된다(둘 중 하나면 된다).
+ */
+export function requiredItemLabel(required: string | string[] | undefined): string {
+  return requiredItemIds(required)
+    .map((id) => findItem(id)?.name ?? id)
+    .join(' 또는 ')
+}
+
+/**
+ * 요구 아이템을 파는 가게 이름(중복 제거).
+ * ⚠️ 화면이 "쇼핑에서 구입"을 굳혀 적지 않게 하는 것이 목적이다(`storeNameOf`와 같은 이유).
+ */
+export function requiredItemStores(required: string | string[] | undefined): string {
+  const names = requiredItemIds(required)
+    .map((id) => storeNameOf(id))
+    .filter((n): n is string => !!n)
+  return [...new Set(names)].join(' · ')
 }
 
 /**

@@ -34,6 +34,7 @@ const ALL_KINDS = [
   'taskmgr',
   'cmd',
   'solitaire',
+  'steam',
   'folder',
   'scheduler',
   'autolog',

@@ -8,7 +8,7 @@ import { SHELL } from './shell'
  * 200이라 실제로는 200으로 그려졌고, 차이 24px 중 12px이 스탯창을 침범했다.
  */
 describe('날짜칸 배치', () => {
-  const STAT_PANEL_WIDTH = 280
+  const STAT_PANEL_WIDTH = 320
   const RIGHT_MARGIN = 16
 
   it('요청 폭이 창 최소 폭보다 작지 않다', () => {

@@ -45,6 +45,7 @@
 
 /* 본문 폭. 판을 묶지 않으면 넓은 창에서 줄이 늘어진다. */
 .bank-head,
+.bank-tabs,
 .bank-sec,
 .bank-foot {
   width: min(1000px, 100% - 48px);
@@ -138,27 +139,61 @@
   color: var(--bk-gold);
 }
 
+/* ── 탭 줄 (구 `.bank-sec-head` 자리) ─────────────────── */
+.bank-tabs {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--bk-line);
+}
+
+.bank-tab {
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  /* 선택 표시를 밑줄로 준다 — 아래 테두리와 같은 자리라 줄이 겹치지 않는다. */
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--bk-text-2);
+  cursor: pointer;
+  transition: color 150ms ease-out;
+}
+
+.bank-tab:hover {
+  color: var(--bk-navy);
+}
+
+/* ux color-not-only — 색만이 아니라 밑줄과 `aria-selected`가 함께 말한다. */
+.bank-tab-on {
+  border-bottom-color: var(--bk-navy);
+  color: var(--bk-navy);
+}
+
 /* ── 구역 ─────────────────────────────────────────────── */
 .bank-sec {
   margin-bottom: var(--sp-6);
 }
 
-.bank-sec-head {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-2);
-  margin: 0 0 var(--sp-3);
-  padding-bottom: var(--sp-2);
-  border-bottom: 1px solid var(--bk-line);
-  font-size: var(--fs-lg);
-  font-weight: 700;
-  color: var(--bk-navy);
+/* `hidden`은 안 보이는 탭의 입력값을 살려 둔다(다시 오면 치던 금액이 그대로다). */
+.bank-sec[hidden] {
+  display: none;
 }
 
 .bank-sec-note {
   font-size: var(--fs-sm);
   font-weight: 400;
   color: var(--bk-text-2);
+}
+
+/* 부제는 탭 줄 오른쪽 끝. 좁아지면 다음 줄로 흘린다. */
+.bank-tabs .bank-sec-note {
+  margin-left: auto;
+  padding-bottom: var(--sp-2);
 }
 
 /* ── 상품 카드 (자유예금 · 정기예금 · 대출) ───────────── */

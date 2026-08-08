@@ -205,39 +205,9 @@
   pointer-events: none;
 }
 
-/*
- * 기본 배치로 되돌리는 버튼. **아이콘을 한 번이라도 옮겼을 때만** 나타난다
- * (컴포넌트에서 조건부 렌더 — 사유는 Desktop.tsx 주석 참조).
- *
- * 바탕화면 왼쪽 아래에 둔다: 아이콘은 위에서부터 채워지므로 여기가 가장 늦게 가려지고,
- * 오른쪽은 HUD 패널 자리다. 벽지 위에 뜨므로 아이콘 라벨과 같은 해법 대신
- * 반투명 판 + 흰 글자로 대비를 확보한다(ux `color-contrast`).
- */
-.desktop-restore {
-  position: absolute;
-  left: var(--sp-3);
-  bottom: var(--sp-3);
-  padding: var(--sp-2) var(--sp-3);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--r-sm);
-  background: rgba(0, 0, 0, 0.42);
-  color: #fff;
-  font-family: inherit;
-  font-size: var(--fs-sm);
-  cursor: pointer;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  transition: background-color 150ms ease-out;
-}
-
-.desktop-restore:hover {
-  background: rgba(0, 0, 0, 0.58);
-  border-color: rgba(255, 255, 255, 0.45);
-}
-
-.desktop-restore:active {
-  background: rgba(0, 0, 0, 0.7);
-}
+/* ⚠️ 구 `.desktop-restore`(바탕화면 왼쪽 아래에 떠 있던 [아이콘 위치 초기화])는
+   삭제됐다 — 작업 표시줄 트레이의 `.taskbar-panel` 버튼이 그 일을 한다.
+   아이콘 판 위의 고정 자리는 열이 바닥까지 차는 순간 마지막 라벨을 덮는다. */
 
 .taskbar {
   position: absolute;
@@ -285,6 +255,14 @@
   justify-content: flex-end;
   gap: var(--sp-2);
   min-width: 0;
+}
+
+/* 왼쪽 끝 묶음(현재는 [아이콘 위치 초기화] 하나).
+   ⚠️ **트레이와 같은 `flex: 1 1 0`을 그대로 쓴다** — 여기 무엇을 넣든 가운데 묶음
+   (시작 버튼 + 창 목록)의 광학적 중심이 흔들리지 않는 근거가 그 값이다.
+   버튼이 안 뜰 때도 이 칸은 그대로 남아 자리를 지킨다. */
+.taskbar-spacer {
+  justify-content: flex-start;
 }
 
 .taskbar-start {
@@ -757,11 +735,18 @@
   text-overflow: ellipsis;
 }
 
+/* ⚠️ **자리를 미리 잡아 둔다(min-width).** 이름 칸만 `flex: 1`이라 값이 한 자리에서
+   세 자리로 늘면 그만큼을 이름에서 빼앗아 간다 — 스탯이 오를수록 라벨이 조금씩 잘리는
+   셈이라, 같은 화면이 어제와 오늘 다르게 읽힌다. 상한이 999(`growthCap`)이므로 3자리를
+   항상 비워 두면 라벨 폭이 값과 무관하게 고정된다. 3ch는 tabular 숫자 기준 27px이고
+   패널 폭 320px은 그 위에서 계산된 값이다(`StatPanel`의 width 주석). */
 .stat-cell-value {
+  min-width: 3ch;
   font-size: var(--fs-base);
   font-weight: 600;
   color: var(--hud-text);
   font-variant-numeric: tabular-nums;
+  text-align: right;
   transition: color 150ms ease-out;
 }
 

@@ -1,9 +1,9 @@
 import { burnoutKeyOf, getBurnoutPenalty } from '../../systems/burnout'
 import { getLivingCost, getWageMultiplier } from '../../systems/economy'
-import { canRun, jobStageOpen, owns } from '../../systems/turn'
+import { canRun, jobStageOpen, outfitFor, ownsRequired } from '../../systems/turn'
 import { applyBlockers, attendedToday, isWorkday } from '../../systems/employment'
-import { findItem, storeNameOf } from '../../data/items'
-import { STAT_NAMES } from '../../types/game'
+import { OUTFIT_BONUS, requiredItemLabel, requiredItemStores } from '../../data/items'
+import { GROWTH_STAT_KEYS, STAT_NAMES } from '../../types/game'
 import type { Activity, GameState, JobStageGate, Stats } from '../../types/game'
 
 /**
@@ -37,8 +37,8 @@ function jobGateReason(state: GameState, gate: JobStageGate): string {
  * `systems/`의 순수 함수가 정하고, 이 파일은 그것을 **화면에 쓸 모양으로 묶기만** 한다.
  * (`systems/`는 React를 모르는 채로 두고, 컴포넌트는 같은 계산을 두 번 적지 않게 한다.)
  *
- * 존재 이유: 활동을 확정하는 화면이 **둘**이 됐다 — 활동 창(`ExeApp`)과
- * 브라우저 사이트의 확정 패널(`sites/ActivityCommit`). 둘이 각자 계산하면
+ * 존재 이유: 활동을 확정하는 화면이 **둘**이다 — 활동 창(`ExeApp`)과
+ * 실행 확인창(`ActivityConfirm`). 둘이 각자 계산하면
  * 한쪽만 고치는 사고가 나고, 그 사고는 "플레이어에게 거짓 숫자를 보여 준다"는 형태로 터진다.
  */
 export interface ActivityPreview {
@@ -50,6 +50,11 @@ export interface ActivityPreview {
   mentalPenalty: number
   /** 효율이 깎였는가 = 경고를 띄워야 하는가. */
   isBurnedOut: boolean
+  /**
+   * TPO가 맞아 상승분이 커졌다면 그 옷 이름. **없으면 undefined**.
+   * ⚠️ 숫자(`rows`)에는 이미 반영돼 있다 — 이 값은 "왜 늘었는가"를 적기 위한 것이다.
+   */
+  outfit?: string
 }
 
 export function previewActivity(state: GameState, activity: Activity): ActivityPreview {
@@ -59,6 +64,11 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
     burnoutKeyOf(activity),
   )
 
+  // ⚠️ TPO 옷 보너스도 **실행과 같은 함수**로 뽑는다(`runActivity` → `applyEffects`).
+  //    여기서 비율을 다시 적으면 화면과 실제 결과가 갈린다.
+  const outfit = outfitFor(state, activity.id)
+  const bonus = outfit ? OUTFIT_BONUS : 0
+
   const rows = Object.entries(activity.effects).map(([key, raw]) => {
     const statKey = key as keyof Stats
     let value = raw
@@ -67,10 +77,15 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
       value *= getWageMultiplier(state.day)
     }
     // 효율은 **이득에만** 곱한다(손해까지 줄여 주면 번아웃이 이득이 된다).
-    return { key: statKey, value: Math.round(value > 0 ? value * efficiency : value) }
+    if (value <= 0) return { key: statKey, value: Math.round(value) }
+    const boost =
+      bonus > 0 && (GROWTH_STAT_KEYS as readonly string[]).concat('maxStamina').includes(statKey)
+        ? Math.max(1, Math.round(value * bonus))
+        : 0
+    return { key: statKey, value: Math.round(value * efficiency + boost) }
   })
 
-  return { rows, efficiency, mentalPenalty, isBurnedOut: efficiency < 1 }
+  return { rows, efficiency, mentalPenalty, isBurnedOut: efficiency < 1, outfit: outfit?.name }
 }
 
 /** 확정 전에 반드시 보여 줘야 하는 경고 한 줄. */
@@ -147,13 +162,16 @@ export function blockReasons(state: GameState, activity: Activity): string[] {
     return reasons
   }
 
-  if (activity.requiresItem && !owns(state, activity.requiresItem)) {
-    const item = findItem(activity.requiresItem)
+  if (activity.requiresItem && !ownsRequired(state, activity.requiresItem)) {
     // ⚠️ 가게 이름을 여기 적지 않는다 — 물건이 어느 사이트에 있는지는 `store`가 알고 있다.
     // 굳혀 두면 전자기기를 하이마루로 옮긴 순간 이 문장만 거짓이 된다.
-    const where = storeNameOf(activity.requiresItem)
+    // ⚠️ 요구 아이템이 여럿이면 **"또는"**이다(타블렛 둘 → 클립스튜디오) —
+    //    "둘 다 있어야 한다"로 읽히면 거짓말이 된다. 문구도 판정과 같은 함수에서 나온다.
+    const where = requiredItemStores(activity.requiresItem)
     reasons.push(
-      `${item?.name ?? activity.requiresItem}이(가) 있어야 합니다${where ? ` — ${where}에서 구입` : ''}`,
+      `${requiredItemLabel(activity.requiresItem)}이(가) 있어야 합니다${
+        where ? ` — ${where}에서 구입` : ''
+      }`,
     )
   }
 

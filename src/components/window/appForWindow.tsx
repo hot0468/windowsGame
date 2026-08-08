@@ -7,6 +7,8 @@ import { SchedulerApp } from '../apps/SchedulerApp'
 import { ExplorerApp } from '../apps/ExplorerApp'
 import { AutoLogApp } from '../apps/AutoLogApp'
 import { ExeApp } from '../apps/ExeApp'
+import { SolitaireApp } from '../apps/SolitaireApp'
+import { SteamApp } from '../apps/SteamApp'
 import { StubApp } from '../apps/StubApp'
 import type { OpenWindow } from '../../store/windowStore'
 import type { WindowKind } from '../../types/game'
@@ -45,6 +47,8 @@ export const WINDOW_APP_KINDS = [
   'folder',
   'autolog',
   'browser',
+  'solitaire',
+  'steam',
 ] as const satisfies readonly WindowKind[]
 
 /**
@@ -52,11 +56,9 @@ export const WINDOW_APP_KINDS = [
  *
  * - `ending` — 엔딩은 창이 아니라 화면 전체를 가로막는 모달(`EndingModal`)이다.
  *   셸과 무관하게 떠야 하므로 `windowStore`를 타지 않는다.
- * - `solitaire` — 미구현. 예약된 이름만 있다(구현되면 여기서 빼고 위에 넣는다).
  */
 export const EXCLUDED_KINDS = {
   ending: '엔딩은 창이 아니라 전체 모달(EndingModal)이다',
-  solitaire: '미구현 — 이름만 예약되어 있다',
 } as const satisfies Partial<Record<WindowKind, string>>
 
 /** 앱 컴포넌트가 셸에게 요구하는 것. 지금은 "나를 닫아 달라"뿐이다. */
@@ -98,6 +100,12 @@ export function appForWindow(w: OpenWindow, { onClose }: AppSlots): ReactNode {
     /* 탭의 ✕가 창을 닫는다 — 크롬도 마지막 탭을 닫으면 창이 닫힌다. */
     case 'browser':
       return <BrowserApp onClose={onClose} />
+    /* 판이 컴포넌트 안에서만 산다 — 창을 닫으면 끝난다(실제 윈도우 솔리테어와 같다). */
+    case 'solitaire':
+      return <SolitaireApp />
+    /* 라이브러리 한 화면. 게임을 켜는 것은 활동 `game` 1턴이다. */
+    case 'steam':
+      return <SteamApp />
     default:
       return null
   }
@@ -119,9 +127,12 @@ export interface WindowChrome {
 export function windowChrome(kind: WindowKind): WindowChrome {
   return {
     ornament: kind === 'exe' || kind === 'stub',
-    /* 메신저 창은 앱이 창 꼭대기까지 자기 색을 칠한다 — 레퍼런스와 같은 형태다. */
-    bareTitle: kind === 'chat' || kind === 'thread' || kind === 'cmd',
-    /* 명령 프롬프트는 창 전체가 어두운 프로그램이다 — 캡션 버튼까지 뒤집힌다. */
-    dark: kind === 'cmd',
+    /* 메신저·증기는 앱이 창 꼭대기까지 자기 색을 칠한다 — 레퍼런스와 같은 형태다.
+       ⚠️ `dark`와 **짝으로 간다**: 캡션 글리프를 밝게 뒤집으면 밝은 OS 타이틀 바
+       위에서는 보이지 않는다(증기에서 실제로 그랬다). 어두운 앱은 자기 색이
+       창 꼭대기까지 올라와야 뒤집힌 글리프가 얹힐 바닥이 생긴다. */
+    bareTitle: kind === 'chat' || kind === 'thread' || kind === 'cmd' || kind === 'steam',
+    /* 어두운 프로그램. 캡션 글리프까지 밝게 뒤집어야 타이틀 바에서 안 보이지 않는다. */
+    dark: kind === 'cmd' || kind === 'steam',
   }
 }

@@ -26,6 +26,12 @@ export const UI_ICONS = {
   /** 작업 표시줄 날짜칸 버튼 — 트레이 라인 글리프. */
   calendarPanel: 'mdi-light:calendar',
   /**
+   * 작업 표시줄 [아이콘 위치 초기화] — 트레이 라인 글리프.
+   * 새로 고침(refresh)이 아니라 **되돌리기(undo)** 글리프다: 하는 일이
+   * "다시 그리기"가 아니라 "옮긴 기록을 버리고 기본 배치로 돌아가기"다.
+   */
+  resetIcons: 'mdi-light:undo-variant',
+  /**
    * 작업 표시줄 시작 버튼 — 4분할 라운드 격자(윈도우 11 4창 로고의 실루엣).
    *
    * ⚠️ 예전의 flat-color-icons 다색 격자 아이콘은 **실측 결과 보이지 않았다**

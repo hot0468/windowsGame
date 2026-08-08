@@ -31,7 +31,7 @@ export function formatGameDate(day: number): string {
 
 /**
  * 날짜칸의 크기·초기 배치.
- * statPanelReserve는 스탯창이 우상단에서 차지하는 폭(창 폭 280 + 오른쪽 여백 16)이며,
+ * statPanelReserve는 스탯창이 우상단에서 차지하는 폭(창 폭 320 + 오른쪽 여백 16)이며,
  * 날짜칸은 그만큼을 비켜 왼쪽에 붙는다.
  */
 export const CALENDAR_PANEL_LAYOUT: {
@@ -50,5 +50,5 @@ export const CALENDAR_PANEL_LAYOUT: {
   /** 스탯창과 같은 높이에서 시작한다. */
   top: 16,
   /** 스탯창이 우상단에서 점유하는 폭(창 폭 + 여백). */
-  statPanelReserve: 296,
+  statPanelReserve: 336,
 }

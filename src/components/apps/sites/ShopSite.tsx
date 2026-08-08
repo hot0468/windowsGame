@@ -13,6 +13,22 @@ import './ShopSite.css'
 const won = (v: number) => `${Math.round(v).toLocaleString('ko-KR')}원`
 
 /**
+ * 진열 구역.
+ *
+ * ⚠️ **분류 축은 새로 만들지 않았다** — 물건이 스탯을 올리는가, 활동을 여는가는
+ * `Activity.requiresItem`에서 이미 파생된다(`activitiesUnlockedBy`). `ShopItem`에
+ * 카테고리 필드를 더하면 같은 사실을 두 곳에 적게 되고, 한쪽만 고치는 사고가 난다.
+ * 하이마루(`TechSite`)도 같은 축으로 갈라 둘이 같은 규칙으로 읽힌다.
+ */
+const SECTIONS = [
+  { key: 'stat', title: '스탯 상승', desc: '도착한 날 한 번 적용됩니다' },
+  { key: 'unlock', title: '활동 해제', desc: '가지고 있어야 할 수 있는 일이 있습니다' },
+] as const
+
+/** 활동을 여는 물건인가. 구역을 가르는 유일한 판정. */
+const unlocks = (item: ShopItem) => activitiesUnlockedBy(item.id).length > 0
+
+/**
  * 복권 판매대.
  *
  * ⚠️ **여기 있는 이유:** 복권은 물건도 활동도 아니라 **계산대 옆에서 충동적으로 사는
@@ -151,55 +167,74 @@ export function ShopSite() {
         </p>
       )}
 
-      <ul className="shop-grid">
-        {/* ⚠️ 전자기기는 하이마루로 옮겨 갔다(`ShopItem.store`) — 목록을 여기서
-            거르지 않고 `buyableFor`가 파생시킨다. 두 번째 출처를 만들지 않는다. */}
-        {buyableFor('shop').map((item) => {
-          const isOwned = owns(state, item.id)
-          const isShipping = shipping.includes(item.id)
-          const buyable = canOrder(state, item)
-          return (
-            <li key={item.id} className="shop-card">
-              <span className="shop-thumb">
-                <AppIcon name={item.icon} size={44} />
-              </span>
-              <div className="shop-info">
-                <h2 className="shop-name">{item.name}</h2>
-                <p className="shop-desc">{item.desc}</p>
-                <p className="shop-effects">
-                  {/* 효과를 숨기면 "왜 사야 하나"에 답이 없다. 상한은 도착할 때 클램프된다. */}
-                  {Object.entries(item.effects).map(([key, value]) => (
-                    <span key={key} className="shop-effect">
-                      {STAT_NAMES[key as keyof typeof STAT_NAMES]} +{value}
+      {/* ⚠️ 전자기기는 하이마루로 옮겨 갔다(`ShopItem.store`) — 목록을 여기서
+          거르지 않고 `buyableFor`가 파생시킨다. 두 번째 출처를 만들지 않는다. */}
+      {SECTIONS.map((sec) => {
+        const list = buyableFor('shop').filter((i) => unlocks(i) === (sec.key === 'unlock'))
+        /* 빈 구역은 그리지 않는다 — 제목만 있고 아무것도 없는 상자는 장식이다. */
+        if (list.length === 0) return null
+        const headId = `shop-sec-${sec.key}`
+
+        return (
+          <section key={sec.key} className="shop-sec" aria-labelledby={headId}>
+            <header className="shop-sec-head">
+              <h2 className="shop-sec-title" id={headId}>
+                {sec.title}
+              </h2>
+              <p className="shop-sec-desc">{sec.desc}</p>
+              <span className="shop-sec-count">{list.length}개</span>
+            </header>
+
+            <ul className="shop-grid">
+              {list.map((item) => {
+                const isOwned = owns(state, item.id)
+                const isShipping = shipping.includes(item.id)
+                const buyable = canOrder(state, item)
+                return (
+                  <li key={item.id} className="shop-card">
+                    <span className="shop-thumb">
+                      <AppIcon name={item.icon} size={44} />
                     </span>
-                  ))}
-                  {/* 스탯이 아니라 **활동**을 여는 물건(회원권)의 값어치. 관계는
-                      `Activity.requiresItem` 한 곳에서만 뒤집어 찾는다. */}
-                  {activitiesUnlockedBy(item.id).map((a) => (
-                    <span key={a.id} className="shop-effect">
-                      {a.label} 활동 해제
-                    </span>
-                  ))}
-                </p>
-              </div>
-              <div className="shop-buy">
-                <span className="shop-price">{item.price.toLocaleString()}원</span>
-                <button
-                  type="button"
-                  className="shop-btn"
-                  disabled={!buyable}
-                  onClick={() => {
-                    orderItem(item)
-                    setJustOrdered(item)
-                  }}
-                >
-                  {isOwned ? '보유 중' : isShipping ? '배송 중' : buyable ? '주문하기' : '잔액 부족'}
-                </button>
-              </div>
-            </li>
-          )
-        })}
-      </ul>
+                    <div className="shop-info">
+                      <h3 className="shop-name">{item.name}</h3>
+                      <p className="shop-desc">{item.desc}</p>
+                      <p className="shop-effects">
+                        {/* 효과를 숨기면 "왜 사야 하나"에 답이 없다. 상한은 도착할 때 클램프된다. */}
+                        {Object.entries(item.effects).map(([key, value]) => (
+                          <span key={key} className="shop-effect">
+                            {STAT_NAMES[key as keyof typeof STAT_NAMES]} +{value}
+                          </span>
+                        ))}
+                        {/* 스탯이 아니라 **활동**을 여는 물건(회원권)의 값어치. 관계는
+                            `Activity.requiresItem` 한 곳에서만 뒤집어 찾는다. */}
+                        {activitiesUnlockedBy(item.id).map((a) => (
+                          <span key={a.id} className="shop-effect">
+                            {a.label} 활동 해제
+                          </span>
+                        ))}
+                      </p>
+                    </div>
+                    <div className="shop-buy">
+                      <span className="shop-price">{item.price.toLocaleString()}원</span>
+                      <button
+                        type="button"
+                        className="shop-btn"
+                        disabled={!buyable}
+                        onClick={() => {
+                          orderItem(item)
+                          setJustOrdered(item)
+                        }}
+                      >
+                        {isOwned ? '보유 중' : isShipping ? '배송 중' : buyable ? '주문하기' : '잔액 부족'}
+                      </button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )
+      })}
 
       {/* ⚠️ 물건 목록 **아래**에 둔다. 위에 두면 이 가게가 복권 가게로 읽히는데,
           복권은 계산대 옆에서 마지막에 집는 물건이지 진열대의 주인공이 아니다. */}

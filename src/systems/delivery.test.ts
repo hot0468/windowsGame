@@ -167,12 +167,21 @@ describe('전자기기 진열 분리', () => {
     ])
   })
 
-  it('한 물건이 두 가게에 동시에 뜨지 않는다', () => {
-    const shop = buyableFor('shop').map((i) => i.id)
-    const tech = buyableFor('tech').map((i) => i.id)
-    expect(shop.filter((id) => tech.includes(id))).toEqual([])
-    // 두 가게를 합치면 살 수 있는 물건 전체가 된다 — 어떤 물건도 진열대에서 사라지지 않는다.
-    expect([...shop, ...tech].sort()).toEqual(
+  it('한 물건이 여러 가게에 동시에 뜨지 않는다', () => {
+    /* ⚠️ 가게가 늘 때마다 이 목록에 한 줄을 더한다 — 빠뜨리면 아래 "전부 합치면 전체"가
+       터진다(가게가 셋이 된 2026-08-08 무진장에서 실제로 그랬다). */
+    const shelves = (['shop', 'tech', 'wear'] as const).map((s) =>
+      buyableFor(s).map((i) => i.id),
+    )
+    for (const [a, b] of [
+      [shelves[0], shelves[1]],
+      [shelves[0], shelves[2]],
+      [shelves[1], shelves[2]],
+    ]) {
+      expect(a.filter((id) => b.includes(id))).toEqual([])
+    }
+    // 가게를 전부 합치면 살 수 있는 물건 전체가 된다 — 어떤 물건도 진열대에서 사라지지 않는다.
+    expect(shelves.flat().sort()).toEqual(
       SHOP_ITEMS.filter((i) => i.buyable !== false)
         .map((i) => i.id)
         .sort(),

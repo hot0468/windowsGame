@@ -17,6 +17,16 @@ function totalGain(item: ShopItem): number {
 }
 
 /**
+ * 진열 구역. **쇼핑(`ShopSite`)과 같은 축이다** — 이미 `.tc-spec`의 '종류' 칸이
+ * 말하고 있던 구분('스탯 상승' / '활동 해제')을 진열 단위로 올린 것이라
+ * 새 데이터가 0개다(`ShopItem`에 카테고리 필드를 더하지 않았다).
+ */
+const SECTIONS = [
+  { key: 'stat', title: '스탯 상승', desc: '도착한 날 한 번 적용됩니다' },
+  { key: 'unlock', title: '활동 해제', desc: '갖춰야 할 수 있는 일이 있습니다' },
+] as const
+
+/**
  * 하이마루 — 전자기기 양판점.
  *
  * ⚠️ **쇼핑(`ShopSite`)과 같은 부류다.** 주문은 턴을 쓰지 않고(`"탐색은 무료"`), 효과는
@@ -66,84 +76,105 @@ export function TechSite({ site }: { site: Site }) {
         </p>
       )}
 
-      <ul className="tc-grid">
-        {items.map((item) => {
-          const isOwned = owns(state, item.id)
-          const isShipping = shipping.includes(item.id)
-          const buyable = canOrder(state, item)
-          const unlocks = activitiesUnlockedBy(item.id)
-          const gain = totalGain(item)
-          const poor = !isOwned && !isShipping && state.stats.money < item.price
+      {SECTIONS.map((sec) => {
+        const list = items.filter(
+          (i) => (activitiesUnlockedBy(i.id).length > 0) === (sec.key === 'unlock'),
+        )
+        /* 빈 구역은 그리지 않는다 — 제목만 있고 아무것도 없는 상자는 장식이다. */
+        if (list.length === 0) return null
+        const headId = `tc-sec-${sec.key}`
 
-          return (
-            <li key={item.id} className="tc-card">
-              <span className="tc-thumb">
-                <AppIcon name={item.icon} size={48} />
-              </span>
+        return (
+          <section key={sec.key} className="tc-sec" aria-labelledby={headId}>
+            <header className="tc-sec-head">
+              <h2 className="tc-sec-title" id={headId}>
+                {sec.title}
+              </h2>
+              <p className="tc-sec-desc">{sec.desc}</p>
+              <span className="tc-sec-count">{list.length}종</span>
+            </header>
 
-              <div className="tc-info">
-                <h2 className="tc-name">{item.name}</h2>
-                <p className="tc-desc">{item.desc}</p>
+            <ul className="tc-grid">
+              {list.map((item) => {
+                const isOwned = owns(state, item.id)
+                const isShipping = shipping.includes(item.id)
+                const buyable = canOrder(state, item)
+                const unlocks = activitiesUnlockedBy(item.id)
+                const gain = totalGain(item)
+                const poor = !isOwned && !isShipping && state.stats.money < item.price
 
-                {/*
-                  ⚠️ 스펙 줄. 카드가 나란히 서는 화면이라 **같은 자리에 같은 항목**이
-                  있어야 비교가 된다(style `Feature-Rich Showcase`의 비교 축).
-                  잠금 해제형은 스탯이 0이므로 '여는 활동'이 그 자리를 대신 채운다.
-                */}
-                <dl className="tc-spec">
-                  <div className="tc-spec-row">
-                    <dt>종류</dt>
-                    <dd>{unlocks.length > 0 ? '활동 해제' : '스탯 상승'}</dd>
-                  </div>
-                  <div className="tc-spec-row">
-                    <dt>효과</dt>
-                    <dd>{unlocks.length > 0 ? `+${unlocks.length}종` : `합계 +${gain}`}</dd>
-                  </div>
-                </dl>
-
-                <p className="tc-effects">
-                  {Object.entries(item.effects).map(([key, value]) => (
-                    <span key={key} className="tc-effect">
-                      {STAT_NAMES[key as keyof typeof STAT_NAMES]} +{value}
+                return (
+                  <li key={item.id} className="tc-card">
+                    <span className="tc-thumb">
+                      <AppIcon name={item.icon} size={48} />
                     </span>
-                  ))}
-                  {/*
-                    스탯이 아니라 **활동**을 여는 기기의 값어치.
-                    ux `color-not-only`: 자물쇠 글리프 + '활동 해제' 글자가 함께 말한다.
-                  */}
-                  {unlocks.map((a) => (
-                    <span key={a.id} className="tc-effect tc-effect-unlock">
-                      <AppIcon name="mdi:lock-open-variant-outline" size={13} />
-                      {a.label} 활동 해제
-                    </span>
-                  ))}
-                </p>
-              </div>
 
-              <div className="tc-buy">
-                <span className="tc-price">{won(item.price)}</span>
-                <button
-                  type="button"
-                  className="tc-btn"
-                  disabled={!buyable}
-                  onClick={() => {
-                    orderItem(item)
-                    setJustOrdered(item)
-                  }}
-                >
-                  {isOwned ? '보유 중' : isShipping ? '배송 중' : buyable ? '주문하기' : '잔액 부족'}
-                </button>
-                {/* ux `error-clarity`: 못 사는 이유를 글자로 적는다(비활성만 두지 않는다). */}
-                {poor && (
-                  <span className="tc-why">
-                    {won(item.price - state.stats.money)} 모자랍니다
-                  </span>
-                )}
-              </div>
-            </li>
-          )
-        })}
-      </ul>
+                    <div className="tc-info">
+                      <h3 className="tc-name">{item.name}</h3>
+                      <p className="tc-desc">{item.desc}</p>
+
+                      {/*
+                        ⚠️ 스펙 줄. 카드가 나란히 서는 화면이라 **같은 자리에 같은 항목**이
+                        있어야 비교가 된다(style `Feature-Rich Showcase`의 비교 축).
+                        잠금 해제형은 스탯이 0이므로 '여는 활동'이 그 자리를 대신 채운다.
+                      */}
+                      <dl className="tc-spec">
+                        <div className="tc-spec-row">
+                          <dt>종류</dt>
+                          <dd>{unlocks.length > 0 ? '활동 해제' : '스탯 상승'}</dd>
+                        </div>
+                        <div className="tc-spec-row">
+                          <dt>효과</dt>
+                          <dd>{unlocks.length > 0 ? `+${unlocks.length}종` : `합계 +${gain}`}</dd>
+                        </div>
+                      </dl>
+
+                      <p className="tc-effects">
+                        {Object.entries(item.effects).map(([key, value]) => (
+                          <span key={key} className="tc-effect">
+                            {STAT_NAMES[key as keyof typeof STAT_NAMES]} +{value}
+                          </span>
+                        ))}
+                        {/*
+                          스탯이 아니라 **활동**을 여는 기기의 값어치.
+                          ux `color-not-only`: 자물쇠 글리프 + '활동 해제' 글자가 함께 말한다.
+                        */}
+                        {unlocks.map((a) => (
+                          <span key={a.id} className="tc-effect tc-effect-unlock">
+                            <AppIcon name="mdi:lock-open-variant-outline" size={13} />
+                            {a.label} 활동 해제
+                          </span>
+                        ))}
+                      </p>
+                    </div>
+
+                    <div className="tc-buy">
+                      <span className="tc-price">{won(item.price)}</span>
+                      <button
+                        type="button"
+                        className="tc-btn"
+                        disabled={!buyable}
+                        onClick={() => {
+                          orderItem(item)
+                          setJustOrdered(item)
+                        }}
+                      >
+                        {isOwned ? '보유 중' : isShipping ? '배송 중' : buyable ? '주문하기' : '잔액 부족'}
+                      </button>
+                      {/* ux `error-clarity`: 못 사는 이유를 글자로 적는다(비활성만 두지 않는다). */}
+                      {poor && (
+                        <span className="tc-why">
+                          {won(item.price - state.stats.money)} 모자랍니다
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )
+      })}
 
       <p className="tc-foot">
         모든 기기는 <strong>다음 날</strong> 도착하며, 효과는 도착한 순간에 한 번 적용됩니다.

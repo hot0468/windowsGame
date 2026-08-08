@@ -3,7 +3,7 @@ import { findActivity } from '../../../data/activities'
 import { FEATURE_BOOKS, SERIALS, WRITERS, WRITING_PROMPTS } from '../../../data/media'
 import { AppIcon } from '../../../icons/AppIcon'
 import type { Site } from '../../../data/sites'
-import { ActivityCommit } from './ActivityCommit'
+import { ActivityConfirm } from '../ActivityConfirm'
 import './PublishSite.css'
 
 /**
@@ -18,7 +18,7 @@ import './PublishSite.css'
  *
  * ## 구조 (레퍼런스: 실제 창작 플랫폼 홈)
  * 프로모션 띠 → 헤더 → 히어로 카피 → 대표작 캐러셀 → **KEYWORD 격자** →
- * 요일별 연재 → 작가 소개 → 배너 → 확정 패널.
+ * 요일별 연재 → 작가 소개 → 배너.
  *
  * ⚠️ **키워드 격자가 곧 글감 고르기다.** 레퍼런스의 키워드 판을 장식으로 베끼는 대신
  * 게임의 기능을 그 자리에 앉혔다 — 같은 자리에 같은 모양인데 누르면 실제로 동작한다.
@@ -228,16 +228,18 @@ export function PublishSite({ site }: { site: Site }) {
         <span>글이 되는 공간, 작가가 되는 시간</span>
       </div>
 
-      <ActivityCommit
-        activity={activity}
-        actionLabel="발행하기"
-        selection={picked ? `「${picked.theme}」` : undefined}
-        selectionHint="키워드를 눌러 글감을 고르세요."
-        onCommitted={() => {
-          setPublished(picked?.theme ?? null)
-          setPickedId(null)
-        }}
-      />
+      {/* 키워드를 누르면 곧바로 확인창이 뜬다 — 확정 패널은 폐기됐다(설계자 지시). */}
+      {picked && (
+        <ActivityConfirm
+          activity={activity}
+          kicker="아점"
+          title={`「${picked.theme}」으로 글을 발행하시겠습니까?`}
+          actionLabel="발행하기"
+          notes={[{ label: '글감', value: picked.hint }]}
+          onCommitted={() => setPublished(picked.theme)}
+          onClose={() => setPickedId(null)}
+        />
+      )}
     </div>
   )
 }

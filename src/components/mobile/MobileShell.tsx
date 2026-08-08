@@ -69,7 +69,14 @@ export function MobileShell() {
     })
   }, [autoRun, autoRunning, open])
 
-  const entries = useMemo(() => desktopEntries(shortcutIds), [shortcutIds])
+  /** 조건부 항목 판정. ⚠️ 셀렉터가 새 배열을 만들면 무한 갱신이 된다(`Desktop`과 같다). */
+  const inventory = useGameStore((s) => s.state?.inventory)
+  const ownedIds = useMemo(() => (inventory ?? []).map((i) => i.id), [inventory])
+
+  const entries = useMemo(
+    () => desktopEntries(shortcutIds, ownedIds),
+    [shortcutIds, ownedIds],
+  )
 
   /**
    * 지금 전체화면으로 그릴 앱 = **최소화되지 않은 창 중 z가 가장 높은 하나**.

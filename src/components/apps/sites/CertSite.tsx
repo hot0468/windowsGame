@@ -17,15 +17,15 @@ import { STAT_NAMES } from '../../../types/game'
 import type { Cert } from '../../../data/certs'
 import type { Site } from '../../../data/sites'
 import type { GameState, Stats } from '../../../types/game'
-import { ActivityCommit } from './ActivityCommit'
+import { ActivityConfirm } from '../ActivityConfirm'
 import './CertSite.css'
 
 /**
  * O넷 — **자격증 시험**. 벼룩장터(정규직) 옆에 서서 그쪽의 지원 자격을 만들어 준다.
  *
  * **둘러보기는 무료다.** 종목을 넘기고 요건을 확인하는 동안 게임 상태는 **읽기만** 한다 —
- * 턴을 쓰는 자리는 화면 아래 확정 패널(`ActivityCommit`) 하나뿐이고, 응시료는 그 패널이
- * 아니라 고른 종목(`Cert.fee`)이 갖는다.
+ * 턴을 쓰는 자리는 종목을 눌렀을 때 뜨는 확인창(`ActivityConfirm`) 하나뿐이고, 응시료는
+ * 그 창이 아니라 고른 종목(`Cert.fee`)이 갖는다.
  *
  * ⚠️ **합격은 응시 즉시가 아니라 발표일에 확정된다**(설계자 지시). 그래서 이 화면에는
  * "지금 접수해 둔 것"과 "발표가 난 것"을 함께 적는 응시 현황 표가 있다 — 며칠 뒤의 일을
@@ -166,42 +166,33 @@ export function CertSite({ site }: { site: Site }) {
           </ul>
         </section>
 
+        {/*
+          종목을 누르면 곧바로 확인창이 뜬다 — 확정 패널은 폐기됐다(설계자 지시).
+          ⚠️ 응시료는 활동의 비용이 아니라 종목이 갖는 돈이라 미리보기에 안 잡힌다.
+          `notes`로 넘겨 같은 창에서 알린다 — 누르기 전에 비용을 다 알 수 있어야 한다.
+        */}
         {picked && examActivity && (
-          <section className="qn-sec">
-            <div className="qn-receipt-box">
-              <div className="qn-receipt-row">
-                <span className="qn-receipt-label">원서접수</span>
-                <strong>{picked.name}</strong>
-              </div>
-              <div className="qn-receipt-row">
-                <span className="qn-receipt-label">응시료</span>
-                <strong className="qn-fee">{picked.fee.toLocaleString('ko-KR')}원</strong>
-              </div>
-              <div className="qn-receipt-row">
-                <span className="qn-receipt-label">합격자 발표</span>
-                <span>
-                  {formatGameDate(state.day + picked.resultDays)} (응시일 +{picked.resultDays}일)
-                </span>
-              </div>
-              {/* ⚠️ 응시료는 활동의 비용이 아니므로 ActivityCommit의 미리보기에 안 잡힌다.
-                  여기서 따로 알린다 — 누르기 전에 비용을 다 알 수 있어야 한다. */}
-              {blocked && <p className="qn-blocked">{blocked}</p>}
-            </div>
-
-            <ActivityCommit
-              activity={examActivity}
-              actionLabel={`${picked.fee.toLocaleString('ko-KR')}원 결제하고 접수하기`}
-              selection={blocked ? undefined : picked.name}
-              selectionHint={blocked ?? '응시할 종목을 고르세요.'}
-              onCommit={() => takeExam(picked)}
-              onCommitted={() => {
-                setReceipt(
-                  `${picked.name} 원서를 접수했습니다. 합격자 발표는 ${picked.resultDays}일 뒤이며 결과는 메일로 옵니다.`,
-                )
-                setPickedId(null)
-              }}
-            />
-          </section>
+          <ActivityConfirm
+            activity={examActivity}
+            kicker="O넷 원서접수"
+            title={`${picked.name} 시험에 접수하시겠습니까?`}
+            actionLabel={`${picked.fee.toLocaleString('ko-KR')}원 결제하고 접수하기`}
+            notes={[
+              { label: '응시료', value: `${picked.fee.toLocaleString('ko-KR')}원` },
+              {
+                label: '합격자 발표',
+                value: `${formatGameDate(state.day + picked.resultDays)} (+${picked.resultDays}일)`,
+              },
+            ]}
+            blocked={blocked ?? undefined}
+            onCommit={() => takeExam(picked)}
+            onCommitted={() =>
+              setReceipt(
+                `${picked.name} 원서를 접수했습니다. 합격자 발표는 ${picked.resultDays}일 뒤이며 결과는 메일로 옵니다.`,
+              )
+            }
+            onClose={() => setPickedId(null)}
+          />
         )}
       </div>
 

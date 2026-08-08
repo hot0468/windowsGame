@@ -400,41 +400,6 @@
   font-size: var(--fs-xs);
 }
 
-/* ── 원서접수 확정 ───────────────────────────────────── */
-.qn-receipt-box {
-  margin-bottom: var(--sp-3);
-  padding: var(--sp-4);
-  border: 1px solid var(--qn-line);
-  border-radius: var(--r-md);
-  background: var(--qn-surface);
-}
-
-.qn-receipt-row {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-3);
-  padding: var(--sp-1) 0;
-  font-size: var(--fs-sm);
-  font-variant-numeric: tabular-nums;
-}
-
-.qn-receipt-label {
-  flex: 0 0 96px;
-  font-size: var(--fs-xs);
-  color: var(--qn-text-2);
-}
-
-/* ux `error-clarity`: 왜 못 하는지 사유를 그대로 적는다. */
-.qn-blocked {
-  margin: var(--sp-2) 0 0;
-  padding: var(--sp-2) var(--sp-3);
-  border-left: 3px solid var(--qn-bad);
-  border-radius: var(--r-sm);
-  background: var(--qn-surface);
-  font-size: var(--fs-sm);
-  color: var(--qn-bad);
-}
-
 /* ── 푸터 ────────────────────────────────────────────── */
 .qn-foot {
   width: min(var(--qn-page), 100% - var(--qn-gutter) * 2);

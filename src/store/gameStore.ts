@@ -17,7 +17,9 @@ import { advanceEmployment, applyTo, canApply } from '../systems/employment'
 import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../systems/bank'
 import { moveTo } from '../systems/housing'
 import { advanceLottery, buyTickets } from '../systems/lottery'
+import { advanceTwitter, postArtwork as postArtworkOf } from '../systems/twitter'
 import { takeCourse as takeCourseOf } from '../systems/courses'
+import { playGame as playGameOf } from '../systems/steam'
 import { advanceCertification, takeExam as takeExamOf } from '../systems/certification'
 import { findHousing } from '../data/housing'
 import { selectIncoming } from '../systems/messages'
@@ -34,12 +36,14 @@ import type { AutoRun, AutoStop, StopContext } from '../systems/autoAdvance'
 import type { Career } from '../data/careers'
 import type { Cert } from '../data/certs'
 import type { Course } from '../data/courses'
+import type { SteamGame } from '../data/steam'
 import type { OfferOption } from '../data/messages'
 import type { ShopItem } from '../data/items'
 import type { SkippedPlan } from '../systems/schedule'
 import type {
   Activity,
   Application,
+  Artwork,
   BankEntry,
   BankState,
   Employment,
@@ -52,6 +56,7 @@ import type {
   Slot,
   Stats,
   TermDeposit,
+  TwitterState,
 } from '../types/game'
 import type { Housing } from '../data/housing'
 
@@ -240,6 +245,33 @@ function reviveLottery(saved: Partial<GameState>): LotteryState | undefined {
 }
 
 /**
+ * 트위터 상태 복원.
+ *
+ * ⚠️ **검증이 `courses`보다 빡빡한 이유는 `reviveLottery`와 정확히 같다 — 이 상태가
+ * 돈을 만든다.** `gained`가 NaN이면 주간 정산금이 NaN이 되고 그것이 소지금으로 흘러
+ * `NaN <= 0`이 false라 **파산이 영영 안 걸린다**. 하나라도 못 믿으면 통째로 버린다
+ * (그러면 "올린 적 없음"이 되고, 그것이 이 필드가 없던 세이브의 동작과 같다).
+ *
+ * ⚠️ **`paidDay`는 미래로 두지 않는다** — 미래면 정산이 영영 안 돌아 팔로워가 장식이 된다
+ * (`BankState.accruedDay`와 같은 판단이되 방향이 반대다: 은행은 과거가 위험하고
+ * 여기는 미래가 위험하다. 과거는 `advanceTwitter`의 루프가 따라잡는다).
+ */
+function reviveTwitter(saved: Partial<GameState>): TwitterState | undefined {
+  const t = saved.twitter
+  if (!t || typeof t !== 'object') return undefined
+  if (!Number.isFinite(t.gained) || t.gained < 0) return undefined
+  const day = Number(saved.day ?? 1)
+  const paidDay = Number.isFinite(t.paidDay) ? Math.min(Number(t.paidDay), day) : day
+  return {
+    gained: Number(t.gained),
+    paidDay,
+    postedIds: Array.isArray(t.postedIds)
+      ? t.postedIds.filter((id): id is string => typeof id === 'string')
+      : [],
+  }
+}
+
+/**
  * 저장된 세이브를 검증해 안전한 GameState로 되돌린다.
  * 필드가 빠진 구버전 세이브를 그대로 통과시키면 clampStats가 NaN을 만들고,
  * NaN <= 0이 false라 게임오버 판정이 영영 걸리지 않아 조용히 망가진다.
@@ -294,6 +326,22 @@ function reviveState(raw: unknown): GameState | null {
     housing: reviveHousing(saved),
     lottery: reviveLottery(saved),
     courses: saved.courses && typeof saved.courses === 'object' ? saved.courses : undefined,
+    // 증기 플레이 횟수. 표시에만 쓰이고 돈·턴을 만들지 않으므로 `courses`와 같은 수준으로 본다.
+    steam: saved.steam && typeof saved.steam === 'object' ? saved.steam : undefined,
+    // ⚠️ 그림 자체는 **돈을 만들지 않는다**(올려야 팔로워가 되고, 그 판정은 아래 트위터
+    //    상태가 진다). 그래서 검증은 `exams` 수준이면 충분하다 — 모양만 보고 통과시키고,
+    //    등급은 어차피 `artGrade`가 매번 계산한다(저장된 등급이라는 것이 없다).
+    artworks: Array.isArray(saved.artworks)
+      ? (saved.artworks.filter(
+          (a) =>
+            a &&
+            typeof a.id === 'string' &&
+            Number.isFinite(a.serial) &&
+            Number.isFinite(a.art) &&
+            Number.isFinite(a.creativity),
+        ) as Artwork[])
+      : undefined,
+    twitter: reviveTwitter(saved),
     // ⚠️ 응시 기록은 **돈을 만들지 않으므로** 검증이 은행·정규직만큼 빡빡할 필요가 없다
     //    (합격해도 나오는 것은 아이템 하나다). 날짜만 유한하면 통과시키고, 없는 종목을
     //    가리키는 기록은 `advanceCertification`이 조용히 닫는다.
@@ -352,7 +400,11 @@ function afterTurn(next: GameState, chain?: number) {
   //    `settleGameOver`를 부르고, 그 함수는 확정된 사유를 되살리지 않는다) —
   //    당첨금이 먼저 들어와야 급여 소식 메일에 적히는 잔액이 실제와 맞기 때문이다.
   const drawn = advanceLottery(exams.state)
-  const banked = advanceBank(drawn)
+  // ⚠️ **트위터 주간 정산도 밤에 돈을 넣는다**(`nightPayoutPending`의 네 번째 원천).
+  //    은행·복권과 같은 자리·같은 이유이고, 셋 다 마지막 줄에서 `settleGameOver`를 부르므로
+  //    순서 자체가 판정을 바꾸지는 않는다(확정된 사유는 되살아나지 않는다).
+  const tweeted = advanceTwitter(drawn)
+  const banked = advanceBank(tweeted)
   // ⚠️ 고용 정산은 **예약 연쇄가 끝난 뒤**에 한 번 돈다. 커서(`checkedDay`)와
   //    급여 루프가 밀린 날짜를 따라잡도록 돼 있어, 며칠이 한 번에 흘러도 새지 않는다.
   // ⚠️ **반드시 마지막이다.** 게임오버는 밤이 다 정산된 뒤 딱 한 번 확정되는데
@@ -437,6 +489,18 @@ interface GameStore {
    * 합격은 발표일 밤에 `afterTurn` → `advanceCertification`이 확정한다.
    */
   takeExam: (cert: Cert) => void
+  /**
+   * 증기에서 게임을 켠다. **1턴을 쓴다** — `game` 활동을 실행하고 그 게임의 플레이
+   * 횟수를 올린다(`takeCourse`와 같은 모양: 활동만으로는 못 넘기는 값이 하나 더 있다).
+   */
+  playGame: (game: SteamGame) => void
+  /**
+   * 그림을 트위터에 올린다. **1턴을 쓴다**(`sns` 활동이 비용을 갖는다).
+   *
+   * ⚠️ `takeCourse`·`playGame`과 같은 모양이다 — 순수 함수가 조건을 다 보고 안 되면
+   * 상태를 그대로 돌려주므로 그때는 아무것도 하지 않는다(반쪽 상태 금지).
+   */
+  postArtwork: (artworkId: string) => void
   /**
    * 방금 도착한 정규직 소식. **휘발**이다 — 토스트를 띄우고 나면 비운다
    * (`arrivals`·`skippedPlans`와 같은 규칙). 원본은 `state.jobNotices`가 들고 있다.
@@ -649,6 +713,22 @@ export const useGameStore = create<GameStore>()(
           // `takeCourse`가 조건을 다 보고 안 되면 상태를 그대로 돌려준다(반쪽 상태 금지).
           // 턴을 쓰는 활동이므로 `afterTurn`으로 예약·택배·정산을 마저 돌린다.
           const next = takeCourseOf(current, course)
+          if (next !== current) set(afterTurn(next))
+        },
+
+        playGame: (game) => {
+          const current = get().state
+          if (!current) return
+          // `playGame`이 조건을 다 보고 안 되면 상태를 그대로 돌려준다(반쪽 상태 금지).
+          // 턴을 쓰므로 `afterTurn`으로 예약·택배·정산을 마저 돌린다.
+          const next = playGameOf(current, game)
+          if (next !== current) set(afterTurn(next))
+        },
+
+        postArtwork: (artworkId) => {
+          const current = get().state
+          if (!current) return
+          const next = postArtworkOf(current, artworkId)
           if (next !== current) set(afterTurn(next))
         },
 

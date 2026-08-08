@@ -331,7 +331,7 @@
 }
 
 .sch-confirm-keep:hover {
-  background: var(--os-hover);
+  background: var(--os-fill);
 }
 
 /* ux `destructive-emphasis`: 되돌릴 수 없는 쪽은 위험색으로, 기본값이 아닌 자리에. */

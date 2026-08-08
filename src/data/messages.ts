@@ -121,6 +121,43 @@ export const THREADS: Thread[] = [
       ],
     },
   },
+  {
+    /*
+     * 두 번째 오픈채팅. ⚠️ **헬스장 방과 같은 판을 일부러 되풀이한다** — 선택지 둘의
+     * 뜻(1회 / 정기권)과 동작(활동 실행 / 아이템 주문 + 주간 예약)이 같아야
+     * "오픈채팅에서 파는 것"이 한 가지 규칙으로 읽힌다.
+     *
+     * ⚠️ 주간 예약 요일이 헬스장(목)과 다르다. 같은 요일에 걸면 두 정기권을 함께 끊은
+     * 사람의 예약이 매주 같은 슬롯에서 부딪혀 한쪽이 조용히 밀려난다.
+     */
+    id: 'salon',
+    app: 'kakao',
+    name: '미용실 오픈채팅',
+    members: 64,
+    open: true,
+    offer: {
+      question: '예약 도와드릴까요?',
+      options: [
+        {
+          id: 'salon-once',
+          label: '이번 한 번만요',
+          desc: '커트+드라이 25,000원 · 1턴 소모',
+          activityId: 'salon-visit',
+        },
+        {
+          id: 'salon-regular',
+          label: '정기권 끊을게요',
+          desc: '정기권 150,000원 · 카드는 내일 도착 · 매주 토요일 오후 자동 예약',
+          // ⚠️ 금액을 여기 적지 않는다(헬스장과 같은 규칙). 이 선택지는 쇼핑의
+          // '미용실 정기권'과 **같은 물건**을 주문하는 것이고, 그 카드가 있어야
+          // salon-member 활동이 열린다.
+          itemId: 'salon-pass',
+          // 6 = 토요일(0=일). 헬스장은 목요일이라 서로 안 겹친다.
+          weekly: { weekday: 6, weeks: 4, activityId: 'salon-member' },
+        },
+      ],
+    },
+  },
   { id: 'boss', app: 'nateon', name: '팀장님', members: 1 },
   { id: 'devteam', app: 'nateon', name: '개발 2팀', members: 7 },
 ]
@@ -188,7 +225,15 @@ export const MESSAGE_SCHEDULE: Message[][] = [
     { id: 'f1', channel: 'family', from: '엄마', text: '밥은 먹고 다니냐' },
   ],
   // 턴 2
-  [{ id: 'n1', channel: 'boss', from: '팀장님', text: '주간 보고서 초안 언제쯤 볼 수 있을까요?' }],
+  [
+    { id: 'n1', channel: 'boss', from: '팀장님', text: '주간 보고서 초안 언제쯤 볼 수 있을까요?' },
+    {
+      id: 's1',
+      channel: 'salon',
+      from: '디자이너 유진',
+      text: '이번 주 예약 몇 자리 남았어요! 정기권 하시면 드라이는 그냥 해 드립니다',
+    },
+  ],
   // 턴 3 — 조용한 턴
   [],
   // 턴 4
@@ -206,6 +251,12 @@ export const MESSAGE_SCHEDULE: Message[][] = [
   // 턴 5
   [
     { id: 'n2', channel: 'boss', from: '팀장님', text: '내일 오전에 짧게 회의만 하시죠. 30분이면 됩니다.' },
+    {
+      id: 's2',
+      channel: 'salon',
+      from: '디자이너 유진',
+      text: '머리 기르는 중이시면 3주쯤 뒤에 다듬는 게 제일 예뻐요',
+    },
     { id: 'd1', channel: 'devteam', from: '이 대리', text: '배포 나갔습니다. 확인 부탁드려요' },
   ],
   // 턴 6 — 조용한 턴

@@ -12,7 +12,7 @@ import { passes } from './employment'
 import { CERTS, EXAM_ACTIVITY_ID, findCert } from '../data/certs'
 import { ACTIVITIES, findActivity } from '../data/activities'
 import { CAREERS } from '../data/careers'
-import { findItem } from '../data/items'
+import { findItem, requiredItemIds } from '../data/items'
 import { SITES } from '../data/sites'
 import type { GameState, Stats } from '../types/game'
 
@@ -49,8 +49,9 @@ describe('종목 정의', () => {
 
   it('네 종목이 여는 것이 둘씩 갈린다 — 공고 자격 2 · 활동 해금 2', () => {
     const careerCerts = CAREERS.filter((c) => c.cert).map((c) => c.cert)
-    const activityCerts = ACTIVITIES.filter((a) => a.requiresItem?.startsWith('cert-')).map(
-      (a) => a.requiresItem,
+    // ⚠️ `requiresItem`은 문자열이거나 배열이다 — 문자열만 보면 배열로 잠긴 활동이 빠진다.
+    const activityCerts = ACTIVITIES.flatMap((a) => requiredItemIds(a.requiresItem)).filter((id) =>
+      id.startsWith('cert-'),
     )
     expect(careerCerts).toHaveLength(2)
     // 수료증 2종(cert-ai·cert-brand)이 섞여 있으므로 O넷 종목만 센다.
@@ -175,13 +176,15 @@ describe('자격증이 여는 것', () => {
   })
 
   it('자격증이 여는 활동은 실제로 잠겨 있다', () => {
-    const locked = ACTIVITIES.filter((a) => CERTS.some((c) => c.itemId === a.requiresItem))
+    const locked = ACTIVITIES.filter((a) =>
+      requiredItemIds(a.requiresItem).some((id) => CERTS.some((c) => c.itemId === id)),
+    )
     expect(locked.length).toBe(2)
     for (const a of locked) {
       // 행동력·돈을 다 채워도 아이템이 없으면 못 한다(판정은 `canRun` 하나가 한다).
       const rich = stocked({ stamina: 200, maxStamina: 200 })
       expect(canRun(rich, a), `${a.id}이 자격증 없이 실행된다`).toBe(false)
-      const held = { ...rich, inventory: [{ id: a.requiresItem!, day: 1 }] }
+      const held = { ...rich, inventory: [{ id: requiredItemIds(a.requiresItem)[0], day: 1 }] }
       expect(canRun(held, a)).toBe(true)
       // ⚠️ 번아웃 키가 알바('work')·수료증 외주('gig')와 갈려 있어야 한다.
       expect(a.burnoutKey).toBe('cert-gig')

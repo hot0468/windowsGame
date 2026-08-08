@@ -1,34 +1,44 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { dateOf } from '../../data/calendar'
+import { desktopEntries } from '../../data/desktopItems'
 import { EVENTS } from '../../data/events'
 import { fakeSize, findItem } from '../../data/items'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
 import { inventoryOf } from '../../systems/delivery'
+import { artFileName, artGrade, artworksOf } from '../../systems/artwork'
+import { RANK_ORDER } from '../../systems/rank'
 import type { FolderId, IconName } from '../../types/game'
+import { ContextMenu } from '../ContextMenu'
 import './ExplorerApp.css'
 
 /**
- * 아이템 인벤토리 · 이벤트 도감.
+ * 아이템 인벤토리 · 사진첩.
  *
- * **UI는 윈도우 파일 탐색기와 같다**(설계자 지시): 도구 모음 → 주소 표시줄 → 탐색 창 +
- * 파일 목록 → 상태 표시줄. 아이템은 확장자가 붙은 **파일**로 들어간다.
+ * **UI는 윈도우 11 파일 탐색기 그대로다**(설계자 지시, 레퍼런스=실제 탐색기 스크린샷):
+ * 주소 줄(경로 빵부스러기 + 검색) → 명령 모음 → (탐색 창 | 파일 목록) → 상태 표시줄.
+ * 아이템은 확장자가 붙은 **파일**로 들어간다.
  *
  * ⚠️ 두 폴더가 한 컴포넌트인 이유: 다른 것은 **목록을 만드는 방법 하나뿐**이다.
  * 파일별로 컴포넌트를 나누면 탐색 창·주소줄·보기 전환이 두 벌이 되고, 한쪽만 고치는
  * 버그가 반드시 생긴다.
  *
- * 도구 모음 글리프는 **표시만 하지 않는다** — 눌러서 동작하는 것만 버튼으로 둔다
- * (보기 전환·폴더 이동). 실제 탐색기의 잘라내기·붙여넣기는 이 게임에 뜻이 없으므로
- * 아예 그리지 않는다: 눌러도 아무 일 없는 컨트롤이 진짜 탐색기다움을 깎는다.
+ * ## 레퍼런스에서 **덜어낸 것**과 그 이유
+ * ⚠️ **동작하지 않는 컨트롤은 그리지 않는다**(이 프로젝트의 규칙). 실제 탐색기의
+ * - **탭 줄**: 창 타이틀 바가 이미 폴더 이름을 갖는다(같은 말이 두 번). [+]는 갈 데가 없다.
+ * - **뒤로·앞으로·위로·새로 고침**: 이 게임의 폴더는 둘뿐이고 창 안에서 이동하지 않는다.
+ *   목록은 항상 지금 상태에서 파생되므로 새로 고칠 것도 없다.
+ * - **새로 만들기·잘라내기·복사·붙여넣기·이름 바꾸기·공유·삭제**: 게임에 뜻이 없다.
+ *   플레이어가 인벤토리에서 물건을 지울 수 있으면 그건 UI가 아니라 규칙 변경이다.
+ *
+ * 남긴 것은 **전부 실제로 동작한다**: 검색은 목록을 거르고, 정렬·보기는 진짜로 바뀌며,
+ * 열 제목을 누르면 그 열로 정렬된다(실제 탐색기와 같다).
  */
 
 interface FolderMeta {
   label: string
   icon: IconName
-  /** 주소 표시줄에 그릴 경로. */
-  path: string
   /** 파일이 하나도 없을 때의 안내. */
   empty: string
 }
@@ -37,16 +47,26 @@ const FOLDERS: Record<FolderId, FolderMeta> = {
   inventory: {
     label: '아이템 인벤토리',
     icon: 'fluent-color:document-folder-24',
-    path: '내 PC \\ 바탕 화면 \\ 아이템 인벤토리',
     empty: '아직 받은 물건이 없습니다. 인터넷 → 쇼핑에서 주문하면 다음 날 도착합니다.',
   },
   codex: {
-    label: '이벤트 도감',
-    icon: 'fluent-color:document-folder-24',
-    path: '내 PC \\ 바탕 화면 \\ 이벤트 도감',
-    empty: '아직 기록된 사건이 없습니다.',
+    label: '사진첩',
+    icon: 'fluent-color:image-24',
+    empty: '아직 담긴 사진이 없습니다.',
+  },
+  gallery: {
+    label: '갤러리',
+    icon: 'fluent-color:design-ideas-24',
+    empty: '아직 그린 그림이 없습니다. 클립스튜디오를 켜면 한 장씩 여기에 쌓입니다.',
   },
 }
+
+/**
+ * 주소 줄에 그릴 경로. 마지막 칸이 지금 폴더다.
+ * ⚠️ 문자열 하나로 적지 않는다 — 실제 탐색기의 빵부스러기는 칸마다 나뉜 조각이고,
+ * 그래야 마지막 칸만 진하게(현재 위치) 그릴 수 있다.
+ */
+const crumbsOf = (meta: FolderMeta) => ['내 PC', '바탕 화면', meta.label]
 
 /** 목록에 그릴 한 줄. 아이템과 사건을 같은 모양으로 눕힌다. */
 interface Entry {
@@ -55,10 +75,24 @@ interface Entry {
   ext: string
   icon: IconName
   size: string
+  /** 크기 정렬용 바이트. 화면에 뜨는 것은 `size` 문구다. */
+  bytes: number
   /** 얻은 날. 사건은 겪은 날이다. 미획득이면 undefined. */
   day?: number
   desc: string
   owned: boolean
+}
+
+/**
+ * 파일 유형 칸. 실제 탐색기의 "파일 폴더"·"텍스트 문서" 자리이고,
+ * ⚠️ **확장자에서 파생한다** — 물건마다 유형을 따로 적으면 확장자와 어긋난 줄이 생긴다.
+ */
+const typeOf = (ext: string) => `${ext.replace('.', '').toUpperCase()} 파일`
+
+/** 크기 문구를 정렬용 숫자로. "12.4 KB" → 12400 정도면 순서에는 충분하다. */
+function bytesOf(size: string): number {
+  const n = parseFloat(size) || 0
+  return size.includes('MB') ? n * 1024 * 1024 : n * 1024
 }
 
 function entriesOf(folder: FolderId, state: ReturnType<typeof useGameStore.getState>['state']): Entry[] {
@@ -70,18 +104,49 @@ function entriesOf(folder: FolderId, state: ReturnType<typeof useGameStore.getSt
     return inventoryOf(state).flatMap((got) => {
       const item = findItem(got.id)
       if (!item) return []
+      const size = fakeSize(item)
       return [
         {
           id: got.id,
           name: item.name,
           ext: item.ext,
           icon: item.icon,
-          size: fakeSize(item),
+          size,
+          bytes: bytesOf(size),
           day: got.day,
           desc: item.desc,
           owned: true,
         },
       ]
+    })
+  }
+
+  if (folder === 'gallery') {
+    /*
+     * 갤러리는 인벤토리와 같은 부류다 — **그린 것만** 보여 준다(안 그린 그림은 없다).
+     *
+     * ⚠️ **등급이 파일 이름에 박혀 있다**(`artFileName`). 열을 하나 더 만들지 않은 이유는
+     * 이 컴포넌트가 폴더 셋의 공용 부품이라 갤러리만을 위한 열을 더하면 나머지 둘에
+     * 빈 칸이 생기기 때문이다. 이름에 넣으면 **검색도 정렬도 그대로 동작한다**
+     * (`습작_A`를 'A'로 검색하면 A등급만 걸린다).
+     * ⚠️ 등급은 저장값이 아니라 계산값이다 — 규칙은 `systems/artwork.ts` 하나가 갖는다.
+     */
+    return artworksOf(state).map((work) => {
+      const grade = artGrade(work)
+      return {
+        id: work.id,
+        name: artFileName(work),
+        ext: '.png',
+        icon: 'fluent-color:image-24',
+        // 크기도 등급에서 파생시킨다 — 잘 그린 그림일수록 무겁다(무작위 금지).
+        size: `${420 + RANK_ORDER.indexOf(grade) * 260} KB`,
+        bytes: (420 + RANK_ORDER.indexOf(grade) * 260) * 1024,
+        day: work.day,
+        desc: `${work.day}일차 ${work.slot === 'morning' ? '오전' : '오후'}에 ${
+          work.tool === 'lcd' ? '액정' : '팬'
+        } 타블렛으로 그렸다. 그릴 때 예술 ${work.art} · 창의력 ${work.creativity} → ${grade}등급.`,
+        owned: true,
+      }
     })
   }
 
@@ -93,6 +158,7 @@ function entriesOf(folder: FolderId, state: ReturnType<typeof useGameStore.getSt
     ext: e.ext,
     icon: e.icon,
     size: '1 KB',
+    bytes: 1024,
     day: log.get(e.id),
     desc: log.has(e.id) ? e.desc : e.hint,
     owned: log.has(e.id),
@@ -107,44 +173,140 @@ function formatDay(day: number | undefined): string {
   ).padStart(2, '0')}`
 }
 
+/** 정렬 기준. 열 제목과 [정렬] 메뉴가 **같은 목록**을 쓴다(두 곳에 적으면 갈라진다). */
+const SORTS = [
+  { key: 'name', label: '이름' },
+  { key: 'day', label: '수정한 날짜' },
+  { key: 'type', label: '유형' },
+  { key: 'size', label: '크기' },
+] as const
+type SortKey = (typeof SORTS)[number]['key']
+
+function compare(a: Entry, b: Entry, key: SortKey): number {
+  switch (key) {
+    case 'day':
+      return (a.day ?? 0) - (b.day ?? 0)
+    case 'type':
+      return typeOf(a.ext).localeCompare(typeOf(b.ext), 'ko')
+    case 'size':
+      return a.bytes - b.bytes
+    default:
+      return a.name.localeCompare(b.name, 'ko')
+  }
+}
+
 export function ExplorerApp({ folderId }: { folderId: FolderId }) {
   const state = useGameStore((s) => s.state)
   const open = useWindowStore((s) => s.open)
   /** 보기 방식. 실제 탐색기의 [보기] 메뉴와 같은 역할이고 **실제로 동작한다**. */
   const [view, setView] = useState<'icons' | 'details'>('icons')
   const [selected, setSelected] = useState<string | null>(null)
+  /** 검색어. 실제 탐색기의 우상단 검색 상자와 같이 **목록을 거른다**. */
+  const [query, setQuery] = useState('')
+  const [sort, setSort] = useState<{ key: SortKey; asc: boolean }>({ key: 'name', asc: true })
+  /** 열려 있는 명령 모음 메뉴. 좌표는 누른 버튼 아래다(우클릭 메뉴와 같은 부품을 쓴다). */
+  const [menu, setMenu] = useState<{ kind: 'sort' | 'view'; x: number; y: number } | null>(null)
+
+  /**
+   * 탐색 창에 그릴 폴더. ⚠️ **`FOLDERS`를 통째로 나열하지 않는다** — 갤러리는 타블렛을
+   * 사야 생기는 폴더라, 없는 사람에게 보여 주면 "없는 폴더는 적지 않는다"는 이 파일의
+   * 규칙이 깨진다. 판정은 바탕화면과 **같은 함수**(`desktopEntries`)에서 파생시킨다 —
+   * 여기서 조건을 다시 적으면 아이콘은 없는데 트리에는 있는 상태가 생긴다.
+   * (지금 열려 있는 폴더는 조건과 무관하게 항상 남긴다 — 자기 자리는 트리에 있어야 한다.)
+   */
+  const navFolders = useMemo(() => {
+    const owned = (state?.inventory ?? []).map((i) => i.id)
+    const visible = desktopEntries([], owned).flatMap((e) =>
+      !e.shortcut && e.item.folderId ? [e.item.folderId] : [],
+    )
+    return (Object.keys(FOLDERS) as FolderId[]).filter(
+      (id) => id === folderId || visible.includes(id),
+    )
+  }, [state?.inventory, folderId])
 
   const meta = FOLDERS[folderId]
-  const entries = entriesOf(folderId, state)
+  const all = entriesOf(folderId, state)
+  const q = query.trim()
+  const entries = all
+    .filter((e) => (q ? (e.name + e.ext).includes(q) : true))
+    .sort((a, b) => (sort.asc ? 1 : -1) * compare(a, b, sort.key))
   const picked = entries.find((e) => e.id === selected)
+
+  /** 버튼 아래에 메뉴를 연다. 좌표는 뷰포트 기준이라야 한다(ContextMenu 계약). */
+  const openMenu = (kind: 'sort' | 'view', el: HTMLElement) => {
+    const r = el.getBoundingClientRect()
+    setMenu({ kind, x: r.left, y: r.bottom + 2 })
+  }
+
+  /** 열 제목 클릭 = 그 열로 정렬. 같은 열을 다시 누르면 방향이 뒤집힌다(실제 탐색기와 같다). */
+  const sortBy = (key: SortKey) =>
+    setSort((s) => ({ key, asc: s.key === key ? !s.asc : true }))
 
   return (
     <div className="ex">
-      <div className="ex-toolbar">
-        <button type="button" className="ex-tool" onClick={() => setView('icons')} aria-pressed={view === 'icons'}>
-          <AppIcon name="mdi-light:grid" size={18} />
-          큰 아이콘
+      {/* ── 주소 줄: 경로 빵부스러기 + 검색 ─────────────────────── */}
+      <div className="ex-bar">
+        <div className="ex-crumbs">
+          <AppIcon name={meta.icon} size={16} />
+          {crumbsOf(meta).map((c, i, arr) => (
+            <span key={c} className={i === arr.length - 1 ? 'ex-crumb ex-crumb-on' : 'ex-crumb'}>
+              {c}
+              {/* 구분자는 글자가 아니라 그림이다 — 스크린 리더가 "꺾쇠"를 읽지 않게 한다. */}
+              <span className="ex-crumb-sep" aria-hidden="true" />
+            </span>
+          ))}
+        </div>
+
+        <div className="ex-search">
+          <AppIcon name="mdi:magnify" size={16} className="ex-search-icon" />
+          <input
+            className="ex-search-input"
+            type="search"
+            value={query}
+            placeholder={`${meta.label} 검색`}
+            aria-label={`${meta.label} 검색`}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* ── 명령 모음 ───────────────────────────────────────────── */}
+      <div className="ex-cmd">
+        <button
+          type="button"
+          className="ex-cmd-btn"
+          aria-haspopup="menu"
+          aria-expanded={menu?.kind === 'sort'}
+          onClick={(e) => openMenu('sort', e.currentTarget)}
+        >
+          <AppIcon name="mdi:sort" size={16} />
+          정렬
+          <span className="ex-caret" aria-hidden="true" />
         </button>
         <button
           type="button"
-          className="ex-tool"
-          onClick={() => setView('details')}
-          aria-pressed={view === 'details'}
+          className="ex-cmd-btn"
+          aria-haspopup="menu"
+          aria-expanded={menu?.kind === 'view'}
+          onClick={(e) => openMenu('view', e.currentTarget)}
         >
-          <AppIcon name="mdi-light:format-list-bulleted" size={18} />
-          자세히
+          <AppIcon name="mdi:view-list-outline" size={16} />
+          보기
+          <span className="ex-caret" aria-hidden="true" />
         </button>
       </div>
 
-      <div className="ex-address">
-        <AppIcon name={meta.icon} size={16} />
-        <span className="ex-path">{meta.path}</span>
-      </div>
-
       <div className="ex-main">
+        {/*
+          탐색 창. 실제 탐색기의 트리와 같은 들여쓰기이지만 **없는 폴더는 적지 않는다** —
+          다운로드·음악처럼 이 게임에 없는 항목을 늘어놓으면 눌러도 갈 데가 없다.
+        */}
         <nav className="ex-nav" aria-label="탐색 창">
-          <p className="ex-nav-head">바탕 화면</p>
-          {(Object.keys(FOLDERS) as FolderId[]).map((id) => (
+          <p className="ex-nav-root">
+            <AppIcon name="mdi:monitor" size={16} />내 PC
+          </p>
+          <p className="ex-nav-group">바탕 화면</p>
+          {navFolders.map((id) => (
             <button
               key={id}
               type="button"
@@ -164,15 +326,44 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
                 })
               }}
             >
-              <AppIcon name={FOLDERS[id].icon} size={18} />
+              <AppIcon name={FOLDERS[id].icon} size={16} />
               {FOLDERS[id].label}
             </button>
           ))}
         </nav>
 
         <div className="ex-files" onClick={() => setSelected(null)}>
+          {view === 'details' && (
+            /* 열 제목. 자리를 지키려고 목록이 비어도 그대로 둔다(실제 탐색기와 같다). */
+            <div className="ex-head" role="row">
+              {SORTS.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  className={`ex-th ex-th-${c.key}`}
+                  aria-sort={
+                    sort.key === c.key ? (sort.asc ? 'ascending' : 'descending') : 'none'
+                  }
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    sortBy(c.key)
+                  }}
+                >
+                  {c.label}
+                  {/* 정렬 방향은 색이 아니라 **모양**으로 알린다(ux `color-not-only`). */}
+                  {sort.key === c.key && (
+                    <span
+                      className={`ex-sort-mark${sort.asc ? '' : ' ex-sort-desc'}`}
+                      aria-hidden="true"
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
           {entries.length === 0 ? (
-            <p className="ex-empty">{meta.empty}</p>
+            <p className="ex-empty">{q ? `"${q}"에 맞는 항목이 없습니다.` : meta.empty}</p>
           ) : view === 'icons' ? (
             <ul className="ex-grid">
               {entries.map((e) => (
@@ -198,44 +389,44 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
               ))}
             </ul>
           ) : (
-            <table className="ex-table">
-              <thead>
-                <tr>
-                  <th scope="col">이름</th>
-                  <th scope="col">수정한 날짜</th>
-                  <th scope="col">크기</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((e) => (
-                  <tr
-                    key={e.id}
-                    className={`${selected === e.id ? 'ex-row-on' : ''}${
+            <ul className="ex-rows">
+              {entries.map((e) => (
+                <li key={e.id}>
+                  <button
+                    type="button"
+                    className={`ex-row${selected === e.id ? ' ex-row-on' : ''}${
                       e.owned ? '' : ' ex-row-locked'
                     }`}
+                    title={e.desc}
                     onClick={(ev) => {
                       ev.stopPropagation()
                       setSelected(e.id)
                     }}
                   >
-                    <td>
-                      <AppIcon name={e.icon} size={20} />
-                      {e.name}
-                      {e.ext}
-                    </td>
-                    <td>{formatDay(e.day)}</td>
-                    <td className="ex-num">{e.size}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    <span className="ex-td ex-th-name">
+                      <AppIcon name={e.icon} size={16} />
+                      <span className="ex-row-name">
+                        {e.name}
+                        {e.ext}
+                      </span>
+                    </span>
+                    <span className="ex-td ex-th-day">{formatDay(e.day)}</span>
+                    <span className="ex-td ex-th-type">{typeOf(e.ext)}</span>
+                    <span className="ex-td ex-th-size ex-num">{e.size}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>
 
-      {/* 상태 표시줄. 고른 파일의 설명이 여기 뜬다 — 탐색기의 '자세히' 창과 같은 자리다. */}
+      {/* 상태 표시줄. 왼쪽은 실제 탐색기와 같은 항목 수, 오른쪽은 고른 파일의 설명이다. */}
       <footer className="ex-status">
-        <span>{entries.length}개 항목</span>
+        <span className="ex-count">
+          {entries.length}개 항목
+          {q && ` (전체 ${all.length}개 중 검색됨)`}
+        </span>
         {picked ? (
           <span className="ex-status-desc">
             <strong>
@@ -248,6 +439,35 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
           <span className="ex-status-hint">파일을 선택하면 설명이 표시됩니다.</span>
         )}
       </footer>
+
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          label={menu.kind === 'sort' ? '정렬 기준' : '보기 방식'}
+          items={
+            menu.kind === 'sort'
+              ? SORTS.map((c) => ({
+                  id: c.key,
+                  label: sort.key === c.key ? `${c.label} (지금)` : c.label,
+                  onSelect: () => sortBy(c.key),
+                }))
+              : [
+                  {
+                    id: 'icons',
+                    label: view === 'icons' ? '큰 아이콘 (지금)' : '큰 아이콘',
+                    onSelect: () => setView('icons'),
+                  },
+                  {
+                    id: 'details',
+                    label: view === 'details' ? '자세히 (지금)' : '자세히',
+                    onSelect: () => setView('details'),
+                  },
+                ]
+          }
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
   )
 }

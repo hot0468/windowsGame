@@ -45,6 +45,10 @@ export const STAT_META: Record<keyof Stats, StatMeta> = {
   // 예의범절: 고개 숙여 인사하는 그림이 mdi에는 없다. 가장 가까운 것이
   // "손을 모아 인사하는" 합장 글리프이고, 외곽선 변형이 있어 HUD 규칙도 지킨다.
   manners: { icon: 'fluent-color:people-community-24', hudIcon: 'mdi:hand-heart-outline' },
+  // 예술: 감수성(`paint-brush-24`·`palette-outline`)과 **다른 글리프여야 한다** —
+  // 스탯창에서 두 줄이 나란히 서는데 같은 그림이면 어느 쪽이 무엇인지 구분되지 않는다.
+  // 감수성이 "느끼는 것"(팔레트)이라면 예술은 "손으로 그려 내는 것"이라 붓/펜 쪽이다.
+  art: { icon: 'fluent-color:edit-24', hudIcon: 'mdi:brush-outline' },
 }
 
 /**

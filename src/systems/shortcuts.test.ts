@@ -74,10 +74,17 @@ describe('placeShortcuts', () => {
     const after = placeShortcuts(ids, base, {}, SIZE)
     const cells = Object.values(after).map(cellKey)
     expect(new Set(cells).size).toBe(cells.length)
-    // 기본 배치는 0열에 프로그램 5개(row 0~4) · 1열에 폴더 2개다.
-    // 열 우선이므로 첫 빈 칸은 **0열의 여섯 번째 행**이다(폴더 열에 끼어들지 않는다).
-    expect(after[ids[0]]).toEqual({ col: 0, row: 5 })
-    expect(after[ids[1]]).toEqual({ col: 0, row: 6 })
+    /*
+     * 바로 가기는 **열 우선 첫 빈 칸**에 차례로 놓인다.
+     * ⚠️ 열·행을 상수로도, "프로그램 열 맨 아래"로도 적지 않는다 — 프로그램이 늘어
+     * 0열이 꽉 차면 다음 열로 넘어가는 것이 정상이고(2026-08-08 증기 추가 때 실제로 그랬다),
+     * 그때마다 테스트가 깨지면 규칙이 아니라 오늘의 배치를 지키게 된다.
+     * 기준은 `firstFreeCell`이고 그 함수 자체는 위에서 따로 검증한다.
+     */
+    const occupied = new Set(Object.values(base).map(cellKey))
+    const first = firstFreeCell(occupied, SIZE)
+    expect(after[ids[0]]).toEqual(first)
+    expect(after[ids[1]]).toEqual(firstFreeCell(new Set([...occupied, cellKey(first)]), SIZE))
   })
 
   it('옮긴 칸이 있으면 첫 빈 칸 대신 그 칸을 쓴다', () => {

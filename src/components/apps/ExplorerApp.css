@@ -1,7 +1,12 @@
 /*
- * 파일 탐색기(아이템 인벤토리 · 이벤트 도감).
- * OS 창이므로 --os-* 토큰만 쓴다. 실제 윈도우 11 탐색기와 같은 골격이다:
- * 도구 모음 → 주소 표시줄 → (탐색 창 | 파일 목록) → 상태 표시줄.
+ * 파일 탐색기(아이템 인벤토리 · 사진첩).
+ * OS 창이므로 --os-* 토큰만 쓴다. 레퍼런스는 **실제 윈도우 11 탐색기**이고 골격이 곧 스펙이다:
+ *   주소 줄(빵부스러기 + 검색) → 명령 모음 → (탐색 창 | 열 제목 + 목록) → 상태 표시줄.
+ *
+ * ⚠️ **`--os-line`·`--os-hover`는 존재하지 않는 토큰이었다**(2026-08-08 수정).
+ * CSS는 정의되지 않은 var를 만나면 그 선언 전체를 버리므로 테두리와 hover가 통째로
+ * 죽어 있었다 — 빌드도 테스트도 통과하고 **화면에서만** 조용히 깨지는 그 사고다.
+ * 선은 `--os-border`, hover 면은 `--os-fill`이다.
  */
 .ex {
   display: flex;
@@ -10,81 +15,173 @@
   height: min(560px, calc(var(--vh, 100vh) - 160px));
   margin: calc(var(--sp-5) * -1);
   background: var(--os-surface);
+  font-size: var(--fs-sm);
 }
 
-.ex-toolbar {
+/* ── 주소 줄 ─────────────────────────────────────────────── */
+.ex-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  /* 윈도우 11의 주소 줄은 창 배경 위에 떠 있는 두 개의 둥근 상자다(띠에 색을 깔지 않는다). */
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.ex-crumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 34px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-md);
+  background: var(--os-surface);
+  color: var(--os-text-2);
+  overflow: hidden;
+}
+
+.ex-crumb {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  white-space: nowrap;
+}
+
+/* 현재 위치만 잉크색 + 굵게. 앞 칸들은 지나온 경로라 한 단 흐리다. */
+.ex-crumb-on {
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+/* 꺾쇠 구분자. 글자가 아니라 CSS 도형이라 스크린 리더가 읽지 않는다. */
+.ex-crumb-sep {
+  width: 5px;
+  height: 5px;
+  margin: 0 var(--sp-1);
+  border-top: 1.5px solid var(--os-text-3);
+  border-right: 1.5px solid var(--os-text-3);
+  transform: rotate(45deg);
+}
+
+/* 마지막 칸 뒤에는 꺾쇠를 그리지 않는다 — 실제 탐색기는 현재 폴더 뒤에서 끝난다. */
+.ex-crumb-on .ex-crumb-sep {
+  display: none;
+}
+
+.ex-search {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 0 1 240px;
+  height: 34px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-md);
+  background: var(--os-surface);
+}
+
+.ex-search:focus-within {
+  border-color: var(--os-accent);
+}
+
+.ex-search-icon {
+  flex: 0 0 auto;
+  color: var(--os-text-3);
+}
+
+.ex-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--os-text);
+}
+
+.ex-search-input::placeholder {
+  color: var(--os-text-3);
+}
+
+.ex-search-input:focus {
+  outline: none;
+}
+
+/* ── 명령 모음 ───────────────────────────────────────────── */
+.ex-cmd {
   display: flex;
   align-items: center;
   gap: var(--sp-1);
-  padding: var(--sp-2) var(--sp-3);
-  border-bottom: 1px solid var(--os-line);
-  background: var(--os-chrome);
+  padding: 0 var(--sp-4) var(--sp-3);
+  border-bottom: 1px solid var(--os-border);
 }
 
-.ex-tool {
+.ex-cmd-btn {
   display: flex;
   align-items: center;
-  gap: var(--sp-1);
+  gap: var(--sp-2);
   min-height: 32px;
   padding: 0 var(--sp-3);
   border: none;
   border-radius: var(--r-sm);
   background: transparent;
-  font-size: var(--fs-sm);
+  font: inherit;
   color: var(--os-text-2);
   cursor: pointer;
 }
 
-.ex-tool:hover {
-  background: var(--os-hover);
+.ex-cmd-btn:hover {
+  background: var(--os-fill);
 }
 
-/* 선택된 보기. 색만으로 알리지 않도록 배경 + 잉크색 + aria-pressed 셋을 함께 쓴다
-   (ux `color-not-only`, `nav-state-active`). */
-.ex-tool[aria-pressed='true'] {
-  background: var(--os-accent-wash);
-  color: var(--os-accent);
-  font-weight: 600;
+/* 메뉴가 열려 있는 버튼. 색만이 아니라 aria-expanded도 함께 알린다. */
+.ex-cmd-btn[aria-expanded='true'] {
+  background: var(--os-fill);
+  color: var(--os-text);
 }
 
-.ex-address {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  margin: var(--sp-2) var(--sp-3);
-  padding: 0 var(--sp-3);
-  height: 32px;
-  border: 1px solid var(--os-line);
-  border-radius: var(--r-sm);
-  background: var(--os-surface);
-  font-size: var(--fs-sm);
-  color: var(--os-text-2);
+/* 드롭다운 화살표. 글리프를 하나 더 부르는 대신 CSS 도형으로 그린다. */
+.ex-caret {
+  width: 5px;
+  height: 5px;
+  margin-left: 2px;
+  border-bottom: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
 }
 
-.ex-path {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
+/* ── 본문 ────────────────────────────────────────────────── */
 .ex-main {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
 }
 
+/* 탐색 창. 실제 탐색기처럼 본문보다 한 단 눌린 면이다. */
 .ex-nav {
-  flex: 0 0 180px;
-  padding: var(--sp-2);
-  border-right: 1px solid var(--os-line);
+  flex: 0 0 200px;
+  padding: var(--sp-3) var(--sp-2);
+  border-right: 1px solid var(--os-border);
+  background: var(--os-surface-alt);
   overflow-y: auto;
 }
 
-.ex-nav-head {
-  margin: 0 0 var(--sp-1);
+.ex-nav-root {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-2);
   padding: 0 var(--sp-2);
-  font-size: var(--fs-xs);
   font-weight: 600;
+  color: var(--os-text);
+}
+
+.ex-nav-group {
+  margin: 0 0 var(--sp-1);
+  /* 트리의 한 단 들여쓰기. 실제 탐색기의 하위 항목은 부모보다 안쪽에서 시작한다. */
+  padding: 0 var(--sp-2) 0 var(--sp-5);
+  font-size: var(--fs-xs);
   color: var(--os-text-3);
 }
 
@@ -93,46 +190,175 @@
   align-items: center;
   gap: var(--sp-2);
   width: 100%;
-  min-height: 32px;
-  padding: 0 var(--sp-2);
+  min-height: 30px;
+  /* 그룹보다 한 단 더 들어간다(트리 깊이 3). */
+  padding: 0 var(--sp-2) 0 var(--sp-6);
   border: none;
   border-radius: var(--r-sm);
   background: transparent;
-  font-size: var(--fs-sm);
+  font: inherit;
   text-align: left;
   color: var(--os-text);
   cursor: pointer;
 }
 
 .ex-nav-item:hover {
-  background: var(--os-hover);
+  background: var(--os-fill);
 }
 
+/* 지금 보고 있는 폴더. 윈도우 11의 선택 표시는 옅은 판 + 왼쪽 액센트 막대다. */
 .ex-nav-item-on {
+  position: relative;
   background: var(--os-accent-wash);
   font-weight: 600;
+}
+
+.ex-nav-item-on::before {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  width: 3px;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 2px;
+  background: var(--os-accent);
+  content: '';
 }
 
 .ex-files {
   flex: 1 1 auto;
   min-width: 0;
-  padding: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
   overflow: auto;
 }
 
 .ex-empty {
   margin: var(--sp-8) auto 0;
   max-width: 34ch;
-  font-size: var(--fs-sm);
   line-height: 1.6;
   text-align: center;
   color: var(--os-text-3);
 }
 
+/*
+ * ⚠️ 열 제목과 줄이 **같은 격자를 공유한다**. table을 쓰지 않는 이유는 줄 전체가
+ * 버튼이어야 하기 때문이고(키보드로 고를 수 있어야 한다), 그러면 칸 폭을 맞출
+ * 방법은 격자뿐이다 — 두 곳에 폭을 따로 적으면 제목과 값이 어긋난다.
+ */
+.ex-head,
+.ex-row {
+  display: grid;
+  /* ⚠️ 이름 칸이 주인공이다 — 나머지 셋을 넓게 잡으면(각 128) 이름이 12자에서 잘린다.
+     실측으로 좁혀 이름에 200px 이상을 남겼다. */
+  grid-template-columns: minmax(0, 1fr) 100px 96px 64px;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.ex-head {
+  position: sticky;
+  top: calc(var(--sp-2) * -1);
+  z-index: 1;
+  padding: 0 var(--sp-2);
+  border-bottom: 1px solid var(--os-border);
+  background: var(--os-surface);
+}
+
+.ex-th {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: 30px;
+  padding: 0 var(--sp-2);
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-xs);
+  text-align: left;
+  color: var(--os-text-3);
+  cursor: pointer;
+}
+
+.ex-th:hover {
+  background: var(--os-fill);
+}
+
+.ex-th-size {
+  justify-content: flex-end;
+}
+
+/* 정렬 방향 표식. 위/아래를 가리키는 작은 삼각형이라 색 없이도 읽힌다. */
+.ex-sort-mark {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 4px solid var(--os-text-2);
+}
+
+.ex-sort-desc {
+  transform: rotate(180deg);
+}
+
+.ex-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ex-row {
+  width: 100%;
+  /* 윈도우 11 탐색기의 목록 줄 높이. 이보다 키우면 한 화면에 열 줄이 안 들어간다. */
+  min-height: 30px;
+  padding: 0 var(--sp-2);
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  color: var(--os-text);
+  cursor: pointer;
+}
+
+.ex-row:hover {
+  background: var(--os-fill);
+}
+
+.ex-row-on {
+  background: var(--os-accent-wash);
+}
+
+.ex-td {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  color: var(--os-text-2);
+  white-space: nowrap;
+}
+
+.ex-td.ex-th-name {
+  color: var(--os-text);
+}
+
+.ex-row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 숫자 열은 자리수가 흔들리지 않게 tabular (ux `number-tabular`). */
+.ex-num {
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 큰 아이콘 보기 ──────────────────────────────────────── */
 .ex-grid {
   display: grid;
-  /* 96px = 아이콘 40 + 두 줄 이름. 실제 탐색기의 '큰 아이콘' 간격에 맞춘 값이다. */
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  /* 96px = 아이콘 40 + 두 줄 이름. 실제 탐색기의 '큰 아이콘' 간격에 맞춘 값이다.
+     ⚠️ `1fr`로 늘리지 않는다 — 탐색기의 타일은 폭이 고정이고 왼쪽부터 채워진다.
+     늘리면 파일 넷이 창 폭에 맞춰 벌어져 "격자"가 아니라 "줄"로 보인다. */
+  grid-template-columns: repeat(auto-fill, 96px);
   gap: var(--sp-2);
   margin: 0;
   padding: 0;
@@ -149,11 +375,12 @@
   border: 1px solid transparent;
   border-radius: var(--r-sm);
   background: transparent;
+  font: inherit;
   cursor: pointer;
 }
 
 .ex-file:hover {
-  background: var(--os-hover);
+  background: var(--os-fill);
 }
 
 /* 선택된 파일. 윈도우 탐색기와 같은 연한 액센트 판 + 테두리. */
@@ -182,60 +409,20 @@
   opacity: 0.45;
 }
 
-.ex-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs-sm);
-}
-
-.ex-table th {
-  padding: var(--sp-2) var(--sp-3);
-  border-bottom: 1px solid var(--os-line);
-  font-weight: 600;
-  text-align: left;
-  color: var(--os-text-3);
-}
-
-.ex-table td {
-  padding: var(--sp-2) var(--sp-3);
-  color: var(--os-text);
-  white-space: nowrap;
-}
-
-/* 이름 칸만 아이콘과 글자를 나란히 놓는다. */
-.ex-table td:first-child {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
-.ex-table tbody tr {
-  cursor: pointer;
-}
-
-.ex-table tbody tr:hover {
-  background: var(--os-hover);
-}
-
-.ex-row-on {
-  background: var(--os-accent-wash);
-}
-
-/* 숫자 열은 자리수가 흔들리지 않게 tabular (ux `number-tabular`). */
-.ex-num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
+/* ── 상태 표시줄 ─────────────────────────────────────────── */
 .ex-status {
   display: flex;
   align-items: center;
   gap: var(--sp-4);
-  padding: var(--sp-2) var(--sp-3);
-  border-top: 1px solid var(--os-line);
-  background: var(--os-chrome);
+  padding: var(--sp-2) var(--sp-4);
+  border-top: 1px solid var(--os-border);
+  background: var(--os-surface-alt);
   font-size: var(--fs-xs);
   color: var(--os-text-2);
+}
+
+.ex-count {
+  flex: 0 0 auto;
 }
 
 .ex-status-desc {

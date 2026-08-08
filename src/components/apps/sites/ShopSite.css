@@ -56,13 +56,67 @@
   color: var(--nv-text);
 }
 
+/* ── 진열 구역 ───────────────────────────────────────────
+ *
+ * 포털 쇼핑 섹션과 같은 판형이다: **제목 띠 + 그 아래 진열**. 띠는 흰 판이고
+ * 본문은 페이지 바탕색이라, 카드가 지금까지처럼 흰 판으로 떠오른다 —
+ * 구역 상자에 배경을 또 깔면 카드와 같은 색이 되어 경계가 사라진다.
+ * 색은 전부 기존 `--nv-*`다(새 토큰 없음).
+ */
+.shop-sec {
+  margin-bottom: var(--sp-5);
+  border: 1px solid var(--nv-border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.shop-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--nv-border);
+  background: var(--nv-surface);
+}
+
+.shop-sec-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--nv-text);
+}
+
+.shop-sec-desc {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  color: var(--nv-text-3);
+}
+
+/* 제목과 설명을 가르는 슬래시. 포털 섹션 머리줄의 구분자와 같은 자리다. */
+.shop-sec-desc::before {
+  content: '/';
+  margin-right: var(--sp-3);
+  color: var(--nv-border);
+}
+
+.shop-sec-count {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: var(--fs-sm);
+  color: var(--nv-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
 .shop-grid {
   display: grid;
-  /* 카드 폭이 320px 아래로 내려가면 이름과 효과 칩이 줄바꿈으로 무너진다. */
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  /* 카드 폭이 320px 아래로 내려가면 이름과 효과 칩이 줄바꿈으로 무너진다.
+     ⚠️ `min(320px, 100%)`인 것은 구역 상자의 패딩만큼 판이 좁아졌기 때문이다 —
+     생 320px을 쓰면 375px 셸에서 격자가 상자를 밀어내 가로 스크롤이 생긴다. */
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: var(--sp-4);
   margin: 0;
-  padding: 0;
+  padding: var(--sp-4);
   list-style: none;
 }
 

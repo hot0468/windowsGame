@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
-import { BANNERS } from '../../../data/banners'
+import { activitiesUnlockedBy } from '../../../data/activities'
+import { bannersFor } from '../../../data/banners'
+import type { Banner } from '../../../data/banners'
+import { BUYABLE_ITEMS } from '../../../data/items'
+import type { ShopItem } from '../../../data/items'
 import { NEWS_CATEGORIES, TRENDING_TERMS } from '../../../data/news'
 import type { NewsCategory } from '../../../data/news'
-import { BOOKMARK_SITES, PROMO_SITES } from '../../../data/sites'
+import { BOOKMARK_SITES, PROMO_SITES, STORE_SITES } from '../../../data/sites'
+import type { Site } from '../../../data/sites'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
 import { selectNewsPage } from '../../../systems/news'
@@ -32,6 +37,35 @@ const NEWS_TAGS: Record<string, string> = {
 
 /** 실시간 검색어가 한 건씩 넘어가는 간격. */
 const LIVE_ROTATE_MS = 3500
+
+/** 상단 쇼핑 띠에 한 번에 그리는 진열 타일 수(레퍼런스와 같은 5칸). */
+const SHOP_STRIP_TILES = 5
+
+/**
+ * 쇼핑 띠의 왼쪽 목록.
+ * ⚠️ **분류 축을 새로 만들지 않는다** — "활동을 여는 물건인가"는 `activitiesUnlockedBy`가
+ * 이미 아는 사실이고 가게 진열대도 같은 축으로 갈려 있다(`ShopSite`·`TechSite`).
+ */
+const SHOP_STRIP_FILTERS: { label: string; value: boolean | null }[] = [
+  { label: '전체', value: null },
+  { label: '스탯 상승', value: false },
+  { label: '활동 해제', value: true },
+]
+
+/** 활동을 여는 물건인가. 가게 진열대와 같은 판정. */
+const unlocksActivity = (itemId: string) => activitiesUnlockedBy(itemId).length > 0
+
+/**
+ * 그 물건을 파는 사이트의 id.
+ * ⚠️ **사이트 id를 적지 않고 `render`로 찾는다** — 가게가 늘어도 여기는 그대로다.
+ */
+function storeSiteIdOf(item: ShopItem): string {
+  /* ⚠️ `ItemStore` 값과 가게 사이트의 `render` 값이 같은 글자다('shop'|'tech'|'wear').
+     그래서 가게가 늘어도 여기는 그대로다 — 예전처럼 삼항으로 갈라 두면 새 가게의
+     물건이 전부 컬리엔마트로 흘러간다(무진장을 더했을 때 실제로 그랬다). */
+  const render = item.store ?? 'shop'
+  return STORE_SITES.find((s) => s.render === render)!.id
+}
 
 /**
  * 네이놈 포털 홈.
@@ -226,6 +260,14 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
       </div>
 
       {/*
+        상단 쇼핑 섹션(설계자 지시). 물건을 파는 곳은 뉴스 위에 둔다 — 돈을 쓰는 자리가
+        하단 소개 카드 일곱에 섞여 있으면 스크롤 끝까지 내려가야 보인다.
+        ⚠️ 카드는 하단 소개와 **같은 부품(`PromoCard`)이다** — 자리만 다르고 모양이 같아야
+        "이건 사이트로 가는 카드"라는 규칙을 두 번 배우지 않는다.
+      */}
+      <ShopStrip onNavigate={onNavigate} />
+
+      {/*
         본문은 뉴스(넓게) + 배너존(좁게) 두 단이다. 배너를 위에 가로로 눕히면
         첫 화면이 광고로 채워진다 — 뉴스가 주인공이므로 옆으로 보낸다.
         폭이 좁아지면 flex-wrap이 알아서 위아래로 접는다(창 크기 ≠ 뷰포트 크기).
@@ -356,37 +398,34 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
           지켜진다 — 턴을 쓰지 않기 때문이다. 제한과 금액은 systems/turn.ts가 정한다.
         */}
         <section className="nv-banners nv-col-side" aria-label="배너">
-          {BANNERS.map((banner) => {
-            const rewardable = banner.reward === true
-            const done = rewardable && !canClaim
-            return (
-              <button
-                key={banner.id}
-                type="button"
-                className="nv-banner"
-                style={{ background: banner.gradient }}
-                onClick={() => rewardable && claimAd()}
-                disabled={done}
-                /* 보상 여부·상태를 문구로 알린다 — 배너 그림만 보고는 알 수 없다. */
-                title={
-                  rewardable
-                    ? done
-                      ? '오늘은 이미 받았습니다'
-                      : `클릭하면 ${AD_BONUS_MONEY}원`
-                    : banner.headline
-                }
-              >
-                <span className="nv-banner-brand">{banner.brand}</span>
-                <span className="nv-banner-head">{banner.headline}</span>
-                {banner.sub && <span className="nv-banner-sub">{banner.sub}</span>}
-                <span className="nv-banner-badge">
-                  {rewardable ? (done ? '오늘 받음' : `AD +${AD_BONUS_MONEY}원`) : '공지'}
-                </span>
-              </button>
-            )
-          })}
+          {bannersFor('side').map((banner) => (
+            <BannerButton
+              key={banner.id}
+              banner={banner}
+              canClaim={canClaim}
+              onClaim={claimAd}
+            />
+          ))}
         </section>
       </div>
+
+      {/*
+        뉴스 아래 **가로로 긴 배너 띠**(설계자 지시). 위가 아니라 아래인 것이 규칙이다 —
+        위에 눕히면 첫 화면이 광고로 채워져 "뉴스가 주인공"이 깨진다(`nv-columns` 주석).
+        ⚠️ **보상 경로는 옆 배너존과 하나다.** 자리만 늘었을 뿐 하루 한 번 100원은 그대로라,
+        여기서 받으면 옆 배너들이 함께 '오늘 받음'으로 바뀐다(`canClaimAdBonus` 단일 판정).
+      */}
+      <section className="nv-wide" aria-label="띠 배너">
+        {bannersFor('wide').map((banner) => (
+          <BannerButton
+            key={banner.id}
+            banner={banner}
+            wide
+            canClaim={canClaim}
+            onClaim={claimAd}
+          />
+        ))}
+      </section>
 
       {/*
         하단 소개 섹션. 알바·쇼핑·은행처럼 **게임의 돈 흐름이 걸린 곳**은 아이콘 하나로는
@@ -395,28 +434,192 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
       */}
       <section className="nv-promos" aria-label="서비스 소개">
         {PROMO_SITES.map((site) => (
-          <button
-            key={site.id}
-            type="button"
-            className="nv-promo"
-            onClick={() => onNavigate(site.id)}
-          >
-            {/* 사진이 없으므로 그라데이션 면 + 사이트 아이콘으로 채운다 —
-                회색 네모를 깔면 "이미지 로딩 실패"로 읽힌다. */}
-            <span className="nv-promo-thumb" style={{ background: site.promo!.gradient }}>
-              <AppIcon name={site.icon} size={38} />
-            </span>
-            <span className="nv-promo-body">
-              <span className="nv-promo-tag">{site.promo!.tag}</span>
-              <span className="nv-promo-title">{site.promo!.title}</span>
-              <span className="nv-promo-desc">{site.promo!.desc}</span>
-            </span>
-          </button>
+          <PromoCard key={site.id} site={site} onNavigate={onNavigate} />
         ))}
       </section>
         </>
       )}
     </div>
+  )
+}
+
+/**
+ * 배너 하나. **세로 배너존과 가로 띠가 같은 부품을 쓴다** — 자리가 둘이 되면서 각자
+ * 그리면 보상 문구(`AD +100원` / `오늘 받음` / `공지`)가 반드시 한쪽만 낡는다.
+ * 다른 것은 판 모양(`wide`)뿐이고, 판정과 문구는 여기 한 곳에서 나온다.
+ *
+ * ⚠️ **보상 판정은 `canClaimAdBonus` 하나다.** 배너가 몇 개든 하루 한 번이므로
+ * 여기서 받으면 다른 배너들이 함께 잠긴다(자리 수만큼 벌 수 있으면 상한이 뜻을 잃는다).
+ */
+function BannerButton({
+  banner,
+  wide = false,
+  canClaim,
+  onClaim,
+}: {
+  banner: Banner
+  wide?: boolean
+  canClaim: boolean
+  onClaim: () => void
+}) {
+  const rewardable = banner.reward === true
+  const done = rewardable && !canClaim
+  return (
+    <button
+      type="button"
+      className={`nv-banner${wide ? ' nv-banner-wide' : ''}`}
+      style={{ background: banner.gradient }}
+      onClick={() => rewardable && onClaim()}
+      disabled={done}
+      /* 보상 여부·상태를 문구로 알린다 — 배너 그림만 보고는 알 수 없다. */
+      title={
+        rewardable
+          ? done
+            ? '오늘은 이미 받았습니다'
+            : `클릭하면 ${AD_BONUS_MONEY}원`
+          : banner.headline
+      }
+    >
+      <span className="nv-banner-brand">{banner.brand}</span>
+      <span className="nv-banner-head">{banner.headline}</span>
+      {banner.sub && <span className="nv-banner-sub">{banner.sub}</span>}
+      <span className="nv-banner-badge">
+        {rewardable ? (done ? '오늘 받음' : `AD +${AD_BONUS_MONEY}원`) : '공지'}
+      </span>
+    </button>
+  )
+}
+
+/**
+ * 상단 **쇼핑 띠**. 레퍼런스는 실제 포털의 쇼핑 섹션이고 **레퍼런스가 스펙이다**:
+ * 테두리 상자 하나 안에 [제목 + 가게 링크 줄 ····· 쪽 번호] / [왼쪽 회색 목록 | 진열 타일 5개].
+ *
+ * ## 이 띠가 지키는 규칙
+ * ⚠️ **모든 컨트롤이 실제로 동작한다**(포털의 장식 금지 규칙). 제목 옆 가게 이름은 그 사이트로
+ * 가고, 왼쪽 목록은 타일을 **진짜로 거르며**, 화살표는 진짜로 넘어간다. 레퍼런스의
+ * [장바구니] 자리에는 갈 데 없는 링크 대신 **배송 규칙(다음 날 도착)**을 사실로 적는다.
+ *
+ * ⚠️ **여기서는 아무것도 살 수 없다.** 타일을 누르면 그 물건을 파는 사이트로 갈 뿐이다 —
+ * 주문은 가게에서만 일어난다(브라우저가 게임 상태를 바꾸는 자리를 늘리지 않는다).
+ *
+ * ⚠️ **거르는 축(`unlocks`)을 새로 만들지 않았다** — "활동을 여는 물건인가"는
+ * `activitiesUnlockedBy`가 이미 아는 사실이고, 가게 진열도 같은 축으로 갈려 있다.
+ */
+function ShopStrip({ onNavigate }: { onNavigate: (siteId: string) => void }) {
+  /** null = 전체. 값은 "활동을 여는 물건인가". */
+  const [only, setOnly] = useState<boolean | null>(null)
+  const [page, setPage] = useState(0)
+
+  const items = BUYABLE_ITEMS.filter((i) => only === null || unlocksActivity(i.id) === only)
+  const pageCount = Math.max(1, Math.ceil(items.length / SHOP_STRIP_TILES))
+  /* 뉴스 페이저와 같은 규칙: 끝에서 눌러도 막히지 않고 순환한다. */
+  const at = ((page % pageCount) + pageCount) % pageCount
+  const tiles = items.slice(at * SHOP_STRIP_TILES, (at + 1) * SHOP_STRIP_TILES)
+
+  const filter = (next: boolean | null) => {
+    setOnly(next)
+    setPage(0)
+  }
+
+  return (
+    <section className="nv-shop" aria-labelledby="nv-shop-title">
+      <header className="nv-shop-head">
+        <h2 className="nv-shop-title" id="nv-shop-title">
+          쇼핑
+        </h2>
+        {/* 레퍼런스의 카테고리 링크 줄 자리 = **가게로 가는 링크**. 갈 데가 실제로 있다. */}
+        {STORE_SITES.map((site) => (
+          <button
+            key={site.id}
+            type="button"
+            className="nv-shop-link"
+            onClick={() => onNavigate(site.id)}
+          >
+            {site.promo?.tag ?? site.title}
+          </button>
+        ))}
+        <span className="nv-shop-pager">
+          <span className="nv-shop-page">
+            <b>{at + 1}</b>/{pageCount}
+          </span>
+          <button
+            type="button"
+            className="nv-pager-btn"
+            onClick={() => setPage(at - 1)}
+            aria-label="이전 상품"
+          >
+            <span className="nv-chev nv-chev-prev" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="nv-pager-btn"
+            onClick={() => setPage(at + 1)}
+            aria-label="다음 상품"
+          >
+            <span className="nv-chev nv-chev-next" aria-hidden="true" />
+          </button>
+        </span>
+      </header>
+
+      <div className="nv-shop-body">
+        {/* 레퍼런스의 쇼핑몰 목록 자리 = **진열 구역 필터**. 누르면 타일이 실제로 걸린다. */}
+        <nav className="nv-shop-side" aria-label="진열 구역">
+          {SHOP_STRIP_FILTERS.map((f) => (
+            <button
+              key={f.label}
+              type="button"
+              className={`nv-shop-cat${only === f.value ? ' nv-shop-cat-on' : ''}`}
+              aria-pressed={only === f.value}
+              onClick={() => filter(f.value)}
+            >
+              {f.label}
+            </button>
+          ))}
+          {/* 레퍼런스의 [주문배송 · 장바구니] 자리 — 링크 대신 이 게임이 지키는 사실이다. */}
+          <p className="nv-shop-note">주문한 물건은 다음 날 도착</p>
+        </nav>
+
+        <ul className="nv-shop-tiles">
+          {tiles.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                className="nv-shop-tile"
+                onClick={() => onNavigate(storeSiteIdOf(item))}
+                title={item.desc}
+              >
+                {/* 사진이 없으므로 아이콘 판이다(회색 네모를 깔면 "로딩 실패"로 읽힌다). */}
+                <span className="nv-shop-thumb">
+                  <AppIcon name={item.icon} size={44} />
+                </span>
+                <span className="nv-shop-name">{item.name}</span>
+                <span className="nv-shop-price">{item.price.toLocaleString('ko-KR')}원</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}
+
+/**
+ * 사이트로 가는 소개 카드. 하단 소개 섹션이 쓴다.
+ */
+function PromoCard({ site, onNavigate }: { site: Site; onNavigate: (siteId: string) => void }) {
+  return (
+    <button type="button" className="nv-promo" onClick={() => onNavigate(site.id)}>
+      {/* 사진이 없으므로 그라데이션 면 + 사이트 아이콘으로 채운다 —
+          회색 네모를 깔면 "이미지 로딩 실패"로 읽힌다. */}
+      <span className="nv-promo-thumb" style={{ background: site.promo!.gradient }}>
+        <AppIcon name={site.icon} size={38} />
+      </span>
+      <span className="nv-promo-body">
+        <span className="nv-promo-tag">{site.promo!.tag}</span>
+        <span className="nv-promo-title">{site.promo!.title}</span>
+        <span className="nv-promo-desc">{site.promo!.desc}</span>
+      </span>
+    </button>
   )
 }
 

@@ -2,9 +2,21 @@
  * 알바몬(구인 사이트).
  *
  * 색은 ui-ux-pro-max의 `colors.csv` → **Job Board/Recruitment** 팔레트를 그대로 쓴다
- * (primary #0369A1 · accent #16A34A · bg #F0F9FF · card #FFF · muted-fg #64748B ·
- * border #BAE6FD). 판형은 style `Data-Dense Dashboard`(촘촘한 목록·낮은 패딩)를
- * 목록에, `Bento Grids`(큰 모서리 카드)를 카드에 섞은 것이다.
+ * (primary #0369A1 · secondary #0EA5E9 · bg #F0F9FF · card #FFF · muted-fg #64748B ·
+ * border #BAE6FD). ⚠️ **주황으로 바꾸지 말 것** — 레퍼런스(실제 구인 사이트)는 주황이지만
+ * 주황은 하이마루(#C2410C)가 설계자 확정으로 가져간 계열이다. 이 사이트는 **판형만**
+ * 레퍼런스를 따르고 색은 하늘색을 유지한다(설계자 결정).
+ *
+ * ## 판형 — 레퍼런스 스크린샷이 스펙이다
+ * 이벤트 띠 → 헤더(로고·검색 알약·계정) → 네비 줄 → 어두운 히어로 배너 →
+ * **회색 구역 안의 카드 격자** → 푸터.
+ *   - 페이지 배경은 **흰색**, 구역(`.alba-band`)만 하늘빛으로 깔아 레퍼런스의
+ *     "흰 상단 / 회색 매물 구역" 대비를 만든다. 새 색을 만들지 않고 자리만 바꿨다.
+ *   - 카드는 세로형(상호 → 해시태그 → 제목 → 하단 일당 바).
+ *
+ * ⚠️ **격자 열 수는 `minmax`의 최소 폭이 정한다.** 판이 1120px · gap 16px일 때
+ * 4열이면 칸당 268px이므로 최소 폭은 240px로 잡는다(5열이려면 211px여야 하므로 안 접힌다).
+ * 창이 좁아지면 4→3→2→1로 스스로 접힌다.
  *
  * 토큰은 너튜브(`--tb-*`)·시집이(`--cn-*`)·아점(`--pb-*`)·미디북스(`--lb-*`)와 같은
  * 규칙으로 `.alba` 안에 가둔다 — 전역 팔레트를 사이트 수만큼 부풀리면 색의 출처를
@@ -16,23 +28,25 @@
   --ab-surface: #ffffff;
   --ab-line: #bae6fd;
   --ab-line-soft: #e2e8f0;
-  --ab-text: #0c4a6e; /* #fff 위 10.9:1 */
+  --ab-text: #0c4a6e; /* #fff 위 10.9:1 — 히어로 배경으로도 쓴다 */
   --ab-text-2: #64748b; /* #fff 위 4.8:1 — 지역·시간대 (WCAG AA) */
   --ab-primary: #0369a1; /* #fff 위 6.4:1 — 로고·일당·선택 표시 */
+  --ab-accent: #0ea5e9; /* 팔레트 secondary. 히어로(#0c4a6e) 위 3.4:1 — **큰 글씨 전용** */
   --ab-wash: #e7eff5;
   --ab-lock: #b91c1c; /* #fff 위 5.9:1 — 잠금 사유 */
   --ab-badge-bg: #dcfce7;
   --ab-badge-fg: #15803d; /* 연한 초록 위 4.9:1 */
 
   padding-bottom: var(--sp-8);
-  background: var(--ab-bg);
+  background: var(--ab-surface);
   color: var(--ab-text);
   min-height: 100%;
 }
 
-/* 본문 폭. ⚠️ 판을 묶지 않으면 넓은 창에서 목록 줄이 늘어져 읽는 거리가 길어진다. */
+/* 본문 폭. ⚠️ 판을 묶지 않으면 넓은 창에서 카드가 늘어져 격자가 줄로 읽힌다. */
 .alba-head,
-.alba-filters,
+.alba-nav,
+.alba-hero,
 .alba-receipt,
 .alba-sec,
 .alba-foot {
@@ -41,11 +55,11 @@
   margin-right: auto;
 }
 
-/* ── 프로모션 띠 ──────────────────────────────────────── */
-.alba-promo {
+/* ── 이벤트 띠 ────────────────────────────────────────── */
+.alba-strip {
   margin: 0;
   padding: var(--sp-2) var(--sp-6);
-  background: var(--ab-primary);
+  background: var(--ab-text);
   color: #ffffff;
   font-size: var(--fs-xs);
   text-align: center;
@@ -74,10 +88,9 @@
   gap: var(--sp-2);
   flex: 1 1 auto;
   max-width: 440px;
-  margin: 0 auto;
   padding: 0 var(--sp-4);
   height: 36px;
-  border: 1px solid var(--ab-line);
+  border: 1.5px solid var(--ab-primary);
   border-radius: 999px;
   background: var(--ab-surface);
   font-size: var(--fs-sm);
@@ -85,63 +98,116 @@
 }
 
 .alba-account {
+  margin-left: auto;
   font-size: var(--fs-xs);
   color: var(--ab-text-2);
 }
 
-/* ── 필터 칩 (진짜 필터다) ────────────────────────────── */
-.alba-filters {
+/* ── 네비 줄 (레퍼런스의 메뉴 자리 = 진짜 직종 필터다) ── */
+.alba-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-2);
-  padding-bottom: var(--sp-4);
+  gap: var(--sp-5);
+  border-bottom: 1px solid var(--ab-line-soft);
 }
 
-.alba-chip {
-  min-height: 32px;
-  padding: 0 var(--sp-4);
-  border: 1px solid var(--ab-line);
-  border-radius: 999px;
-  background: var(--ab-surface);
-  font-size: var(--fs-sm);
+.alba-tab {
+  position: relative;
+  min-height: 40px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  font-size: var(--fs-base);
   color: var(--ab-text-2);
   cursor: pointer;
-  transition: background 150ms ease-out, color 150ms ease-out;
+  transition: color 150ms ease-out;
 }
 
-.alba-chip:hover {
-  background: var(--ab-wash);
+.alba-tab:hover {
+  color: var(--ab-primary);
 }
 
-/* 선택된 칩. 색만으로 알리지 않도록 굵기 + aria-pressed가 함께 간다. */
-.alba-chip-on {
-  border-color: var(--ab-primary);
-  background: var(--ab-primary);
-  color: #ffffff;
+/* 선택된 칸. 색만으로 알리지 않도록 밑줄 + 굵기 + aria-pressed가 함께 간다
+   (ux `nav-state-active`). */
+.alba-tab-on {
+  color: var(--ab-primary);
   font-weight: 700;
+}
+
+.alba-tab-on::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  background: var(--ab-primary);
+}
+
+/* ── 히어로 배너 ──────────────────────────────────────── */
+.alba-hero {
+  margin-top: var(--sp-5);
+  padding: var(--sp-5) var(--sp-6);
+  border-radius: var(--r-lg);
+  background: var(--ab-text);
+  color: #ffffff;
+}
+
+.alba-hero-kicker {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--ab-line);
+}
+
+/* 숫자만 액센트를 입는다 — #0c4a6e 위 3.4:1이라 **큰 글씨에만** 허용된다. */
+.alba-hero-figure {
+  margin: 2px 0 0;
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ab-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.alba-hero-unit {
+  margin-left: 2px;
+  font-size: var(--fs-lg);
+}
+
+.alba-hero-sub {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-sm);
+}
+
+.alba-hero-note {
+  margin: 2px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--ab-line);
 }
 
 /* ── 확정 결과 안내 ───────────────────────────────────── */
 .alba-receipt {
-  margin: 0 auto var(--sp-4);
+  margin: var(--sp-4) auto 0;
   padding: var(--sp-3) var(--sp-4);
   border-left: 3px solid var(--ab-primary);
   border-radius: var(--r-sm);
-  background: var(--ab-surface);
+  background: var(--ab-bg);
   font-size: var(--fs-sm);
   color: var(--ab-text);
 }
 
-/* ── 공고 목록 ────────────────────────────────────────── */
-.alba-sec {
-  margin-bottom: var(--sp-6);
+/* ── 공고 구역 (레퍼런스의 회색 판) ──────────────────── */
+.alba-band {
+  margin-top: var(--sp-6);
+  padding: var(--sp-6) 0;
+  background: var(--ab-bg);
 }
 
 .alba-sec-head {
   display: flex;
   align-items: baseline;
   gap: var(--sp-2);
-  margin: 0 0 var(--sp-3);
+  margin: 0 0 var(--sp-4);
   font-size: var(--fs-lg);
   font-weight: 700;
 }
@@ -152,19 +218,24 @@
   color: var(--ab-text-2);
 }
 
-.alba-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
+.alba-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--sp-4);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* 카드는 칸 높이를 채운다 — 안 채우면 일당 바가 카드마다 다른 높이에 선다. */
+.alba-grid > li {
+  display: flex;
+}
+
 .alba-card {
   display: flex;
-  align-items: flex-start;
-  gap: var(--sp-4);
+  flex-direction: column;
+  gap: var(--sp-1);
   width: 100%;
   padding: var(--sp-4);
   border: 1px solid var(--ab-line-soft);
@@ -176,7 +247,7 @@
 }
 
 .alba-card:hover:not(:disabled) {
-  border-color: var(--ab-line);
+  border-color: var(--ab-primary);
   box-shadow: var(--el-1);
 }
 
@@ -192,39 +263,61 @@
   cursor: not-allowed;
 }
 
+.alba-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
 /* 로고 자리. 이미지가 아니라 그라데이션 판 + 상호 첫 글자다(오프라인 규칙). */
 .alba-mark {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--r-md);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
   background: linear-gradient(135deg, #0369a1 0%, #0ea5e9 100%);
   color: #ffffff;
-  font-size: var(--fs-lg);
+  font-size: var(--fs-sm);
   font-weight: 700;
 }
 
-.alba-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  flex: 1 1 auto;
-  min-width: 0;
+.alba-company {
+  overflow: hidden;
+  font-size: var(--fs-xs);
+  color: var(--ab-text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.alba-company {
+/* 레퍼런스의 해시태그 메타 줄. */
+.alba-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
   font-size: var(--fs-xs);
+  color: var(--ab-text-2);
+}
+
+.alba-tag {
+  color: var(--ab-primary);
+}
+
+.alba-tag-area {
   color: var(--ab-text-2);
 }
 
 .alba-title {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  flex-wrap: wrap;
   gap: var(--sp-2);
   font-size: var(--fs-md);
   font-weight: 700;
+  line-height: 1.4;
 }
 
 .alba-badge {
@@ -236,51 +329,31 @@
   font-weight: 700;
 }
 
-.alba-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3);
-  font-size: var(--fs-xs);
-  color: var(--ab-text-2);
-}
-
-.alba-meta-item {
+.alba-when {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-}
-
-.alba-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-1);
-  margin-top: 2px;
-}
-
-.alba-tag {
-  padding: 1px var(--sp-2);
-  border-radius: var(--r-sm);
-  background: var(--ab-wash);
   font-size: var(--fs-xs);
   color: var(--ab-text-2);
 }
 
 .alba-lock {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
   margin-top: 2px;
   font-size: var(--fs-xs);
   color: var(--ab-lock);
 }
 
-/* ── 일당 ─────────────────────────────────────────────── */
+/* ── 일당 (카드 하단 바) ─────────────────────────────── */
 .alba-pay {
-  flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin-top: auto;
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--ab-line-soft);
 }
 
 .alba-pay-label {
@@ -296,7 +369,7 @@
 }
 
 .alba-picked {
-  margin-top: 2px;
+  margin-left: auto;
   padding: 1px var(--sp-2);
   border-radius: var(--r-sm);
   background: var(--ab-primary);
@@ -307,6 +380,7 @@
 /* ── 푸터 ─────────────────────────────────────────────── */
 .alba-foot {
   padding-top: var(--sp-5);
+  margin-top: var(--sp-6);
   border-top: 1px solid var(--ab-line);
   font-size: var(--fs-xs);
   color: var(--ab-text-2);

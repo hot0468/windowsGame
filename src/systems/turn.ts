@@ -2,11 +2,14 @@ import { getLivingCost, getWageMultiplier } from './economy'
 import { burnoutKeyOf, getBurnoutPenalty, pushActivity } from './burnout'
 import { weekdayOf } from '../data/calendar'
 import { DEFAULT_HOUSING_ID, findHousing } from '../data/housing'
+import { PAYOUT_INTERVAL_DAYS } from '../data/artworks'
+import { OUTFIT_BONUS, outfitsFor, requiredItemIds } from '../data/items'
 import { FINAL_DAYS, isWorkWeekday } from '../data/careers'
 import { GROWTH_STAT_KEYS, INITIAL_STATS } from '../types/game'
 import type {
   Activity,
   Application,
+  Artwork,
   Employment,
   EventLog,
   GameState,
@@ -88,9 +91,41 @@ export function inventoryOf(state: GameState): EventLog[] {
   return state.inventory ?? []
 }
 
+/**
+ * 이 활동에 어울리는 옷 중 **가지고 있는 것**. 없으면 undefined.
+ *
+ * ⚠️ **`data/items.ts`를 읽기만 한다**(`housingMentalCost`와 같은 예외). 옷이 어디에
+ * 맞는지는 데이터가 알고, 여기서는 "가졌는가"만 묻는다 — 규칙을 둘로 나누지 않는다.
+ *
+ * ⚠️ **겹쳐 쌓지 않는다: 하나만 고른다.** 여러 벌이 맞아도 보너스는 한 번이다
+ * (다 사면 배수가 되는 구조는 "물건은 지름길이 아니다"를 깬다). 지금은 보너스가
+ * `OUTFIT_BONUS` 하나뿐이라 **첫 번째로 가진 옷**을 고르는 것으로 충분하다.
+ */
+export function outfitFor(state: GameState, activityId: string) {
+  return outfitsFor(activityId).find((item) => owns(state, item.id))
+}
+
+/** TPO 보너스 비율. 맞는 옷이 없으면 0이다. */
+export function outfitBonusFor(state: GameState, activityId: string): number {
+  return outfitFor(state, activityId) ? OUTFIT_BONUS : 0
+}
+
 /** 이미 가진 물건인지. 보유 판정이 여러 곳에 흩어지지 않게 여기 하나만 둔다. */
 export function owns(state: GameState, itemId: string): boolean {
   return inventoryOf(state).some((i) => i.id === itemId)
+}
+
+/**
+ * 요구 아이템을 충족하는가. **배열이면 "그중 아무거나 하나"다**(AND가 아니라 OR).
+ *
+ * ⚠️ 타블렛 둘이 같은 그리기 활동을 여는 것이 이 함수의 존재 이유다. 활동을 장비별로
+ * 쪼개면 바탕화면에 클립스튜디오 아이콘이 둘 생기고, 스케줄러 고르기 판에도 둘이 뜬다 —
+ * 장비 차이는 **여는 문**이 아니라 **결과의 등급**이어야 한다(`systems/artwork.ts`).
+ *
+ * 화면(잠금 사유)도 이 함수를 써야 판정과 문구가 갈리지 않는다.
+ */
+export function ownsRequired(state: GameState, required: string | string[]): boolean {
+  return requiredItemIds(required).some((id) => owns(state, id))
 }
 
 /**
@@ -133,7 +168,7 @@ export function jobStageOpen(state: GameState, gate: JobStageGate): boolean {
  */
 export function canRun(state: GameState, activity: Activity): boolean {
   if (state.gameOver) return false
-  if (activity.requiresItem && !owns(state, activity.requiresItem)) return false
+  if (activity.requiresItem && !ownsRequired(state, activity.requiresItem)) return false
   if (activity.requiresJobStage && !jobStageOpen(state, activity.requiresJobStage)) return false
   if (!activity.requires) return true
   return Object.entries(activity.requires).every(
@@ -168,7 +203,13 @@ export function clampStats(stats: Stats): Stats {
  * 번아웃 효율은 긍정 효과에만 곱한다 — 소모량까지 줄어들면 페널티가 아니게 된다.
  * 알바비(scalesWithWage)에는 물가 배율을 적용한다.
  */
-function applyEffects(stats: Stats, activity: Activity, day: number, efficiency: number): Stats {
+function applyEffects(
+  stats: Stats,
+  activity: Activity,
+  day: number,
+  efficiency: number,
+  outfitBonus: number,
+): Stats {
   const next = { ...stats }
   for (const [key, rawValue] of Object.entries(activity.effects)) {
     const statKey = key as keyof Stats
@@ -176,9 +217,25 @@ function applyEffects(stats: Stats, activity: Activity, day: number, efficiency:
     if (statKey === 'money' && value > 0 && activity.scalesWithWage) {
       value *= getWageMultiplier(day)
     }
-    next[statKey] += value > 0 ? value * efficiency : value
+    next[statKey] += value > 0 ? value * efficiency + outfitBoost(statKey, value, outfitBonus) : value
   }
   return next
+}
+
+/**
+ * TPO 옷이 얹어 주는 몫. **성장 스탯의 상승분에만** 붙는다.
+ *
+ * ⚠️ **돈·행동력·멘탈에는 붙이지 않는다.** 돈에 붙이면 옷 한 벌이 경제를 흔들고
+ * (밸런스 시뮬레이션이 보는 축이다), 행동력·멘탈은 비용과 회복이라 "옷을 갖춰 입으면
+ * 덜 지친다"는 다른 규칙이 된다. 이 기능이 약속한 것은 **성장이 조금 잘 되는 것**이다.
+ *
+ * ⚠️ **최소 +1이다.** 면접(매력 2)·출근(친화력 1)처럼 상승분이 작은 활동은 비율만으로는
+ * 반올림해서 0이 되어, 정장을 사도 **화면에 아무 변화가 없다**(거짓말이 된다).
+ */
+function outfitBoost(key: keyof Stats, value: number, bonus: number): number {
+  if (bonus <= 0) return 0
+  if (!(GROWTH_STAT_KEYS as readonly string[]).includes(key) && key !== 'maxStamina') return 0
+  return Math.max(1, Math.round(value * bonus))
 }
 
 /**
@@ -266,11 +323,22 @@ function detectGameOver(stats: Stats): GameState['gameOver'] {
  * 급여·만기와 **정확히 같은 자리, 같은 이유**다: 그 중간에서 판정하면
  * **당첨금을 손에 쥔 채 굶어 죽는다.** 여기서 보는 것도 숫자 하나(`pending`)뿐이고
  * 규칙(확률·상금·언제 굴리는가)은 전부 `systems/lottery.ts`에 있다.
+ *
+ * **원천 4 — 트위터 주간 정산**(2026-08-08 추가). 그림을 올려 모은 팔로워에 비례한 돈이
+ * 이레마다 `advanceTwitter`를 통해 소지금으로 들어온다. 급여·만기·당첨금과 **같은 자리,
+ * 같은 이유**다. 여기서 보는 것도 숫자 하나(`pending`)뿐이고 규칙(얼마를 언제 주는가)은
+ * 전부 `systems/twitter.ts`에 있다 — 이 파일은 그쪽을 import하지 않는다.
+ *
+ * ⚠️ 여기서 보는 것은 **금액이 아니라 커서**(`paidDay`)다. 정산은 시각이 오면 일어나는
+ * 일이라 복권처럼 미리 담아 둘 `pending`이 없다 — 정기예금 만기와 같은 형태이고,
+ * 주기 상수도 `data/artworks.ts` 한 곳에서만 읽는다(여기에 7을 박으면 두 번째 출처가 된다).
  */
 export function nightPayoutPending(state: GameState): boolean {
   const job = state.employment
   if (job && state.day >= job.paydayDay) return true
   if ((state.lottery?.pending ?? 0) > 0) return true
+  const twitter = state.twitter
+  if (twitter && state.day - twitter.paidDay >= PAYOUT_INTERVAL_DAYS) return true
   return (state.bank?.deposits ?? []).some((d) => state.day >= d.matureDay)
 }
 
@@ -337,6 +405,39 @@ function stampJob(
   return { employment, application }
 }
 
+/**
+ * 그리는 활동이 남기는 **그림 한 장**. 안 그리는 활동이면 갤러리를 그대로 돌려준다.
+ *
+ * ⚠️ **여기 있어야 하는 이유는 `stampJob`과 같다** — 활동 실행 통로가 넷이라
+ * 그 밖에 두면 하나가 반드시 샌다(그 통로로만 그리면 그림이 안 남는다).
+ *
+ * ⚠️ **등급이 아니라 사실을 적는다.** 등급 계산은 `systems/artwork.ts`가 하고
+ * `turn.ts`는 그 파일을 import하지 않는다 — `artwork.ts`가 `rank.ts`를, `rank.ts`가
+ * 다시 `turn.ts`(`growthCap`)를 부르므로 순환이 된다. 여기서 하는 일은
+ * **지금 스탯과 지금 장비를 그대로 베껴 적는 것**뿐이다(규칙은 여전히 한쪽에만 있다).
+ *
+ * ⚠️ 스탯은 **활동 효과가 붙기 전** 값이다(`stampJob`이 턴을 넘기기 전에 찍는 것과 같다) —
+ * 그 그림은 "그리기 전의 실력"으로 그린 것이지, 그리면서 는 실력으로 그린 것이 아니다.
+ */
+function stampArtwork(state: GameState, activity: Activity): Artwork[] | undefined {
+  if (!activity.producesArt) return state.artworks
+  const previous = state.artworks ?? []
+  const serial = previous.length + 1
+  return [
+    ...previous,
+    {
+      id: `art-${serial}`,
+      serial,
+      day: state.day,
+      slot: state.slot,
+      art: state.stats.art,
+      creativity: state.stats.creativity,
+      // 좋은 장비를 가졌으면 그걸로 그린다 — 고를 것이 없으므로 묻지 않는다.
+      tool: owns(state, 'lcd-tablet') ? 'lcd' : 'pen',
+    },
+  ]
+}
+
 /** 활동을 실행하고 다음 슬롯 상태를 반환한다. 원본은 변경하지 않는다. */
 export function runActivity(state: GameState, activity: Activity): GameState {
   if (state.gameOver) return state
@@ -344,18 +445,26 @@ export function runActivity(state: GameState, activity: Activity): GameState {
   // 알바 4종은 같은 키를 공유한다 — 종류를 바꿔 가며 일해도 연속 노동은 연속 노동이다.
   const key = burnoutKeyOf(activity)
   const { efficiency, mentalPenalty } = getBurnoutPenalty(state.recentActivities, key)
-  const withEffects = applyEffects(state.stats, activity, state.day, efficiency)
+  const withEffects = applyEffects(
+    state.stats,
+    activity,
+    state.day,
+    efficiency,
+    outfitBonusFor(state, activity.id),
+  )
   withEffects.mental -= mentalPenalty
 
   // ⚠️ 기록은 **턴을 넘기기 전**에 뽑는다 — 오후 행동은 날짜를 바꾸므로
   //    넘긴 뒤에 찍으면 "다음 날 출근한 것"이 된다.
   const stamped = stampJob(state, activity)
+  const artworks = stampArtwork(state, activity)
   const advanced = advance(state, withEffects)
   const stats = clampStats(advanced.stats)
 
   return withGameOver({
     ...state,
     ...stamped,
+    artworks,
     day: advanced.day,
     slot: advanced.slot,
     stats,

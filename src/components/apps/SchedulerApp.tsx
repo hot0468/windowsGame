@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { ACTIVITIES, ACTIVITY_CATEGORIES, plannableOf } from '../../data/activities'
 import { dateOf, dayOf } from '../../data/calendar'
-import { findItem, storeNameOf } from '../../data/items'
+import { requiredItemLabel, requiredItemStores } from '../../data/items'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
-import { owns } from '../../systems/delivery'
+import { ownsRequired } from '../../systems/turn'
 import { findPlan } from '../../systems/schedule'
 import { GROWTH_STAT_KEYS, STAT_NAMES } from '../../types/game'
 import type { Activity, GameState, Slot, Stats } from '../../types/game'
@@ -226,8 +226,11 @@ export function SchedulerApp() {
                       // 아이템이 필요한 활동은 **감추지 않고 잠근다**. 감추면 회원권이라는
                       // 것이 있다는 사실 자체를 알 길이 없어 쇼핑으로 가는 길이 끊긴다
                       // (ux `empty-nav-state`: 갈 수 없는 곳은 숨기지 말고 이유를 밝힌다).
-                      const need = a.requiresItem ? findItem(a.requiresItem) : undefined
-                      const locked = !!a.requiresItem && !owns(state, a.requiresItem)
+                      // ⚠️ 요구 아이템은 **하나이거나 여럿("또는")**이다 — 문구도 판정도
+                      // `data/items.ts`·`ownsRequired`가 만든다(여기서 다시 적지 않는다).
+                      const need = requiredItemLabel(a.requiresItem)
+                      const where = requiredItemStores(a.requiresItem)
+                      const locked = !!a.requiresItem && !ownsRequired(state, a.requiresItem)
                       // 스탯으로 잠긴 활동(알바 3종)은 막지 않고 사유만 적는다 — 위 주석 참조.
                       const unmet = locked ? [] : unmetGrowth(state, a)
                       return (
@@ -240,9 +243,7 @@ export function SchedulerApp() {
                           // 아니라 **화면 순서의 첫 항목**이어야 탭 순서와 어긋나지 않는다.
                           autoFocus={a.id === firstPickId}
                           title={
-                            locked
-                              ? `${need?.name ?? a.requiresItem}이(가) 있어야 합니다`
-                              : a.description
+                            locked ? `${need}이(가) 있어야 합니다` : a.description
                           }
                           onClick={() => {
                             planActivity(picking.day, picking.slot, a.id)
@@ -256,10 +257,8 @@ export function SchedulerApp() {
                               <span className="sch-pick-lock">
                                 {/* ⚠️ 가게 이름은 `storeNameOf`가 정한다 — 여기 굳혀 두면
                                     전자기기를 하이마루로 옮긴 순간 이 문장만 거짓이 된다. */}
-                                {need?.name ?? a.requiresItem} 필요
-                                {a.requiresItem && storeNameOf(a.requiresItem)
-                                  ? ` — ${storeNameOf(a.requiresItem)}에서 구입`
-                                  : ''}
+                                {need} 필요
+                                {where ? ` — ${where}에서 구입` : ''}
                               </span>
                             ) : (
                               <>

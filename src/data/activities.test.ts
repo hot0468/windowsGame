@@ -7,7 +7,7 @@ import {
   activitiesUnlockedBy,
   findActivity,
 } from './activities'
-import { SHOP_ITEMS, buyableFor, findItem } from './items'
+import { SHOP_ITEMS, buyableFor, findItem, requiredItemIds } from './items'
 import { burnoutKeyOf } from '../systems/burnout'
 import { GROWTH_STAT_KEYS, STAT_NAMES } from '../types/game'
 import type { GrowthStatKey } from '../types/game'
@@ -157,8 +157,11 @@ describe('알바', () => {
 describe('아이템 잠금', () => {
   it('requiresItem은 실제로 파는 물건을 가리킨다', () => {
     for (const a of ACTIVITIES) {
-      if (!a.requiresItem) continue
-      expect(findItem(a.requiresItem), `${a.id}의 requiresItem이 없는 물건이다`).toBeDefined()
+      // ⚠️ 배열이면 **그중 전부**가 실제 물건이어야 한다("아무거나 하나"는 실행 규칙이고,
+      //    없는 id가 섞여 있으면 그 선택지만 조용히 사라진다).
+      for (const id of requiredItemIds(a.requiresItem)) {
+        expect(findItem(id), `${a.id}의 requiresItem '${id}'이 없는 물건이다`).toBeDefined()
+      }
     }
   })
 
@@ -186,9 +189,44 @@ describe('아이템 잠금', () => {
     expect(member.effects.money ?? 0).toBeGreaterThan(day.effects.money ?? 0)
   })
 
+  /*
+   * ── 미용실 2종 (2026-08-08) ──
+   * ⚠️ 헬스장과 **같은 구조**이므로 같은 것을 지킨다. 값이 어긋나면(정기권이 1회권
+   * 6회분이 아니거나, 정기권 쪽이 더 비싸면) 두 선택지 중 하나가 무의미해진다.
+   */
+  it('미용실 정기권 활동은 정기권으로 잠겨 있다', () => {
+    expect(findActivity('salon-member')?.requiresItem).toBe('salon-pass')
+    // 1회 방문은 잠기지 않는다 — 잠그면 시작하자마자 미용실 자체가 닫힌다.
+    expect(findActivity('salon-visit')?.requiresItem).toBeUndefined()
+  })
+
+  it('미용실 정기권 값은 1회 6회분이다 (헬스장과 같은 규칙)', () => {
+    const pass = findItem('salon-pass')!
+    const onceCost = Math.abs(findActivity('salon-visit')!.effects.money ?? 0)
+    expect(onceCost).toBe(25000)
+    expect(pass.price).toBe(150000)
+    expect(Math.ceil(pass.price / onceCost)).toBe(6)
+  })
+
+  it('미용실 정기권이 여는 활동을 아이템 쪽에서도 찾을 수 있다', () => {
+    expect(activitiesUnlockedBy('salon-pass').map((a) => a.id)).toEqual(['salon-member'])
+  })
+
+  it('정기권 방문은 1회 방문보다 싸다 — 그렇지 않으면 정기권을 살 이유가 없다', () => {
+    const once = findActivity('salon-visit')!
+    const member = findActivity('salon-member')!
+    expect(member.effects.money ?? 0).toBeGreaterThan(once.effects.money ?? 0)
+    // 효과는 같아야 한다. 정기권 쪽이 더 좋으면 1회권이 열등한 선택지가 된다.
+    expect(member.effects.charm).toBe(once.effects.charm)
+  })
+
   it('잠긴 활동이 있는 물건은 실제로 상점에 있다', () => {
-    const locked = ACTIVITIES.filter((a) => a.requiresItem).map((a) => a.requiresItem)
-    for (const id of locked) expect(SHOP_ITEMS.some((i) => i.id === id)).toBe(true)
+    // ⚠️ 배열("그중 아무거나 하나")도 펴서 본다 — 안 그러면 배열로 잠긴 활동이
+    //    통째로 검사에서 빠져 없는 물건을 가리켜도 통과한다.
+    const locked = ACTIVITIES.flatMap((a) => requiredItemIds(a.requiresItem))
+    for (const id of locked) {
+      expect(SHOP_ITEMS.some((i) => i.id === id), `${id}이 상점에 없다`).toBe(true)
+    }
   })
 
   /*

@@ -148,7 +148,12 @@ export function StatPanel() {
       header
       x={pos.x}
       y={pos.y}
-      width={280}
+      /* ⚠️ 실측값이다. 성장 스탯 칸이 '예의범절 + 999'를 자르지 않으려면 칸당 135px이
+         필요한데(아이콘 14 + 이름 38 + 등급 22 + 값 27 + 간격 18 + 패딩 16),
+         280px일 때 칸은 115px뿐이라 값이 세 자리가 되는 순간 라벨이 잘렸다.
+         줄이려면 `.stat-cell-value`의 min-width부터 다시 재라.
+         ⚠️ `CALENDAR_PANEL_LAYOUT.statPanelReserve`가 이 값 + 16이어야 한다(테스트가 지킨다). */
+      width={320}
       zIndex={zIndex}
       onActivate={() => raise('stats')}
     >

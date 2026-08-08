@@ -7,7 +7,22 @@ describe('바탕화면 항목', () => {
   it('onDesktop 활동이 빠짐없이 항목으로 올라간다', () => {
     const onDesktopIds = ACTIVITIES.filter((a) => a.onDesktop).map((a) => a.id)
     const exeIds = DESKTOP_ITEMS.filter((i) => i.kind === 'exe').map((i) => i.activityId)
-    expect(exeIds.sort()).toEqual(onDesktopIds.sort())
+    // ⚠️ 예전에는 **같은 집합**이었지만 이제 `exe` 항목이 둘로 갈린다:
+    //    ①`onDesktop`에서 파생된 항상 보이는 것 ②`requiresItem`으로 잠긴 조건부 것.
+    //    그래서 등호가 아니라 포함 관계다 — `onDesktop` 활동은 여전히 하나도 안 빠진다.
+    for (const id of onDesktopIds) expect(exeIds).toContain(id)
+  })
+
+  it('onDesktop에서 안 온 exe 항목은 반드시 조건부다', () => {
+    // ⚠️ 이 단언이 위 등호를 대신한다. 조건 없이 손으로 얹은 `exe` 항목은
+    // "누르면 잠금 사유만 적는 죽은 아이콘"이 되므로 만들면 안 된다.
+    const onDesktopIds = ACTIVITIES.filter((a) => a.onDesktop).map((a) => a.id)
+    const extra = DESKTOP_ITEMS.filter(
+      (i) => i.kind === 'exe' && !onDesktopIds.includes(i.activityId!),
+    )
+    for (const item of extra) {
+      expect(item.requiresItem, `${item.id}이 조건 없이 얹혀 있다`).toBeTruthy()
+    }
   })
 
   it('exe 항목의 activityId는 실제 활동을 가리킨다', () => {
