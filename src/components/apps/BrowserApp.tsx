@@ -27,6 +27,7 @@ import { NeverPortal } from './sites/NeverPortal'
 import { PublishSite } from './sites/PublishSite'
 import { RealtySite } from './sites/RealtySite'
 import { ShopSite } from './sites/ShopSite'
+import { StockSite } from './sites/StockSite'
 import { TechSite } from './sites/TechSite'
 import { TicketSite } from './sites/TicketSite'
 import { TravelSite } from './sites/TravelSite'
@@ -394,6 +395,7 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         {/* ⚠️ 은행·부동산은 활동을 실행하지 않는다 — 거래도 계약도 턴을 쓰지 않으므로
             확정 패널이 없다. 이 둘이 파는 것은 슬롯이 아니라 **며칠**이다. */}
         {site?.render === 'bank' && <BankSite site={site} />}
+        {site?.render === 'stock' && <StockSite site={site} />}
         {site?.render === 'realty' && <RealtySite site={site} />}
         {site?.render === 'construction' && (
           <ConstructionSite site={site} onGoHome={() => goInTab(HOME_SITE_ID)} />

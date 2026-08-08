@@ -1,32 +1,40 @@
 /*
  * 노24 — 공연 예매. 토큰은 `.tk` 안에 `--tk-*`로 가둔다(사이트마다 같은 규칙).
  *
- * 색 근거: color DB **`Music Streaming`**(primary #1E1B4B · secondary #4338CA ·
- * accent #22C55E — "Dark audio + play green").
- * ⚠️ **DB의 어두운 배경(#0F0F23)은 쓰지 않는다.** 시집이의 어두운 극장 톤이 설계자에게
- * 기각된 전례가 있다 — 브라우저 안의 사이트가 어두우면 창 안에서 이질적으로 뜬다.
- * 그래서 **판은 밝게 두고 인디고는 브랜드·포스터에만** 쓴다.
- * ⚠️ 액센트 초록(#22C55E)도 글자로 쓰지 않는다: 흰 배경 대비 1.9:1이고, 무엇보다
- * 네이놈 브랜드 초록과 겹쳐 "포털의 색"으로 읽힌다.
+ * ## 판형 — 레퍼런스(실제 티켓 예매 사이트 홈)가 스펙이다
+ * 검은 헤더 → 큰 캐러셀 + 썸네일 줄 → WHAT'S HOT(큰 카드 1 + 작은 6) →
+ * 분류 섹션(가운데 정렬 제목 + 좌우 선) → 전화번호가 큰 푸터.
+ * ⚠️ **이 사이트의 주인공은 포스터다.** 그래서 여백을 넓게 두고 글자를 작게 둔다 —
+ * 카드에 테두리·그림자를 두르지 않는 것도 같은 이유다(포스터가 스스로 판이 된다).
+ *
+ * ## 색
+ * color DB **`Music Streaming`**(primary #1E1B4B · secondary #4338CA).
+ * ⚠️ **본문 판은 흰색이다.** DB의 어두운 배경(#0F0F23)을 그대로 쓰면 브라우저 창 안에서
+ * 이질적으로 뜬다 — 시집이의 어두운 극장 톤이 설계자에게 기각된 전례가 있다.
+ * 대신 **헤더만 검다**(레퍼런스도 그렇다): 어두운 띠 하나가 "여기는 공연"이라는 인상을
+ * 만들고, 아래 흰 판이 포스터를 받친다.
+ * ⚠️ 액센트 초록(DB #22C55E)은 쓰지 않는다 — 네이놈 브랜드 초록과 겹쳐 "포털의 색"이 된다.
  *
  * ⚠️ **배너와 색을 맞춘 것이 규칙이다.** 이 사이트의 입구는 포털 가로 띠의 이동용 배너
- * 하나뿐이라, 배너 그라데이션(#1e1b4b → #4338ca → #6d5ce0)을 포스터 톤으로 이어받아
- * 누르고 들어온 자리가 같은 곳으로 읽히게 했다(먼바다투어도 같다).
+ * 하나뿐이라, 배너 그라데이션(#1e1b4b → #4338ca → #6d5ce0)을 헤더·강조에 이어받았다.
  */
 .tk {
-  --tk-primary: #3730a3; /* #fff 위 8.7:1 — 제목·브랜드 */
+  --tk-ink: #14121f; /* 헤더 바탕(거의 검정) */
+  --tk-primary: #3730a3; /* #fff 위 8.7:1 — 제목·현재 위치 */
   --tk-primary-hi: #1e1b4b;
-  --tk-bg: #f5f5ff;
   --tk-surface: #ffffff;
-  --tk-line: #e3e2f7;
-  --tk-line-strong: #c9c7ee;
+  --tk-line: #e6e5ef;
+  --tk-line-strong: #cbc9de;
   --tk-text: #1c1a33; /* 14.9:1 */
   --tk-text-2: #4a4766; /* 8.4:1 */
   --tk-text-3: #5f5c7a; /* 6.2:1 — 최소 보조 */
+  /* 검은 헤더 위 글자. 어두운 판은 밝기 기준이 반대라 별도로 둔다. */
+  --tk-on-ink: #f2f1f8; /* 15.7:1 on --tk-ink */
+  --tk-on-ink-2: #a9a6c2; /* 6.9:1 */
 
   min-height: 100%;
   padding-bottom: var(--sp-8);
-  background: var(--tk-bg);
+  background: var(--tk-surface);
   color: var(--tk-text);
   font-size: var(--fs-base);
   line-height: 1.6;
@@ -34,70 +42,61 @@
   container-type: inline-size;
 }
 
-.tk-strip {
-  margin: 0;
+/* ── 검은 헤더 ───────────────────────────────────────────── */
+.tk-top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
   padding: var(--sp-3) var(--sp-5);
-  background: var(--tk-primary-hi);
-  font-size: var(--fs-sm);
-  color: #fff;
-}
-
-.tk-head {
-  padding: var(--sp-5);
-  border-bottom: 1px solid var(--tk-line-strong);
-  background: var(--tk-surface);
+  background: var(--tk-ink);
 }
 
 .tk-logo {
   margin: 0;
-  font-size: var(--fs-2xl);
+  font-size: var(--fs-xl);
   font-weight: 700;
-  color: var(--tk-primary);
+  color: var(--tk-on-ink);
   letter-spacing: 0.02em;
 }
 
-/* 숫자만 한 단 밝게 — 실제 예매 사이트 로고의 그 형태다. */
+/* 로고의 숫자만 브랜드 인디고 계열로 — 레퍼런스 로고의 그 형태다. */
 .tk-logo-num {
-  color: var(--tk-primary-hi);
+  color: #9d92f0; /* 검은 헤더 위 6.6:1 */
 }
 
-.tk-sub {
-  margin: 2px 0 0;
-  font-size: var(--fs-sm);
-  color: var(--tk-text-3);
-}
-
-/* ── 분류 탭 ─────────────────────────────────────────────── */
-.tk-tabs {
+.tk-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-2);
-  padding: var(--sp-4) var(--sp-5) 0;
+  gap: var(--sp-1);
 }
 
-.tk-tab {
-  min-height: 34px;
-  padding: 0 var(--sp-4);
-  border: 1px solid var(--tk-line-strong);
-  border-radius: 999px;
-  background: var(--tk-surface);
+.tk-nav-item {
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
   font: inherit;
   font-size: var(--fs-sm);
-  color: var(--tk-text-2);
+  color: var(--tk-on-ink-2);
   cursor: pointer;
 }
 
-.tk-tab:hover {
-  border-color: var(--tk-primary);
-  color: var(--tk-primary);
+.tk-nav-item:hover {
+  color: var(--tk-on-ink);
 }
 
-/* 고른 탭은 색만이 아니라 면·굵기·`aria-pressed`가 함께 알린다(ux `color-not-only`). */
-.tk-tab-on {
-  border-color: transparent;
-  background: var(--tk-primary);
+/* 현재 위치는 색만이 아니라 **밑줄 + 굵기 + `aria-current`**가 함께 알린다. */
+.tk-nav-on {
+  border-bottom-color: #9d92f0;
   font-weight: 700;
-  color: #fff;
+  color: var(--tk-on-ink);
+}
+
+.tk-tel {
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--tk-on-ink-2);
 }
 
 .tk-receipt {
@@ -105,26 +104,222 @@
   padding: var(--sp-3) var(--sp-4);
   border-left: 3px solid var(--tk-primary);
   border-radius: 0 var(--r-md) var(--r-md) 0;
-  background: var(--tk-surface);
+  background: #f5f5ff;
   font-size: var(--fs-sm);
   color: var(--tk-primary);
 }
 
-/* ── 포스터 격자 ─────────────────────────────────────────── */
-.tk-grid {
+/* ── 큰 캐러셀 ───────────────────────────────────────────── */
+.tk-hero-wrap {
+  padding: var(--sp-5) var(--sp-5) 0;
+}
+
+.tk-hero {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-height: 240px;
+  border-radius: var(--r-lg);
+  /* 배경은 인라인 style이 넣는다(공연마다 다르므로 데이터의 몫이다). */
+  overflow: hidden;
+}
+
+/* 좌우 화살표. 어두운 포스터 위에 얹히므로 반투명 검정 판 + 흰 글리프다. */
+.tk-hero-nav {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* ux `touch-target-size`: 최소 44px. */
+  width: 44px;
+  border: none;
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.tk-hero-nav:hover {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.tk-hero-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+  min-width: 0;
+  padding: var(--sp-6);
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: #fff;
+  cursor: pointer;
+}
+
+.tk-hero-genre {
+  padding: 2px var(--sp-3);
+  border-radius: 999px;
+  /* 그라데이션 위라 판을 깔아야 글자가 선다. 흰 글자는 어느 판에서도 읽힌다. */
+  background: rgba(0, 0, 0, 0.4);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.tk-hero-title {
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+  line-height: 1.25;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+}
+
+.tk-hero-meta,
+.tk-hero-period {
+  font-size: var(--fs-sm);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+}
+
+.tk-hero-period {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
+}
+
+/* 썸네일 줄. 레퍼런스처럼 캐러셀 바로 아래에 붙는다. */
+.tk-strip {
   display: grid;
-  /* ⚠️ 최소 폭을 `min()`으로 감싼다 — 좁은 창에서 고정값은 가로 스크롤을 만든다. */
-  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+  gap: var(--sp-2);
+  margin: var(--sp-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tk-thumb {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 64px;
+  padding: var(--sp-2);
+  border: 2px solid transparent;
+  border-radius: var(--r-md);
+  font: inherit;
+  text-align: left;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0.55;
+  transition:
+    opacity 150ms ease-out,
+    border-color 150ms ease-out;
+}
+
+.tk-thumb:hover {
+  opacity: 0.85;
+}
+
+/* 지금 걸린 공연. ⚠️ 불투명도만으로 알리지 않는다 — 테두리가 함께 선다. */
+.tk-thumb-on {
+  border-color: var(--tk-primary);
+  opacity: 1;
+}
+
+.tk-thumb-title {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* ── 구역 ────────────────────────────────────────────────── */
+.tk-sec {
+  padding: var(--sp-8) var(--sp-5) 0;
+}
+
+/*
+ * 레퍼런스의 구역 제목: **가운데에 서고 좌우로 선이 뻗는다.**
+ * 선을 의사요소가 아니라 격자로 만든 이유는 제목 길이에 따라 선이 알아서 늘기 때문이다.
+ */
+.tk-sec-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
   gap: var(--sp-4);
-  margin: var(--sp-4) 0 0;
-  padding: 0 var(--sp-5);
+  margin: 0 0 var(--sp-5);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--tk-text);
+}
+
+.tk-sec-head::before,
+.tk-sec-head::after {
+  height: 1px;
+  background: var(--tk-line-strong);
+  content: '';
+}
+
+/* WHAT'S HOT처럼 선 없이 가운데만 두는 제목. */
+.tk-sec-plain {
+  display: block;
+  text-align: center;
+}
+
+.tk-count {
+  margin: calc(var(--sp-4) * -1) 0 var(--sp-5);
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--tk-text-3);
+}
+
+/* ── WHAT'S HOT: 큰 카드 1 + 작은 카드 6 ─────────────────── */
+.tk-hot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--sp-4);
+}
+
+/* 좁아지면 큰 카드가 위로 빠지고 격자만 남는다(창 크기 ≠ 뷰포트 크기). */
+@container (max-width: 720px) {
+  .tk-hot {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/*
+ * ⚠️ **3열 고정이다**(레퍼런스도 3×2). `auto-fit`으로 두면 판이 넓을 때 여섯이 한 줄로
+ * 늘어서 큰 카드와 높이가 어긋나고, 레퍼런스의 "큰 하나 + 작은 여섯" 덩어리가 풀린다.
+ * 좁아지면 2열로만 낮춘다(창 크기 ≠ 뷰포트 크기 — 컨테이너 기준).
+ */
+.tk-hot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@container (max-width: 720px) {
+  .tk-hot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ── 카드 ────────────────────────────────────────────────── */
+.tk-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+  gap: var(--sp-4);
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 
 .tk-card {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
+  gap: var(--sp-2);
   width: 100%;
   padding: 0;
   border: none;
@@ -141,9 +336,8 @@
   justify-content: flex-end;
   gap: var(--sp-1);
   aspect-ratio: 3 / 4;
-  padding: var(--sp-4);
-  border-radius: var(--r-lg);
-  /* 배경은 인라인 style이 넣는다(공연마다 다르므로 데이터의 몫이다). */
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
   color: #fff;
   transition: box-shadow 150ms ease-out;
 }
@@ -152,39 +346,47 @@
   box-shadow: var(--el-2);
 }
 
+/* WHAT'S HOT의 큰 카드. 포스터 비율만 세로로 길어진다. */
+.tk-card-big .tk-poster {
+  aspect-ratio: 3 / 4.4;
+  padding: var(--sp-5);
+}
+
+.tk-card-big .tk-poster-title {
+  font-size: var(--fs-xl);
+}
+
 .tk-poster-genre {
   align-self: flex-start;
   padding: 2px var(--sp-2);
   border-radius: var(--r-sm);
-  /* 어두운 포스터 위에 얹는 반투명 판. 글자는 흰색이라 어느 판에서도 선다. */
   background: rgba(0, 0, 0, 0.35);
   font-size: var(--fs-xs);
   font-weight: 700;
 }
 
 .tk-poster-title {
-  font-size: var(--fs-lg);
+  font-size: var(--fs-md);
   font-weight: 700;
   line-height: 1.35;
-  /* 그라데이션 위 흰 글자라 판마다 대비가 다르다 — 그림자로 바닥을 만든다. */
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .tk-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
 .tk-title {
-  font-size: var(--fs-md);
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--tk-text);
 }
 
 .tk-meta {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   color: var(--tk-text-2);
 }
 
@@ -199,7 +401,7 @@
 /* ── 푸터 ────────────────────────────────────────────────── */
 .tk-foot {
   margin: var(--sp-8) var(--sp-5) 0;
-  padding-top: var(--sp-4);
+  padding-top: var(--sp-5);
   border-top: 1px solid var(--tk-line-strong);
   font-size: var(--fs-xs);
   color: var(--tk-text-3);
@@ -209,7 +411,11 @@
   margin: 0 0 2px;
 }
 
-.tk-foot-logo {
+/* 레퍼런스 푸터의 큰 전화번호. 이 사이트가 실제로 파는 것은 "예매 대행"이라는 인상. */
+.tk-foot-tel {
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-2xl);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   color: var(--tk-primary);
 }

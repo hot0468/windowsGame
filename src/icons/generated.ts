@@ -1,5 +1,5 @@
 // 이 파일은 `npm run icons`(scripts/build-icon-subset.mjs)가 생성한다. 직접 수정하지 말 것.
-// src/에서 실제로 쓰는 아이콘 177개만 담은 축소 세트다 —
+// src/에서 실제로 쓰는 아이콘 178개만 담은 축소 세트다 —
 // 전체 세트(8천여 개)를 번들에 넣지 않기 위한 것이다.
 import type { IconifyJSON } from '@iconify/react/offline'
 
@@ -319,7 +319,7 @@ export const mdi: IconifyJSON = {
   "height": 24
 }
 
-/** fluent-color — 사용 중인 81개 */
+/** fluent-color — 사용 중인 82개 */
 export const fluentColor: IconifyJSON = {
   "prefix": "fluent-color",
   "icons": {
@@ -590,6 +590,11 @@ export const fluentColor: IconifyJSON = {
     },
     "mic-24": {
       "body": "<g fill=\"none\"><path fill=\"url(#SVGEVaLmepR)\" d=\"m19.25 11.742l-.008-.119l-.001-.008a1 1 0 0 0-1.991.135v.498l-.004.21a5 5 0 0 1-4.996 4.792h-.497l-.212-.004A5 5 0 0 1 6.75 12.25v-.508l-.008-.119l-.001-.008a1 1 0 0 0-1.991.135v.5l.004.24v.005A7 7 0 0 0 11 19.21v2.048l.008.119l.001.008A1 1 0 0 0 13 21.25v-2.04a7 7 0 0 0 6.25-6.96z\"/><path fill=\"url(#SVGFMkYgcjm)\" d=\"M12 2a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4\"/><defs><linearGradient id=\"SVGEVaLmepR\" x1=\"4.75\" x2=\"12.11\" y1=\"5.813\" y2=\"23.184\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#cad2d9\"/><stop offset=\"1\" stop-color=\"#70777d\"/></linearGradient><linearGradient id=\"SVGFMkYgcjm\" x1=\"6\" x2=\"13.346\" y1=\"-1.182\" y2=\"23.828\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#0fafff\"/><stop offset=\"1\" stop-color=\"#cc23d1\"/></linearGradient></defs></g>",
+      "width": 24,
+      "height": 24
+    },
+    "molecule-24": {
+      "body": "<g fill=\"none\"><path fill=\"#212121\" d=\"m6.584 12.876l8.25-5.5l.832 1.248l-8.25 5.5z\"/><path fill=\"url(#SVGzj2EZbIl)\" d=\"m6.584 12.876l8.25-5.5l.832 1.248l-8.25 5.5z\"/><path fill=\"url(#SVG4q0p2CqJ)\" d=\"m6.584 12.876l8.25-5.5l.832 1.248l-8.25 5.5z\"/><path fill=\"url(#SVGFvKe7dTM)\" d=\"m6.584 12.876l8.25-5.5l.832 1.248l-8.25 5.5z\"/><path fill=\"#242424\" d=\"m15.665 19.67l-10-5l.67-1.34l10 5z\"/><path fill=\"url(#SVGlFp1IeYl)\" d=\"m15.665 19.67l-10-5l.67-1.34l10 5z\"/><path fill=\"url(#SVGpzzNtcTQ)\" d=\"m15.665 19.67l-10-5l.67-1.34l10 5z\"/><path fill=\"url(#SVGBl9hXcau)\" d=\"m15.665 19.67l-10-5l.67-1.34l10 5z\"/><circle cx=\"16\" cy=\"7\" r=\"5\" fill=\"url(#SVGTmZrAe9s)\"/><circle cx=\"6\" cy=\"14\" r=\"4\" fill=\"url(#SVGqdValbTq)\"/><circle cx=\"16\" cy=\"19\" r=\"3\" fill=\"#d9d9d9\"/><circle cx=\"16\" cy=\"19\" r=\"3\" fill=\"url(#SVGBLvCwcix)\"/><defs><linearGradient id=\"SVGzj2EZbIl\" x1=\"6.584\" x2=\"8.475\" y1=\"7.376\" y2=\"14.648\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#b9c0c7\"/><stop offset=\"1\" stop-color=\"#70777d\"/></linearGradient><linearGradient id=\"SVGlFp1IeYl\" x1=\"5.665\" x2=\"7.119\" y1=\"13.329\" y2=\"20.323\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#b9c0c7\"/><stop offset=\"1\" stop-color=\"#70777d\"/></linearGradient><linearGradient id=\"SVGTmZrAe9s\" x1=\"11.357\" x2=\"18.258\" y1=\"3.875\" y2=\"11.045\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#2bdabe\"/><stop offset=\"1\" stop-color=\"#22918b\"/></linearGradient><linearGradient id=\"SVGqdValbTq\" x1=\"2.286\" x2=\"7.807\" y1=\"11.5\" y2=\"17.236\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#ec318f\"/><stop offset=\"1\" stop-color=\"#b91d6b\"/></linearGradient><linearGradient id=\"SVGBLvCwcix\" x1=\"13.938\" x2=\"17.875\" y1=\"15.063\" y2=\"22.563\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#ffcd0f\"/><stop offset=\"1\" stop-color=\"#fe8401\"/></linearGradient><radialGradient id=\"SVG4q0p2CqJ\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(-5.50003 3.99997 -4.56477 -6.27664 16 7)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".628\" stop-color=\"#70777d\"/><stop offset=\"1\" stop-color=\"#70777d\" stop-opacity=\"0\"/></radialGradient><radialGradient id=\"SVGFvKe7dTM\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(4.5 -3 3.4236 5.1354 6 14)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".563\" stop-color=\"#70777d\"/><stop offset=\"1\" stop-color=\"#70777d\" stop-opacity=\"0\"/></radialGradient><radialGradient id=\"SVGpzzNtcTQ\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(-4 -2 2.18494 -4.3699 16 19)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".563\" stop-color=\"#70777d\"/><stop offset=\"1\" stop-color=\"#70777d\" stop-opacity=\"0\"/></radialGradient><radialGradient id=\"SVGBl9hXcau\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(5 2.5 -2.4842 4.9684 6 14)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".677\" stop-color=\"#70777d\"/><stop offset=\"1\" stop-color=\"#70777d\" stop-opacity=\"0\"/></radialGradient></defs></g>",
       "width": 24,
       "height": 24
     },

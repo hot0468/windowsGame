@@ -65,8 +65,10 @@ export function StockSite({ site }: { site: Site }) {
         <Fact label="평가액" value={`${held.toLocaleString('ko-KR')}원`} />
         <Fact
           label="평가손익"
-          value={`${pl >= 0 ? '+' : '−'}${Math.abs(pl).toLocaleString('ko-KR')}원`}
-          tone={owned.length === 0 ? undefined : pl >= 0 ? 'up' : 'down'}
+          value={`${pl > 0 ? '+' : pl < 0 ? '−' : ''}${Math.abs(pl).toLocaleString('ko-KR')}원`}
+          /* ⚠️ **0에는 색을 주지 않는다** — 산 날의 평가손익은 언제나 0인데 상승 빨강으로
+             칠하면 "오른 것"으로 읽힌다(색이 뜻을 지는 화면이라 더 그렇다). */
+          tone={owned.length === 0 || pl === 0 ? undefined : pl > 0 ? 'up' : 'down'}
         />
         <Fact
           label="넣은 돈 / 뺀 돈"
@@ -201,8 +203,9 @@ function StockRow({
               {shares}주 / {stock.maxShares}주
             </span>
             <span className="stk-hold-sub">평균 {avg.toLocaleString('ko-KR')}원</span>
-            <span className={`stk-hold-pl stk-${price >= avg ? 'up' : 'down'}`}>
-              {price >= avg ? '+' : '−'}
+            {/* ⚠️ 0에는 색도 부호도 주지 않는다(요약 칸과 같은 규칙). */}
+            <span className={`stk-hold-pl stk-${price > avg ? 'up' : price < avg ? 'down' : 'flat'}`}>
+              {price > avg ? '+' : price < avg ? '−' : ''}
               {Math.abs((price - avg) * shares).toLocaleString('ko-KR')}원
             </span>
           </>

@@ -71,11 +71,14 @@ function wave(stockId: string, day: number): number {
 /**
  * 그 날의 주가(원, 정수).
  *
- * ⚠️ **1일 미만은 1일로 본다** — 판이 시작되기 전 날짜로 차트를 그리다가 음수 날이
- * 들어오면 파형이 뒤집혀 없던 급등락이 생긴다.
+ * ⚠️ **판이 시작되기 전 날짜(0·음수)도 정상으로 계산한다.** 이 회사들은 게임보다
+ * 먼저 있었으므로 1일차에도 지난 시세가 있어야 한다 — 잘라 내면 **첫날 화면이
+ * 전부 "보합"이고 차트가 점 하나**가 되어, 오르내림을 보고 고르는 이 사이트가
+ * 아무 정보도 주지 못한다(CDP 실측으로 잡았다). 파형은 음수 인자에서도 연속이고
+ * 잡음 시드도 `|0` 연산이라 뒤집히지 않는다.
  */
 export function priceOf(stock: Stock, day: number): number {
-  const d = Math.max(1, Math.floor(day))
+  const d = Math.floor(day)
   return Math.max(1, Math.round(stock.base * (1 + stock.volatility * wave(stock.id, d))))
 }
 
@@ -84,15 +87,13 @@ export function priceOf(stock: Stock, day: number): number {
  * ⚠️ **미래를 넘겨주지 않는 것이 이 함수의 존재 이유다**(위 주석).
  */
 export function chartOf(stock: Stock, today: number, days = CHART_DAYS): number[] {
-  const from = Math.max(1, today - days + 1)
   const out: number[] = []
-  for (let d = from; d <= today; d++) out.push(priceOf(stock, d))
+  for (let d = today - days + 1; d <= today; d++) out.push(priceOf(stock, d))
   return out
 }
 
-/** 어제 대비 등락액. 1일차에는 비교할 어제가 없으므로 0이다. */
+/** 어제 대비 등락액. 1일차에도 상장 전날과 비교한다(위 `priceOf` 주석). */
 export function changeOf(stock: Stock, day: number): number {
-  if (day <= 1) return 0
   return priceOf(stock, day) - priceOf(stock, day - 1)
 }
 

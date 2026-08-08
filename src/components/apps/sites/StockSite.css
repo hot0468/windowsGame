@@ -1,0 +1,385 @@
+/*
+ * 네이놈증권(주식).
+ *
+ * ## 색 — 슬레이트 (ui-ux-pro-max color `Inventory & Stock Management`)
+ * primary #334155 · bg #F8FAFC · muted-fg #64748B · border #E2E8F0.
+ * ⚠️ **아직 아무 사이트도 안 쓴 계열이다** — 은행(남색 #1E3A8A)·벼룩장터(#2563EB)·
+ * 알바몬(#0369A1)이 파랑을 셋 채웠고, 부동산이 청록이다. 슬레이트는 채도가 거의 없어
+ * 그 셋과 나란히 놓아도 갈린다.
+ *
+ * ## ⚠️ 상승 빨강 / 하락 파랑 — 색은 거들기만 한다
+ * 한국 증시 관행을 따르되, 이 앱의 나머지 화면에서 빨강은 **위험**이라 뜻이 부딪힌다.
+ * 그래서 색만으로 알리지 않는다(ux `color-not-only`): **▲▼ 기호 + 부호(+/−) + 퍼센트**가
+ * 뜻을 지고 색은 그 위에 얹힌다. 두 색 다 흰 배경에서 AA를 넘긴다(5.9:1 / 6.7:1).
+ *
+ * ## 판형
+ * 머리띠 → 계좌 요약 4칸 → 시세 목록(줄마다 스파크라인) → 거래 내역 → 각주.
+ * ⚠️ 반응형은 뷰포트가 아니라 **컨테이너**로 판정한다 — 사이트는 창 안이라
+ * 미디어쿼리를 쓰면 창을 줄여도 영영 안 접힌다.
+ *
+ * 토큰은 `.stk` 안에 가둔다(다른 사이트와 같은 규칙). 간격·타입·모서리는 전역 토큰만.
+ * ⚠️ 간격 척도에 `--sp-7`은 없다(4/8 리듬: 1·2·3·4·5·6·8).
+ */
+.stk {
+  --st-bg: #f8fafc;
+  --st-surface: #ffffff;
+  --st-line: #e2e8f0;
+  --st-text: #0f172a; /* #fff 위 17.9:1 */
+  --st-text-2: #64748b; /* #fff 위 4.8:1 (WCAG AA) */
+  --st-slate: #334155; /* #fff 위 10.3:1 — 머리띠·구역 제목 */
+  --st-up: #c0261d; /* #fff 위 5.9:1 — 상승 */
+  --st-down: #1d4ed8; /* #fff 위 6.7:1 — 하락 */
+  --st-wash: #eef2f7;
+
+  container-type: inline-size;
+  min-height: 100%;
+  padding-bottom: var(--sp-8);
+  background: var(--st-bg);
+  color: var(--st-text);
+}
+
+.stk-head,
+.stk-sum,
+.stk-note,
+.stk-sec,
+.stk-foot {
+  width: min(1080px, 100% - 48px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── 머리띠 ───────────────────────────────────────────── */
+.stk-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  padding: var(--sp-6) 0 var(--sp-4);
+}
+
+.stk-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-family: var(--font-point);
+  font-weight: 400; /* 한 벌짜리 서체라 합성 볼드를 막는다 */
+  font-size: var(--fs-2xl);
+  color: var(--st-slate);
+}
+
+.stk-clock {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--st-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 계좌 요약 ────────────────────────────────────────── */
+.stk-sum {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-3);
+  margin: 0;
+}
+
+.stk-fact {
+  padding: var(--sp-4);
+  border: 1px solid var(--st-line);
+  border-radius: var(--r-lg);
+  background: var(--st-surface);
+}
+
+.stk-fact-label {
+  font-size: var(--fs-xs);
+  color: var(--st-text-2);
+}
+
+.stk-fact-value {
+  margin: 2px 0 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  /* 금액이 세로로 나란히 서므로 자릿수가 흔들리면 비교가 안 된다(ux `number-tabular`). */
+  font-variant-numeric: tabular-nums;
+}
+
+.stk-note {
+  margin: var(--sp-4) auto 0;
+  font-size: var(--fs-xs);
+  color: var(--st-text-2);
+}
+
+/* ── 구역 ─────────────────────────────────────────────── */
+.stk-sec {
+  margin-top: var(--sp-6);
+}
+
+.stk-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--st-slate);
+}
+
+.stk-sec-note {
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--st-text-2);
+}
+
+.stk-list,
+.stk-log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── 종목 한 줄 ───────────────────────────────────────── */
+.stk-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 120px 132px 128px auto;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--st-line);
+  border-radius: var(--r-lg);
+  background: var(--st-surface);
+}
+
+/* 보유 중인 종목은 왼쪽 굵은 선으로 표시한다 — 색만으로 알리지 않도록
+   오른쪽 보유 칸이 주수를 글자로 함께 적는다. */
+.stk-row-held {
+  border-left: 3px solid var(--st-slate);
+}
+
+.stk-mark {
+  display: grid;
+  place-items: center;
+}
+
+.stk-id {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stk-name {
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.stk-code {
+  font-size: var(--fs-xs);
+  color: var(--st-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.stk-desc {
+  overflow: hidden;
+  font-size: var(--fs-xs);
+  color: var(--st-text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 스파크라인. 이미지가 아니라 인라인 SVG다(오프라인 규칙). */
+.stk-spark {
+  width: 120px;
+  height: 36px;
+}
+
+.stk-quote,
+.stk-hold {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.stk-price {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stk-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.stk-hold-main {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stk-hold-sub,
+.stk-hold-none {
+  font-size: var(--fs-xs);
+  color: var(--st-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.stk-hold-pl {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 등락 색 ──
+   ⚠️ 색은 **거들기만 한다** — 기호(▲▼)와 부호가 이미 뜻을 지고 있다. */
+.stk-up {
+  color: var(--st-up);
+}
+
+.stk-down {
+  color: var(--st-down);
+}
+
+.stk-flat {
+  color: var(--st-text-2);
+}
+
+/* ── 매매 버튼 ────────────────────────────────────────── */
+.stk-act {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.stk-btn {
+  min-height: 32px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--st-line);
+  border-radius: var(--r-md);
+  background: var(--st-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--st-text);
+  cursor: pointer;
+  transition: background 150ms ease-out, border-color 150ms ease-out;
+}
+
+.stk-btn:hover:not(:disabled) {
+  background: var(--st-wash);
+  border-color: var(--st-slate);
+}
+
+/* 매수가 이 화면의 주된 동작이라 면을 채운다(style `primary-action`). */
+.stk-btn-buy {
+  border-color: var(--st-slate);
+  background: var(--st-slate);
+  color: #ffffff; /* 슬레이트 위 10.3:1 */
+  font-weight: 700;
+}
+
+.stk-btn-buy:hover:not(:disabled) {
+  background: #1e293b;
+  color: #ffffff;
+}
+
+.stk-btn-all {
+  font-size: var(--fs-xs);
+}
+
+/* ux `disabled-states`: 투명도 + 커서 + 의미론적 속성을 함께 준다. */
+.stk-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* 비활성 사유. 툴팁만으로는 안 읽히므로 글자로도 남긴다(ux `error-clarity`). */
+.stk-why {
+  font-size: var(--fs-xs);
+  color: var(--st-text-2);
+  white-space: nowrap;
+}
+
+/* ── 거래 내역 ────────────────────────────────────────── */
+.stk-log-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 96px 100px 120px;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--st-line);
+  border-radius: var(--r-md);
+  background: var(--st-surface);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.stk-log-day {
+  color: var(--st-text-2);
+}
+
+.stk-log-name {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stk-log-kind {
+  font-weight: 700;
+}
+
+.stk-log-price,
+.stk-log-amount {
+  text-align: right;
+}
+
+.stk-log-price {
+  color: var(--st-text-2);
+}
+
+/* ── 각주 ─────────────────────────────────────────────── */
+.stk-foot {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--st-line);
+  font-size: var(--fs-xs);
+  color: var(--st-text-2);
+}
+
+.stk-foot p {
+  margin: 0 0 var(--sp-1);
+}
+
+/* ── 좁은 창 ──
+   ⚠️ 컨테이너 쿼리다(창 크기 ≠ 뷰포트 크기). 좁아지면 한 줄이 두 층으로 접힌다:
+   위층은 종목·시세, 아래층은 보유·버튼. 스파크라인이 가장 먼저 사라진다 —
+   옆의 숫자가 같은 사실을 이미 말하고 있어 없어도 정보가 줄지 않는다. */
+@container (max-width: 900px) {
+  .stk-row {
+    grid-template-columns: 34px minmax(0, 1fr) 120px;
+    row-gap: var(--sp-2);
+  }
+
+  .stk-spark {
+    display: none;
+  }
+
+  .stk-hold,
+  .stk-act {
+    grid-column: 2 / -1;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .stk-hold {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+}

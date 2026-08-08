@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { findActivity } from '../../../data/activities'
-import { SHOWS, SHOW_GENRES, findShow, showsOf } from '../../../data/shows'
+import { HERO_SHOWS, HOT_SHOWS, SHOWS, SHOW_GENRES, findShow, showsOf } from '../../../data/shows'
 import { AppIcon } from '../../../icons/AppIcon'
 import type { Show, ShowGenre } from '../../../data/shows'
 import type { Site } from '../../../data/sites'
@@ -8,63 +8,73 @@ import { ActivityConfirm } from '../ActivityConfirm'
 import './TicketSite.css'
 
 /**
- * 노24 — 공연 예매.
+ * 노24 — 공연 예매. **레퍼런스(실제 티켓 예매 사이트 홈)가 스펙이다.**
  *
- * ⚠️ **시집이(영화 예매)와 같은 부류다.** 목록에서 고르는 것은 **무엇을 보러 가는가**뿐이고,
- * 실행되는 활동(`concert`)과 관람료는 활동 하나가 갖는다(`data/shows.ts` 주석 참조).
- * 그래서 이 화면에는 가격이 여러 개 뜨지 않는다 — 값은 확인창이 한 번만 말한다.
+ * ## 판형
+ * 검은 헤더(로고 + 분류 네비) → **큰 캐러셀**(화살표 + 아래 썸네일 줄) →
+ * **WHAT'S HOT**(큰 카드 1 + 작은 카드 6) → 분류 섹션(가운데 정렬 제목 + 좌우 선) → 푸터.
+ * 분류를 고르면 홈 편성 대신 **그 분류 목록만** 뜬다(실제 사이트의 카테고리 페이지와 같다).
  *
- * **둘러보기는 무료다.** 탭을 바꾸고 포스터를 넘기는 동안 게임 상태는 읽지도 쓰지도 않는다.
+ * ## 레퍼런스에서 **덜어낸 것**과 그 이유
+ * ⚠️ **동작하지 않는 컨트롤은 그리지 않는다**(이 프로젝트의 규칙).
+ * - **로그인·장바구니·마이티켓**: 이 게임에 계정이 없다.
+ * - **[티켓오픈 더보기]·[랭킹 더보기]**: 더 보여 줄 목록이 따로 없다.
+ * - **TICKET OPEN의 D-3 뱃지**: 오픈일을 데이터로 만들면 게임 날짜와 이어야 하고,
+ *   그 순간 "며칠 뒤에 열리는 예매"라는 정산 규칙이 새로 생긴다.
+ * - **광고 배너 격자·FOCUS ON 영상**: 이 게임에서 광고는 포털 배너존 하나뿐이고,
+ *   영상은 아예 없다(너튜브도 썸네일은 그라데이션이다).
  *
- * ## 판형 (레퍼런스: 실제 티켓 예매 사이트)
- * 상단 띠(예매 안내) → 헤더(로고·소지금) → 분류 탭 → 포스터 격자 → 푸터.
- * ⚠️ **동작하는 것만 컨트롤로 만든다** — 탭과 포스터는 실제로 동작하고, 그 밖의
- * 장식 링크(마이티켓·고객센터 등)는 아예 그리지 않는다.
+ * 남긴 것은 전부 동작한다: 네비는 목록을 거르고, 캐러셀 화살표와 썸네일은 진짜로 넘어가며,
+ * 포스터를 누르면 확인창이 뜬다.
+ *
+ * ⚠️ **고르는 것은 무엇을 보러 가는가뿐이고 값은 활동(`concert`)이 갖는다**
+ * (`data/shows.ts` 주석) — 그래서 이 화면에는 가격이 한 번도 안 나온다.
  */
 export function TicketSite({ site }: { site: Site }) {
   const activity = site.activityId ? findActivity(site.activityId) : undefined
+  /** 고른 분류. null이면 홈 편성(캐러셀 + HOT + 분류 섹션 전부). */
   const [genre, setGenre] = useState<ShowGenre | null>(null)
+  /** 캐러셀에서 지금 크게 걸린 공연. */
+  const [heroIndex, setHeroIndex] = useState(0)
   const [pickedId, setPickedId] = useState<string | null>(null)
-  /** 방금 예매한 공연. 확정 후에도 목록이 그대로라 결과를 글자로 남긴다. */
+  /** 방금 예매한 공연. 목록이 그대로라 결과를 글자로 남긴다. */
   const [booked, setBooked] = useState<string | null>(null)
 
   if (!activity) return null
-  const shown = genre ? showsOf(genre) : SHOWS
+  const hero = HERO_SHOWS[heroIndex % HERO_SHOWS.length]
   const picked = pickedId ? findShow(pickedId) : undefined
+  const pick = (id: string) => setPickedId(id)
 
   return (
     <div className="tk">
-      <p className="tk-strip">전석 지정 예매 · 취소 수수료 없음 · 공연 당일 현장 수령</p>
-
-      <header className="tk-head">
+      {/* ── 검은 헤더: 로고 + 분류 네비 ─────────────────────── */}
+      <header className="tk-top">
         <h1 className="tk-logo">
           노<span className="tk-logo-num">24</span>
         </h1>
-        <p className="tk-sub">오늘 저녁에도 어딘가에서는 막이 오른다</p>
-      </header>
-
-      {/* 분류 탭. 레퍼런스의 장르 줄 자리이고 **실제로 목록을 거른다**. */}
-      <nav className="tk-tabs" aria-label="공연 분류">
-        <button
-          type="button"
-          className={`tk-tab${genre === null ? ' tk-tab-on' : ''}`}
-          aria-pressed={genre === null}
-          onClick={() => setGenre(null)}
-        >
-          전체
-        </button>
-        {SHOW_GENRES.map((g) => (
+        <nav className="tk-nav" aria-label="공연 분류">
           <button
-            key={g}
             type="button"
-            className={`tk-tab${genre === g ? ' tk-tab-on' : ''}`}
-            aria-pressed={genre === g}
-            onClick={() => setGenre(genre === g ? null : g)}
+            className={`tk-nav-item${genre === null ? ' tk-nav-on' : ''}`}
+            aria-current={genre === null ? 'true' : undefined}
+            onClick={() => setGenre(null)}
           >
-            {g}
+            홈
           </button>
-        ))}
-      </nav>
+          {SHOW_GENRES.map((g) => (
+            <button
+              key={g}
+              type="button"
+              className={`tk-nav-item${genre === g ? ' tk-nav-on' : ''}`}
+              aria-current={genre === g ? 'true' : undefined}
+              onClick={() => setGenre(g)}
+            >
+              {g}
+            </button>
+          ))}
+        </nav>
+        <span className="tk-tel">1544-0024</span>
+      </header>
 
       {booked && (
         <p className="tk-receipt" role="status">
@@ -72,16 +82,114 @@ export function TicketSite({ site }: { site: Site }) {
         </p>
       )}
 
-      <ul className="tk-grid">
-        {shown.map((show) => (
-          <li key={show.id}>
-            <ShowCard show={show} onPick={() => setPickedId(show.id)} />
-          </li>
-        ))}
-      </ul>
+      {genre === null ? (
+        <>
+          {/* ── 큰 캐러셀 ───────────────────────────────────── */}
+          <section className="tk-hero-wrap" aria-label="추천 공연">
+            <div className="tk-hero" style={{ background: hero.poster }}>
+              {/* 화살표는 **진짜로 넘어간다** — 표시만 하는 화살표는 최악이다. */}
+              <button
+                type="button"
+                className="tk-hero-nav tk-hero-prev"
+                aria-label="이전 공연"
+                onClick={() => setHeroIndex((i) => (i - 1 + HERO_SHOWS.length) % HERO_SHOWS.length)}
+              >
+                <AppIcon name="mdi:chevron-left" size={26} />
+              </button>
+
+              <button type="button" className="tk-hero-body" onClick={() => pick(hero.id)}>
+                <span className="tk-hero-genre">{hero.genre}</span>
+                <span className="tk-hero-title">{hero.title}</span>
+                <span className="tk-hero-meta">
+                  {hero.artist} · {hero.venue}
+                </span>
+                <span className="tk-hero-period">{hero.period}</span>
+              </button>
+
+              <button
+                type="button"
+                className="tk-hero-nav tk-hero-next"
+                aria-label="다음 공연"
+                onClick={() => setHeroIndex((i) => (i + 1) % HERO_SHOWS.length)}
+              >
+                <AppIcon name="mdi:chevron-right" size={26} />
+              </button>
+            </div>
+
+            {/* 레퍼런스의 썸네일 줄. 누르면 그 공연이 크게 걸린다(예매가 아니다). */}
+            <ul className="tk-strip" aria-label="추천 공연 목록">
+              {HERO_SHOWS.map((s, i) => (
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    className={`tk-thumb${i === heroIndex ? ' tk-thumb-on' : ''}`}
+                    style={{ background: s.poster }}
+                    aria-current={i === heroIndex ? 'true' : undefined}
+                    title={s.title}
+                    onClick={() => setHeroIndex(i)}
+                  >
+                    <span className="tk-thumb-title">{s.title}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* ── WHAT'S HOT: 큰 카드 1 + 작은 카드 6 ──────────── */}
+          <section className="tk-sec" aria-labelledby="tk-hot">
+            <h2 className="tk-sec-head tk-sec-plain" id="tk-hot">
+              WHAT&apos;S HOT
+            </h2>
+            <div className="tk-hot">
+              <ShowCard show={HOT_SHOWS[0]} big onPick={() => pick(HOT_SHOWS[0].id)} />
+              <ul className="tk-hot-grid">
+                {HOT_SHOWS.slice(1).map((s) => (
+                  <li key={s.id}>
+                    <ShowCard show={s} onPick={() => pick(s.id)} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          {/* ── 분류 섹션. 레퍼런스처럼 제목이 가운데에 서고 좌우로 선이 뻗는다. ── */}
+          {SHOW_GENRES.map((g) => (
+            <section key={g} className="tk-sec" aria-labelledby={`tk-sec-${g}`}>
+              <h2 className="tk-sec-head" id={`tk-sec-${g}`}>
+                {g}
+              </h2>
+              <ul className="tk-row">
+                {showsOf(g).map((s) => (
+                  <li key={s.id}>
+                    <ShowCard show={s} onPick={() => pick(s.id)} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </>
+      ) : (
+        /* 분류를 고르면 카테고리 화면. 홈 편성(캐러셀·HOT)은 접는다. */
+        <section className="tk-sec" aria-labelledby="tk-cat">
+          <h2 className="tk-sec-head" id="tk-cat">
+            {genre}
+          </h2>
+          <p className="tk-count">
+            {showsOf(genre).length}건 · 전체 {SHOWS.length}건
+          </p>
+          <ul className="tk-row">
+            {showsOf(genre).map((s) => (
+              <li key={s.id}>
+                <ShowCard show={s} onPick={() => pick(s.id)} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <footer className="tk-foot">
-        <p className="tk-foot-logo">노24</p>
+        <p className="tk-foot-tel">1544-0024</p>
+        <p>평일 09:00~18:00 · 공연 당일 취소·환불 불가</p>
         <p>공연 정보는 주최사가 등록한 내용이며 노24는 이를 보증하지 않습니다.</p>
         <p>{site.url}</p>
       </footer>
@@ -96,6 +204,7 @@ export function TicketSite({ site }: { site: Site }) {
           notes={[
             { label: '출연', value: picked.artist },
             { label: '공연장', value: picked.venue },
+            { label: '공연 기간', value: picked.period },
             { label: '잔여 좌석', value: picked.seats },
           ]}
           onCommitted={() => setBooked(picked.title)}
@@ -107,12 +216,17 @@ export function TicketSite({ site }: { site: Site }) {
 }
 
 /**
- * 공연 카드 하나.
+ * 공연 카드 하나. `big`이면 WHAT'S HOT의 큰 자리다(포스터만 커지고 구성은 같다).
  * ⚠️ 포스터는 사진이 아니라 **그라데이션 판 + 제목**이다(오프라인 규칙 — 외부 이미지 금지).
  */
-function ShowCard({ show, onPick }: { show: Show; onPick: () => void }) {
+function ShowCard({ show, big = false, onPick }: { show: Show; big?: boolean; onPick: () => void }) {
   return (
-    <button type="button" className="tk-card" onClick={onPick} title={show.blurb}>
+    <button
+      type="button"
+      className={`tk-card${big ? ' tk-card-big' : ''}`}
+      onClick={onPick}
+      title={show.blurb}
+    >
       <span className="tk-poster" style={{ background: show.poster }}>
         <span className="tk-poster-genre">{show.genre}</span>
         <span className="tk-poster-title">{show.title}</span>

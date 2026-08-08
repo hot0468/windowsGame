@@ -67,7 +67,7 @@ export const STOCKS: Stock[] = [
     id: 'neulbom',
     name: '늘봄바이오',
     code: '246110',
-    icon: 'fluent-color:beaker-24',
+    icon: 'fluent-color:molecule-24',
     base: 9500,
     // 가장 크게 흔들린다 — 싸고 많이 살 수 있어 "고르는 재미"가 여기 있다.
     volatility: 0.11,
