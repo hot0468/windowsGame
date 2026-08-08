@@ -28,6 +28,7 @@ import { EndingModal } from '../apps/EndingModal'
 import { CalendarPanel } from './CalendarPanel'
 import { StatPanel } from './StatPanel'
 import { Taskbar } from './Taskbar'
+import { Daybreak } from './Daybreak'
 import { ToastHost } from './ToastHost'
 import './Desktop.css'
 
@@ -357,6 +358,8 @@ export function Desktop() {
       <Taskbar />
       {/* 알림은 작업 표시줄 위·엔딩 모달 아래에 뜬다. 턴이 넘어갈 때만 나타난다. */}
       <ToastHost />
+      {/* 날이 바뀌면 해가 뜨는 화면이 잠깐 덮는다(설계자 지시). 두 셸이 같이 쓴다. */}
+      <Daybreak />
 
       {/* 아이콘 오른쪽 클릭 메뉴. 공용 부품이라 열고 닫는 것만 여기서 관리한다. */}
       {menu && (

@@ -1,0 +1,200 @@
+/*
+ * 날이 밝는 알림. 해가 지평선 아래에서 떠오르며 하늘이 밝아진다.
+ *
+ * ⚠️ **이미지가 아니라 전부 CSS다**(아이콘·배너·포스터와 같은 오프라인 규칙).
+ * 해는 원 하나 + 광채, 하늘은 그라데이션, 땅은 사각형 하나다.
+ *
+ * ⚠️ **색을 `--os-*`에서 가져오지 않는다.** 이 화면은 OS 크롬도 게임 HUD도 아닌
+ * **한 장면**이라 새벽 하늘의 색이 필요하고, 그 색은 다른 어디에도 쓰이지 않는다.
+ * 그래서 `.db` 안에 가둔다(사이트마다 색을 자기 파일에 가두는 규칙과 같은 판단).
+ *
+ * ⚠️ **`prefers-reduced-motion`을 존중한다**(ux `reduced-motion`): 모션을 줄인 환경에서는
+ * 해가 움직이지 않고 **다 뜬 상태**로 바로 보인다 — 정보(날짜)는 그대로 전해진다.
+ */
+.db {
+  /* 새벽 → 아침. 위에서 아래로 남색·주황·노랑이 이어진다. */
+  --db-night: #16204a;
+  --db-dawn: #7b3f6e;
+  --db-glow: #e8804a;
+  --db-morning: #f7c46b;
+  --db-land: #2b2440;
+  --db-ink: #fff8ec; /* 글자 색. 대비는 하늘이 아니라 `.db-text`의 판이 만든다(아래 참조) */
+
+  position: fixed;
+  inset: 0;
+  z-index: 9450; /* LAYERS.DAYBREAK (src/data/layers.ts) — 바꿀 때 함께 고친다 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  /* 나타났다 사라지는 것 자체도 장면의 일부다. */
+  animation: db-in 2600ms ease-in-out forwards;
+}
+
+/* ── 하늘 ────────────────────────────────────────────────── */
+.db-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    var(--db-night) 0%,
+    var(--db-dawn) 45%,
+    var(--db-glow) 75%,
+    var(--db-morning) 100%
+  );
+  /* 어두운 새벽에서 시작해 점점 밝아진다. */
+  animation: db-sky 1600ms ease-out forwards;
+}
+
+/* 해. 지평선 아래에서 올라온다. */
+.db-sun {
+  position: absolute;
+  left: 50%;
+  bottom: 26%;
+  width: 132px;
+  height: 132px;
+  margin-left: -66px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff3c4 0%, #ffd166 55%, #ff9a3c 100%);
+  /* 광채. 그림자를 크게 두르면 해가 하늘을 물들이는 것처럼 보인다. */
+  box-shadow:
+    0 0 60px 20px rgba(255, 190, 90, 0.55),
+    0 0 160px 60px rgba(255, 150, 60, 0.35);
+  animation: db-sun 1600ms cubic-bezier(0.22, 0.8, 0.3, 1) forwards;
+}
+
+/* 지평선. 해가 그 뒤에서 떠오르도록 해보다 위에 깔린다. */
+.db-land {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 26%;
+  background: linear-gradient(180deg, var(--db-land) 0%, #191430 100%);
+}
+
+/* ── 글자 ────────────────────────────────────────────────── */
+/*
+ * ⚠️ **글자 뒤에 어두운 판을 깐다.** 하늘은 애니메이션 내내 밝아지고 아래로 갈수록
+ * 주황·노랑이라, 흰 글자를 그냥 얹으면 **합성 픽셀 실측 2.85~3.94:1**로 4.5:1을 못 넘는다
+ * (그림자만으로는 화면 높이에 따라 글자가 밝은 구간에 얹히는 순간 읽히지 않는다).
+ * 판을 깔면 같은 자리에서 **13.5~14.9:1**이 되고 하늘이 어떻든 대비가 보장된다 —
+ * 포스터 위 칩(`.tk-poster-genre`)에 판을 까는 것과 같은 방식이다.
+ * ⚠️ `backdrop-filter`는 쓰지 않는다 — 판이 이미 불투명해 보이는 것이 안 달라지는데
+ * 합성 레이어만 하나 더 만든다.
+ */
+.db-text {
+  position: relative;
+  margin-bottom: 14%;
+  padding: var(--sp-5) var(--sp-8);
+  border-radius: var(--r-xl);
+  background: rgba(14, 11, 28, 0.62);
+  text-align: center;
+  color: var(--db-ink);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+  animation: db-text 1600ms ease-out forwards;
+}
+
+.db-day {
+  margin: 0;
+  /* 날짜칸과 같은 목소리다 — 게임이 자기 말을 하는 자리에는 포인트 서체를 쓴다. */
+  font-family: var(--font-point);
+  font-weight: 400;
+  font-size: var(--fs-3xl);
+  line-height: 1.2;
+}
+
+.db-date {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.db-note {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-md);
+  opacity: 0.85;
+}
+
+@keyframes db-in {
+  0% {
+    opacity: 0;
+  }
+  8%,
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes db-sky {
+  0% {
+    /* 아직 밤이다. 밝기를 눌러 두고 서서히 푼다. */
+    filter: brightness(0.35) saturate(0.8);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+}
+
+@keyframes db-sun {
+  0% {
+    transform: translateY(220px) scale(0.85);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes db-text {
+  0%,
+  35% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/*
+ * ⚠️ 모션을 줄인 환경에서는 **다 뜬 상태**를 그대로 보여 준다.
+ * 애니메이션만 끄면(`animation: none`) 시작 프레임에 멈춰 해가 화면 밖에 있고 글자가
+ * 투명해진다 — 정보가 통째로 사라지는 셈이라, 최종 상태를 명시적으로 다시 적는다.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .db,
+  .db-sky,
+  .db-sun,
+  .db-text {
+    animation: none;
+  }
+
+  .db {
+    opacity: 1;
+  }
+
+  .db-sky {
+    filter: none;
+  }
+
+  .db-sun {
+    transform: none;
+    opacity: 1;
+  }
+
+  .db-text {
+    opacity: 1;
+    transform: none;
+  }
+}

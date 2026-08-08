@@ -9,6 +9,7 @@ import { useWindowStore } from '../../store/windowStore'
 import type { Activity, DesktopEntry, DesktopItem } from '../../types/game'
 import { ActivityConfirm } from '../apps/ActivityConfirm'
 import { EndingModal } from '../apps/EndingModal'
+import { Daybreak } from '../desktop/Daybreak'
 import { ToastHost } from '../desktop/ToastHost'
 import { MobileAppView } from './MobileAppView'
 import { MobileNavBar } from './MobileNavBar'
@@ -166,6 +167,8 @@ export function MobileShell() {
 
       {/* 알림·확인창·엔딩은 셸과 무관하게 살아 있어야 한다. */}
       <ToastHost />
+      {/* 날이 바뀌면 해가 뜨는 화면이 잠깐 덮는다(설계자 지시). 두 셸이 같이 쓴다. */}
+      <Daybreak />
       {confirming && (
         <ActivityConfirm activity={confirming} onClose={() => setConfirming(null)} />
       )}
