@@ -1,6 +1,7 @@
 import { burnoutKeyOf, getBurnoutPenalty } from '../../systems/burnout'
 import { getLivingCost, getWageMultiplier } from '../../systems/economy'
-import { canRun, jobStageOpen, outfitFor, ownsRequired } from '../../systems/turn'
+import { canRun, jobStageOpen, outfitFor, ownsRequired, subscribed } from '../../systems/turn'
+import { findSubscription } from '../../data/subscriptions'
 import { applyBlockers, attendedToday, isWorkday } from '../../systems/employment'
 import { OUTFIT_BONUS, requiredItemLabel, requiredItemStores } from '../../data/items'
 import { GROWTH_STAT_KEYS, STAT_NAMES } from '../../types/game'
@@ -171,6 +172,16 @@ export function blockReasons(state: GameState, activity: Activity): string[] {
     reasons.push(
       `${requiredItemLabel(activity.requiresItem)}이(가) 있어야 합니다${
         where ? ` — ${where}에서 구입` : ''
+      }`,
+    )
+  }
+
+  // ⚠️ 구독 잠금. 아이템과 달리 **끊기면 다시 잠기는** 조건이라 사유도 그렇게 적는다.
+  if (activity.requiresSubscription && !subscribed(state, activity.requiresSubscription)) {
+    const sub = findSubscription(activity.requiresSubscription)
+    reasons.push(
+      `${sub?.name ?? activity.requiresSubscription} 구독 중이어야 합니다${
+        sub ? ` — 월 ${sub.monthlyFee.toLocaleString('ko-KR')}원` : ''
       }`,
     )
   }

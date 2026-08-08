@@ -1,0 +1,235 @@
+/*
+ * 그몽(부업 중개).
+ *
+ * ## 색 — 청록 계열
+ * ⚠️ **이웃 사이트와 갈라 둔 값이다**: 벼룩장터(남색 #2563EB)·알바몬(하늘 #0369A1)·
+ * 은행(남색 #1E3A8A)이 파랑을 채웠고, 부동산이 청록(#0F766E)이라 **한 단 밝고 푸른 쪽**
+ * (#0E7490 cyan-700)으로 잡았다. 흰 배경 위 5.1:1로 글자에 쓸 수 있다.
+ *
+ * 판형은 알바몬과 같은 부류(세로 목록 + 잠금 사유 + 보수)이되 카드가 한 줄씩이다 —
+ * 일감이 다섯이라 격자로 벌리면 판이 비어 보인다.
+ * ⚠️ 반응형은 뷰포트가 아니라 컨테이너로 판정한다(사이트는 창 안이다).
+ * ⚠️ 간격 척도에 `--sp-7`은 없다(4/8 리듬).
+ */
+.gm {
+  --gm-bg: #f0fdfa;
+  --gm-surface: #ffffff;
+  --gm-line: #ccfbf1;
+  --gm-line-soft: #e2e8f0;
+  --gm-text: #134e4a; /* #fff 위 9.9:1 */
+  --gm-text-2: #64748b; /* #fff 위 4.8:1 (WCAG AA) */
+  --gm-primary: #0e7490; /* #fff 위 5.1:1 — 제호·보수·선택 표시 */
+  --gm-lock: #b91c1c; /* #fff 위 5.9:1 — 잠금 사유 */
+  --gm-badge-bg: #cffafe;
+  --gm-badge-fg: #155e75; /* 연한 청록 위 5.9:1 */
+
+  container-type: inline-size;
+  min-height: 100%;
+  padding-bottom: var(--sp-8);
+  background: var(--gm-bg);
+  color: var(--gm-text);
+}
+
+.gm-head,
+.gm-receipt,
+.gm-sec,
+.gm-foot {
+  width: min(960px, 100% - 48px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── 제호 ─────────────────────────────────────────────── */
+.gm-head {
+  padding: var(--sp-6) 0 var(--sp-4);
+}
+
+.gm-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-family: var(--font-point);
+  font-weight: 400; /* 한 벌짜리 서체라 합성 볼드를 막는다 */
+  font-size: var(--fs-2xl);
+  color: var(--gm-primary);
+}
+
+.gm-lede {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--gm-text-2);
+}
+
+.gm-receipt {
+  margin: 0 auto var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border-left: 3px solid var(--gm-primary);
+  border-radius: var(--r-sm);
+  background: var(--gm-surface);
+  font-size: var(--fs-sm);
+}
+
+/* ── 일감 목록 ────────────────────────────────────────── */
+.gm-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gm-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  width: 100%;
+  padding: var(--sp-4);
+  border: 1px solid var(--gm-line-soft);
+  border-radius: var(--r-lg);
+  background: var(--gm-surface);
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+.gm-card:hover:not(:disabled) {
+  border-color: var(--gm-primary);
+  box-shadow: var(--el-1);
+}
+
+.gm-card-on {
+  border-color: var(--gm-primary);
+  box-shadow: inset 0 0 0 1px var(--gm-primary);
+}
+
+/* 조건 미달 일감은 **감추지 않는다** — 흐리게 두고 사유를 글자로 적는다
+   (ux `disabled-states`: 투명도 + 커서 + 의미론적 disabled 속성). */
+.gm-card-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.gm-mark {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--gm-line);
+}
+
+.gm-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.gm-client {
+  font-size: var(--fs-xs);
+  color: var(--gm-text-2);
+}
+
+.gm-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.gm-badge {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--gm-badge-bg);
+  color: var(--gm-badge-fg);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.gm-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-top: 2px;
+}
+
+.gm-tag {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--gm-bg);
+  font-size: var(--fs-xs);
+  color: var(--gm-text-2);
+}
+
+.gm-lock {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  color: var(--gm-lock);
+}
+
+/* ── 보수 ─────────────────────────────────────────────── */
+.gm-pay {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.gm-pay-label {
+  font-size: var(--fs-xs);
+  color: var(--gm-text-2);
+}
+
+.gm-pay-value {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--gm-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-picked {
+  margin-top: 2px;
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--gm-primary);
+  color: #ffffff;
+  font-size: var(--fs-xs);
+}
+
+/* ── 각주 ─────────────────────────────────────────────── */
+.gm-foot {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--gm-line);
+  font-size: var(--fs-xs);
+  color: var(--gm-text-2);
+}
+
+.gm-foot p {
+  margin: 0 0 var(--sp-1);
+}
+
+/* 좁아지면 보수 칸이 아래로 내려간다(카드가 두 층이 된다). */
+@container (max-width: 620px) {
+  .gm-card {
+    flex-wrap: wrap;
+  }
+
+  .gm-pay {
+    align-items: flex-start;
+    width: 100%;
+    padding-left: 56px;
+  }
+}

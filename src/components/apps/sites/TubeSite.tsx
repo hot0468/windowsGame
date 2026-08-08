@@ -50,7 +50,7 @@ export function TubeSite({ site }: { site: Site }) {
   const [query, setQuery] = useState('')
   /** 보고 있는 영상. null이면 목록 화면이다. */
   const [playing, setPlaying] = useState<Video | null>(null)
-  /** 켜려고 고른 방송 주제. 누르면 확인창이 뜼다(수치는 활동 하나가 갖는다). */
+  /** 켜려고 고른 방송 주제. 누르면 확인창이 뜬다(수치는 활동 하나가 갖는다). */
   const [topic, setTopic] = useState<StreamTopic | null>(null)
   /** 방금 방송을 켰는가. 화면이 그대로라 무슨 일이 있었는지 글자로 남긴다. */
   const [streamed, setStreamed] = useState<string | null>(null)
@@ -264,7 +264,7 @@ function Studio({
 
       {streamed && (
         <p className="tube-studio-receipt" role="status">
-          「{streamed}」 방송을 마쿤습니다. 후원금이 소지금에 들어왔습니다.
+          「{streamed}」 방송을 마쳤습니다. 후원금이 소지금에 들어왔습니다.
         </p>
       )}
 

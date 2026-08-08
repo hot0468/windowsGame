@@ -1,0 +1,208 @@
+/*
+ * 어도비(구독 결제).
+ *
+ * ## 색 — 어두운 판 + 빨강 액센트
+ * 레퍼런스(실제 어도비)가 어두운 화면이고, 그 덕에 **너튜브의 빨강과 인상이 갈린다**:
+ * 너튜브는 흰 배경에 빨간 글자, 여기는 어두운 판에 빨간 면이다. 사이트 색을 파일 안에
+ * 가두는 규칙은 그대로다(`--ad-*`).
+ * ⚠️ **빨강은 면에만 쓴다.** #e0483c는 어두운 판 위에서는 서지만 흰 글자를 얹을 때만
+ * 뜻이 서고(합성 4.6:1), 어두운 배경 위 **글자**로 쓰면 3:1을 못 넘는 자리가 생긴다 —
+ * 그래서 본문 글자는 전부 흰 계열이다.
+ *
+ * 판형: 제호 → 상품 카드(요금·설명·혜택·버튼) → 낸 금액 → 각주.
+ * ⚠️ 반응형은 뷰포트가 아니라 컨테이너로 판정한다(사이트는 창 안이다).
+ * ⚠️ 간격 척도에 `--sp-7`은 없다(4/8 리듬).
+ */
+.adb {
+  --ad-bg: #1a1a1a;
+  --ad-surface: #262626;
+  --ad-line: #3d3d3d;
+  --ad-text: #f5f5f5; /* #1a1a1a 위 15.9:1 */
+  --ad-text-2: #b3b3b3; /* #1a1a1a 위 8.3:1 — 설명·각주 */
+  --ad-red: #e0483c; /* 면 전용. 흰 글자를 얹어 4.6:1 */
+  --ad-red-strong: #c8392e;
+
+  container-type: inline-size;
+  min-height: 100%;
+  padding-bottom: var(--sp-8);
+  background: var(--ad-bg);
+  color: var(--ad-text);
+}
+
+.adb-head,
+.adb-plans,
+.adb-paid,
+.adb-foot {
+  width: min(880px, 100% - 48px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.adb-head {
+  padding: var(--sp-8) 0 var(--sp-5);
+}
+
+.adb-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-family: var(--font-point);
+  font-weight: 400; /* 한 벌짜리 서체라 합성 볼드를 막는다 */
+  font-size: var(--fs-3xl);
+}
+
+.adb-lede {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-md);
+  color: var(--ad-text-2);
+}
+
+/* ── 상품 카드 ────────────────────────────────────────── */
+.adb-plans {
+  display: grid;
+  /* 상품이 하나뿐이라 지금은 한 칸이다. 늘어나면 최소 폭이 열 수를 정한다. */
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--sp-4);
+}
+
+.adb-plan {
+  padding: var(--sp-5);
+  border: 1px solid var(--ad-line);
+  border-radius: var(--r-xl);
+  background: var(--ad-surface);
+}
+
+/* 구독 중인 상품. ⚠️ 색만으로 알리지 않는다 — 카드 안의 "구독 중" 글자가 함께 간다. */
+.adb-plan-on {
+  border-color: var(--ad-red);
+}
+
+.adb-plan-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.adb-plan-name {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.adb-plan-fee {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.adb-plan-per {
+  font-size: var(--fs-sm);
+  color: var(--ad-text-2);
+}
+
+.adb-plan-desc {
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--ad-text-2);
+}
+
+.adb-perks {
+  margin: var(--sp-4) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.adb-perk {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+}
+
+.adb-plan-foot {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--ad-line);
+}
+
+.adb-plan-state {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.adb-plan-note {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--ad-text-2);
+}
+
+/* ── 버튼 ─────────────────────────────────────────────── */
+.adb-btn {
+  min-height: 40px;
+  padding: 0 var(--sp-5);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  font: inherit;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms ease-out;
+}
+
+/* 이 화면의 주된 동작이라 면을 채운다(style `primary-action`). */
+.adb-btn-on {
+  background: var(--ad-red);
+  color: #ffffff;
+}
+
+.adb-btn-on:hover:not(:disabled) {
+  background: var(--ad-red-strong);
+}
+
+/* 해지는 되돌릴 수 있는 동작이라 위험색을 쓰지 않는다 — 테두리 버튼으로 한 단 낮춘다. */
+.adb-btn-off {
+  border-color: var(--ad-line);
+  background: transparent;
+  color: var(--ad-text);
+}
+
+.adb-btn-off:hover {
+  background: var(--ad-line);
+}
+
+/* ux `disabled-states`: 투명도 + 커서 + 의미론적 속성을 함께 준다. */
+.adb-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.adb-paid {
+  margin: var(--sp-5) auto 0;
+  font-size: var(--fs-sm);
+  color: var(--ad-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.adb-foot {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--ad-line);
+  font-size: var(--fs-xs);
+  color: var(--ad-text-2);
+}
+
+.adb-foot p {
+  margin: 0 0 var(--sp-1);
+}
+
+/* 각주 안의 강조는 색이 아니라 굵기로 준다(어두운 판 위 빨간 글자는 대비가 모자란다). */
+.adb-foot strong {
+  color: var(--ad-text);
+}

@@ -81,14 +81,6 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
   },
   // 설치돼 있지만 아직 열리지 않는 프로그램. stub으로 먼저 올려 두고 구현되면 kind만 바꾼다.
   {
-    id: 'photoshop',
-    label: '포토샵',
-    icon: 'devicon:photoshop',
-    kind: 'stub',
-    stubMessage: '라이선스가 만료되었습니다. 결제 정보를 확인해 주세요.',
-    width: 360,
-  },
-  {
     id: 'vscode',
     label: 'VS 코드',
     icon: 'devicon:vscode',
@@ -112,6 +104,26 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
     appId: 'nateon',
     width: 400,
     requiresEmployment: true,
+  },
+  {
+    /*
+     * 포토샵. ⚠️ **어도비를 구독해야 나타난다**(설계자 지시) — 예전에는 항상 보이면서
+     * "라이선스가 만료되었습니다"라고만 말하는 항목이었는데, 이제 그 문장이 **상태**가 됐다:
+     * 구독 전에는 아이콘 자체가 없고, 끊으면 다시 사라진다.
+     *
+     * ⚠️ **여전히 `stub`이다.** 아이콘이 나타나는 것 자체가 구독의 가시적 증거이고,
+     * 실제로 그림을 그리는 것은 클립스튜디오(`draw`)다 — 같은 일을 하는 활동을 둘로
+     * 만들면 "그리기"의 수치가 두 곳에 생긴다. 구현되면 kind만 바꾸는 정해진 경로에 있다.
+     * ⚠️ **조건부이므로 프로그램 열의 맨 뒤**여야 한다(클립스튜디오와 같은 이유).
+     */
+    id: 'photoshop',
+    label: '포토샵',
+    icon: 'devicon:photoshop',
+    kind: 'stub',
+    stubMessage:
+      '구독이 확인되었습니다. 작업할 파일을 열어 주세요 — 그몽에서 받은 디자인 일감에 쓰입니다.',
+    width: 360,
+    requiresSubscription: 'adobe',
   },
   {
     /*
@@ -215,10 +227,14 @@ export function desktopEntries(
   shortcutActivityIds: readonly string[],
   ownedItemIds: readonly string[] = [],
   employed = false,
+  subscribedIds: readonly string[] = [],
 ): DesktopEntry[] {
   const builtIn: DesktopEntry[] = DESKTOP_ITEMS.filter(
     (item) =>
-      hasRequired(item.requiresItem, ownedItemIds) && (!item.requiresEmployment || employed),
+      hasRequired(item.requiresItem, ownedItemIds) &&
+      (!item.requiresEmployment || employed) &&
+      // ⚠️ 구독은 **끊기면 다시 사라진다** — 그래서 아이템·재직과 같은 자리에서 함께 거른다.
+      (!item.requiresSubscription || subscribedIds.includes(item.requiresSubscription)),
   ).map((item) => ({
     id: item.id,
     label: item.label,

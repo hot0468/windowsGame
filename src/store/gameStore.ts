@@ -20,6 +20,12 @@ import { advanceLottery, buyTickets } from '../systems/lottery'
 import { buyStock as buyStockOf, sellStock as sellStockOf } from '../systems/stocks'
 import { findStock } from '../data/stocks'
 import { advanceTwitter, postArtwork as postArtworkOf } from '../systems/twitter'
+import {
+  advanceSubscriptions,
+  subscribe as subscribeOf,
+  unsubscribe as unsubscribeOf,
+} from '../systems/subscription'
+import { findSubscription } from '../data/subscriptions'
 import { takeCourse as takeCourseOf } from '../systems/courses'
 import { playGame as playGameOf } from '../systems/steam'
 import { advanceCertification, takeExam as takeExamOf } from '../systems/certification'
@@ -59,6 +65,7 @@ import type {
   Stats,
   StockState,
   StockTrade,
+  SubscriptionState,
   TermDeposit,
   TwitterState,
 } from '../types/game'
@@ -309,6 +316,36 @@ function reviveStocks(saved: Partial<GameState>): StockState | undefined {
 }
 
 /**
+ * 구독 상태 복원.
+ *
+ * ⚠️ **돈을 움직이는 상태라 검증이 빡빡하다** — 다만 방향이 반대라 위험도 반대다:
+ * 은행·복권은 NaN이 **소지금으로 흘러 파산이 안 걸리는** 것이 문제였고,
+ * 여기는 커서(`billedDay`)가 NaN이면 `day - NaN >= 30`이 영원히 false라
+ * **청구가 한 번도 안 돌아 공짜 구독**이 된다. 그래서 못 믿을 기록은 **그 상품만** 버린다
+ * (구독이 여럿이면 하나 때문에 나머지까지 끊을 이유가 없다 — 은행은 잔액 하나라 통째로 버렸다).
+ *
+ * ⚠️ **없는 상품을 가리키는 기록도 버린다** — 해지할 수도 청구할 수도 없는 유령이 된다.
+ * ⚠️ `billedDay`를 **미래로 두지 않는다**(오늘로 당긴다) — 미래면 청구가 밀리고,
+ * 과거는 `advanceSubscriptions`의 루프가 알아서 따라잡는다(`reviveTwitter`와 같은 방향).
+ */
+function reviveSubscriptions(saved: Partial<GameState>): SubscriptionState | undefined {
+  const sub = saved.subscriptions
+  if (!sub || typeof sub !== 'object') return undefined
+  const raw = sub.active && typeof sub.active === 'object' ? sub.active : {}
+  const day = Number(saved.day ?? 1)
+  const active: SubscriptionState['active'] = {}
+  for (const [id, rec] of Object.entries(raw)) {
+    if (!findSubscription(id) || !rec) continue
+    if (!Number.isFinite(rec.billedDay) || !Number.isFinite(rec.startedDay)) continue
+    active[id] = {
+      startedDay: Number(rec.startedDay),
+      billedDay: Math.min(Number(rec.billedDay), day),
+    }
+  }
+  return { active, paid: Number.isFinite(sub.paid) ? Number(sub.paid) : 0 }
+}
+
+/**
  * 저장된 세이브를 검증해 안전한 GameState로 되돌린다.
  * 필드가 빠진 구버전 세이브를 그대로 통과시키면 clampStats가 NaN을 만들고,
  * NaN <= 0이 false라 게임오버 판정이 영영 걸리지 않아 조용히 망가진다.
@@ -380,6 +417,7 @@ function reviveState(raw: unknown): GameState | null {
       : undefined,
     twitter: reviveTwitter(saved),
     stocks: reviveStocks(saved),
+    subscriptions: reviveSubscriptions(saved),
     // ⚠️ 응시 기록은 **돈을 만들지 않으므로** 검증이 은행·정규직만큼 빡빡할 필요가 없다
     //    (합격해도 나오는 것은 아이템 하나다). 날짜만 유한하면 통과시키고, 없는 종목을
     //    가리키는 기록은 `advanceCertification`이 조용히 닫는다.
@@ -437,7 +475,13 @@ function afterTurn(next: GameState, chain?: number) {
   //    은행보다 앞인 것은 순서가 판정을 바꿔서가 아니라(셋 다 마지막 줄에서
   //    `settleGameOver`를 부르고, 그 함수는 확정된 사유를 되살리지 않는다) —
   //    당첨금이 먼저 들어와야 급여 소식 메일에 적히는 잔액이 실제와 맞기 때문이다.
-  const drawn = advanceLottery(exams.state)
+  // ⚠️ **구독료는 밤에 나가는 유일한 돈이다**(생활비는 `turn.ts`의 취침 정산이 이미 뺀다).
+  //    들어오는 것들보다 **먼저** 뺀다 — 그래야 급여 소식 메일에 적힐 잔액이 실제와 맞고,
+  //    못 내서 해지될 때도 그날 밤의 판정에 그대로 반영된다.
+  //    ⚠️ `nightPayoutPending`에는 넣지 않는다 — 그 술어는 "받을 돈이 남았으니 미뢬다"라
+  //    나가는 돈을 넣으면 "낼 돈이 남아서 안 죽는다"는 거꿒된 말이 된다.
+  const billed = advanceSubscriptions(exams.state)
+  const drawn = advanceLottery(billed)
   // ⚠️ **트위터 주간 정산도 밤에 돈을 넣는다**(`nightPayoutPending`의 네 번째 원천).
   //    은행·복권과 같은 자리·같은 이유이고, 셋 다 마지막 줄에서 `settleGameOver`를 부르므로
   //    순서 자체가 판정을 바꾸지는 않는다(확정된 사유는 되살아나지 않는다).
@@ -573,6 +617,12 @@ interface GameStore {
    * 조건을 다 보고 안 되면 상태를 그대로 돌려주므로 그때는 아무것도 하지 않는다.
    * ⚠️ **밤 정산이 없다**(즉시 체결) — `nightPayoutPending`에 원천을 더하지 않는다.
    */
+  /**
+   * 구독 가입·해지. **턴을 쓰지 않는다**(은행 거래·쇼핑 주문과 같은 규칙 —
+   * 결제는 시간을 쓰는 일이 아니다). 규칙은 `systems/subscription.ts`가 갖는다.
+   */
+  subscribeTo: (id: string) => void
+  unsubscribeFrom: (id: string) => void
   buyStock: (stockId: string, shares: number) => void
   sellStock: (stockId: string, shares: number) => void
   markEndingSeen: (endingId: string) => void
@@ -967,6 +1017,20 @@ export const useGameStore = create<GameStore>()(
           if (!current) return
           const next = buyTickets(current, count)
           if (next !== current) set({ state: recordEvent(next, 'first-lottery') })
+        },
+
+        subscribeTo: (id) => {
+          const current = get().state
+          if (!current) return
+          const next = subscribeOf(current, id)
+          if (next !== current) set({ state: recordEvent(next, 'first-subscribe') })
+        },
+
+        unsubscribeFrom: (id) => {
+          const current = get().state
+          if (!current) return
+          const next = unsubscribeOf(current, id)
+          if (next !== current) set({ state: next })
         },
 
         buyStock: (stockId, shares) => {

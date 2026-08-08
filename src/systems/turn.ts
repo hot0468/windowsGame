@@ -129,6 +129,18 @@ export function ownsRequired(state: GameState, required: string | string[]): boo
 }
 
 /**
+ * **그 구독을 끊고 있는가.**
+ *
+ * ⚠️ **규칙이 아니라 판정만 여기 있다**(`owns`·`jobStageOpen`과 같은 예외).
+ * 요금·주기·해지는 전부 `systems/subscription.ts`가 갖고, 여기서는 `canRun`이
+ * 물어볼 수 있게 **세이브의 키 유무만** 읽는다 — 그쪽을 import하면 순환이 된다
+ * (`subscription.ts`가 `clampStats`·`settleGameOver`를 부른다).
+ */
+export function subscribed(state: GameState, id: string): boolean {
+  return Boolean(state.subscriptions?.active[id])
+}
+
+/**
  * 정규직 상태 게이트.
  *
  * ⚠️ **규칙이 아니라 판정만 여기 있다.** 채용 절차·급여·결근은 전부
@@ -169,6 +181,8 @@ export function jobStageOpen(state: GameState, gate: JobStageGate): boolean {
 export function canRun(state: GameState, activity: Activity): boolean {
   if (state.gameOver) return false
   if (activity.requiresItem && !ownsRequired(state, activity.requiresItem)) return false
+  if (activity.requiresSubscription && !subscribed(state, activity.requiresSubscription))
+    return false
   if (activity.requiresJobStage && !jobStageOpen(state, activity.requiresJobStage)) return false
   if (!activity.requires) return true
   return Object.entries(activity.requires).every(

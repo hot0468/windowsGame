@@ -97,6 +97,15 @@ export const EVENTS: GameEvent[] = [
     ext: '.evt',
   },
   {
+    /* ⚠️ 이 게임의 **첫 지속 지출**이다 — 다른 사건은 전부 한 번 내고 끝나는 것이었다. */
+    id: 'first-subscribe',
+    name: '매달 나가는 것',
+    hint: '한 번 결제하면 끝나지 않는 것을 시작한다.',
+    desc: '가입은 3분이 걸렸다. 해지 버튼을 찾는 데는 그보다 오래 걸릴 것이다.',
+    icon: 'fluent-color:calendar-clock-24',
+    ext: '.evt',
+  },
+  {
     /* 복권과 나란히 읽히는 사건이다 — 둘 다 "돈으로 가능성을 사는" 자리이되,
        복권은 긁는 순간 끝나고 주식은 내일 아침에도 계속된다. */
     id: 'first-stock',

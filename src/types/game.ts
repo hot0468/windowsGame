@@ -143,6 +143,14 @@ export interface Activity {
    */
   requiresItem?: string | string[]
   /**
+   * **이 구독을 끊고 있어야 실행된다**(`data/subscriptions.ts`의 id).
+   *
+   * ⚠️ `requiresItem`과 성격이 다르다: 아이템은 한 번 사면 영원히 남지만
+   * 구독은 **돈을 못 내면 끊긴다** — 그러면 이 활동도 다시 잠긴다.
+   * 판정은 `canRun` 하나가 하므로 스케줄러에 미리 넣어 둔 예약도 같이 막힌다.
+   */
+  requiresSubscription?: string
+  /**
    * 정규직 상태 게이트. `requiresItem`과 같은 규칙이다 — 판정은 `canRun` 하나가 한다.
    *
    *  - `'employed'` : 재직 중이고 **오늘 아직 출근하지 않았어야** 한다(출근).
@@ -265,6 +273,13 @@ export interface DesktopItem {
    * 거르며, 조건부 항목이므로 **자기 열의 맨 뒤**에 둔다.
    */
   requiresEmployment?: boolean
+  /**
+   * **이 구독을 끈어야 바탕화면에 나타나는 항목**(생략 = 항상 보인다).
+   * ⚠️ 포토샵이 쓴다 — 구독을 끊으면 아이콘이 **사라진다**(못 낸 사실이 화면에 드러난다).
+   * `requiresItem`·`requiresEmployment`와 같은 규칙이다: `DESKTOP_ITEMS`에서는 안 빠지고
+   * `desktopEntries`가 거르며, 조건부이므로 **자기 열의 맨 뒤**에 둔다.
+   */
+  requiresSubscription?: string
 }
 
 /**
@@ -669,6 +684,28 @@ export interface StockState {
   trades: StockTrade[]
 }
 
+/* ── 구독 (2026-08-08 어도비) ──────────────────────────────────
+ *
+ * ⚠️ **"구독은 만들지 않는다"는 옛 규칙이 설계자 지시로 폐기됐다.** 그 규칙의 근거가
+ * "지속 상태는 밤 정산이 필요해진다"였는데 실제로 필요해졌다(`advanceSubscriptions`).
+ * 수치는 `data/subscriptions.ts`에, 규칙은 `systems/subscription.ts`에 있다 —
+ * 여기에는 **모양만** 적는다(`Plan`·`BankState`와 같은 이유).
+ */
+
+/**
+ * 구독 상태. **옵셔널이다** — 구독한 적 없으면 없다(`bank`·`lottery`와 같은 규칙).
+ *
+ * ⚠️ `reviveState`의 검증이 `courses`보다 빡빡하다 — **돈을 움직이는 상태다.**
+ * 다만 방향이 반대라 위험도 반대다: 커서가 NaN이면 청구가 영영 안 돌아
+ * **공짜 구독**이 된다(은행은 반대로 파산이 안 걸렸다).
+ */
+export interface SubscriptionState {
+  /** 구독 중인 상품 id → 가입일·마지막 청구일. **해지하면 키가 사라진다**(그것이 곰 판정이다). */
+  active: Record<string, { startedDay: number; billedDay: number }>
+  /** 지금까지 낸 총액. 화면이 "얼마 냈나"를 정직하게 적는 근거다(`LotteryState.spent`와 같다). */
+  paid: number
+}
+
 export interface GameState {
   playerName: string
   day: number
@@ -801,6 +838,12 @@ export interface GameState {
    * ⚠️ 시세는 여기 없다(날짜의 순수 함수다). 보유와 내역만 든다.
    */
   stocks?: StockState
+  /**
+   * 구독(어도비). **옵셔널이다** — 구독한 적 없으면 없다.
+   * ⚠️ 이 필드가 **바탕화면 아이콘 하나와 활동 하나를 여닫는다**
+   * (`DesktopItem.requiresSubscription`·`Activity.requiresSubscription`).
+   */
+  subscriptions?: SubscriptionState
 }
 
 export const INITIAL_STATS: Stats = {

@@ -290,6 +290,41 @@ export const ACTIVITIES: Activity[] = [
    * 외주만 번갈아 받는 우회를 막는다.
    */
   {
+    /*
+     * 그목의 **조건 없는 유일한 일감**이다 — 알바몬의 편의점과 같은 자리다.
+     * 여기까지 잠그면 그목은 자격을 갖추기 전까지 통째로 닫힌 사이트가 된다.
+     * 보수가 가장 낮은 것이 그 값이고, 수료증·구독이 여는 일감은 전부 이보다 난다.
+     */
+    id: 'gig-typing',
+    label: '단순 입력 외주',
+    icon: 'fluent-color:document-text-24',
+    category: 'living',
+    description: '녹취를 받아 적는다. 아무 자격도 필요 없고 그만큼 싸다.',
+    effects: { money: 38000, vocabulary: 1, stamina: -18, mental: -6 },
+    requires: { stamina: 18 },
+    burnoutKey: 'gig',
+    scalesWithWage: true,
+  },
+  {
+    /*
+     * ⚠️ **이 게임에서 구독이 여는 유일한 활동이다**(`requiresSubscription`).
+     * 수료증 외주와 구조는 같지만 **잠금의 성격이 다르다**: 수료증은 한 번 따면
+     * 영원히 남고, 구독은 **돈을 못 내면 끊겨 이 일감도 다시 잠긴다.**
+     * 그래서 보수를 AI 외주(95,000)보다 조금 낮게 둔다 — 월 10,000원을 계속 내야
+     * 유지되는 자격이라 실질 수입은 그만큼 더 깎인다.
+     */
+    id: 'gig-design',
+    label: '디자인 외주',
+    icon: 'fluent-color:design-ideas-24',
+    category: 'living',
+    description: '상세페이지 한 장. 시안은 세 번 엎어진다.',
+    effects: { money: 88000, art: 3, creativity: 2, stamina: -24, mental: -10 },
+    requires: { stamina: 24 },
+    requiresSubscription: 'adobe',
+    burnoutKey: 'gig',
+    scalesWithWage: true,
+  },
+  {
     /* 수료증(cert-ai)이 여는 고소득 일감. 과외(지식 60)보다 조건이 이르지만 멘탈을 더 먹는다. */
     id: 'gig-ai',
     label: 'AI 외주',
@@ -512,12 +547,29 @@ export const ACTIVITIES: Activity[] = [
      * "며칠 다녀왔다"는 감각은 **행동력 소모와 금액**이 대신 진다.
      */
     id: 'travel',
-    label: '여행',
+    label: '여행 (장거리)',
     icon: 'fluent-color:beach-24',
     category: 'leisure',
     description: '멀리 간다. 돌아오면 통장은 가벼워지고 머리는 맑아진다.',
     effects: { mental: 28, sensitivity: 12, creativity: 5, stamina: -30, money: -250000 },
     requires: { stamina: 30, money: 250000 },
+  },
+  {
+    /*
+     * 가까운 여행. **장거리와 성격을 갈라 두는 것이 핵심이다** — 값이 비례해서 줄기만 하면
+     * 둘 중 하나가 언제나 정답이 된다. 여기는 회복 폭이 절반이지만 **행동력도 덜 먹고**
+     * 값은 1/3 남짓이라, "이번 슬롯에 감당할 수 있는가"가 실제 판단이 된다.
+     *
+     * ⚠️ 상품(국내·근거리)이 이 활동을 가리킨다 — 같은 활동을 가리키는 상품끼리는
+     * 값이 같다(`data/trips.ts`, 알바몬 공고와 같은 규칙).
+     */
+    id: 'travel-near',
+    label: '여행 (근거리)',
+    icon: 'fluent-color:beach-24',
+    category: 'leisure',
+    description: '기차나 배로 닿는 곳에 다녀온다. 돌아오는 길이 길지 않다.',
+    effects: { mental: 14, sensitivity: 6, stamina: -20, money: -90000 },
+    requires: { stamina: 20, money: 90000 },
   },
   {
     /* 창의력의 주 공급원. 돈은 안 들지만 행동력·멘탈을 가장 많이 먹는다. */

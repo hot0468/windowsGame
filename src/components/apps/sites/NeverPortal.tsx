@@ -134,6 +134,12 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
    * 입력 중인 `query`와 나눠 두는 이유: 글자를 고칠 때마다 결과가 바뀌면 안 된다.
    */
   const [submitted, setSubmitted] = useState<string | null>(null)
+  /**
+   * 검색창을 눌렀는가. **추천 검색어 팝오버**가 이 값으로 뜬다(설계자 지시).
+   * ⚠️ 별도 컴포넌트로 빼지 않는다 — 검색어(`query`)·실행(`runSearch`)과 한 덩어리라
+   * 나누면 상태를 셋이나 위로 올려야 한다.
+   */
+  const [suggestOpen, setSuggestOpen] = useState(false)
 
   /**
    * 실시간 검색어는 목록이 아니라 **한 건씩 돌아가며** 뜬다(설계자 지시).
@@ -180,10 +186,19 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
           네이놈
         </button>
 
+        {/*
+          검색창 + **추천 검색어 팝오버**(설계자 지시). 감싸는 이유는 팝오버를 입력창
+          바로 아래에 붙이기 위해서다(`position: relative`의 기준점).
+          ⚠️ **추천어는 새로 만들지 않는다** — `data/news.ts`의 `TRENDING_TERMS` 재사용이고
+          트위터 트렌드·실시간 검색어와 **같은 출처**다(같은 사실이 세 곳에 따로 적히지 않는다).
+          ⚠️ 누르면 **진짜로 검색된다** — 갈 데 없는 목록은 장식이다.
+        */}
+        <div className="nv-searchbox">
         <form
           className="nv-search"
           onSubmit={(e) => {
             e.preventDefault()
+            setSuggestOpen(false)
             runSearch(query)
           }}
         >
@@ -201,13 +216,52 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => setSuggestOpen(true)}
+            onClick={() => setSuggestOpen(true)}
+            /* ux `escape-routes`: 팝오버는 Esc로 빠져나올 수 있어야 한다. */
+            onKeyDown={(e) => e.key === 'Escape' && setSuggestOpen(false)}
             placeholder="검색어를 입력하세요"
             autoComplete="off"
+            aria-expanded={suggestOpen}
+            aria-controls="nv-suggest"
           />
           <button type="submit" className="nv-search-btn" aria-label="검색">
             <AppIcon name={PORTAL_ICONS.search} size={24} />
           </button>
         </form>
+
+        {suggestOpen && (
+          <>
+            {/* 바깥 클릭으로 닫기. 전역 리스너 대신 투명한 판 하나를 깐다 —
+                붙이고 떼는 것을 React가 알아서 하므로 정리 코드가 필요 없다
+                (브라우저 더보기 메뉴와 같은 방식). */}
+            <div className="nv-suggest-scrim" onClick={() => setSuggestOpen(false)} />
+            <div className="nv-suggest" id="nv-suggest" role="listbox" aria-label="추천 검색어">
+              <p className="nv-suggest-head">인기 검색어</p>
+              {TRENDING_TERMS.map((term, i) => (
+                <button
+                  key={term.label}
+                  type="button"
+                  role="option"
+                  aria-selected={false}
+                  className="nv-suggest-item"
+                  onClick={() => {
+                    setSuggestOpen(false)
+                    setQuery(term.label)
+                    // ⚠️ 대응 사이트가 있으면 거기로 간다 — 실시간 검색어 줄과 같은 규칙이다
+                    //    (같은 단어를 눌렀는데 자리에 따라 다른 데로 가면 안 된다).
+                    if (term.siteId) onNavigate(term.siteId)
+                    else runSearch(term.label)
+                  }}
+                >
+                  <span className="nv-suggest-rank">{i + 1}</span>
+                  <span className="nv-suggest-label">{term.label}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        </div>
 
         {/* role="status"로 두면 스크린 리더가 결과 수를 읽어 준다(ux `aria-live-errors`). */}
         <p className="nv-search-notice" role="status">

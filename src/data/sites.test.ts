@@ -63,7 +63,18 @@ describe('사이트 목록', () => {
 
   it('퀵메뉴와 하단 소개 섹션은 겹치지 않는다', () => {
     // 같은 사이트가 화면에 두 번 나오면 어느 쪽이 본체인지 알 수 없다.
-    expect(PROMO_SITES.map((s) => s.id)).toEqual(['albamon', 'flea', 'onet', 'bank', 'stock', 'realty'])
+    expect(PROMO_SITES.map((s) => s.id)).toEqual([
+      'albamon',
+      'flea',
+      'gmong',
+      // ⚠️ 어도비는 소개 카드가 **유일한 입구**다(즐겨찾기·퀵메뉴에 없다) —
+      //    그몽의 잠금 사유가 여기로 보낸다.
+      'adobe',
+      'onet',
+      'bank',
+      'stock',
+      'realty',
+    ])
     for (const s of PROMO_SITES) expect(s.bookmark).toBeUndefined()
   })
 
@@ -142,6 +153,9 @@ describe('활동을 실행하는 사이트', () => {
     expect(ids).toEqual([
       'work',
       'job-apply',
+      // ⚠️ 그몽의 'gig-typing'은 **아무것도 안 고른 상태의 기본값**이다(알바몬과 같은 구조) —
+      //    실제로 무엇을 실행할지는 `data/gigs.ts`의 일감이 정한다.
+      'gig-typing',
       'exam',
       'meal-junk',
       'concert',

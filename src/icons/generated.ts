@@ -1,5 +1,5 @@
 // 이 파일은 `npm run icons`(scripts/build-icon-subset.mjs)가 생성한다. 직접 수정하지 말 것.
-// src/에서 실제로 쓰는 아이콘 179개만 담은 축소 세트다 —
+// src/에서 실제로 쓰는 아이콘 181개만 담은 축소 세트다 —
 // 전체 세트(8천여 개)를 번들에 넣지 않기 위한 것이다.
 import type { IconifyJSON } from '@iconify/react/offline'
 
@@ -64,7 +64,7 @@ export const mdiLight: IconifyJSON = {
   "height": 24
 }
 
-/** mdi — 사용 중인 83개 */
+/** mdi — 사용 중인 84개 */
 export const mdi: IconifyJSON = {
   "prefix": "mdi",
   "icons": {
@@ -130,6 +130,9 @@ export const mdi: IconifyJSON = {
     },
     "chat-processing-outline": {
       "body": "<path fill=\"currentColor\" d=\"M12 3C6.5 3 2 6.58 2 11a7.22 7.22 0 0 0 2.75 5.5c0 .6-.42 2.17-2.75 4.5c2.37-.11 4.64-1 6.47-2.5c1.14.33 2.34.5 3.53.5c5.5 0 10-3.58 10-8s-4.5-8-10-8m0 14c-4.42 0-8-2.69-8-6s3.58-6 8-6s8 2.69 8 6s-3.58 6-8 6m5-5v-2h-2v2zm-4 0v-2h-2v2zm-4 0v-2H7v2z\"/>"
+    },
+    "check": {
+      "body": "<path fill=\"currentColor\" d=\"M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z\"/>"
     },
     "check-circle-outline": {
       "body": "<path fill=\"currentColor\" d=\"M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8m4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4l8-8z\"/>"
@@ -322,7 +325,7 @@ export const mdi: IconifyJSON = {
   "height": 24
 }
 
-/** fluent-color — 사용 중인 82개 */
+/** fluent-color — 사용 중인 83개 */
 export const fluentColor: IconifyJSON = {
   "prefix": "fluent-color",
   "icons": {
@@ -628,6 +631,11 @@ export const fluentColor: IconifyJSON = {
     },
     "people-community-24": {
       "body": "<g fill=\"none\"><path fill=\"url(#SVGTBUDEbor)\" d=\"M12 3a3.25 3.25 0 1 0 0 6.5A3.25 3.25 0 0 0 12 3\"/><path fill=\"url(#SVGsO6IIbeO)\" d=\"M5 5a3 3 0 1 0 0 6a3 3 0 0 0 0-6\"/><path fill=\"url(#SVGkU6VibAn)\" d=\"M19 5a3 3 0 1 0 0 6a3 3 0 0 0 0-6\"/><path fill=\"url(#SVGNxpkddXF)\" d=\"M15.39 11.442a1.75 1.75 0 0 0-2.143 1.237l-.712 2.656a4.5 4.5 0 0 0 8.694 2.33l.711-2.657a1.75 1.75 0 0 0-1.237-2.143z\"/><path fill=\"url(#SVG2dmUQb6L)\" d=\"M8.61 11.442a1.75 1.75 0 0 1 2.142 1.237l.712 2.656a4.5 4.5 0 0 1-8.693 2.33l-.712-2.657a1.75 1.75 0 0 1 1.238-2.143z\"/><path fill=\"url(#SVG0s0oFcwL)\" d=\"M9.25 11a1.75 1.75 0 0 0-1.75 1.75v3.75a4.5 4.5 0 1 0 9 0v-3.75A1.75 1.75 0 0 0 14.75 11z\"/><defs><radialGradient id=\"SVGTBUDEbor\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"rotate(59.931 1.106 12.505)scale(4.05997)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".339\" stop-color=\"#3dcbff\"/><stop offset=\"1\" stop-color=\"#14b1ff\"/></radialGradient><radialGradient id=\"SVGsO6IIbeO\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"rotate(47.573 -5.867 7.649)scale(4.91969)\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#008ce2\"/><stop offset=\"1\" stop-color=\"#0068c6\"/></radialGradient><radialGradient id=\"SVGkU6VibAn\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"rotate(78.837 4.954 14.313)scale(4.40105)\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#0078d4\"/><stop offset=\"1\" stop-color=\"#004695\"/></radialGradient><radialGradient id=\"SVGNxpkddXF\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"rotate(78.837 -.741 16.557)scale(7.05605)\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#0078d4\"/><stop offset=\"1\" stop-color=\"#004695\"/></radialGradient><radialGradient id=\"SVG2dmUQb6L\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"rotate(61.056 -7.854 9.61)scale(10.478 7.54206)\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#008ce2\"/><stop offset=\"1\" stop-color=\"#0068c6\"/></radialGradient><radialGradient id=\"SVG0s0oFcwL\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"rotate(62.478 -6.395 16.433)scale(6.09533 5.76056)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".339\" stop-color=\"#3dcbff\"/><stop offset=\"1\" stop-color=\"#14b1ff\"/></radialGradient></defs></g>",
+      "width": 24,
+      "height": 24
+    },
+    "people-team-24": {
+      "body": "<g fill=\"none\"><path fill=\"url(#SVGhZdyleXp)\" d=\"M20.25 10c.967 0 1.75.784 1.75 1.75V15a4 4 0 1 1-8-.001V11.75a1.75 1.75 0 0 1 1.607-1.744z\"/><path fill=\"url(#SVGS3LRTdtw)\" fill-opacity=\".5\" d=\"M20.25 10c.967 0 1.75.784 1.75 1.75V15a4 4 0 1 1-8-.001V11.75a1.75 1.75 0 0 1 1.607-1.744z\"/><path fill=\"url(#SVGQAaiVcet)\" d=\"M8.25 10c.967 0 1.75.784 1.75 1.75V15a4 4 0 1 1-8-.001V11.75a1.75 1.75 0 0 1 1.606-1.744z\"/><path fill=\"url(#SVGiO87M56u)\" fill-opacity=\".5\" d=\"M8.25 10c.967 0 1.75.784 1.75 1.75V15a4 4 0 1 1-8-.001V11.75a1.75 1.75 0 0 1 1.606-1.744z\"/><path fill=\"url(#SVGzzYbYcTQ)\" d=\"M14.754 10c.966 0 1.75.784 1.75 1.75v4.749a4.501 4.501 0 0 1-9.002 0V11.75c0-.966.783-1.75 1.75-1.75z\"/><path fill=\"url(#SVGLO3kxdrU)\" d=\"M14.754 10c.966 0 1.75.784 1.75 1.75v4.749a4.501 4.501 0 0 1-9.002 0V11.75c0-.966.783-1.75 1.75-1.75z\"/><path fill=\"url(#SVGrughhcvJ)\" d=\"M18.5 4a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0-5\"/><path fill=\"url(#SVGNr4bseCi)\" d=\"M5.5 4a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0-5\"/><path fill=\"url(#SVGcolyeckW)\" d=\"M12 3a3 3 0 1 1 0 6a3 3 0 0 1 0-6\"/><defs><linearGradient id=\"SVGhZdyleXp\" x1=\"15.902\" x2=\"20.703\" y1=\"11.196\" y2=\"18.011\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".125\" stop-color=\"#7a41dc\"/><stop offset=\"1\" stop-color=\"#5b2ab5\"/></linearGradient><linearGradient id=\"SVGQAaiVcet\" x1=\"3.903\" x2=\"8.703\" y1=\"11.196\" y2=\"18.011\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".125\" stop-color=\"#9c6cfe\"/><stop offset=\"1\" stop-color=\"#7a41dc\"/></linearGradient><linearGradient id=\"SVGzzYbYcTQ\" x1=\"9.643\" x2=\"15.657\" y1=\"11.462\" y2=\"19.322\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".125\" stop-color=\"#bd96ff\"/><stop offset=\"1\" stop-color=\"#9c6cfe\"/></linearGradient><linearGradient id=\"SVGLO3kxdrU\" x1=\"12.003\" x2=\"21.131\" y1=\"8.69\" y2=\"22.648\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#885edb\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#e362f8\"/></linearGradient><linearGradient id=\"SVGrughhcvJ\" x1=\"17.189\" x2=\"19.737\" y1=\"4.665\" y2=\"8.734\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".125\" stop-color=\"#7a41dc\"/><stop offset=\"1\" stop-color=\"#5b2ab5\"/></linearGradient><linearGradient id=\"SVGNr4bseCi\" x1=\"4.189\" x2=\"6.737\" y1=\"4.665\" y2=\"8.734\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".125\" stop-color=\"#9c6cfe\"/><stop offset=\"1\" stop-color=\"#7a41dc\"/></linearGradient><linearGradient id=\"SVGcolyeckW\" x1=\"10.427\" x2=\"13.485\" y1=\"3.798\" y2=\"8.68\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".125\" stop-color=\"#bd96ff\"/><stop offset=\"1\" stop-color=\"#9c6cfe\"/></linearGradient><radialGradient id=\"SVGS3LRTdtw\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(6.43822 0 0 12.2867 12.743 14.29)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".433\" stop-color=\"#3b148a\"/><stop offset=\"1\" stop-color=\"#3b148a\" stop-opacity=\"0\"/></radialGradient><radialGradient id=\"SVGiO87M56u\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"matrix(-7.12497 0 0 -13.5973 12.592 14.29)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".433\" stop-color=\"#3b148a\"/><stop offset=\"1\" stop-color=\"#3b148a\" stop-opacity=\"0\"/></radialGradient></defs></g>",
       "width": 24,
       "height": 24
     },

@@ -1,30 +1,38 @@
 /*
  * 먼바다투어 — 여행 예약. 토큰은 `.tv` 안에 `--tv-*`로 가둔다(사이트마다 같은 규칙).
  *
- * 색 근거: color DB **`Travel/Tourism Agency`**(sky #0EA5E9 · accent #EA580C ·
- * bg #F0F9FF — "Sky blue + adventure orange").
- * ⚠️ **DB의 하늘색을 그대로 쓰지 않았다** — 알바몬이 이미 하늘색(#0369A1 / bg #f0f9ff)이라
+ * ## 판형 — 레퍼런스(실제 여행사 홈)가 스펙이다
+ * 헤더(로고 + 지역 네비 + 소지금) → **연보라 히어로**(왼쪽 "어떤 여행을 꿈꾸시나요?" +
+ * 오른쪽 큰 상품 판) → 상품 카드 줄 둘 → 국내 원형 카드 → 고객센터 번호가 큰 푸터.
+ * ⚠️ 레퍼런스에서 가장 특징적인 것은 **연보라 히어로 띠**와 **세로 카드 격자**다.
+ * 그 둘을 살리면 나머지(쿠폰·혜택·영상)를 덜어내도 여행사로 읽힌다.
+ *
+ * ## 색
+ * color DB **`Travel/Tourism Agency`**(sky #0EA5E9 · accent #EA580C · bg #F0F9FF).
+ * ⚠️ **DB 하늘색을 그대로 쓰지 않았다** — 알바몬이 이미 하늘색(#0369A1 / bg #f0f9ff)이라
  * 두 사이트가 같은 인상이 된다. 대신 **이 사이트의 입구인 배너 그라데이션**
  * (심해 남색 #0b3a53 → 바다 파랑 #14708c → 청록 #0f6f6a)을 팔레트로 이어받았다:
  * 이동용 배너와 목적지가 같은 색이라야 누르고 들어온 자리가 이어진 곳으로 읽힌다.
- * DB에서 가져온 것은 **구조**(primary / accent / bg / card / border)와 액센트 주황이다.
+ * 히어로의 연보라는 레퍼런스에서 온 것이고 **이 사이트에서 유일하게 색이 있는 판**이다.
  *
- * ⚠️ 액센트 주황(#EA580C)은 흰 배경 3.6:1이라 **작은 글자에 쓰지 않는다** — 값·강조는
- * 한 단 어두운 #9a3412(7.0:1)이고, 원래 주황은 면과 큰 숫자에만 쓴다.
+ * ⚠️ 액센트 주황(#EA580C)은 흰 배경 3.6:1이라 **작은 글자에 쓰지 않는다** — 강조는
+ * 한 단 어두운 #9a3412(7.0:1)다.
  */
 .tv {
   --tv-deep: #0b3a53;
-  --tv-primary: #14708c; /* #fff 위 4.7:1 — 제목·링크 */
+  --tv-primary: #14708c; /* #fff 위 4.7:1 — 큰 글자·면 */
   --tv-primary-hi: #0f5468; /* 7.0:1 — 작은 글자·강조 */
   --tv-teal: #0f6f6a;
-  --tv-bg: #f0f8fa;
+  --tv-hero: #ece9fb; /* 레퍼런스의 연보라 히어로 판 */
+  --tv-hero-line: #d8d2f2;
+  --tv-bg: #f7fafb;
   --tv-surface: #ffffff;
-  --tv-line: #d5e7ee;
-  --tv-line-strong: #b3d3de;
+  --tv-line: #dfeaef;
+  --tv-line-strong: #b9d2dc;
   --tv-text: #102a35; /* 14.7:1 */
   --tv-text-2: #3c5a66; /* 8.0:1 */
   --tv-text-3: #4f6f7b; /* 5.9:1 — 최소 보조 */
-  --tv-accent: #9a3412; /* 7.0:1 — 포함 사항 칩의 글자 */
+  --tv-accent: #9a3412; /* 7.0:1 — 포함 사항 칩 */
   --tv-accent-bg: #fdf1e7;
 
   min-height: 100%;
@@ -36,39 +44,64 @@
   container-type: inline-size;
 }
 
-.tv-strip {
-  margin: 0;
-  padding: var(--sp-3) var(--sp-5);
-  background: var(--tv-deep);
-  font-size: var(--fs-sm);
-  color: #fff;
-}
-
-.tv-head {
+/* ── 헤더 ────────────────────────────────────────────────── */
+.tv-top {
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
-  padding: var(--sp-5);
+  gap: var(--sp-5);
+  padding: var(--sp-3) var(--sp-5);
   border-bottom: 1px solid var(--tv-line-strong);
   background: var(--tv-surface);
 }
 
-.tv-head-text {
-  min-width: 0;
-}
-
 .tv-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   margin: 0;
-  font-size: var(--fs-2xl);
+  font-size: var(--fs-xl);
   font-weight: 700;
   color: var(--tv-primary-hi);
   letter-spacing: 0.02em;
 }
 
-.tv-sub {
-  margin: 2px 0 0;
+.tv-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+
+.tv-nav-item {
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--tv-text-2);
+  cursor: pointer;
+}
+
+.tv-nav-item:hover {
+  color: var(--tv-primary-hi);
+}
+
+/* 현재 위치는 색만이 아니라 **밑줄 + 굵기 + `aria-current`**가 함께 알린다. */
+.tv-nav-on {
+  border-bottom-color: var(--tv-primary);
+  font-weight: 700;
+  color: var(--tv-primary-hi);
+}
+
+.tv-money {
+  margin-left: auto;
   font-size: var(--fs-sm);
   color: var(--tv-text-3);
+}
+
+.tv-money strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--tv-text);
 }
 
 .tv-receipt {
@@ -81,60 +114,198 @@
   color: var(--tv-primary-hi);
 }
 
-/* ── 상품 목록 ───────────────────────────────────────────── */
-.tv-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  margin: var(--sp-4) 0 0;
-  padding: 0 var(--sp-5);
-  list-style: none;
+/* ── 연보라 히어로 ───────────────────────────────────────── */
+.tv-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+  gap: var(--sp-5);
+  margin-top: var(--sp-4);
+  padding: var(--sp-6) var(--sp-5);
+  background: var(--tv-hero);
 }
 
-/* 실제 여행사 카드처럼 가로로 눕는다. 좁아지면 세로로 접힌다(컨테이너 기준). */
-.tv-card {
+/* 좁아지면 위아래로 접힌다(창 크기 ≠ 뷰포트 크기 — 컨테이너 기준). */
+@container (max-width: 720px) {
+  .tv-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tv-ask {
   display: flex;
-  gap: var(--sp-4);
-  width: 100%;
-  padding: var(--sp-4);
-  border: 1px solid var(--tv-line);
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-5);
+  border: 1px solid var(--tv-hero-line);
   border-radius: var(--r-lg);
   background: var(--tv-surface);
+}
+
+.tv-ask-head {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--tv-text);
+}
+
+.tv-ask-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* 레퍼런스의 검색 폼 입력 줄 자리. 형태만 빌리고 **진짜 필터**가 앉아 있다. */
+.tv-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  /* ux `touch-target-size`: 최소 44px. */
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--tv-line-strong);
+  border-radius: var(--r-md);
+  background: var(--tv-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--tv-text);
+  cursor: pointer;
+}
+
+.tv-chip:hover {
+  border-color: var(--tv-primary);
+  color: var(--tv-primary-hi);
+}
+
+.tv-chip-n {
+  padding: 0 var(--sp-2);
+  border-radius: 999px;
+  background: var(--tv-hero);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--tv-primary-hi);
+}
+
+.tv-ask-note {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--tv-text-3);
+}
+
+/* 오른쪽 큰 상품 판. 레퍼런스의 프로모션 배너 자리다. */
+.tv-feature {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+  min-height: 220px;
+  padding: var(--sp-6);
+  border: none;
+  border-radius: var(--r-lg);
+  /* 배경은 인라인 style이 넣는다(상품마다 다르므로 데이터의 몫이다). */
   font: inherit;
   text-align: left;
+  color: #fff;
   cursor: pointer;
   transition: box-shadow 150ms ease-out;
 }
 
-.tv-card:hover {
+.tv-feature:hover {
   box-shadow: var(--el-2);
 }
 
-@container (max-width: 560px) {
-  .tv-card {
-    flex-direction: column;
-  }
+.tv-feature-tag {
+  padding: 2px var(--sp-3);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
 
-  .tv-photo {
-    width: 100%;
-  }
+.tv-feature-title {
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  line-height: 1.3;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+}
+
+.tv-feature-meta {
+  font-size: var(--fs-sm);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+}
+
+.tv-feature-price {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+}
+
+/* ── 구역 ────────────────────────────────────────────────── */
+.tv-sec {
+  padding: var(--sp-8) var(--sp-5) 0;
+}
+
+.tv-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin: 0 0 var(--sp-4);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--tv-text);
+}
+
+.tv-sec-desc {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--tv-text-3);
+}
+
+/* ── 상품 카드 격자 ──────────────────────────────────────── */
+.tv-grid {
+  display: grid;
+  /* ⚠️ 최소 폭을 `min()`으로 감싼다 — 좁은 창에서 고정값은 가로 스크롤을 만든다. */
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: var(--sp-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 /* 사진 자리. 그라데이션 판 + 목적지 글자다(외부 이미지 금지). */
 .tv-photo {
   display: flex;
   align-items: flex-end;
-  flex: 0 0 auto;
-  width: 180px;
-  min-height: 120px;
+  aspect-ratio: 4 / 3;
   padding: var(--sp-3);
   border-radius: var(--r-md);
-  /* 배경은 인라인 style이 넣는다(상품마다 다르므로 데이터의 몫이다). */
   color: #fff;
+  transition: box-shadow 150ms ease-out;
+}
+
+.tv-card:hover .tv-photo {
+  box-shadow: var(--el-2);
 }
 
 .tv-photo-place {
-  font-size: var(--fs-md);
+  font-size: var(--fs-sm);
   font-weight: 700;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
@@ -142,48 +313,107 @@
 .tv-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
+.tv-region {
+  font-size: var(--fs-xs);
+  color: var(--tv-text-3);
+}
+
 .tv-title {
-  font-size: var(--fs-lg);
+  font-size: var(--fs-md);
   font-weight: 700;
   color: var(--tv-text);
 }
 
 .tv-schedule {
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  color: var(--tv-primary-hi);
-}
-
-.tv-blurb {
-  margin-top: var(--sp-1);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   color: var(--tv-text-2);
 }
 
 .tv-includes {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin-top: var(--sp-3);
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
 }
 
-/* 포함 사항 칩. 여행 상품 카드에서 실제로 비교하게 되는 줄이라 액센트를 여기 쓴다. */
 .tv-include {
-  padding: 2px var(--sp-2);
+  padding: 1px var(--sp-2);
   border-radius: var(--r-sm);
   background: var(--tv-accent-bg);
   font-size: var(--fs-xs);
   color: var(--tv-accent);
 }
 
+.tv-price {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--sp-2);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--tv-primary-hi);
+}
+
+/* 못 가는 상품. 카드를 감추지 않고 사유를 글자로 적는다(알바몬과 같은 규칙). */
+.tv-short {
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--tv-accent);
+}
+
+/* ── 국내 원형 카드 ──────────────────────────────────────── */
+.tv-circles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+  gap: var(--sp-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.tv-circle-photo {
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  transition: box-shadow 150ms ease-out;
+}
+
+.tv-circle:hover .tv-circle-photo {
+  box-shadow: var(--el-2);
+}
+
+.tv-circle-title {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--tv-text);
+}
+
+.tv-circle-meta {
+  font-size: var(--fs-xs);
+  color: var(--tv-text-3);
+}
+
 /* ── 푸터 ────────────────────────────────────────────────── */
 .tv-foot {
   margin: var(--sp-8) var(--sp-5) 0;
-  padding-top: var(--sp-4);
+  padding-top: var(--sp-5);
   border-top: 1px solid var(--tv-line-strong);
   font-size: var(--fs-xs);
   color: var(--tv-text-3);
@@ -193,7 +423,11 @@
   margin: 0 0 2px;
 }
 
-.tv-foot-logo {
+/* 레퍼런스 푸터의 큰 고객센터 번호. */
+.tv-foot-tel {
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-2xl);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   color: var(--tv-primary-hi);
 }

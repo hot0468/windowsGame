@@ -119,10 +119,13 @@ export function Desktop() {
   const ownedIds = useMemo(() => (inventory ?? []).map((i) => i.id), [inventory])
   /* 너아무튼온은 재직해야 나타난다(설계자 지시). 불리언 하나라 셀렉터가 새 값을 만들지 않는다. */
   const employed = useGameStore((s) => Boolean(s.state?.employment))
+  /* 구독은 끊기면 아이콘이 사라진다 — 셀렉터는 원본 참조를 고르고 변환은 useMemo가 한다. */
+  const subsActive = useGameStore((s) => s.state?.subscriptions?.active)
+  const subscribedIds = useMemo(() => Object.keys(subsActive ?? {}), [subsActive])
 
   const entries = useMemo(
-    () => desktopEntries(shortcutIds, ownedIds, employed),
-    [shortcutIds, ownedIds, employed],
+    () => desktopEntries(shortcutIds, ownedIds, employed, subscribedIds),
+    [shortcutIds, ownedIds, employed, subscribedIds],
   )
   /** 실제로 그려지는 바로 가기만 칸을 차지한다(없는 활동을 가리키는 것은 빠진다). */
   const shortcutEntryIds = useMemo(
