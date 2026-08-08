@@ -234,7 +234,10 @@ describe('방송 장비 잠금 해제 고리', () => {
     s = skipSlot(skipSlot(s))
     const got = collect(s)
     expect(got.arrived.map((i) => i.id)).toContain('streamkit')
-    expect(canRun(got.state, stream)).toBe(true)
+    /* ⚠️ 방송은 **오후 전용**이다(2026-08-08 슬롯 제약) — 하루를 보내면 오전이라
+       그 상태로 물으면 장비가 있어도 false다. 여기서 재는 것은 **장비 잠금**이므로
+       슬롯을 맞춘 뒤 묻는다(슬롯 규칙은 `turn.test.ts`가 따로 지킨다). */
+    expect(canRun({ ...got.state, slot: 'afternoon' }, stream)).toBe(true)
   })
 })
 

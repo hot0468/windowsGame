@@ -2,6 +2,7 @@ import { getLivingCost, getWageMultiplier } from './economy'
 import { burnoutKeyOf, getBurnoutPenalty, pushActivity } from './burnout'
 import { markAttended } from './careerLog'
 import { weekendCallOn } from './drive'
+import { wearGear } from './gear'
 import { illnessEfficiency, illnessRecoveryRatio, nextIllness } from './illness'
 import { weatherEfficiency } from './weather'
 import { weekdayOf } from '../data/calendar'
@@ -199,6 +200,9 @@ export function canRun(state: GameState, activity: Activity): boolean {
   if (activity.requiresSubscription && !subscribed(state, activity.requiresSubscription))
     return false
   if (activity.requiresJobStage && !jobStageOpen(state, activity.requiresJobStage)) return false
+  /* ⚠️ 슬롯 제약(2026-08-08). 화면에서만 막으면 스케줄러가 반대 슬롯에 걸어 둔 예약이
+     그대로 통과한다 — 아이템·구독·정규직 게이트와 같은 자리다. */
+  if (activity.requiresSlot && state.slot !== activity.requiresSlot) return false
   if (!activity.requires) return true
   return Object.entries(activity.requires).every(
     ([key, required]) => state.stats[key as keyof Stats] >= required,
@@ -553,13 +557,19 @@ export function runActivity(state: GameState, activity: Activity): GameState {
 
   // ⚠️ 기록은 **턴을 넘기기 전**에 뽑는다 — 오후 행동은 날짜를 바꾸므로
   //    넘긴 뒤에 찍으면 "다음 날 출근한 것"이 된다.
-  const stamped = stampJob(state, activity)
+  /* ⚠️ **장비는 턴을 넘기기 전에 닳는다**(`stampJob`과 같은 자리·같은 이유) — 실행 통로가
+     넷이라 그 밖에 두면 하나가 반드시 샌다. 고장 나면 그 장비를 요구하던 활동이
+     다음부터 `canRun`에서 막힌다. */
+  const worn = wearGear(state, activity)
+  const stamped = stampJob(worn.state, activity)
   const artworks = stampArtwork(state, activity)
   const advanced = advance(state, withEffects)
   const stats = clampStats(advanced.stats)
 
   const advancedState = withGameOver({
-    ...state,
+    /* ⚠️ **`worn.state`를 펼친다**(원본 `state`가 아니다) — 원본을 펼치면 방금 새긴
+       장비 마모·고장이 통째로 버려진다. 실제로 그렇게 짰다가 잡았다. */
+    ...worn.state,
     ...stamped,
     artworks,
     day: advanced.day,

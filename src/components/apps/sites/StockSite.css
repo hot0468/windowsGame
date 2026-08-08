@@ -383,3 +383,16 @@
     gap: var(--sp-2);
   }
 }
+
+/*
+ * 내일 예보(경제 스탯이 연다). ⚠️ **등락 색(`--st-up/down`)을 쓰지 않는다** —
+ * 방향을 모르는 정보에 오르내림 색을 입히면 화면이 방향을 말하는 것처럼 읽힌다.
+ * 중립 회색 하나로 두는 것이 이 줄의 규칙이다.
+ */
+.stk-forecast {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  color: var(--st-text-2);
+  font-variant-numeric: tabular-nums;
+}

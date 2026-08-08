@@ -14,7 +14,7 @@ import {
 } from './turn'
 import { ACTIVITIES, findActivity } from '../data/activities'
 import { livingCostForDay } from './economy'
-import { GROWTH_STAT_KEYS } from '../types/game'
+import { GROWTH_STAT_KEYS, INITIAL_STATS, STAT_NAMES } from '../types/game'
 import type { GameState } from '../types/game'
 
 const study = findActivity('study')!
@@ -171,12 +171,17 @@ describe('runActivity — 스탯 적용', () => {
 })
 
 describe('스탯 상한', () => {
-  it('성장 스탯 12종은 999를 상한으로 한다', () => {
+  it('성장 스탯은 999를 상한으로 하고, 다섯 곳이 함께 갱신돼 있다', () => {
     expect(GROWTH_STAT_CAP).toBe(999)
-    // 예의범절(manners)로 10 → 11, 예술(art)로 11 → 12가 됐다. 개수를 박아 두는 이유는
-    // 스탯을 늘리면서 STAT_NAMES·STAT_META·INITIAL_STATS 갱신을 빠뜨리는 사고를 여기서
-    // 잡기 위해서다(빠뜨리면 `Record<keyof Stats, …>` 셋이 빌드에서 먼저 터진다).
-    expect(GROWTH_STAT_KEYS).toHaveLength(12)
+    /* ⚠️ **개수를 박지 않는다**(2026-08-08 음악 신설). 스탯을 하나 늘릴 때마다 이 숫자만
+       고치게 되는데, 정작 잡고 싶은 사고는 "`STAT_NAMES`·`INITIAL_STATS` 갱신을 빠뜨리는 것"
+       이다 — 그건 개수가 아니라 **맞물림**을 봐야 잡힌다(`Record<keyof Stats, …>`가 빌드에서
+       먼저 터지지만, 키 목록에 안 넣는 실수는 빌드가 못 잡는다). */
+    expect(GROWTH_STAT_KEYS.length).toBeGreaterThanOrEqual(12)
+    for (const key of GROWTH_STAT_KEYS) {
+      expect(STAT_NAMES[key], `${key}의 한국어 라벨`).toBeTruthy()
+      expect(INITIAL_STATS[key], `${key}의 시작값`).toBeDefined()
+    }
   })
 
   it('상한을 넘긴 성장 스탯은 각자의 상한으로 끌어내린다', () => {

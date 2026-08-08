@@ -38,13 +38,14 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
   const { rows, efficiency, mentalPenalty, isBurnedOut } = previewActivity(state, activity)
 
   /**
-   * ⚠️ **도구 앱은 이 창을 닫고 자기 창을 연다**(설계자 지시). 나머지 활동은 실행이 곧
-   * 끝이지만, 도구는 "프로그램이 돌아가는 것"까지가 실행이다 — 그리고 그 프로그램은
-   * 이 팝업의 일부가 아니라 **단독 창**이어야 한다(`ToolRun` 주석 참조).
+   * ⚠️ **장면이 있는 활동은 이 창을 닫고 자기 창을 연다**(설계자 지시). 도구 앱이
+   * 먼저였고 **2026-08-08에 알바 4종이 같은 길에 붙었다** — "누르자마자 끝"이 아니라
+   * 일하는 동안이 보여야 1턴의 무게가 읽힌다. 장면이 없는 활동은 예전대로 곧바로 끝난다
+   * (`runSceneOf`가 `undefined`를 돌려준다).
    * ⚠️ 창을 여는 것이 `doActivity`보다 **먼저**다: 결과 화면이 견줄 것은 실행 직전의 상태다.
    */
   const handleRun = () => {
-    if (activity.toolId) openToolWindow(state, activity)
+    openToolWindow(state, activity)
     doActivity(activity)
     onDone()
   }

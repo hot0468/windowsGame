@@ -31,10 +31,20 @@ describe('배너', () => {
     }
   })
 
-  it('가로 띠는 이동용 배너 둘이다 — 이 자리는 광고가 아니라 두 사이트의 입구다', () => {
+  it('가로 띠는 전부 이동용 배너다 — 이 자리는 광고가 아니라 사이트 입구다', () => {
+    /* ⚠️ **개수를 박지 않는다**(2026-08-08 슬라이드 전환). 넷이 됐고 앞으로도 늘 수 있는데
+       개수를 세면 배너를 더할 때마다 이 줄만 고치게 된다 — 지켜야 할 것은 **성격**이다:
+       이 자리의 배너는 전부 갈 곳이 있고 보상을 주지 않는다. */
     const wide = bannersFor('wide')
-    expect(wide.map((b) => b.siteId)).toEqual(['farsea', 'no24'])
-    for (const b of wide) expect(b.reward).toBeUndefined()
+    expect(wide.length).toBeGreaterThanOrEqual(2)
+    for (const b of wide) {
+      expect(b.siteId, `${b.id}에 갈 곳이 없다`).toBeDefined()
+      expect(b.reward).toBeUndefined()
+    }
+  })
+
+  it('⚠️ 슬라이드가 성립할 만큼 있다 — 한 장이면 컨트롤이 죽은 버튼이 된다', () => {
+    expect(bannersFor('wide').length).toBeGreaterThan(1)
   })
 
   it('옆 배너존은 여전히 광고다 — 보상 경로가 사라지면 안 된다', () => {

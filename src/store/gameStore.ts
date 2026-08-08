@@ -53,6 +53,7 @@ import {
 import { abandonGig as abandonGigOf, advanceGigs, takeGig as takeGigOf } from '../systems/gigs'
 import { findGig } from '../data/gigs'
 import { takeCourse as takeCourseOf } from '../systems/courses'
+import { reviveGear } from '../systems/gear'
 import { playGame as playGameOf } from '../systems/steam'
 import { renameChannel as renameChannelOf, startStream as startStreamOf } from '../systems/channel'
 import { watchFilm as watchFilmOf } from '../systems/cinema'
@@ -494,6 +495,11 @@ function reviveState(raw: unknown): GameState | null {
     // ⚠️ 판 물건 목록. **돈을 만드는 값은 아니지만 돈이 새는 것을 막는 값이다** —
     //    빠지면 팔았던 물건을 되사서 효과를 다시 받는 구멍이 열린다(`systems/resale.ts`).
     sold: Array.isArray(saved.sold) ? saved.sold.filter((id): id is string => typeof id === 'string') : undefined,
+    // 장비 마모·고장. 고장은 활동을 잠그므로 모르는 id는 버린다(`reviveGear`).
+    gear: reviveGear(saved.gear),
+    broken: Array.isArray(saved.broken)
+      ? saved.broken.filter((id): id is string => typeof id === 'string')
+      : undefined,
     // 직업 이력. 도감이 읽기만 하고 돈·턴을 만들지 않으므로 `steam`과 같은 수준으로 본다.
     careerLog:
       saved.careerLog && typeof saved.careerLog === 'object' ? saved.careerLog : undefined,

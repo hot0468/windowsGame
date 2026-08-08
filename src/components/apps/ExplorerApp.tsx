@@ -8,6 +8,7 @@ import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
 import { inventoryOf } from '../../systems/delivery'
+import { isWorn, usesLeft } from '../../systems/gear'
 import { artFileName, artGrade, artworksOf } from '../../systems/artwork'
 import { postcardsOf } from '../../systems/cinema'
 import { findProject, openProjects, pagesOf } from '../../systems/projects'
@@ -160,6 +161,12 @@ function entriesOf(folder: FolderId, state: ReturnType<typeof useGameStore.getSt
       const item = findItem(got.id)
       if (!item) return []
       const size = fakeSize(item)
+      /* 닳는 장비는 **남은 횟수를 설명 뒤에 붙인다.** 고장에 무작위가 없는 이유가
+         "몇 번 남았는지 언제든 셀 수 있다"는 것이라(`data/gear.ts`), 셀 자리가 없으면
+         그 규칙이 화면에서는 그냥 사고가 된다. 새 열도 새 화면도 만들지 않는다. */
+      const left = usesLeft(state, got.id)
+      const wearNote =
+        left === undefined ? '' : isWorn(state, got.id) ? ` (앞으로 ${left}번 쓰면 못 쓴다)` : ` (남은 사용 ${left}회)`
       return [
         {
           id: got.id,
@@ -169,7 +176,7 @@ function entriesOf(folder: FolderId, state: ReturnType<typeof useGameStore.getSt
           size,
           bytes: bytesOf(size),
           day: got.day,
-          desc: item.desc,
+          desc: item.desc + wearNote,
           owned: true,
         },
       ]

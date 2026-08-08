@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { findContest } from '../../../data/contests'
+import { CONTEST_CATEGORIES, CONTEST_POSTER, findContest } from '../../../data/contests'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
 import { artFileName, artGrade, artRatio, artworksOf } from '../../../systems/artwork'
@@ -9,10 +9,13 @@ import {
   entryBlockers,
   openContests,
   pendingEntries,
+  prizeFor,
+  statScore,
 } from '../../../systems/contests'
 import { findProject, openProjects, projectScore } from '../../../systems/projects'
-import type { Contest } from '../../../data/contests'
+import type { Contest, ContestCategory } from '../../../data/contests'
 import type { Site } from '../../../data/sites'
+import { STAT_NAMES } from '../../../types/game'
 import type { ContestEntry, GameState } from '../../../types/game'
 import './ContestSite.css'
 
@@ -35,7 +38,9 @@ import './ContestSite.css'
 export function ContestSite({ site }: { site: Site }) {
   const state = useGameStore((s) => s.state)
   const enter = useGameStore((s) => s.enterContest)
-  const [tab, setTab] = useState<'all' | Contest['kind']>('all')
+  /** 분야 칩. `null`이면 전체다(레퍼런스의 [전체] 칩). */
+  const [category, setCategory] = useState<ContestCategory | null>(null)
+  const [sort, setSort] = useState<SortKey>('default')
   /** 지금 출품 창이 열린 공모전. 한 번에 하나만 연다(판이 카드로 뒤덮이지 않게). */
   const [openId, setOpenId] = useState<string | null>(null)
 
@@ -43,7 +48,12 @@ export function ContestSite({ site }: { site: Site }) {
 
   const book = contestsStateOf(state)
   const open = openContests(state)
-  const list = tab === 'all' ? open : open.filter((c) => c.kind === tab)
+  const filtered = category ? open.filter((c) => c.category === category) : open
+  /* ⚠️ 원본을 정렬하지 않는다(`[...]`) — `openContests`가 돌려주는 배열을 뒤집으면
+     다른 화면이 보는 순서까지 바뀐다. */
+  const list = [...filtered].sort((a, b) =>
+    sort === 'prize' ? topPrize(b) - topPrize(a) : sort === 'fast' ? a.judgeDays - b.judgeDays : 0,
+  )
   const pending = pendingEntries(state)
   const decided = book.entries.filter((e) => e.prize !== undefined)
 
@@ -105,26 +115,55 @@ export function ContestSite({ site }: { site: Site }) {
         </section>
       )}
 
-      {/* 탭이 곧 필터다. 눌러도 갈 데 없는 항목을 만들지 않으려 건수를 함께 적는다. */}
-      <nav className="ct-tabs" aria-label="공모전 종류">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            className={`ct-tab${tab === t.key ? ' ct-tab-on' : ''}`}
-            aria-current={tab === t.key ? 'true' : undefined}
-            onClick={() => {
-              setTab(t.key)
-              setOpenId(null)
-            }}
-          >
-            {t.label}
-            <span className="ct-tab-count">
-              {(t.key === 'all' ? open : open.filter((c) => c.kind === t.key)).length}
-            </span>
-          </button>
-        ))}
+      {/*
+        분야 칩 줄. 레퍼런스(실제 공모전 모음 사이트)의 카테고리 줄이고, **칩 목록은
+        대회 데이터에서 파생한다**(`CONTEST_CATEGORIES`) — 따로 적으면 대회를 더할 때
+        누르면 빈 목록이 나오는 칩이 생긴다.
+        ⚠️ 건수를 함께 적는 이유는 그것 하나로 "눌러도 되는가"가 읽히기 때문이다.
+      */}
+      <nav className="ct-chips" aria-label="분야">
+        <button
+          type="button"
+          className={`ct-chip${category === null ? ' ct-chip-on' : ''}`}
+          aria-current={category === null ? 'true' : undefined}
+          onClick={() => {
+            setCategory(null)
+            setOpenId(null)
+          }}
+        >
+          전체 <span className="ct-chip-count">{open.length}</span>
+        </button>
+        {CONTEST_CATEGORIES.map((c) => {
+          const n = open.filter((x) => x.category === c).length
+          return (
+            <button
+              key={c}
+              type="button"
+              className={`ct-chip${category === c ? ' ct-chip-on' : ''}`}
+              aria-current={category === c ? 'true' : undefined}
+              onClick={() => {
+                setCategory(category === c ? null : c)
+                setOpenId(null)
+              }}
+            >
+              {c} <span className="ct-chip-count">{n}</span>
+            </button>
+          )
+        })}
       </nav>
+
+      <div className="ct-sortbar">
+        <label className="ct-sort">
+          <span className="ct-sort-label">정렬</span>
+          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+            {SORTS.map((o) => (
+              <option key={o.key} value={o.key}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       <section className="ct-sec" aria-label="접수 중인 공모전">
         {list.length === 0 ? (
@@ -165,15 +204,27 @@ export function ContestSite({ site }: { site: Site }) {
   )
 }
 
-const TABS: { key: 'all' | Contest['kind']; label: string }[] = [
-  { key: 'all', label: '전체' },
-  { key: 'comic', label: '만화 공모' },
-  { key: 'single', label: '단일 그림' },
-]
+/**
+ * 정렬. **전부 실제로 목록을 바꾼다** — 레퍼런스의 [최신순] 드롭다운 자리이고,
+ * 갈 데 없는 선택지를 만들지 않으려 이 게임이 실제로 아는 값만 둔다.
+ */
+const SORTS = [
+  { key: 'default', label: '기본순' },
+  { key: 'prize', label: '상금 높은 순' },
+  { key: 'fast', label: '발표 빠른 순' },
+] as const
+type SortKey = (typeof SORTS)[number]['key']
 
 const KIND_LABEL: Record<Contest['kind'], string> = {
   comic: '작품집 출품',
   single: '그림 한 장',
+  /* ⚠️ 낼 물건이 없다 — 그래서 "무엇을 내는가"가 아니라 **무엇으로 겨루는가**를 적는다. */
+  stat: '실력으로 겨룸',
+}
+
+/** 그 공모전의 최고 상금. 카드가 한 줄로 요약할 때 쓴다. */
+function topPrize(c: Contest): number {
+  return Math.max(...c.prizes.map((p) => p.money))
 }
 
 function entryKey(e: ContestEntry): string {
@@ -225,15 +276,31 @@ function ContestCard({
 }) {
   return (
     <article className={`ct-card${open ? ' ct-card-open' : ''}`}>
-      <p className="ct-host">{contest.host}</p>
-      <h3 className="ct-title">
-        {contest.title}
-        {contest.badge && <span className="ct-badge">{contest.badge}</span>}
-      </h3>
+      {/*
+        포스터 자리. ⚠️ **이미지가 아니라 그라데이션 + 글자다**(배너·썸네일과 같은 규칙).
+        레퍼런스 카드의 큰 포스터 사진 자리이고, 분야마다 색이 달라 훑을 때 갈래가 보인다.
+        ⚠️ 배지 둘은 **실제 값**이다: 왼쪽은 발표까지 며칠(D-표기), 오른쪽은 최고 상금.
+        레퍼런스의 [AD] 배지는 안 그린다 — 이 게임에 광고주가 없다.
+      */}
+      <div className="ct-poster" style={{ background: CONTEST_POSTER[contest.category] }}>
+        <span className="ct-poster-dday">D-{contest.judgeDays}</span>
+        <span className="ct-poster-prize">최고 {(topPrize(contest) / 10000).toFixed(0)}만원</span>
+        {/* ⚠️ **제목은 포스터가 진다** — 아래에 또 적으면 카드마다 같은 문장이 두 번
+            나온다(실측에서 그렇게 보였다). 아래는 분야·조건·상금만 남는다. */}
+        <h3 className="ct-poster-title">{contest.title}</h3>
+        <span className="ct-poster-host">
+          {contest.host}
+          {contest.badge && <span className="ct-poster-badge">{contest.badge}</span>}
+        </span>
+      </div>
+
+      <p className="ct-cat">{contest.category}</p>
 
       <p className="ct-terms">
         {KIND_LABEL[contest.kind]}
-        {contest.kind === 'comic' && ` · ${contest.minPages}~${contest.maxPages}장`} · 발표까지{' '}
+        {contest.kind === 'comic' && ` · ${contest.minPages}~${contest.maxPages}장`}
+        {contest.kind === 'stat' &&
+          ` · ${(contest.judgedBy ?? []).map((k) => STAT_NAMES[k]).join('·')}`} · 발표까지{' '}
         <b>{contest.judgeDays}일</b>
       </p>
 
@@ -287,6 +354,45 @@ function EntryPicker({
   onEnter: (pick: { projectId?: string; artworkId?: string }) => void
 }) {
   const [pick, setPick] = useState<{ projectId?: string; artworkId?: string }>({})
+  /*
+   * ⚠️ **스탯 대회는 고를 것이 없다** — 낼 물건이 아니라 지금의 실력으로 나간다.
+   * 대신 **지금 점수와 어느 상까지 닿는지**를 미리 적는다: 고르는 화면이 없으니
+   * 여기서 아무 말도 안 하면 버튼 하나만 덩그러니 남는다.
+   */
+  if (contest.kind === 'stat') {
+    const score = statScore(state, contest)
+    const prize = prizeFor(contest, score)
+    return (
+      <div className="ct-pick">
+        <p className="ct-stat-now">
+          지금 점수 <b>{pct(score)}</b>
+          <span className="ct-stat-keys">
+            {(contest.judgedBy ?? [])
+              .map((k) => `${STAT_NAMES[k]} ${state.stats[k]}`)
+              .join(' · ')}
+          </span>
+        </p>
+        {/* 색만으로 알리지 않는다 — 지금 내면 어떻게 되는지를 글자가 그대로 말한다. */}
+        <p className="ct-stat-verdict">
+          {prize
+            ? `지금 내면 「${prize.label}」입니다.`
+            : '지금 내면 낙선입니다. 더 올리고 내도 됩니다 — 다만 한 번뿐입니다.'}
+        </p>
+        <button
+          type="button"
+          className="ct-submit"
+          disabled={!canEnter(state, contest, {})}
+          onClick={() => onEnter({})}
+        >
+          출품하기
+        </button>
+        <span className="ct-submit-note">
+          출품에는 시간이 들지 않습니다. 낸 시점의 점수로 발표일에 확정됩니다.
+        </span>
+      </div>
+    )
+  }
+
   const comic = contest.kind === 'comic'
   const projects = comic ? openProjects(state) : []
   const works = comic ? [] : artworksOf(state)

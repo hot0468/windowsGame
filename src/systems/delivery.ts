@@ -79,10 +79,12 @@ export function collect(state: GameState): { state: GameState; arrived: ShopItem
     // 없는 아이템 id(세이브가 구버전 데이터를 가리키는 경우)는 조용히 버린다.
     if (!item) continue
     arrived.push(item)
-    /* ⚠️ **한 번 판 물건은 다시 받아도 효과가 없다**(2026-08-08 중고마켓). 이 한 줄이
-       "팔고 되사기"로 정가의 절반만 내고 상승분을 무한히 반복하는 구멍을 막는다 —
-       규칙과 사유의 정본은 `systems/resale.ts`이고 여기서는 목록만 읽는다. */
-    if (!(state.sold ?? []).includes(item.id)) stats = applyEffects(stats, item.effects)
+    /* ⚠️ **한 번 손을 떠난 물건은 다시 받아도 효과가 없다.** 판 것(`sold`, 중고마켓)과
+       부서진 것(`broken`, 장비 고장) 둘 다 본다 — 어느 쪽이든 "처음 받았을 때"는 이미
+       지나갔고, 안 막으면 되사서 상승분을 무한히 반복한다. 규칙의 정본은
+       `systems/resale.ts`·`systems/gear.ts`이고 여기서는 목록만 읽는다. */
+    const usedBefore = (state.sold ?? []).includes(item.id) || (state.broken ?? []).includes(item.id)
+    if (!usedBefore) stats = applyEffects(stats, item.effects)
     if (!inventory.some((i) => i.id === item.id)) inventory.push({ id: item.id, day: state.day })
   }
 

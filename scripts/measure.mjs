@@ -165,7 +165,7 @@ async function login(d, name) {
   })()`)
   await sleep(200)
   await d.evalJs(clickJs('.lock-btn'))
-  await until(() => d.evalJs(`!!document.querySelector('.desktop, .mo-shell')`), {
+  await until(() => d.evalJs(`!!document.querySelector('.desktop, .mo')`), {
     label: '바탕화면 진입',
   })
 }

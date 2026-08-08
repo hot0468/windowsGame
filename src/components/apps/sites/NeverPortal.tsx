@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { activitiesUnlockedBy } from '../../../data/activities'
-import { bannersFor } from '../../../data/banners'
+import { WIDE_ROTATE_MS, bannersFor } from '../../../data/banners'
 import type { Banner } from '../../../data/banners'
 import { BUYABLE_ITEMS } from '../../../data/items'
 import type { ShopItem } from '../../../data/items'
@@ -475,18 +475,7 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
         먼바다투어 → 여행 예약, 노24 → 공연 예매. 그래서 보상을 주지 않고 이동만 한다
         (`Banner.siteId`). 옆 배너존(`side`)은 여전히 광고이고 보상 경로는 그쪽 하나다.
       */}
-      <section className="nv-wide" aria-label="띠 배너">
-        {bannersFor('wide').map((banner) => (
-          <BannerButton
-            key={banner.id}
-            banner={banner}
-            wide
-            canClaim={canClaim}
-            onClaim={claimAd}
-            onNavigate={onNavigate}
-          />
-        ))}
-      </section>
+      <WideStrip canClaim={canClaim} onClaim={claimAd} onNavigate={onNavigate} />
 
       {/*
         하단 소개 섹션. 알바·쇼핑·은행처럼 **게임의 돈 흐름이 걸린 곳**은 아이콘 하나로는
@@ -501,6 +490,114 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
         </>
       )}
     </div>
+  )
+}
+
+
+/**
+ * 뉴스 아래 **가로 띠 — 슬라이드**(설계자 지시로 2026-08-08에 나란히 놓기에서 바뀌었다).
+ *
+ * ⚠️ **자리가 하나뿐이라 슬라이드가 됐다.** 배너가 넷인데 나란히 놓으면 한 장이
+ * 320px 밑으로 내려가 보조 문구가 두 줄로 접힌다 — 띠의 뜻(한 줄로 읽히는 입구)이 깨진다.
+ *
+ * ⚠️ **자동 넘김은 `prefers-reduced-motion`에서 멈춘다.** 움직임을 줄여 달라는 사람에게
+ * 7초마다 화면이 바뀌는 것은 그 요청을 정면으로 어기는 일이다. 그때도 컨트롤은 살아 있어
+ * 넷을 다 볼 수 있다(기능을 빼는 것이 아니라 **저절로 움직이는 것만** 뺀다).
+ *
+ * ⚠️ **손이 닿아 있으면 멈춘다**(hover·focus). 읽는 중에 넘어가면 슬라이드가 정보를 주는
+ * 것이 아니라 뺏는 장치가 된다.
+ *
+ * ⚠️ **한 장이면 컨트롤을 안 그린다** — 눌러도 아무 일 없는 버튼은 이 프로젝트에서 금지다.
+ */
+function WideStrip({
+  canClaim,
+  onClaim,
+  onNavigate,
+}: {
+  canClaim: boolean
+  onClaim: () => void
+  onNavigate: (siteId: string) => void
+}) {
+  const banners = bannersFor('wide')
+  const [at, setAt] = useState(0)
+  /** 손이 닿아 있는가(hover·focus). 닿아 있으면 자동 넘김을 쉰다. */
+  const [held, setHeld] = useState(false)
+  const labelId = useId()
+
+  const count = banners.length
+  const go = (next: number) => setAt(((next % count) + count) % count)
+
+  useEffect(() => {
+    if (count < 2 || held) return
+    // 움직임을 줄여 달라고 한 사람에게는 저절로 넘기지 않는다.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const id = setInterval(() => setAt((i) => (i + 1) % count), WIDE_ROTATE_MS)
+    return () => clearInterval(id)
+  }, [count, held])
+
+  if (!count) return null
+  const banner = banners[Math.min(at, count - 1)]
+
+  return (
+    <section
+      className="nv-wide"
+      aria-roledescription="캐러셀"
+      aria-labelledby={labelId}
+      onMouseEnter={() => setHeld(true)}
+      onMouseLeave={() => setHeld(false)}
+      onFocusCapture={() => setHeld(true)}
+      onBlurCapture={() => setHeld(false)}
+    >
+      <h2 className="nv-sr-only" id={labelId}>
+        띠 배너
+      </h2>
+      {/* 슬라이드 자체. 키는 배너 id라 바뀔 때 판이 새로 그려진다(그라데이션이 섞이지 않는다). */}
+      <div className="nv-wide-slide" aria-live="polite">
+        <BannerButton
+          key={banner.id}
+          banner={banner}
+          wide
+          canClaim={canClaim}
+          onClaim={onClaim}
+          onNavigate={onNavigate}
+        />
+      </div>
+
+      {count > 1 && (
+        <div className="nv-wide-ctl">
+          <button
+            type="button"
+            className="nv-wide-arrow"
+            onClick={() => go(at - 1)}
+            aria-label="이전 배너"
+          >
+            <span className="nv-chev nv-chev-prev" aria-hidden="true" />
+          </button>
+          {/* 점은 위치 표시이자 이동 수단이다 — 몇 장 중 몇 번째인지 글자로도 읽어 준다. */}
+          <ul className="nv-wide-dots">
+            {banners.map((b, i) => (
+              <li key={b.id}>
+                <button
+                  type="button"
+                  className={`nv-wide-dot${i === at ? ' nv-wide-dot-on' : ''}`}
+                  aria-current={i === at ? 'true' : undefined}
+                  aria-label={`${i + 1}번째 배너: ${b.brand}`}
+                  onClick={() => go(i)}
+                />
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            className="nv-wide-arrow"
+            onClick={() => go(at + 1)}
+            aria-label="다음 배너"
+          >
+            <span className="nv-chev nv-chev-next" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+    </section>
   )
 }
 

@@ -212,12 +212,9 @@ export const SITES: Site[] = [
     // ⚠️ 다른 사이트와 겹치지 않는 글리프여야 한다(`sites.test.ts`가 지킨다).
     icon: 'fluent-color:calendar-24',
     render: 'expo',
-    promo: {
-      tag: '모두의행사',
-      title: '이번 주에 열리는 행사',
-      desc: '보러 가거나, 부스를 열거나',
-      gradient: 'linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%)',
-    },
+    /* ⚠️ **하단 소개 카드를 뺐다**(2026-08-08 설계자 지시). 입구는 포털 검색창의
+       **검색어 추천 '행사'** 하나다(`data/news.ts`의 `SEARCH_SUGGESTIONS`) —
+       어도비·먼바다투어와 같은 형태이고, 그 항목을 지우면 갈 길이 사라진다. */
   },
   {
     /*
@@ -232,12 +229,7 @@ export const SITES: Site[] = [
     // ⚠️ 다른 사이트와 겹치지 않는 글리프여야 한다(`sites.test.ts`가 지킨다).
     icon: 'fluent-color:trophy-24',
     render: 'contest',
-    promo: {
-      tag: '콘테스트하다',
-      title: '지금 열려 있는 공모전',
-      desc: '그린 것을 상금으로 바꿉니다',
-      gradient: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)',
-    },
+    /* ⚠️ **하단 소개 카드를 뺐다**(2026-08-08 설계자 지시). 입구는 검색어 추천 '공모전' 하나다. */
   },
   {
     /*
@@ -253,12 +245,10 @@ export const SITES: Site[] = [
     icon: 'fluent-color:people-community-24',
     render: 'comicon',
     activityId: 'comicon',
-    promo: {
-      tag: '코미콘',
-      title: '이번 회차 부스 신청',
-      desc: '직접 만든 회지를 팔 수 있습니다',
-      gradient: 'linear-gradient(135deg, #7c2d12 0%, #c2410c 100%)',
-    },
+    /* ⚠️ **하단 소개 카드를 뺐다**(2026-08-08 설계자 지시). ⚠️ **입구가 모두의행사 하나뿐이다** —
+       검색어 추천에도 즐겨찾기에도 없고, 행사 목록의 코미콘 [참여 신청]이 여기로 보낸다
+       (`ExpoJoin.siteId`). 코미콘은 행사이므로 행사 사이트를 거치는 것이 자연스럽지만,
+       **모두의행사 쪽 입구를 지우면 이 사이트가 통째로 도달 불가가 된다.** */
   },
   {
     /*

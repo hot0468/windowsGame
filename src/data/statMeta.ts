@@ -48,6 +48,13 @@ export const STAT_META: Record<keyof Stats, StatMeta> = {
   // 스탯창에서 두 줄이 나란히 서는데 같은 그림이면 어느 쪽이 무엇인지 구분되지 않는다.
   // 감수성이 "느끼는 것"(팔레트)이라면 예술은 "손으로 그려 내는 것"이라 붓/펜 쪽이다.
   art: { icon: 'fluent-color:edit-24', hudIcon: 'mdi:brush-outline' },
+  /* ⚠️ 다색 세트에 악보·악기 글리프가 없다(`headphones-24`뿐이고 그건 콜센터 아이템이
+     이미 쓴다). 그래서 다색은 **마이크**(소리를 만드는 자리)를 쓰고, HUD 단색만
+     음표를 쓴다 — 스탯창에서 실제로 눈에 들어오는 것은 그쪽이다. */
+  music: { icon: 'fluent-color:mic-24', hudIcon: 'mdi:music-note-outline' },
+  /* ⚠️ 소지금(`money`, 지갑)과 **다른 그림**이어야 한다 — 가진 돈이 아니라 읽는 눈이다.
+     그래서 지갑이 아니라 **차트**를 쓴다(증권 사이트 아이콘과 같은 계열). */
+  finance: { icon: 'fluent-color:data-trending-24', hudIcon: 'mdi:chart-line' },
 }
 
 /**

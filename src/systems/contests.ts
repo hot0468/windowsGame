@@ -2,7 +2,7 @@ import { CONTESTS, findContest } from '../data/contests'
 import { MAILBOX } from '../data/messages'
 import { artRatio } from './artwork'
 import { findProject, pagesOf, projectScore, projectsOf } from './projects'
-import { clampStats, settleGameOver } from './turn'
+import { clampStats, growthCap, settleGameOver } from './turn'
 import type { Contest } from '../data/contests'
 import { messageTime, turnIndex } from './messages'
 import type { TimedMessage } from './messages'
@@ -61,6 +61,11 @@ export function entryBlockers(
   const out: string[] = []
   if (hasEntered(state, contest.id)) out.push('이미 출품한 공모전입니다')
 
+  /* ⚠️ **스탯 대회는 낼 물건이 없다** — 고르지 않았다고 막으면 영영 못 낸다.
+     막는 것은 "이미 냈는가" 하나뿐이고, 점수가 낮으면 못 내는 것이 아니라 **낙선한다**
+     (조건 미달로 막으면 "얼마면 되는가"를 화면이 말해야 하는데 그건 답을 알려 주는 것이다). */
+  if (contest.kind === 'stat') return out
+
   if (contest.kind === 'comic') {
     const project = pick?.projectId ? findProject(state, pick.projectId) : undefined
     if (!project) {
@@ -110,7 +115,9 @@ export function enterContest(
   let pages = 1
   let score = 0
 
-  if (contest.kind === 'comic') {
+  if (contest.kind === 'stat') {
+    score = statScore(state, contest)
+  } else if (contest.kind === 'comic') {
     const project = findProject(state, pick.projectId!)!
     pages = project.pageIds.length
     score = projectScore(state, project)
@@ -143,6 +150,21 @@ export function enterContest(
         }
       : state.projects,
   }
+}
+
+/**
+ * 스탯 대회의 점수 — **심사가 보는 스탯들의 평균 비율**(각 스탯 ÷ 그 스탯의 상한).
+ *
+ * ⚠️ **비율이라야 상한이 다른 스탯을 섞을 수 있다**(지식 999 / 평판 100). 절대값을 더하면
+ * 999짜리 하나가 점수를 독차지하고 나머지는 장식이 된다.
+ * ⚠️ **평균이라 한쪽만 높으면 절반으로 깎인다** — "이 대회는 둘을 본다"가 그 뜻이다.
+ * ⚠️ `artRatio`와 **같은 0~1 척도**라 `minScore`를 그림 대회와 같은 감각으로 읽을 수 있다.
+ */
+export function statScore(state: GameState, contest: Contest): number {
+  const keys = contest.judgedBy ?? []
+  if (!keys.length) return 0
+  const sum = keys.reduce((acc, key) => acc + state.stats[key] / growthCap(key), 0)
+  return sum / keys.length
 }
 
 /** 그 점수가 받는 상. 없으면 낙선이다. */

@@ -4,8 +4,12 @@ import { useGameStore } from '../../../store/gameStore'
 import {
   avgPriceOf,
   buyableShares,
+  canForecast,
+  canForecastDetail,
   changeOf,
   chartOf,
+  forecastOf,
+  swingOf,
   positionValue,
   priceOf,
   sharesOf,
@@ -185,6 +189,19 @@ function StockRow({
 
       <span className="stk-quote">
         <span className="stk-price">{price.toLocaleString('ko-KR')}원</span>
+        {/*
+          ⚠️ **경제 스탯이 여는 예보. 방향은 끝까지 안 준다**(2026-08-08).
+          내일 값을 알려 주면 버튼 하나짜리 무한 수익이 되므로(이 파일 상단 주석과 같은
+          이유) 넘기는 것은 **흔들림의 크기**뿐이다 — 언제 들어가고 언제 쉴지의 정보이지
+          무엇을 살지의 답이 아니다. 문턱·등급은 `systems/stocks.ts`가 갖는다.
+        */}
+        {canForecast(state) && (
+          <span className="stk-forecast" title="경제 스탯이 읽어 주는 내일의 흔들림 — 방향은 알 수 없습니다">
+            내일 {forecastOf(stock, state.day)}
+            {canForecastDetail(state) &&
+              ` · ±${(swingOf(stock, state.day) * 100).toFixed(1)}%`}
+          </span>
+        )}
         {/* ⚠️ 색이 아니라 기호와 부호가 뜻을 진다(ux `color-not-only`). */}
         <span className={`stk-change stk-${tone}`}>
           <span aria-hidden="true">{change > 0 ? '▲' : change < 0 ? '▼' : '—'}</span>

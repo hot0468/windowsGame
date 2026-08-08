@@ -186,10 +186,10 @@ export function ActivityConfirm({
               onClick={() => {
                 if (onCommit) onCommit()
                 else {
-                  /* ⚠️ 도구 앱은 활동 창과 **같은 규칙**을 탄다 — 여기서 빠뜨리면
-                     바로 가기로 켤 때만 프로그램이 안 뜬다(실행 통로가 갈리는 자리다).
+                  /* ⚠️ 실행 연출은 활동 창과 **같은 규칙**을 탄다 — 여기서 빠뜨리면
+                     바로 가기·사이트로 실행할 때만 장면이 안 뜬다(실행 통로가 갈리는 자리다).
                      창을 여는 것이 `doActivity`보다 먼저인 이유도 그쪽과 같다. */
-                  if (activity.toolId) openToolWindow(state, activity)
+                  openToolWindow(state, activity)
                   doActivity(activity)
                 }
                 onCommitted?.()

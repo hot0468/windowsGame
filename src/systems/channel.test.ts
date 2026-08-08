@@ -18,9 +18,12 @@ function state(over: Omit<Partial<GameState>, 'stats'> & { stats?: Partial<Stats
   return { ...s, ...over, stats: { ...s.stats, ...(over.stats ?? {}) } }
 }
 
-/** 방송에는 장비(`requiresItem: 'streamkit'`)와 행동력이 필요하다. */
+/**
+ * 방송에는 장비(`requiresItem: 'streamkit'`)와 체력이 필요하고,
+ * ⚠️ **오후여야 한다**(2026-08-08 슬롯 제약 — 오전 방송은 시청자가 없다).
+ */
 function ready(over: Parameters<typeof state>[0] = {}): GameState {
-  return state({ inventory: [{ id: 'streamkit', day: 1 }], ...over })
+  return state({ slot: 'afternoon', inventory: [{ id: 'streamkit', day: 1 }], ...over })
 }
 
 const TOPIC = STREAM_TOPICS[0]
@@ -107,10 +110,12 @@ describe('방송 켜기', () => {
 
 describe('시청자 반응', () => {
   it('켠 횟수만큼 늘고, 그 단계의 풀이 상한이다', () => {
+    /* ⚠️ 한 번 켜면 턴이 넘어가 오전이 된다 — 방송은 오후 전용이므로 다시 오후로 옮겨
+       두 번째를 켠다(슬롯 제약이 생기기 전에는 그냥 두 번 불렀다). */
     let s = ready({ stats: { stamina: 999 } })
     s = startStream(s, TOPIC)
     expect(streamReviews(s)).toHaveLength(1)
-    s = startStream(s, TOPIC)
+    s = startStream({ ...s, slot: 'afternoon' }, TOPIC)
     expect(streamReviews(s)).toHaveLength(2)
 
     const pool = STREAM_REVIEWS.filter((r) => r.tier === reviewTier(s)).length

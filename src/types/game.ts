@@ -39,6 +39,16 @@ export interface Stats {
   /** 예의범절 */
   manners: number
   /**
+   * 경제. **지식과 다른 것이다** — 지식은 배운 것이고 경제는 **돈이 어떻게 움직이는지
+   * 읽는 눈**이다. ⚠️ 소지금(`money`)과도 다르다: 가진 돈이 아니라 다룰 줄 아는가다.
+   */
+  finance: number
+  /**
+   * 음악. **예술과 다른 것이다** — 예술은 손으로 그려 내는 숙련이고 음악은 **소리를 짓고
+   * 듣는 귀**다. 감수성(느끼는 힘)과도 갈린다: 감수성은 받아들이는 쪽, 음악은 만드는 쪽이다.
+   */
+  music: number
+  /**
    * 예술. **창의력과 다른 것이다** — 창의력이 "떠올리는 힘"이라면 예술은
    * **손으로 끝까지 그려 내는 숙련**이다. 그래서 창의력은 여러 활동이 조금씩 올리지만
    * 예술은 실제로 그리는 활동(`draw`)만 올린다.
@@ -64,6 +74,8 @@ export const GROWTH_STAT_KEYS = [
   'gaming',
   'manners',
   'art',
+  'music',
+  'finance',
 ] as const
 
 export type GrowthStatKey = (typeof GROWTH_STAT_KEYS)[number]
@@ -92,6 +104,8 @@ export const STAT_NAMES: Record<keyof Stats, string> = {
   gaming: '게임',
   manners: '예의범절',
   art: '예술',
+  music: '음악',
+  finance: '경제',
 }
 
 /** 활동이 스탯에 주는 변화량. 없는 키는 변화 없음. */
@@ -99,6 +113,18 @@ export type StatDelta = Partial<Record<keyof Stats, number>>
 
 /** 하루의 두 슬롯. */
 export type Slot = 'morning' | 'afternoon'
+
+/**
+ * 슬롯 한국어 라벨.
+ *
+ * ⚠️ **화면 곳곳에 `slot === 'morning' ? '오전' : '오후'`가 흩어져 있다**(스케줄러·자동
+ * 진행 요약·탐색기). 이 표는 그것들의 **정본**이고, 새로 적는 자리는 여기를 읽는다 —
+ * 흩어진 삼항식들은 손대는 김에 하나씩 이쪽으로 옮긴다(`STAT_NAMES`와 같은 규칙).
+ */
+export const SLOT_NAMES: Record<Slot, string> = {
+  morning: '오전',
+  afternoon: '오후',
+}
 
 /**
  * 아이콘 식별자. `"세트명:아이콘명"` 형태의 문자열이다 (예: `"fluent-color:book-24"`).
@@ -124,7 +150,17 @@ export type ToolId = 'photoshop' | 'premiere' | 'vscode'
  * "업무량이 얼마나 찼는가 / 납품됐는가"를 판정한다.
  */
 export interface ToolRunPayload {
-  toolId: ToolId
+  /**
+   * 도구 활동이면 그 도구. **알바는 없다**(2026-08-08 알바 연출 확장) —
+   * 이 값이 있고 없고가 "일감 진행 줄을 그리는가"를 가른다(알바에는 일감이 없다).
+   */
+  toolId?: ToolId
+  /** 창 제목·결과 제목. 장면 정의(`data/runScenes.ts`)에서 온다. */
+  title: string
+  /** 상태 줄에 흐르는 문구. **연출이고 규칙이 아니다.** */
+  steps: string[]
+  /** CSS 액센트 갈래(`.tr-<accent>`). */
+  accent: string
   rows: { key: keyof Stats; value: number }[]
   mentalPenalty: number
   contract?: GigContract
@@ -175,6 +211,18 @@ export interface Activity {
    * 판정은 `canRun` 하나가 하므로 스케줄러에 미리 넣어 둔 예약도 같이 막힌다.
    */
   requiresSubscription?: string
+  /**
+   * **이 슬롯에만 할 수 있다**(생략 = 아무 때나, 2026-08-08 신설).
+   *
+   * ⚠️ **문구가 이미 약속한 것을 규칙이 지키게 하는 필드다** — 물류센터는 설명이
+   * "새벽 상하차"이고 시집이는 "혼자 조조를 본다"인데 여태 아무 때나 됐다. 하루가
+   * 2슬롯인데 오전·오후가 완전히 같으면 **순서를 고민할 이유가 없다.**
+   *
+   * ⚠️ 판정은 `canRun` 하나가 한다(스케줄러 예약·바로 가기도 같은 문을 지난다).
+   * ⚠️ **출근(`commute`)에는 달지 않는다** — 결근 감사·주말 호출이 "그날 안에 한 번"을
+   * 전제로 짜여 있어, 슬롯을 좁히면 그 계산이 통째로 흔들린다.
+   */
+  requiresSlot?: Slot
   /**
    * 정규직 상태 게이트. `requiresItem`과 같은 규칙이다 — 판정은 `canRun` 하나가 한다.
    *
@@ -1034,6 +1082,17 @@ export interface GameState {
    * 되사는 것 자체는 막지 않는다 — 사라지는 것은 처음 받았을 때의 상승분뿐이다.
    */
   sold?: string[]
+  /**
+   * 장비를 몇 번 썼는가(`물건 id → 사용 횟수`). **옵셔널이다**(쓴 적 없으면 없다).
+   * 고장은 무작위가 아니라 이 값이 정한다(`systems/gear.ts`).
+   */
+  gear?: Record<string, number>
+  /**
+   * 다 쓰고 고장 난 물건 id. **`sold`와 뜻이 다르다** — 판 것과 부서진 것을 한 배열에
+   * 섞으면 나중에 왜 거기 있는지 아무도 답할 수 없다. 둘 다 "다시 받아도 효과가 없다"의
+   * 근거이고 `delivery.ts`의 `collect`가 둘을 함께 본다.
+   */
+  broken?: string[]
   /** 이벤트 도감에 실릴 기록. */
   events?: EventLog[]
   /**
@@ -1215,4 +1274,6 @@ export const INITIAL_STATS: Stats = {
   gaming: 0,
   manners: 0,
   art: 0,
+  music: 0,
+  finance: 0,
 }

@@ -66,7 +66,10 @@ describe('포스트카드', () => {
   })
 
   it('다른 영화는 따로 쌓인다', () => {
-    const two = watchFilm(watchFilm(rich(), film), NOW_POOL[1])
+    /* ⚠️ 한 편 보면 턴이 넘어가 오후가 된다 — 영화는 **조조라 오전 전용**이므로
+       (2026-08-08 슬롯 제약) 다시 오전으로 옮겨 두 번째를 본다. */
+    const first = watchFilm(rich(), film)
+    const two = watchFilm({ ...first, slot: 'morning' }, NOW_POOL[1])
     expect(postcardsOf(two).map((p) => p.filmId)).toEqual([film.id, NOW_POOL[1].id])
     expect(hasPostcard(two, NOW_POOL[1].id)).toBe(true)
   })

@@ -1,5 +1,5 @@
 // 이 파일은 `npm run icons`(scripts/build-icon-subset.mjs)가 생성한다. 직접 수정하지 말 것.
-// src/에서 실제로 쓰는 아이콘 201개만 담은 축소 세트다 —
+// src/에서 실제로 쓰는 아이콘 203개만 담은 축소 세트다 —
 // 전체 세트(8천여 개)를 번들에 넣지 않기 위한 것이다.
 import type { IconifyJSON } from '@iconify/react/offline'
 
@@ -67,7 +67,7 @@ export const mdiLight: IconifyJSON = {
   "height": 24
 }
 
-/** mdi — 사용 중인 95개 */
+/** mdi — 사용 중인 97개 */
 export const mdi: IconifyJSON = {
   "prefix": "mdi",
   "icons": {
@@ -124,6 +124,9 @@ export const mdi: IconifyJSON = {
     },
     "chart-box-outline": {
       "body": "<path fill=\"currentColor\" d=\"M9 17H7v-7h2zm4 0h-2V7h2zm4 0h-2v-4h2zm2 2H5V5h14v14.1M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2\"/>"
+    },
+    "chart-line": {
+      "body": "<path fill=\"currentColor\" d=\"m16 11.78l4.24-7.33l1.73 1l-5.23 9.05l-6.51-3.75L5.46 19H22v2H2V3h2v14.54L9.5 8z\"/>"
     },
     "chat": {
       "body": "<path fill=\"currentColor\" d=\"M12 3c5.5 0 10 3.58 10 8s-4.5 8-10 8c-1.24 0-2.43-.18-3.53-.5C5.55 21 2 21 2 21c2.33-2.33 2.7-3.9 2.75-4.5C3.05 15.07 2 13.13 2 11c0-4.42 4.5-8 10-8\"/>"
@@ -250,6 +253,9 @@ export const mdi: IconifyJSON = {
     },
     "monitor": {
       "body": "<path fill=\"currentColor\" d=\"M21 16H3V4h18m0-2H3c-1.11 0-2 .89-2 2v12a2 2 0 0 0 2 2h7v2H8v2h8v-2h-2v-2h7a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2\"/>"
+    },
+    "music-note-outline": {
+      "body": "<path fill=\"currentColor\" d=\"M12 3v10.55A4 4 0 1 0 14 17V7h4V3m-8 16a2 2 0 1 1 2-2a2 2 0 0 1-2 2\"/>"
     },
     "new-box": {
       "body": "<path fill=\"currentColor\" d=\"M20 4c1.11 0 2 .89 2 2v12c0 1.11-.89 2-2 2H4c-1.11 0-2-.89-2-2V6c0-1.11.89-2 2-2zM8.5 15V9H7.25v3.5L4.75 9H3.5v6h1.25v-3.5L7.3 15zm5-4.74V9h-4v6h4v-1.25H11v-1.11h2.5v-1.26H11v-1.12zm7 3.74V9h-1.25v4.5h-1.12V10h-1.25v3.5h-1.13V9H14.5v5a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1\"/>"

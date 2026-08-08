@@ -9,11 +9,13 @@ import {
   hasEntered,
   openContests,
   prizeFor,
+  statScore,
 } from './contests'
 import { createProject, drawIntoProject, openProjects } from './projects'
-import { createInitialState } from './turn'
-import { CONTESTS, findContest } from '../data/contests'
+import { createInitialState, growthCap } from './turn'
+import { CONTEST_CATEGORIES, CONTESTS, findContest } from '../data/contests'
 import { MAILBOX } from '../data/messages'
+import { GROWTH_STAT_KEYS } from '../types/game'
 import type { GameState } from '../types/game'
 
 /**
@@ -203,5 +205,59 @@ describe('⚠️ 불변식 — 상금이 물가를 이기지 못한다', () => {
     const top = SINGLE.prizes[0]
     expect(prizeFor(SINGLE, top.minScore)?.label).toBe(top.label)
     expect(prizeFor(SINGLE, -1)).toBeUndefined()
+  })
+})
+
+/** 갓 시작한 판. 스탯 대회는 낼 물건이 없으므로 이것만으로 충분하다. */
+function fresh(): GameState {
+  return createInitialState('작가')
+}
+
+describe('스탯 대회 (그림이 아닌 공모전)', () => {
+  const statContests = CONTESTS.filter((c) => c.kind === 'stat')
+
+  it('심사 스탯이 적혀 있고 실제 성장 스탯이다', () => {
+    expect(statContests.length).toBeGreaterThan(0)
+    for (const c of statContests) {
+      expect(c.judgedBy?.length, `${c.id}에 심사 스탯이 없다`).toBeGreaterThan(0)
+      for (const k of c.judgedBy!) expect(GROWTH_STAT_KEYS).toContain(k)
+    }
+  })
+
+  it('⚠️ 낼 물건이 없어도 낼 수 있다 — 고르기를 요구하면 영영 못 낸다', () => {
+    for (const c of statContests) expect(entryBlockers(fresh(), c, {})).toEqual([])
+  })
+
+  it('점수는 심사 스탯의 평균 비율이다 — 상한이 다른 스탯을 섞어도 한쪽이 독차지하지 않는다', () => {
+    const c = statContests[0]
+    const [a, b] = c.judgedBy!
+    const half = {
+      ...fresh(),
+      stats: { ...fresh().stats, [a]: growthCap(a), [b]: 0 },
+    }
+    const full = {
+      ...fresh(),
+      stats: { ...fresh().stats, [a]: growthCap(a), [b]: growthCap(b) },
+    }
+    expect(statScore(full, c)).toBeCloseTo(1, 5)
+    // 한쪽만 만점이면 절반이다 — "이 대회는 둘을 본다"가 그 뜻이다.
+    expect(statScore(half, c)).toBeCloseTo(0.5, 5)
+  })
+
+  it('⚠️ 낸 시점의 점수로 박힌다 — 낸 뒤에 올려도 결과가 안 바뀐다', () => {
+    const c = statContests[0]
+    const [a] = c.judgedBy!
+    const before = { ...fresh(), stats: { ...fresh().stats, [a]: 100 } }
+    const entered = enterContest(before, c.id, {})
+    const entry = contestsStateOf(entered).entries.find((e) => e.contestId === c.id)!
+    const grown = { ...entered, stats: { ...entered.stats, [a]: growthCap(a) } }
+    expect(contestsStateOf(grown).entries.find((e) => e.contestId === c.id)!.score).toBe(entry.score)
+  })
+
+  it('⚠️ 분야 칩은 데이터에서 파생된다 — 누르면 빈 목록이 나오는 칩이 없다', () => {
+    for (const cat of CONTEST_CATEGORIES) {
+      expect(CONTESTS.some((c) => c.category === cat), `${cat} 분야에 대회가 없다`).toBe(true)
+    }
+    for (const c of CONTESTS) expect(CONTEST_CATEGORIES).toContain(c.category)
   })
 })

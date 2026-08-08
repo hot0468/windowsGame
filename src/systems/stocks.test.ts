@@ -11,8 +11,12 @@ import {
   sharesOf,
   stocksOf,
   unrealized,
+  canForecast,
+  canForecastDetail,
+  forecastOf,
+  swingOf,
 } from './stocks'
-import { createInitialState } from './turn'
+import { createInitialState, growthCap } from './turn'
 import { STOCKS, TRADE_FEE, findStock } from '../data/stocks'
 import { ECONOMY_TIERS } from '../data/economy'
 import { HOUSINGS } from '../data/housing'
@@ -185,5 +189,52 @@ describe('매매', () => {
     expect(t.stockId).toBe(stock.id)
     expect(t.price).toBe(priceOf(stock, 1))
     expect(findStock(t.stockId)).toBeDefined()
+  })
+})
+
+/* ── 경제 스탯이 여는 변동성 예보 (2026-08-08) ────────────────────────── */
+
+describe('변동성 예보', () => {
+  const stock = STOCKS[0]
+
+  it('⚠️ 방향을 알려 주지 않는다 — 알려 주면 확정 수익 기계가 된다', () => {
+    // 예보 함수들이 돌려주는 것은 크기(부호 없음)와 낱말뿐이다.
+    for (let d = 1; d <= 60; d++) {
+      expect(swingOf(stock, d), `${d}일차 흔들림이 음수다`).toBeGreaterThanOrEqual(0)
+      expect(['잠잠', '보통', '출렁']).toContain(forecastOf(stock, d))
+    }
+  })
+
+  it('흔들림은 내일과 오늘의 차이이고 부호를 버린 값이다', () => {
+    for (let d = 1; d <= 20; d++) {
+      const today = priceOf(stock, d)
+      const expected = Math.abs(priceOf(stock, d + 1) - today) / today
+      expect(swingOf(stock, d)).toBeCloseTo(expected, 10)
+    }
+  })
+
+  it('같은 날은 늘 같은 예보다 (결정성 — `Math.random` 금지)', () => {
+    for (let d = 1; d <= 30; d++) expect(forecastOf(stock, d)).toBe(forecastOf(stock, d))
+  })
+
+  it('⚠️ 경제 등급이 낮으면 아무것도 안 보인다', () => {
+    const base = createInitialState('투자자')
+    expect(canForecast(base)).toBe(false)
+    expect(canForecastDetail(base)).toBe(false)
+  })
+
+  it('경제가 오르면 예보가 열리고, 더 오르면 폭까지 열린다', () => {
+    const base = createInitialState('투자자')
+    const mid = { ...base, stats: { ...base.stats, finance: Math.ceil(0.3 * growthCap('finance')) } }
+    const high = { ...base, stats: { ...base.stats, finance: Math.ceil(0.5 * growthCap('finance')) } }
+    expect(canForecast(mid)).toBe(true)
+    expect(canForecastDetail(mid)).toBe(false)
+    expect(canForecastDetail(high)).toBe(true)
+  })
+
+  it('세 등급이 실제로 다 나온다 — 한 낱말만 나오면 예보가 정보가 아니다', () => {
+    const seen = new Set<string>()
+    for (const s of STOCKS) for (let d = 1; d <= 120; d++) seen.add(forecastOf(s, d))
+    expect(seen.size).toBeGreaterThan(1)
   })
 })

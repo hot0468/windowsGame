@@ -92,6 +92,9 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:toolbox-24',
     category: 'living',
     description: '새벽 상하차. 끝나면 손가락이 안 펴지지만 일당이 그날 들어온다.',
+    /* ⚠️ **오전 전용**(2026-08-08). 설명이 "새벽"이라고 약속해 놓고 여태 아무 때나 됐다.
+       ⚠️ 조건 없는 알바(편의점)에는 붙이지 않는다 — 첫날 돈 벌 길이 슬롯까지 좁아진다. */
+    requiresSlot: 'morning',
     effects: { money: 95000, athletics: 2, stamina: -35, mental: -12 },
     requires: { stamina: 35, athletics: 25 },
     scalesWithWage: true,
@@ -530,6 +533,8 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:mic-24',
     category: 'living',
     description: '장비를 켜고 두 시간을 떠든다. 동시 접속자는 대체로 한 자릿수다.',
+    /* ⚠️ **오후 전용** — 사람이 모이는 시간에 켠다. 오전 방송은 시청자가 없다. */
+    requiresSlot: 'afternoon',
     effects: { money: 55000, reputation: 2, sociability: 3, stamina: -22, mental: -8 },
     requires: { stamina: 22 },
     requiresItem: 'streamkit',
@@ -578,6 +583,9 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:video-24',
     category: 'leisure',
     description: '혼자 조조를 본다. 엔딩 크레딧까지 앉아 있는 사람은 늘 몇 없다.',
+    /* ⚠️ **오전 전용** — 조조다. 시집이의 회차 선택과 어긋나지 않는다(회차는 표시이고
+       실행 슬롯은 이 규칙이 정한다). */
+    requiresSlot: 'morning',
     effects: { sensitivity: 6, creativity: 3, mental: 8, stamina: -15, money: -15000 },
     requires: { stamina: 15, money: 15000 },
   },
@@ -658,7 +666,12 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:mic-24',
     category: 'leisure',
     description: '큰 소리를 직접 듣는다. 끝나고 나오면 귀가 먹먹하다.',
-    effects: { mental: 14, sensitivity: 8, creativity: 3, stamina: -18, money: -60000 },
+    /* ⚠️ **오후 전용** — 공연은 저녁에 한다. 노24 예매가 잡아 주는 예약도 오후 슬롯이라
+       (`planWeekly`·`firstFreeSlot`이 오후에 건다) 서로 어긋나지 않는다. */
+    requiresSlot: 'afternoon',
+    /* ⚠️ 음악이 조금 붙는 것은 **듣는 쪽**이라 그렇다 — 만드는 쪽(`compose`)이 주 공급원이고
+       여기는 부수 효과다(러닝과 물류센터의 관계와 같다). */
+    effects: { mental: 14, sensitivity: 8, creativity: 3, music: 2, stamina: -18, money: -60000 },
     requires: { stamina: 18, money: 60000 },
   },
   {
@@ -753,6 +766,9 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:people-community-24',
     category: 'relation',
     description: '회비를 내고 앉아 있는다. 이름을 외워 주는 사람이 하나씩 는다.',
+    /* ⚠️ **오후 전용** — 모임은 저녁에 모인다. 멘탈 회복처 넷 중 하나이므로 오전에
+       기댈 곳이 사라지지 않도록 나머지 셋(게임·영화·러닝)은 그대로 둔다. */
+    requiresSlot: 'afternoon',
     effects: { sociability: 6, charm: 3, mental: 5, stamina: -12, money: -10000 },
     requires: { stamina: 12, money: 10000 },
   },
@@ -866,6 +882,36 @@ export const ACTIVITIES: Activity[] = [
     effects: { money: 130000, knowledge: 3, vocabulary: 3, manners: 1, stamina: -24, mental: -8 },
     requires: { stamina: 24 },
     burnoutKey: 'lecture',
+  },
+  {
+    /*
+     * 음악 스탯(2026-08-08 신설)의 **주 공급원**. 돈이 안 드는 대신 멘탈을 깎는다 —
+     * 안 되는 날에는 네 마디에서 멈추기 때문이다(예절 교육과 같은 비용의 성격).
+     * ⚠️ **감수성이 아니라 음악을 올린다**: 감수성은 받아들이는 쪽(공연·영화·독서),
+     *    음악은 만드는 쪽이다. 둘을 한 스탯으로 묶으면 공연만 봐도 곡을 쓰게 된다.
+     */
+    id: 'compose',
+    label: '작곡·연습',
+    icon: 'fluent-color:headphones-24',
+    category: 'leisure',
+    description: '헤드폰을 쓰고 네 마디를 백 번 고친다. 어제 좋았던 게 오늘은 아니다.',
+    effects: { music: 7, creativity: 2, sensitivity: 1, stamina: -14, mental: -5 },
+    requires: { stamina: 14 },
+  },
+  {
+    /*
+     * 경제 스탯(2026-08-08 신설)의 **주 공급원**. 돈을 쓰지 않고 버는 것도 아니다 —
+     * 읽고 정리하는 시간이라 지식·어휘력이 조금 붙는다.
+     * ⚠️ **소지금을 만들지 않는다**: 경제를 올리는 활동이 돈까지 주면 은행·주식과
+     *    수입원이 겹치고, 이 스탯은 "가진 돈"이 아니라 "읽는 눈"이라는 뜻도 흐려진다.
+     */
+    id: 'finance-study',
+    label: '경제 공부',
+    icon: 'fluent-color:data-trending-24',
+    category: 'study',
+    description: '경제 기사와 공시를 읽는다. 어제 오른 이유는 오늘 내린 이유이기도 하다.',
+    effects: { finance: 7, knowledge: 2, vocabulary: 1, stamina: -14, mental: -4 },
+    requires: { stamina: 14 },
   },
 ]
 

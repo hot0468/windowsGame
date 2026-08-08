@@ -24,14 +24,14 @@
 
 | 날짜 | 변경 | 대상 |
 |------|------|------|
+| 2026-08-08 | 슬롯 제약(오전/오후 전용 활동 5종) · 장비 고장(사용 횟수, 무작위 없음) · 경제 스탯이 여는 주식 변동성 예보 | types(`requiresSlot`·`SLOT_NAMES`·`gear`/`broken`), turn(`canRun`·`wearGear`), gear(data+systems+test), delivery(되사기 자물쇠), stocks(예보)·StockSite, activityPreview, ExplorerApp, slotGate.test |
+| 2026-08-08 | 경제 스탯 신설 + 모바일 도감의 사방 여백·높이 상한 제거 | types·statMeta·activities(`finance-study`), contests(모의주식 심사 `knowledge`→`finance`), MobileShell.css, measure.mjs(모바일 셸 셀렉터 오타) |
+| 2026-08-08 | 알바도 일하는 장면을 한 번 보여 주고 결과를 띄운다 — 도구 전용이던 실행 연출을 일반화 | runScenes(data 신규 + test 5건), types(`ToolRunPayload` 일반화), ToolRun(장면 주입·일감 줄 조건부·끝나면 상태 줄 제거), ToolRun.css(액센트 4), ExeApp·ActivityConfirm(통로 둘) |
+| 2026-08-08 | 음악 스탯 신설 + 공모전에 그림 아닌 대회 4종(백일장·데이터시각화·모의주식·음원), 콘테스트하다를 레퍼런스 판형으로 | types·statMeta·activities(`compose`), contests(`kind: 'stat'`·`judgedBy`·`category`·`CONTEST_POSTER`)+systems `statScore`, ContestSite(tsx+css 개편), 상금 하향(불변식), turn.test |
+| 2026-08-08 | 포털 가로 띠를 슬라이드로 — 배너 4장(코미콘·콘테스트하다 추가), 하단 소개 카드에서 행사·공모전·코미콘 제거 | banners(+2, `WIDE_ROTATE_MS`)+test, NeverPortal(`WideStrip` 캐러셀)+css, sites(promo 셋 제거)+test |
 | 2026-08-08 | 랭크 이벤트 9종 추가(게임/어휘력 C 주간모임 · 매력/지식 A 제안 · 단발 5종) + 예의범절 상한 999 | rankEvents(data `kind: offer\|event` 확장, systems `offerUnlockedByRank`·메시지 표)+test, messages(방 3 + 미용실 옵션), activities(활동 4), events(도감 5), turn(예의범절 상한), ChatApp·TwitterSite(인증 뱃지) |
 | 2026-08-08 | **행동력과 체력을 `stamina` 하나로 합쳤다** — 행동이 체력을 쓰고, 몸을 키운 결과는 운동 스탯으로 간다 | types(`maxStamina` 삭제), turn(`STAMINA_CAP` 고정·`SLEEP_RECOVERY` 고정값), activities·items(효과 → `athletics`), endings(철인 → `athletics: 200`), statMeta·StatPanel·MobileStatSheet·EndingModal·autoAdvance, gameStore(구세이브 → 운동 스탯 이관), balance.verify(철인 도달 시뮬)+test 12파일 |
 | 2026-08-08 | 연재 중이면 월요일마다 담당 편집자가 카톡으로 지난 회차 조회수와 세간의 평가를 알린다 | webtoon(data 리뷰 풀·조회수 상수, systems `weeklyViews`·`reviewTier`·`webtoonReviewMessages` + test 8건), messages(`requiresWebtoon` + 카톡 방), ChatApp(파생 메시지 합류) |
 | 2026-08-08 | 호감도(민지·가족·동아리, 만남 +8 / 문턱 60)와 **관계 부가엔딩** — 본엔딩 문단 아래 한 문단, 도감에 관계 시트 | relations(data 신규), affection(systems+test 14건 신규), types(`affection`), activities(`family-visit`), ChatApp(하드코딩 제거), gameStore, metaStore(`unlockedRelations`), EndingModal(+css), ExcelApp |
 | 2026-08-08 | 랭크 이벤트 축 신설 — 운동 C면 러닝크루 권유(주간 예약), 감수성 A면 별똥별로 스탯 하나 +100 | rankEvents(data+systems+test 17건 신규), WishApp(tsx+css 신규), types(`rankEvents`·kind `wish`), messages(러닝크루 방·랭크 게이트)+test, ChatApp(`derivedMessages`), gameStore, appForWindow(+test) |
-| 2026-08-08 | 행사에 보디빌딩·마라톤 대회 추가 + 수상 판정(`ExpoJoin.award`, 평판만·무작위 없음) | expos(data+systems+test 7건), activities(`expo-compete`), ExpoSite(tsx+css) |
-| 2026-08-08 | 트위터 유료구독(월 1만원, 정산 2배) — 천장은 그대로 둬 판이 끝나는 것을 지켰다 | artworks(`PLUS_MULTIPLIER`·`WEEKLY_INCOME_CAP`), subscriptions, twitter(+test 5건), TwitterSite(tsx+css) |
-| 2026-08-08 | 날씨(날짜의 순수 함수, 야외 활동 ±15%)와 아픔(행동력 바닥 → 3일, 회복 반감·효율 80%) 신설 | weather·illness(data+systems+test 21건 신규), turn(취침·효율), activityPreview, activities(`clinic`), types(`Illness`), gameStore, CalendarPanel·StatPanel·Desktop.css, icons |
-| 2026-08-08 | 공고 3개 추가(새빛물류·햇살어린이집·픽셀로드 QA) + 직업 엔딩 3개, 요건이 운동·게임·예의범절·도덕을 처음 읽는다 | careers, endings, drive(`OFFICE_CAREER_IDS` 파생 폐기)+systems, balance.verify(요건 화이트리스트·공급원) |
-| 2026-08-08 | 사무직 출근 미니게임(너드라이브) — 요청받은 파일을 채팅창에 끌어다 놓고, 성과 100% 초과분이 야근비가 된다. 주말엔 회사 규모만큼 확률로 호출 | drive(data+systems+test 23건 신규), DriveApp(tsx+css 신규), types(`performance`·kind `drive`), careers(`CompanyScale`·`WEEKEND_CALL_RATE`), turn(주말 게이트), employment(야근비 정산), ChatApp(파생 메시지), gameStore, appForWindow, Window.css, measure.mjs(`--seed`) |
 

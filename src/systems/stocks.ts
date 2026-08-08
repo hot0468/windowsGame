@@ -1,6 +1,8 @@
 import { CHART_DAYS, STOCKS, STOCK_LOG_LIMIT, TRADE_FEE, findStock } from '../data/stocks'
 import { clampStats } from './turn'
 import type { Stock } from '../data/stocks'
+import { RANK_ORDER, rankOf } from './rank'
+import type { StatRank } from './rank'
 import type { GameState, StockState, StockTrade } from '../types/game'
 
 /**
@@ -208,3 +210,48 @@ export function sellStock(state: GameState, stockId: string, shares: number): Ga
     },
   }
 }
+
+/* ── 경제 스탯이 여는 것: 변동성 예보 (2026-08-08) ──────────────────────── */
+
+/**
+ * 예보 등급. **방향이 없다** — 오를지 내릴지는 끝까지 안 알려 준다.
+ *
+ * ⚠️ **이것이 밸런스의 전부다.** 방향을 알려 주면 확정 수익 기계가 되어
+ * "판은 반드시 끝난다"를 지탱하는 부등식들이 통째로 무너진다. 여기서 파는 것은
+ * **언제 들어가고 언제 쉴지**에 대한 정보이고, 그건 돈이 아니라 판단이다.
+ * ⚠️ 그래서 `chartOf`의 규칙("미래를 넘겨주지 않는다")도 안 깬다 — 넘기는 것은
+ * 내일의 **값**이 아니라 오늘과 내일 사이의 **흔들림 크기**뿐이다.
+ */
+export type StockForecast = '잠잠' | '보통' | '출렁'
+
+/** 예보가 열리는 경제 등급. 이 아래면 화면에 아무것도 안 뜬다. */
+const FORECAST_RANK: StatRank = 'B'
+/** 폭(퍼센트)까지 적어 주는 등급. 그 아래는 등급 낱말만 준다. */
+const FORECAST_DETAIL_RANK: StatRank = 'A'
+
+/** 내일 흔들림의 크기(오늘 값 대비 비율). **부호를 버린다** — 방향은 정보가 아니다. */
+export function swingOf(stock: Stock, day: number): number {
+  const today = priceOf(stock, day)
+  return Math.abs(priceOf(stock, day + 1) - today) / today
+}
+
+/** 흔들림 크기 → 등급. 경계는 종목의 변동성이 아니라 **비율**이라 종목끼리 견줄 수 있다. */
+export function forecastOf(stock: Stock, day: number): StockForecast {
+  const swing = swingOf(stock, day)
+  if (swing < 0.02) return '잠잠'
+  return swing < 0.06 ? '보통' : '출렁'
+}
+
+/** 지금 경제 등급이 예보를 볼 수 있는가. 화면이 문턱을 다시 적지 않는다. */
+export function canForecast(state: GameState): boolean {
+  const now = rankOf('finance', state.stats.finance)
+  return RANK_ORDER.indexOf(now) >= RANK_ORDER.indexOf(FORECAST_RANK)
+}
+
+/** 폭까지 볼 수 있는가(경제 A 이상). */
+export function canForecastDetail(state: GameState): boolean {
+  const now = rankOf('finance', state.stats.finance)
+  return RANK_ORDER.indexOf(now) >= RANK_ORDER.indexOf(FORECAST_DETAIL_RANK)
+}
+
+export { FORECAST_RANK, FORECAST_DETAIL_RANK }

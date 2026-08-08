@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
-import { TOOL_NAMES, TOOL_STEPS, findGig } from '../../data/gigs'
+import { TOOL_NAMES, findGig } from '../../data/gigs'
+import { runSceneOf } from '../../data/runScenes'
 import { STAT_META } from '../../data/statMeta'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
@@ -67,22 +68,29 @@ const TOOL_ICONS: Record<ToolId, IconName> = {
  * 않고 앞으로 가져오기만 하므로, 안 닫으면 두 번째 실행이 **지난번 결과를 다시 보여 준다.**
  */
 export function openToolWindow(state: GameState, activity: Activity): void {
-  const toolId = activity.toolId
-  if (!toolId) return
+  const scene = runSceneOf(activity)
+  /* ⚠️ **장면이 없는 활동은 그냥 끝난다.** 모든 활동에 2.5초를 붙이면 그건 연출이 아니라
+     통행세다 — 잠자기·식사까지 기다리게 만들지 않는다. */
+  if (!scene) return
   const { rows, mentalPenalty } = previewActivity(state, activity)
-  const id = `tool-${toolId}`
+  const id = `run-${activity.id}`
   const { close, open } = useWindowStore.getState()
   close(id)
   open({
     id,
-    title: TOOL_NAMES[toolId],
-    icon: TOOL_ICONS[toolId],
+    title: scene.title,
+    /* 도구는 프로그램 로고(devicon), 알바는 활동 아이콘 — 둘 다 **다른 자리에서 쓰던
+       같은 그림**이라 작업 표시줄에서 무엇이 도는지 바로 읽힌다. */
+    icon: activity.toolId ? TOOL_ICONS[activity.toolId] : scene.icon,
     x: 240,
     y: 96,
     width: TOOL_WINDOW_WIDTH,
     kind: 'tool',
     toolRun: {
-      toolId,
+      toolId: activity.toolId,
+      title: scene.title,
+      steps: scene.steps,
+      accent: scene.accent,
       rows,
       mentalPenalty,
       contract: activeContract(state),
@@ -96,8 +104,7 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
   const [step, setStep] = useState(0)
   const titleId = useId()
 
-  const { toolId } = payload
-  const steps = TOOL_STEPS[toolId]
+  const { toolId, steps, title, accent } = payload
   const finished = step >= steps.length
 
   useEffect(() => {
@@ -111,7 +118,7 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
   const percent = Math.round((Math.min(step, steps.length) / steps.length) * 100)
 
   return (
-    <div className={`tr tr-${toolId}`} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+    <div className={`tr tr-${accent}`} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
       <div className="tr-stage">
         {/*
          * 가짜 작업 영역. ⚠️ **이미지가 아니라 막대 몇 개다**(배너·엔딩과 같은 오프라인
@@ -124,21 +131,30 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
           ))}
         </div>
 
-        {/* ux `loading-states`: 무엇을 하는 중인지 글자로 말한다(막대만으로는 모른다). */}
-        <p className="tr-status" aria-live="polite">
-          {finished ? '작업을 마쳤습니다' : `${steps[step]}…`}
-        </p>
+        {/*
+          ux `loading-states`: 무엇을 하는 중인지 글자로 말한다(막대만으로는 모른다).
+          ⚠️ **끝나면 상태 줄과 막대를 걷어낸다**(2026-08-08 실측). 결과 알림이 덮은 뒤에도
+          남겨 두면 **안 보이는 글자가 액센트 버튼 위에 겹쳐** 대비 1.5:1로 읽히고, 정작
+          완료를 알리는 일은 아래 `role="alertdialog"`가 이미 한다(낭독기도 그쪽을 읽는다).
+        */}
+        {!finished && (
+          <>
+            <p className="tr-status" aria-live="polite">
+              {steps[step]}…
+            </p>
 
-        <div
-          className="tr-track"
-          role="progressbar"
-          aria-valuenow={percent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label={`${TOOL_NAMES[toolId]} 작업 진행률`}
-        >
-          <span className="tr-fill" style={{ width: `${percent}%` }} />
-        </div>
+            <div
+              className="tr-track"
+              role="progressbar"
+              aria-valuenow={percent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`${title} 작업 진행률`}
+            >
+              <span className="tr-fill" style={{ width: `${percent}%` }} />
+            </div>
+          </>
+        )}
 
         {/*
          * ⚠️ **기다림에는 언제나 빠져나갈 길을 둔다**(ux `escape-routes`). 어차피 결과는
@@ -157,7 +173,7 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
           <div className="tr-scrim" />
           <div className="tr-result" role="alertdialog" aria-labelledby={titleId}>
             <h2 className="tr-result-head" id={titleId}>
-              {TOOL_NAMES[toolId]} 작업 완료
+              {title} 작업 완료
             </h2>
 
             <ul className="tr-effects">
@@ -185,9 +201,13 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
               )}
             </ul>
 
-            <p className="tr-gig">
-              {gigLine(payload, gigsOf(state).earned, activeContract(state))}
-            </p>
+            {/* ⚠️ **일감 줄은 도구에만 있다** — 알바에는 그몽 계약이 없으므로 이 줄을
+                그리면 "받아 둔 일이 없습니다"가 매번 뜬다(빈 자리를 만들지 않는다). */}
+            {toolId && (
+              <p className="tr-gig">
+                {gigLine(payload, gigsOf(state).earned, activeContract(state))}
+              </p>
+            )}
 
             <button type="button" className="tr-close" autoFocus onClick={onClose}>
               닫기

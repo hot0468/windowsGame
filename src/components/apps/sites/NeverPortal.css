@@ -345,11 +345,80 @@
  * 좁아지면 알아서 위아래로 접힌다 — 판정은 뷰포트가 아니라 **격자 최소 폭**이다
  * (사이트는 창 안이라 미디어쿼리가 안 듣는다).
  */
+/* 가로 띠 — **슬라이드**(2026-08-08). 한 번에 한 장이고 아래에 컨트롤 줄이 붙는다.
+   ⚠️ 나란히 놓기(`auto-fit` 격자)로 되돌리지 말 것 — 배너가 넷이라 한 장이 320px 밑으로
+   내려가 보조 문구가 두 줄로 접힌다(띠가 "한 줄로 읽히는 입구"라는 뜻이 깨진다). */
 .nv-wide {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
-  gap: var(--sp-4);
   margin-top: var(--sp-4);
+}
+
+/* ⚠️ 높이를 못 박는다. 배너마다 보조 문구 길이가 달라 슬라이드가 넘어갈 때 아래 소개
+   섹션이 위아래로 튄다(레이아웃 시프트) — 가장 긴 배너에 맞춘 값이다. */
+.nv-wide-slide {
+  display: flex;
+  min-height: 112px;
+}
+
+.nv-wide-ctl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+}
+
+.nv-wide-arrow {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--nv-border);
+  border-radius: 50%;
+  background: var(--nv-surface);
+  color: var(--nv-text-2);
+  cursor: pointer;
+}
+
+.nv-wide-arrow:hover {
+  border-color: var(--nv-text-2);
+  color: var(--nv-text);
+}
+
+.nv-wide-dots {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 점 자체는 8px이지만 **누르는 자리는 24px**이다 — 8px짜리 과녁은 못 맞힌다
+   (ux `no-precision-required`). 투명 패딩이 그 차이를 만든다. */
+.nv-wide-dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--nv-border);
+  background-clip: content-box;
+  box-sizing: content-box;
+  border: 8px solid transparent;
+  cursor: pointer;
+  transition: background 150ms ease-out;
+}
+
+.nv-wide-dot:hover {
+  background: var(--nv-text-2);
+  background-clip: content-box;
+}
+
+/* 현재 슬라이드. 색만으로 알리지 않도록 `aria-current`를 함께 쓴다(마크업 쪽). */
+.nv-wide-dot-on {
+  background: var(--nv-green);
+  background-clip: content-box;
 }
 
 .nv-banner-wide {

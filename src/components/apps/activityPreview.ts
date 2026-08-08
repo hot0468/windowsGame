@@ -7,7 +7,7 @@ import { canRun, jobStageOpen, outfitFor, ownsRequired, subscribed } from '../..
 import { findSubscription } from '../../data/subscriptions'
 import { applyBlockers, attendedToday, isWorkday } from '../../systems/employment'
 import { OUTFIT_BONUS, requiredItemLabel, requiredItemStores } from '../../data/items'
-import { GROWTH_STAT_KEYS, STAT_NAMES } from '../../types/game'
+import { GROWTH_STAT_KEYS, STAT_NAMES, SLOT_NAMES } from '../../types/game'
 import type { Activity, GameState, JobStageGate, Stats } from '../../types/game'
 
 /**
@@ -191,6 +191,12 @@ export function blockReasons(state: GameState, activity: Activity): string[] {
     reasons.push('게임이 끝나 더 이상 활동할 수 없습니다.')
     // 게임이 끝났으면 나머지 조건은 따질 이유가 없다.
     return reasons
+  }
+
+  /* ⚠️ 슬롯 사유는 **언제 되는지**를 적는다 — "지금은 안 됩니다"만으로는 오후에 다시
+     와야 하는지 내일 와야 하는지 알 수 없다. */
+  if (activity.requiresSlot && state.slot !== activity.requiresSlot) {
+    reasons.push(`${SLOT_NAMES[activity.requiresSlot]}에만 할 수 있습니다`)
   }
 
   if (activity.requiresItem && !ownsRequired(state, activity.requiresItem)) {

@@ -4,6 +4,7 @@ import { useShell } from '../../hooks/useShell'
 import { useGameStore } from '../../store/gameStore'
 import { examMessages } from '../../systems/certification'
 import { contestMessages } from '../../systems/contests'
+import { gearMessages } from '../../systems/gear'
 import { webtoonMessages } from '../../systems/webtoon'
 import { noticeMessages } from '../../systems/employment'
 import { selectChannel } from '../../systems/messages'
@@ -66,6 +67,8 @@ export function MailApp() {
     ...noticeMessages(state),
     ...examMessages(state),
     ...contestMessages(state),
+    /* 장비 고장 소식. 새 알림 창구를 만들지 않고 사서함을 그대로 탄다. */
+    ...gearMessages(state).map((m) => ({ ...m, time: '방금', turn: Number.MAX_SAFE_INTEGER })),
     ...webtoonMessages(state),
   ].sort((a, b) => b.turn - a.turn)
   const mails = all.filter((m) => (folder === 'ad' ? isAd(m) : !isAd(m)))

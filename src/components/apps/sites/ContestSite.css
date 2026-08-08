@@ -184,7 +184,13 @@
    넘치고 2열은 696로 들어간다 — 상금 표가 들어가는 카드라 2열이 상한이다. */
 .ct-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  /* ⚠️ **최소 폭이 열 수를 정한다**(`auto-fit`의 규칙). 판이 약 1,020px이라 300px면
+     3열이고 340px이면 2열이 된다 — 레퍼런스가 여러 열로 훑는 판형이라 3열로 맞췄다.
+     280px 밑으로 내리면 상금표의 세 열(상·상금·평판)이 서로 붙는다. */
+  /* ⚠️ **`auto-fill`이지 `auto-fit`이 아니다.** `auto-fit`은 빈 트랙을 접어서 분야 칩으로
+     한 건만 남기면 카드 하나가 판 전체로 늘어난다(실측에서 그렇게 보였다) — 필터가 있는
+     격자에서는 카드 폭이 결과 수에 따라 변하면 안 된다. */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--sp-4);
   margin: 0;
   padding: 0;
@@ -466,4 +472,167 @@
     justify-self: start;
     text-align: left;
   }
+}
+
+/* ── 분야 칩 줄 · 정렬 (2026-08-08 레퍼런스 판형) ─────────────────────
+   레퍼런스(실제 공모전 모음 사이트)의 카테고리 줄 + 우측 정렬 드롭다운이다.
+   ⚠️ 구 `.ct-tabs`(만화/단일 탭)를 대신한다 — 갈래가 종류가 아니라 **분야**가 됐다. */
+.ct-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: var(--sp-5) 0 var(--sp-3);
+}
+
+.ct-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--ct-line);
+  border-radius: 999px;
+  background: var(--ct-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--ct-text-2);
+  cursor: pointer;
+  transition: background 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.ct-chip:hover {
+  border-color: var(--ct-primary);
+  color: var(--ct-text);
+}
+
+/* 고른 칩. 색만으로 알리지 않도록 채움 + 굵기 + `aria-current`를 함께 쓴다. */
+.ct-chip-on {
+  border-color: var(--ct-primary);
+  background: var(--ct-primary);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.ct-chip-count {
+  font-size: var(--fs-xs);
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.ct-sortbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--sp-3);
+}
+
+.ct-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--ct-text-2);
+}
+
+.ct-sort select {
+  padding: 6px var(--sp-3);
+  border: 1px solid var(--ct-line);
+  border-radius: var(--r-md);
+  background: var(--ct-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--ct-text);
+}
+
+/* ── 카드 포스터 ──────────────────────────────────────────────────────
+   레퍼런스 카드의 포스터 사진 자리. ⚠️ 이미지가 아니라 그라데이션 + 글자다.
+   색은 분야가 정한다(`CONTEST_POSTER`) — 훑을 때 갈래가 색으로 먼저 읽힌다. */
+.ct-poster {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  min-height: 132px;
+  margin: calc(var(--sp-4) * -1) calc(var(--sp-4) * -1) var(--sp-3);
+  padding: var(--sp-4);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  color: #ffffff;
+}
+
+.ct-poster-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.ct-poster-host {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* 카드 배지(누구나·신인·최고 상금). 포스터 위라 반투명 검정 판을 깔아 흰 글자를 세운다. */
+.ct-poster-badge {
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.45);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.ct-poster-host {
+  font-size: var(--fs-xs);
+  opacity: 0.85;
+}
+
+/* 배지 둘. **실제 값이다** — 왼쪽은 발표까지 며칠, 오른쪽은 최고 상금.
+   레퍼런스의 [AD] 배지는 안 그린다(이 게임에 광고주가 없다). */
+.ct-poster-dday,
+.ct-poster-prize {
+  position: absolute;
+  top: var(--sp-3);
+  padding: 3px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.45);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ct-poster-dday {
+  left: var(--sp-3);
+}
+
+.ct-poster-prize {
+  right: var(--sp-3);
+}
+
+.ct-cat {
+  margin: 0 0 2px;
+  font-size: var(--fs-xs);
+  color: var(--ct-text-2);
+}
+
+/* ── 스탯 대회의 출품 칸 ─────────────────────────────────────────────
+   고를 것이 없으므로 **지금 점수와 어느 상까지 닿는지**가 그 자리를 대신한다. */
+.ct-stat-now {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-md);
+}
+
+.ct-stat-keys {
+  font-size: var(--fs-xs);
+  color: var(--ct-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.ct-stat-verdict {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--ct-text-2);
+  line-height: 1.6;
 }
