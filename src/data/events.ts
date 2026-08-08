@@ -96,6 +96,16 @@ export const EVENTS: GameEvent[] = [
     icon: 'fluent-color:gift-card-24',
     ext: '.evt',
   },
+  {
+    /* 복권과 나란히 읽히는 사건이다 — 둘 다 "돈으로 가능성을 사는" 자리이되,
+       복권은 긁는 순간 끝나고 주식은 내일 아침에도 계속된다. */
+    id: 'first-stock',
+    name: '두 자리 숫자의 하루',
+    hint: '가진 돈의 일부를 오르내리는 것에 맡긴다.',
+    desc: '사고 나니 그 숫자가 하루 종일 눈에 밟혔다. 오른 날에도 그랬다.',
+    icon: 'fluent-color:data-trending-24',
+    ext: '.evt',
+  },
 ]
 
 export function findEvent(id: string): GameEvent | undefined {

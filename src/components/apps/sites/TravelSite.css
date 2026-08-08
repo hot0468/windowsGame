@@ -1,0 +1,199 @@
+/*
+ * 먼바다투어 — 여행 예약. 토큰은 `.tv` 안에 `--tv-*`로 가둔다(사이트마다 같은 규칙).
+ *
+ * 색 근거: color DB **`Travel/Tourism Agency`**(sky #0EA5E9 · accent #EA580C ·
+ * bg #F0F9FF — "Sky blue + adventure orange").
+ * ⚠️ **DB의 하늘색을 그대로 쓰지 않았다** — 알바몬이 이미 하늘색(#0369A1 / bg #f0f9ff)이라
+ * 두 사이트가 같은 인상이 된다. 대신 **이 사이트의 입구인 배너 그라데이션**
+ * (심해 남색 #0b3a53 → 바다 파랑 #14708c → 청록 #0f6f6a)을 팔레트로 이어받았다:
+ * 이동용 배너와 목적지가 같은 색이라야 누르고 들어온 자리가 이어진 곳으로 읽힌다.
+ * DB에서 가져온 것은 **구조**(primary / accent / bg / card / border)와 액센트 주황이다.
+ *
+ * ⚠️ 액센트 주황(#EA580C)은 흰 배경 3.6:1이라 **작은 글자에 쓰지 않는다** — 값·강조는
+ * 한 단 어두운 #9a3412(7.0:1)이고, 원래 주황은 면과 큰 숫자에만 쓴다.
+ */
+.tv {
+  --tv-deep: #0b3a53;
+  --tv-primary: #14708c; /* #fff 위 4.7:1 — 제목·링크 */
+  --tv-primary-hi: #0f5468; /* 7.0:1 — 작은 글자·강조 */
+  --tv-teal: #0f6f6a;
+  --tv-bg: #f0f8fa;
+  --tv-surface: #ffffff;
+  --tv-line: #d5e7ee;
+  --tv-line-strong: #b3d3de;
+  --tv-text: #102a35; /* 14.7:1 */
+  --tv-text-2: #3c5a66; /* 8.0:1 */
+  --tv-text-3: #4f6f7b; /* 5.9:1 — 최소 보조 */
+  --tv-accent: #9a3412; /* 7.0:1 — 포함 사항 칩의 글자 */
+  --tv-accent-bg: #fdf1e7;
+
+  min-height: 100%;
+  padding-bottom: var(--sp-8);
+  background: var(--tv-bg);
+  color: var(--tv-text);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  container-type: inline-size;
+}
+
+.tv-strip {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-5);
+  background: var(--tv-deep);
+  font-size: var(--fs-sm);
+  color: #fff;
+}
+
+.tv-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  border-bottom: 1px solid var(--tv-line-strong);
+  background: var(--tv-surface);
+}
+
+.tv-head-text {
+  min-width: 0;
+}
+
+.tv-logo {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  color: var(--tv-primary-hi);
+  letter-spacing: 0.02em;
+}
+
+.tv-sub {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--tv-text-3);
+}
+
+.tv-receipt {
+  margin: var(--sp-4) var(--sp-5) 0;
+  padding: var(--sp-3) var(--sp-4);
+  border-left: 3px solid var(--tv-teal);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: var(--tv-surface);
+  font-size: var(--fs-sm);
+  color: var(--tv-primary-hi);
+}
+
+/* ── 상품 목록 ───────────────────────────────────────────── */
+.tv-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  margin: var(--sp-4) 0 0;
+  padding: 0 var(--sp-5);
+  list-style: none;
+}
+
+/* 실제 여행사 카드처럼 가로로 눕는다. 좁아지면 세로로 접힌다(컨테이너 기준). */
+.tv-card {
+  display: flex;
+  gap: var(--sp-4);
+  width: 100%;
+  padding: var(--sp-4);
+  border: 1px solid var(--tv-line);
+  border-radius: var(--r-lg);
+  background: var(--tv-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 150ms ease-out;
+}
+
+.tv-card:hover {
+  box-shadow: var(--el-2);
+}
+
+@container (max-width: 560px) {
+  .tv-card {
+    flex-direction: column;
+  }
+
+  .tv-photo {
+    width: 100%;
+  }
+}
+
+/* 사진 자리. 그라데이션 판 + 목적지 글자다(외부 이미지 금지). */
+.tv-photo {
+  display: flex;
+  align-items: flex-end;
+  flex: 0 0 auto;
+  width: 180px;
+  min-height: 120px;
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  /* 배경은 인라인 style이 넣는다(상품마다 다르므로 데이터의 몫이다). */
+  color: #fff;
+}
+
+.tv-photo-place {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.tv-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tv-title {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--tv-text);
+}
+
+.tv-schedule {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--tv-primary-hi);
+}
+
+.tv-blurb {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-sm);
+  color: var(--tv-text-2);
+}
+
+.tv-includes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+/* 포함 사항 칩. 여행 상품 카드에서 실제로 비교하게 되는 줄이라 액센트를 여기 쓴다. */
+.tv-include {
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--tv-accent-bg);
+  font-size: var(--fs-xs);
+  color: var(--tv-accent);
+}
+
+/* ── 푸터 ────────────────────────────────────────────────── */
+.tv-foot {
+  margin: var(--sp-8) var(--sp-5) 0;
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--tv-line-strong);
+  font-size: var(--fs-xs);
+  color: var(--tv-text-3);
+}
+
+.tv-foot p {
+  margin: 0 0 2px;
+}
+
+.tv-foot-logo {
+  font-weight: 700;
+  color: var(--tv-primary-hi);
+}

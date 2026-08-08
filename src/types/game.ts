@@ -627,6 +627,48 @@ export interface TwitterState {
   paidDay: number
 }
 
+/* ── 주식 (2026-08-08 네이놈증권) ─────────────────────────────────────────
+ *
+ * 수치는 `data/stocks.ts`에, 규칙은 `systems/stocks.ts`에 있다.
+ * 여기에는 **모양만** 적는다(`Plan`·`BankState`와 같은 이유).
+ */
+
+/** 매매 한 건. 사실만 남기고 문장은 화면이 만든다(`BankEntry`와 같은 규칙). */
+export interface StockTrade {
+  id: string
+  day: number
+  stockId: string
+  kind: 'buy' | 'sell'
+  shares: number
+  /** 체결 단가. ⚠️ **시세는 날짜의 순수 함수라 다시 계산할 수 있지만 여기 박아 둔다** —
+   *  나중에 변동폭을 손보면 옛 기록이 그때 내지 않은 값을 말하게 된다
+   *  (`TermDeposit.rate`를 예금에 박아 두는 것과 같은 이유). */
+  price: number
+  /** 실제로 오간 돈(수수료 포함). */
+  amount: number
+}
+
+/**
+ * 주식 상태. **옵셔널이다** — 거래한 적 없으면 없다(`lottery`·`bank`와 같은 규칙).
+ *
+ * ⚠️ **시세를 저장하지 않는다** — 날짜의 순수 함수이므로 언제든 다시 계산된다.
+ * 저장하면 새로 고칠 때마다 다시 굴릴 수 있게 되어 **세이브 스커밍**이 열린다.
+ *
+ * ⚠️ `reviveState`의 검증이 `courses`보다 빡빡하다(`bank`·`lottery`와 같은 이유 —
+ * **돈을 만드는 상태다**). 주수나 평균가가 NaN이면 매도 대금이 NaN으로 소지금에 흘러
+ * `NaN <= 0`이 false가 되고 **파산이 영영 안 걸린다.**
+ */
+export interface StockState {
+  /** 종목별 보유. **평균 매입가를 함께 든다** — 평가손익이 그 값 위에서만 뜻을 갖는다. */
+  holdings: Record<string, { shares: number; avgPrice: number }>
+  /** 지금까지 산 금액(수수료 포함). 화면이 "얼마 넣고 얼마 뺐나"를 정직하게 적는 근거다. */
+  spent: number
+  /** 지금까지 판 금액(수수료 뗀 뒤). */
+  earned: number
+  /** 최근 매매 내역. 오래된 것부터 잘라 낸다. */
+  trades: StockTrade[]
+}
+
 export interface GameState {
   playerName: string
   day: number
@@ -754,6 +796,11 @@ export interface GameState {
    * `NaN <= 0`이 false가 되고 **파산이 영영 안 걸린다.**
    */
   twitter?: TwitterState
+  /**
+   * 주식(네이놈증권). **옵셔널이다** — 거래한 적 없으면 없다.
+   * ⚠️ 시세는 여기 없다(날짜의 순수 함수다). 보유와 내역만 든다.
+   */
+  stocks?: StockState
 }
 
 export const INITIAL_STATS: Stats = {

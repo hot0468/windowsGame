@@ -17,6 +17,8 @@ import { advanceEmployment, applyTo, canApply } from '../systems/employment'
 import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../systems/bank'
 import { moveTo } from '../systems/housing'
 import { advanceLottery, buyTickets } from '../systems/lottery'
+import { buyStock as buyStockOf, sellStock as sellStockOf } from '../systems/stocks'
+import { findStock } from '../data/stocks'
 import { advanceTwitter, postArtwork as postArtworkOf } from '../systems/twitter'
 import { takeCourse as takeCourseOf } from '../systems/courses'
 import { playGame as playGameOf } from '../systems/steam'
@@ -55,6 +57,8 @@ import type {
   LotteryTicket,
   Slot,
   Stats,
+  StockState,
+  StockTrade,
   TermDeposit,
   TwitterState,
 } from '../types/game'
@@ -272,6 +276,39 @@ function reviveTwitter(saved: Partial<GameState>): TwitterState | undefined {
 }
 
 /**
+ * 주식 상태 복원.
+ *
+ * ⚠️ **검증이 빡빡한 이유는 `reviveBank`·`reviveLottery`와 정확히 같다 — 돈을 만든다.**
+ * 주수나 평균 매입가가 NaN이면 매도 대금이 NaN으로 소지금에 흘러 `NaN <= 0`이 false가
+ * 되고 **파산이 영영 안 걸린다.** 그래서 **종목별로** 거른다 — 한 종목이 망가졌다고
+ * 나머지 보유까지 버릴 이유는 없다(은행은 잔액 하나가 전부라 통째로 버렸다).
+ *
+ * ⚠️ **없는 종목을 가리키는 보유는 버린다** — 팔 수도 값을 매길 수도 없어 화면에
+ * 영원히 남는 유령이 된다.
+ */
+function reviveStocks(saved: Partial<GameState>): StockState | undefined {
+  const st = saved.stocks
+  if (!st || typeof st !== 'object') return undefined
+  const raw = st.holdings && typeof st.holdings === 'object' ? st.holdings : {}
+  const holdings: StockState['holdings'] = {}
+  for (const [id, h] of Object.entries(raw)) {
+    if (!findStock(id) || !h) continue
+    if (!Number.isFinite(h.shares) || !Number.isFinite(h.avgPrice)) continue
+    if (h.shares <= 0 || h.avgPrice < 0) continue
+    holdings[id] = { shares: Math.floor(Number(h.shares)), avgPrice: Math.round(Number(h.avgPrice)) }
+  }
+  return {
+    holdings,
+    spent: Number.isFinite(st.spent) ? Number(st.spent) : 0,
+    earned: Number.isFinite(st.earned) ? Number(st.earned) : 0,
+    trades: (Array.isArray(st.trades) ? st.trades : []).filter(
+      (t): t is StockTrade =>
+        !!t && typeof t.id === 'string' && Number.isFinite(t.day) && Number.isFinite(t.amount),
+    ),
+  }
+}
+
+/**
  * 저장된 세이브를 검증해 안전한 GameState로 되돌린다.
  * 필드가 빠진 구버전 세이브를 그대로 통과시키면 clampStats가 NaN을 만들고,
  * NaN <= 0이 false라 게임오버 판정이 영영 걸리지 않아 조용히 망가진다.
@@ -342,6 +379,7 @@ function reviveState(raw: unknown): GameState | null {
         ) as Artwork[])
       : undefined,
     twitter: reviveTwitter(saved),
+    stocks: reviveStocks(saved),
     // ⚠️ 응시 기록은 **돈을 만들지 않으므로** 검증이 은행·정규직만큼 빡빡할 필요가 없다
     //    (합격해도 나오는 것은 아이템 하나다). 날짜만 유한하면 통과시키고, 없는 종목을
     //    가리키는 기록은 `advanceCertification`이 조용히 닫는다.
@@ -530,6 +568,13 @@ interface GameStore {
    * PRNG가 하고 여기서는 부르기만 한다.
    */
   buyLottery: (count: number) => void
+  /**
+   * 주식 매매. **은행 거래와 완전히 같은 부류다** — 턴을 쓰지 않고, 순수 함수가
+   * 조건을 다 보고 안 되면 상태를 그대로 돌려주므로 그때는 아무것도 하지 않는다.
+   * ⚠️ **밤 정산이 없다**(즉시 체결) — `nightPayoutPending`에 원천을 더하지 않는다.
+   */
+  buyStock: (stockId: string, shares: number) => void
+  sellStock: (stockId: string, shares: number) => void
   markEndingSeen: (endingId: string) => void
   reset: () => void
 
@@ -922,6 +967,20 @@ export const useGameStore = create<GameStore>()(
           if (!current) return
           const next = buyTickets(current, count)
           if (next !== current) set({ state: recordEvent(next, 'first-lottery') })
+        },
+
+        buyStock: (stockId, shares) => {
+          const current = get().state
+          if (!current) return
+          const next = buyStockOf(current, stockId, shares)
+          if (next !== current) set({ state: recordEvent(next, 'first-stock') })
+        },
+
+        sellStock: (stockId, shares) => {
+          const current = get().state
+          if (!current) return
+          const next = sellStockOf(current, stockId, shares)
+          if (next !== current) set({ state: next })
         },
 
         markEndingSeen: (endingId) => {

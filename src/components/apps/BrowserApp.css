@@ -45,21 +45,75 @@
   height: 36px;
   padding: var(--sp-1) var(--sp-2) 0;
   background: var(--os-chrome-alt);
+  /* ⚠️ 탭이 무한히 늘 수 있으므로 넘치면 가로로 흐른다. 실제 크롬은 탭을 계속 좁히지만,
+     좁아지면 제목이 사라져 "어느 탭인가"를 못 읽는다 — 최소 폭을 지키고 흘려보낸다. */
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .browser-tab {
   display: flex;
   align-items: center;
-  gap: var(--sp-2);
+  flex: 0 1 auto;
   min-width: 0;
   max-width: 240px;
   height: 32px;
-  padding: 0 var(--sp-2) 0 var(--sp-3);
+  padding-right: var(--sp-1);
   /* 위쪽만 둥글다. 아래는 도구 모음에 맞닿아야 하므로 각을 남긴다. */
   border-radius: var(--r-lg) var(--r-lg) 0 0;
-  /* 도구 모음과 같은 흰색이라 두 줄이 한 덩어리로 이어져 보인다. */
-  background: var(--os-surface);
+  /* ⚠️ 비활성 탭은 크롬 바탕에 잠겨 있고 **활성 탭만** 도구 모음과 같은 흰색이다 —
+     그래야 두 줄이 한 덩어리로 이어져 "지금 이 탭"이 자리로 읽힌다(색만으로 알리지
+     않는다: `aria-selected`와 글자 굵기가 함께 간다). */
+  background: transparent;
   font-size: var(--fs-sm);
+  color: var(--os-text-2);
+}
+
+.browser-tab:hover {
+  background: var(--os-border-strong);
+}
+
+.browser-tab-on {
+  background: var(--os-surface);
+  color: var(--os-text);
+  font-weight: 600;
+}
+
+/* 탭 몸통 = 전환 버튼. ⚠️ ✕가 자식이 될 수 없어(버튼 중첩 금지) 형제로 나란히 둔다. */
+.browser-tab-pick {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0 var(--sp-1) 0 var(--sp-3);
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* 새 탭 [+]. 탭 줄 끝에 붙고 스크롤돼 사라지지 않게 줄어들지 않는다. */
+.browser-tab-new {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: 2px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--os-text-2);
+  cursor: pointer;
+}
+
+.browser-tab-new:hover {
+  background: var(--os-border-strong);
   color: var(--os-text);
 }
 
@@ -71,7 +125,7 @@
   text-overflow: ellipsis;
 }
 
-/* 탭 닫기. 크롬과 같은 작은 원형 버튼이고, 마지막 탭이므로 창을 닫는다. */
+/* 탭 닫기. 크롬과 같은 작은 원형 버튼이고, 마지막 탭이면 창이 닫힌다. */
 .browser-tab-close {
   flex: 0 0 auto;
   display: flex;
@@ -180,6 +234,28 @@
 
 .browser-glyph-x::after {
   transform: rotate(-45deg);
+}
+
+/* 새 탭 +. ✕와 같은 방식(선 두 개 교차)이되 돌리지 않는다. */
+.browser-glyph-plus {
+  position: relative;
+  width: 11px;
+  height: 11px;
+}
+
+.browser-glyph-plus::before,
+.browser-glyph-plus::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1.5px;
+  background: currentColor;
+}
+
+.browser-glyph-plus::after {
+  transform: rotate(90deg);
 }
 
 /* 열린 고리 + 화살촉으로 그린 새로고침 표시. */

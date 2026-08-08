@@ -1,0 +1,215 @@
+/*
+ * 노24 — 공연 예매. 토큰은 `.tk` 안에 `--tk-*`로 가둔다(사이트마다 같은 규칙).
+ *
+ * 색 근거: color DB **`Music Streaming`**(primary #1E1B4B · secondary #4338CA ·
+ * accent #22C55E — "Dark audio + play green").
+ * ⚠️ **DB의 어두운 배경(#0F0F23)은 쓰지 않는다.** 시집이의 어두운 극장 톤이 설계자에게
+ * 기각된 전례가 있다 — 브라우저 안의 사이트가 어두우면 창 안에서 이질적으로 뜬다.
+ * 그래서 **판은 밝게 두고 인디고는 브랜드·포스터에만** 쓴다.
+ * ⚠️ 액센트 초록(#22C55E)도 글자로 쓰지 않는다: 흰 배경 대비 1.9:1이고, 무엇보다
+ * 네이놈 브랜드 초록과 겹쳐 "포털의 색"으로 읽힌다.
+ *
+ * ⚠️ **배너와 색을 맞춘 것이 규칙이다.** 이 사이트의 입구는 포털 가로 띠의 이동용 배너
+ * 하나뿐이라, 배너 그라데이션(#1e1b4b → #4338ca → #6d5ce0)을 포스터 톤으로 이어받아
+ * 누르고 들어온 자리가 같은 곳으로 읽히게 했다(먼바다투어도 같다).
+ */
+.tk {
+  --tk-primary: #3730a3; /* #fff 위 8.7:1 — 제목·브랜드 */
+  --tk-primary-hi: #1e1b4b;
+  --tk-bg: #f5f5ff;
+  --tk-surface: #ffffff;
+  --tk-line: #e3e2f7;
+  --tk-line-strong: #c9c7ee;
+  --tk-text: #1c1a33; /* 14.9:1 */
+  --tk-text-2: #4a4766; /* 8.4:1 */
+  --tk-text-3: #5f5c7a; /* 6.2:1 — 최소 보조 */
+
+  min-height: 100%;
+  padding-bottom: var(--sp-8);
+  background: var(--tk-bg);
+  color: var(--tk-text);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  /* 사이트는 창 **안**이라 뷰포트가 아니라 컨테이너로 반응한다. */
+  container-type: inline-size;
+}
+
+.tk-strip {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-5);
+  background: var(--tk-primary-hi);
+  font-size: var(--fs-sm);
+  color: #fff;
+}
+
+.tk-head {
+  padding: var(--sp-5);
+  border-bottom: 1px solid var(--tk-line-strong);
+  background: var(--tk-surface);
+}
+
+.tk-logo {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  color: var(--tk-primary);
+  letter-spacing: 0.02em;
+}
+
+/* 숫자만 한 단 밝게 — 실제 예매 사이트 로고의 그 형태다. */
+.tk-logo-num {
+  color: var(--tk-primary-hi);
+}
+
+.tk-sub {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--tk-text-3);
+}
+
+/* ── 분류 탭 ─────────────────────────────────────────────── */
+.tk-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-5) 0;
+}
+
+.tk-tab {
+  min-height: 34px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--tk-line-strong);
+  border-radius: 999px;
+  background: var(--tk-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--tk-text-2);
+  cursor: pointer;
+}
+
+.tk-tab:hover {
+  border-color: var(--tk-primary);
+  color: var(--tk-primary);
+}
+
+/* 고른 탭은 색만이 아니라 면·굵기·`aria-pressed`가 함께 알린다(ux `color-not-only`). */
+.tk-tab-on {
+  border-color: transparent;
+  background: var(--tk-primary);
+  font-weight: 700;
+  color: #fff;
+}
+
+.tk-receipt {
+  margin: var(--sp-4) var(--sp-5) 0;
+  padding: var(--sp-3) var(--sp-4);
+  border-left: 3px solid var(--tk-primary);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: var(--tk-surface);
+  font-size: var(--fs-sm);
+  color: var(--tk-primary);
+}
+
+/* ── 포스터 격자 ─────────────────────────────────────────── */
+.tk-grid {
+  display: grid;
+  /* ⚠️ 최소 폭을 `min()`으로 감싼다 — 좁은 창에서 고정값은 가로 스크롤을 만든다. */
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: var(--sp-4);
+  margin: var(--sp-4) 0 0;
+  padding: 0 var(--sp-5);
+  list-style: none;
+}
+
+.tk-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* 포스터. 사진이 없으므로 세로로 긴 그라데이션 판 + 제목이다. */
+.tk-poster {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+  aspect-ratio: 3 / 4;
+  padding: var(--sp-4);
+  border-radius: var(--r-lg);
+  /* 배경은 인라인 style이 넣는다(공연마다 다르므로 데이터의 몫이다). */
+  color: #fff;
+  transition: box-shadow 150ms ease-out;
+}
+
+.tk-card:hover .tk-poster {
+  box-shadow: var(--el-2);
+}
+
+.tk-poster-genre {
+  align-self: flex-start;
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  /* 어두운 포스터 위에 얹는 반투명 판. 글자는 흰색이라 어느 판에서도 선다. */
+  background: rgba(0, 0, 0, 0.35);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.tk-poster-title {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.35;
+  /* 그라데이션 위 흰 글자라 판마다 대비가 다르다 — 그림자로 바닥을 만든다. */
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.tk-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tk-title {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--tk-text);
+}
+
+.tk-meta {
+  font-size: var(--fs-sm);
+  color: var(--tk-text-2);
+}
+
+.tk-seats {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-xs);
+  color: var(--tk-text-3);
+}
+
+/* ── 푸터 ────────────────────────────────────────────────── */
+.tk-foot {
+  margin: var(--sp-8) var(--sp-5) 0;
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--tk-line-strong);
+  font-size: var(--fs-xs);
+  color: var(--tk-text-3);
+}
+
+.tk-foot p {
+  margin: 0 0 2px;
+}
+
+.tk-foot-logo {
+  font-weight: 700;
+  color: var(--tk-primary);
+}

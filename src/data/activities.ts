@@ -442,6 +442,45 @@ export const ACTIVITIES: Activity[] = [
     effects: { sensitivity: 6, creativity: 3, mental: 8, stamina: -15, money: -15000 },
     requires: { stamina: 15, money: 15000 },
   },
+  /*
+   * ── 티켓으로 가는 두 곳 (2026-08-08 노24 · 먼바다투어) ──
+   * ⚠️ **영화 감상(`movie`)과 같은 부류다**: 사이트에서 고르는 것은 **무엇을 보러/어디로
+   * 가는가**뿐이고, 수치는 활동 하나가 갖는다(시집이의 회차·미디북스의 책과 같은 규칙).
+   * 공연·여행 상품에 각자 가격을 달지 않는 이유도 같다 — 밸런스 테스트가 못 보는
+   * 두 번째 출처가 생긴다.
+   *
+   * ⚠️ **둘 다 사치품이다.** 멘탈 회복 폭이 게임에서 가장 크고 그만큼 비싸다 —
+   * 초반에는 손이 안 닿고, 물가가 오르면 다시 손이 닿지 않게 된다. 그것이 이 둘의 자리다.
+   */
+  {
+    /*
+     * 공연 관람. 영화(멘탈 8 / 15,000원)보다 크게 회복하고 그만큼 비싸다.
+     * 감수성이 붙는 것도 영화와 같지만 폭이 크다 — 큰 소리를 직접 듣는 것의 값이다.
+     */
+    id: 'concert',
+    label: '공연 관람',
+    icon: 'fluent-color:mic-24',
+    category: 'leisure',
+    description: '큰 소리를 직접 듣는다. 끝나고 나오면 귀가 먹먹하다.',
+    effects: { mental: 14, sensitivity: 8, creativity: 3, stamina: -18, money: -60000 },
+    requires: { stamina: 18, money: 60000 },
+  },
+  {
+    /*
+     * 여행. **이 게임에서 가장 큰 멘탈 회복이자 가장 큰 지출**이다.
+     *
+     * ⚠️ **여러 턴을 먹게 만들지 않았다.** 이 게임의 활동은 전부 1턴이고, 며칠짜리 활동은
+     * 예약·정산·번아웃이 전부 새 규칙을 요구한다(설계자가 구독을 뺀 것과 같은 판단).
+     * "며칠 다녀왔다"는 감각은 **행동력 소모와 금액**이 대신 진다.
+     */
+    id: 'travel',
+    label: '여행',
+    icon: 'fluent-color:beach-24',
+    category: 'leisure',
+    description: '멀리 간다. 돌아오면 통장은 가벼워지고 머리는 맑아진다.',
+    effects: { mental: 28, sensitivity: 12, creativity: 5, stamina: -30, money: -250000 },
+    requires: { stamina: 30, money: 250000 },
+  },
   {
     /* 창의력의 주 공급원. 돈은 안 들지만 행동력·멘탈을 가장 많이 먹는다. */
     id: 'writing',

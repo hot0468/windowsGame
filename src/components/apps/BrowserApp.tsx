@@ -28,6 +28,8 @@ import { PublishSite } from './sites/PublishSite'
 import { RealtySite } from './sites/RealtySite'
 import { ShopSite } from './sites/ShopSite'
 import { TechSite } from './sites/TechSite'
+import { TicketSite } from './sites/TicketSite'
+import { TravelSite } from './sites/TravelSite'
 import { WearSite } from './sites/WearSite'
 import { TubeSite } from './sites/TubeSite'
 import { TwitterSite } from './sites/TwitterSite'
@@ -365,13 +367,19 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         </dl>
       )}
 
-      {/* key가 바뀌면 페이지가 다시 마운트된다 = 새로고침·사이트 이동. */}
-      <div className="browser-page" key={`${siteId}-${reloadCount}`}>
+      {/* key가 바뀌면 페이지가 다시 마운트된다 = 새로고침·사이트 이동·탭 전환.
+          ⚠️ **활성 탭만 그린다.** 전부 그려 두고 감추면 탭의 로컬 상태(필터·검색어)가
+          남지만, 사이트 열 몇 개가 동시에 마운트돼 포털의 실검 타이머까지 함께 돈다.
+          이 게임의 사이트 로컬 상태는 칩 하나·검색어 하나라 잃어도 값이 싸다. */}
+      <div className="browser-page" key={`${tabs.activeId}-${siteId}-${reloadCount}`}>
         {!site && <p className="browser-error">페이지를 찾을 수 없습니다.</p>}
         {site?.render === 'portal' && <NeverPortal onNavigate={goToSite} />}
         {site?.render === 'shop' && <ShopSite />}
         {site?.render === 'tech' && <TechSite site={site} />}
         {site?.render === 'wear' && <WearSite site={site} />}
+        {/* 티켓·여행. 입구는 포털 가로 띠의 이동용 배너 하나다(즐겨찾기·소개 카드에 없다). */}
+        {site?.render === 'ticket' && <TicketSite site={site} />}
+        {site?.render === 'trip' && <TravelSite site={site} />}
         {site?.render === 'tube' && <TubeSite />}
         {/* 활동을 실행하는 사이트들. 둘러보기는 여전히 무료이고,
             항목을 눌러 뜬 확인창(ActivityConfirm)의 실행 버튼만 1턴을 쓴다. */}
@@ -388,7 +396,7 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         {site?.render === 'bank' && <BankSite site={site} />}
         {site?.render === 'realty' && <RealtySite site={site} />}
         {site?.render === 'construction' && (
-          <ConstructionSite site={site} onGoHome={() => goToSite(HOME_SITE_ID)} />
+          <ConstructionSite site={site} onGoHome={() => goInTab(HOME_SITE_ID)} />
         )}
       </div>
     </div>

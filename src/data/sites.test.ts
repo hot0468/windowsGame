@@ -63,7 +63,7 @@ describe('사이트 목록', () => {
 
   it('퀵메뉴와 하단 소개 섹션은 겹치지 않는다', () => {
     // 같은 사이트가 화면에 두 번 나오면 어느 쪽이 본체인지 알 수 없다.
-    expect(PROMO_SITES.map((s) => s.id)).toEqual(['albamon', 'flea', 'onet', 'bank', 'realty'])
+    expect(PROMO_SITES.map((s) => s.id)).toEqual(['albamon', 'flea', 'onet', 'bank', 'stock', 'realty'])
     for (const s of PROMO_SITES) expect(s.bookmark).toBeUndefined()
   })
 
@@ -127,7 +127,7 @@ describe('활동을 실행하는 사이트', () => {
     }
   })
 
-  it('여덟 사이트가 서로 다른 활동을 실행한다', () => {
+  it('활동을 실행하는 사이트들은 서로 다른 활동을 실행한다', () => {
     // 알바몬의 'work'·벼룩장터의 'job-apply'·O넷의 'exam'·슬로우캠퍼스의 'study'는
     // **아무것도 안 고른 상태의 기본값**이다 — 실제로 무엇을 실행할지는 알바몬은
     // `data/jobs.ts`의 공고가, 슬로우캠퍼스는 `data/courses.ts`의 강의가, O넷은
@@ -135,10 +135,14 @@ describe('활동을 실행하는 사이트', () => {
     // ⚠️ 트위터의 'sns'는 기본값이 아니라 **유일한 실행 활동이다** — 타임라인에는 고를 것이
     // 없다(미디북스·시집이·아점과 달리 목록에서 무엇을 고르든 실행되는 것은 이 하나다).
     const ids = SITES.map((s) => s.activityId).filter((id) => id !== undefined)
+    // ⚠️ 노24·먼바다투어는 **포털 가로 띠의 이동용 배너**가 입구다(즐겨찾기·소개 카드에 없다).
+    //    사이트 배열 순서대로 적는다 — 순서가 바뀌면 즐겨찾기 줄도 함께 바뀐다.
     expect(ids).toEqual([
       'work',
       'job-apply',
       'exam',
+      'concert',
+      'travel',
       'study',
       'sns',
       'reading',

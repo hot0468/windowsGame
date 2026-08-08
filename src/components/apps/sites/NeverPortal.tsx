@@ -404,16 +404,19 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
               banner={banner}
               canClaim={canClaim}
               onClaim={claimAd}
+              onNavigate={onNavigate}
             />
           ))}
         </section>
       </div>
 
       {/*
-        뉴스 아래 **가로로 긴 배너 띠**(설계자 지시). 위가 아니라 아래인 것이 규칙이다 —
+        뉴스 아래 **가로 배너 띠**(설계자 지시). 위가 아니라 아래인 것이 규칙이다 —
         위에 눕히면 첫 화면이 광고로 채워져 "뉴스가 주인공"이 깨진다(`nv-columns` 주석).
-        ⚠️ **보상 경로는 옆 배너존과 하나다.** 자리만 늘었을 뿐 하루 한 번 100원은 그대로라,
-        여기서 받으면 옆 배너들이 함께 '오늘 받음'으로 바뀐다(`canClaimAdBonus` 단일 판정).
+
+        ⚠️ **이 띠의 배너 둘은 광고가 아니라 사이트 입구다**(2026-08-08 설계자 지시):
+        먼바다투어 → 여행 예약, 노24 → 공연 예매. 그래서 보상을 주지 않고 이동만 한다
+        (`Banner.siteId`). 옆 배너존(`side`)은 여전히 광고이고 보상 경로는 그쪽 하나다.
       */}
       <section className="nv-wide" aria-label="띠 배너">
         {bannersFor('wide').map((banner) => (
@@ -423,6 +426,7 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
             wide
             canClaim={canClaim}
             onClaim={claimAd}
+            onNavigate={onNavigate}
           />
         ))}
       </section>
@@ -456,35 +460,47 @@ function BannerButton({
   wide = false,
   canClaim,
   onClaim,
+  onNavigate,
 }: {
   banner: Banner
   wide?: boolean
   canClaim: boolean
   onClaim: () => void
+  onNavigate: (siteId: string) => void
 }) {
+  /*
+   * 배너는 셋 중 하나다: **광고**(누르면 보상) / **이동용**(누르면 그 사이트로) / **공지**.
+   * ⚠️ 광고와 이동을 겸하지 않는다(`Banner.siteId` 주석) — 뱃지 글자가 그 셋을 구분한다.
+   */
   const rewardable = banner.reward === true
   const done = rewardable && !canClaim
+  const link = banner.siteId
   return (
     <button
       type="button"
       className={`nv-banner${wide ? ' nv-banner-wide' : ''}`}
       style={{ background: banner.gradient }}
-      onClick={() => rewardable && onClaim()}
+      onClick={() => {
+        if (link) onNavigate(link)
+        else if (rewardable) onClaim()
+      }}
       disabled={done}
-      /* 보상 여부·상태를 문구로 알린다 — 배너 그림만 보고는 알 수 없다. */
+      /* 무슨 일이 일어나는지 문구로 알린다 — 배너 그림만 보고는 알 수 없다. */
       title={
-        rewardable
-          ? done
-            ? '오늘은 이미 받았습니다'
-            : `클릭하면 ${AD_BONUS_MONEY}원`
-          : banner.headline
+        link
+          ? `${banner.brand}(으)로 이동합니다`
+          : rewardable
+            ? done
+              ? '오늘은 이미 받았습니다'
+              : `클릭하면 ${AD_BONUS_MONEY}원`
+            : banner.headline
       }
     >
       <span className="nv-banner-brand">{banner.brand}</span>
       <span className="nv-banner-head">{banner.headline}</span>
       {banner.sub && <span className="nv-banner-sub">{banner.sub}</span>}
       <span className="nv-banner-badge">
-        {rewardable ? (done ? '오늘 받음' : `AD +${AD_BONUS_MONEY}원`) : '공지'}
+        {link ? '바로가기' : rewardable ? (done ? '오늘 받음' : `AD +${AD_BONUS_MONEY}원`) : '공지'}
       </span>
     </button>
   )
