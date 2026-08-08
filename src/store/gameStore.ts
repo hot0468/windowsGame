@@ -15,6 +15,7 @@ import { clearPlan, planWeekly, runPlans, setPlan } from '../systems/schedule'
 import { collect, order, owns, recordEvent } from '../systems/delivery'
 import { advanceEmployment, applyTo, canApply } from '../systems/employment'
 import { creditCall, reviveBonus, worksAtCallCenter } from '../systems/callcenter'
+import { creditPerformance, revivePerformance, worksAtOffice } from '../systems/drive'
 import { useWindowStore } from './windowStore'
 import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../systems/bank'
 import { moveTo } from '../systems/housing'
@@ -148,6 +149,8 @@ function reviveJob(
           warnedAt: Number.isFinite(job.warnedAt) ? Number(job.warnedAt) : undefined,
           // 급여일에 소지금으로 흘러 들어가는 값이라 스탯과 같은 강도로 검증한다.
           bonus: reviveBonus(job.bonus),
+          // 성과 게이지도 같다 — 초과분이 야근비가 되어 소지금으로 흘러 들어간다.
+          performance: revivePerformance(job.performance),
         }
       : undefined
 
@@ -622,6 +625,27 @@ function openCallCenterIfWorking(before: GameState, activityId: string) {
   })
 }
 
+/**
+ * 사무직에 출근했으면 사내 드라이브를 띄운다.
+ *
+ * ⚠️ **콜센터와 배타다** — `worksAtOffice`는 콜센터를 뺀 나머지 회사이므로 두 창이 함께
+ * 뜰 수 없다. 판정을 여기서 다시 적지 않고 `systems/drive.ts`에 물어보는 것도 같은 이유다.
+ * ⚠️ **`doActivity`에만 붙는다**(콜센터와 같은 규칙) — 스케줄러 예약·자동 진행으로 지나간
+ * 출근은 창이 안 뜨고, 그래서 성과도 안 쌓인다.
+ */
+function openDriveIfWorking(before: GameState, activityId: string) {
+  if (activityId !== 'commute' || !worksAtOffice(before)) return
+  useWindowStore.getState().open({
+    id: 'drive',
+    kind: 'drive',
+    title: '너드라이브 — 사내 공유함',
+    icon: 'fluent-color:cloud-24',
+    x: 72,
+    y: 56,
+    width: 1000,
+  })
+}
+
 interface GameStore {
   state: GameState | null
   /** 잠금화면을 통과했는지. 저장하지 않아 새로고침 시 잠금화면부터 시작한다. */
@@ -633,6 +657,11 @@ interface GameStore {
   doSkip: () => void
   /** 콜센터 미니게임에서 콜 한 건을 마쳤다. 인자는 그 콜의 보너스(원). */
   finishCall: (won: number) => void
+  /**
+   * 사내 드라이브 미니게임에서 요청 한 건을 마쳤다. 인자는 그 건의 성과(%).
+   * ⚠️ **소지금은 안 움직인다** — 게이지에 쌓였다가 급여일에 100% 초과분만 야근비가 된다.
+   */
+  finishRequest: (percent: number) => void
   /** 포털 광고 배너 보상(하루 한 번 100원). 턴은 소모하지 않는다. */
   claimAdBonus: () => void
   /**
@@ -1199,12 +1228,20 @@ export const useGameStore = create<GameStore>()(
           if (!current || !canRun(current, activity)) return
           set(afterTurn(runActivity(current, activity)))
           openCallCenterIfWorking(current, activity.id)
+          openDriveIfWorking(current, activity.id)
         },
 
         /**
          * 콜 한 건 처리 완료. 금액 판정은 화면(경과 시간)이 하고 상한은 `creditCall`이 쥔다.
          * **소지금은 안 움직인다** — 급여일에 기본급과 함께 들어온다.
          */
+        finishRequest: (percent) => {
+          const current = get().state
+          if (!current) return
+          const credited = creditPerformance(current, percent)
+          if (credited !== current) set({ state: credited })
+        },
+
         finishCall: (won) => {
           const current = get().state
           if (!current) return

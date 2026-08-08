@@ -5,6 +5,7 @@ import { CAREER_LEVEL_DAYS, CAREER_MAX_LEVEL } from '../../data/careers'
 import { STAT_NAMES } from '../../types/game'
 import { attendedCount, careerLevel, heldCareer, toNextCareerLevel } from '../../systems/careerLog'
 import { achievementProgress } from '../../systems/achievements'
+import { EPISODE_PAY, SERIES_TITLE, STUDIO_NAME, WEEKLY_PAGES, webtoonLevel } from '../../systems/webtoon'
 import { useGameStore } from '../../store/gameStore'
 import { useMetaStore } from '../../store/metaStore'
 import type { Ending } from '../../data/endings'
@@ -179,13 +180,17 @@ export function ExcelApp() {
  *
  * ⚠️ 급여를 여기서 다시 적지 않는다 — `Career.salary`를 그대로 읽는다.
  * 레벨 규칙도 여기 없다(`systems/careerLog.ts`).
+ *
+ * ⚠️ **마지막 줄은 공고가 아니라 웹툰 연재다.** 벼룩장터에 없고 출근부도 급여일도 없지만
+ * "이번 판에 무엇으로 먹고살아 봤는가"를 묻는 표라 빠지면 표가 거짓이 된다. 그래서 행만
+ * 여기서 만들고 **레벨·경험 판정은 `systems/webtoon.ts`가 한다**(두 번째 판정 금지).
  */
 function careerSheet(state: GameState): Sheet {
   return {
     id: 'career',
     label: '직업',
     columns: ['회사', '직함', '급여', '레벨', '상태'],
-    rows: CAREERS.map((career) => {
+    rows: [...CAREERS.map((career) => {
       const held = heldCareer(state, career.id)
       const level = careerLevel(state, career.id)
       const attended = attendedCount(state, career.id)
@@ -208,8 +213,35 @@ function careerSheet(state: GameState): Sheet {
             ` · ${career.summary}`
           : `아직 다녀 본 적 없는 회사입니다. 벼룩장터에서 지원해 채용되면 Lv.1로 열리고, 출근 ${CAREER_LEVEL_DAYS}회마다 한 칸 오릅니다.`,
       }
-    }),
+    }), webtoonRow(state)],
     countLabel: (done, total) => `직업 ${total}개 중 ${done}개 경험`,
+  }
+}
+
+/**
+ * 웹툰 작가 줄. **연재는 정규직과 다른 축이라 `careerLog`에 없다** — 상태를 `webtoon`에서
+ * 직접 읽는다. 급여 칸에 회차당 금액을 적는 것은 월급이 아니라 원고료이기 때문이다.
+ */
+function webtoonRow(state: GameState): Row {
+  const w = state.webtoon
+  const level = webtoonLevel(state)
+  const held = level !== undefined
+  return {
+    key: 'webtoon',
+    done: held,
+    cells: [
+      STUDIO_NAME,
+      '웹툰 작가 (연재)',
+      `${EPISODE_PAY.toLocaleString('ko-KR')}원/회차`,
+      held ? `Lv.${level}` : '—',
+      w?.status === 'serializing' ? '연재 중' : held ? '연재 종료' : '미경험',
+    ],
+    detail: held
+      ? `${STUDIO_NAME} · 「${SERIES_TITLE}」 — ${w!.episodes}회 연재, 원고료 누적 ${w!.earned.toLocaleString('ko-KR')}원, Lv.${level}` +
+        (w!.status === 'serializing'
+          ? ` · 이번 주 원고 ${w!.progress}/${WEEKLY_PAGES}장`
+          : ` · 연재가 끝났습니다(놓친 마감 ${w!.missed}회).`)
+      : `아직 연재를 맡아 본 적 없습니다. 그림이 알려지면 ${STUDIO_NAME} 편집부에서 제의가 오고, 클립스튜디오에서 수락하면 Lv.1로 열립니다. 회차를 넘길 때마다 한 칸 오릅니다.`,
   }
 }
 

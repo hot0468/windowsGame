@@ -34,6 +34,7 @@ import {
   skipSlot,
 } from './turn'
 import { livingCostForDay } from './economy'
+import { weekendCallOn } from './drive'
 import { STAT_NAMES } from '../types/game'
 import type { GameState, Stats } from '../types/game'
 
@@ -238,8 +239,10 @@ describe('출근', () => {
   })
 
   it('근무일이 아니면 갈 수 없다 — 눌러도 아무 일 없는 버튼을 만들지 않는다', () => {
+    /* ⚠️ **호출이 없는 주말**이라야 한다(2026-08-08 주말 호출). 회사에서 일이 넘어온
+       주말에는 나갈 수 있고 그것이 야근이다 — 그쪽 증명은 `drive.test.ts`가 진다. */
     let day = 20
-    while (isWorkWeekday(weekdayOf(day))) day++
+    while (isWorkWeekday(weekdayOf(day)) || weekendCallOn(day, entry.id)) day++
     expect(canRun(employedAt(day), commute)).toBe(false)
   })
 

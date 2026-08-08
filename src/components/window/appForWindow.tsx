@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { BrowserApp } from '../apps/BrowserApp'
 import { CallCenterApp } from '../apps/CallCenterApp'
+import { DriveApp } from '../apps/DriveApp'
 import { ChatListApp, ChatThreadApp } from '../apps/ChatApp'
 import { MailApp } from '../apps/MailApp'
 import { CommandPromptApp, SaveApp, TaskManagerApp } from '../apps/SystemApps'
@@ -56,6 +57,7 @@ export const WINDOW_APP_KINDS = [
   'steam',
   'settings',
   'callcenter',
+  'drive',
   'tool',
   'clipstudio',
   'excel',
@@ -122,6 +124,9 @@ export function appForWindow(w: OpenWindow, { onClose }: AppSlots): ReactNode {
     /* 출근이 여는 사내 프로그램. 턴은 이미 지나갔고 여기서 버는 것은 보너스뿐이다. */
     case 'callcenter':
       return <CallCenterApp onClose={onClose} />
+    /* 사무직 출근이 여는 사내 드라이브. 콜센터와 같은 부류이고 서로 배타다. */
+    case 'drive':
+      return <DriveApp onClose={onClose} />
     /* 도구 앱(포토샵·프리미어·VS 코드). 활동 창이 아니라 **단독 창**이고 상태를 안 바꾼다. */
     case 'tool':
       return w.toolRun ? <ToolRun payload={w.toolRun} onClose={onClose} /> : null

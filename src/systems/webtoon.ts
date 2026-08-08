@@ -9,6 +9,7 @@ import {
   STUDIO_NAME,
   WEEKLY_PAGES,
 } from '../data/webtoon'
+import { CAREER_MAX_LEVEL } from '../data/careers'
 import { MAILBOX } from '../data/messages'
 import { findActivity } from '../data/activities'
 import { contestsStateOf } from './contests'
@@ -75,6 +76,21 @@ export function pagesLeft(state: GameState): number | undefined {
   const w = state.webtoon
   if (!w || w.status !== 'serializing') return undefined
   return Math.max(0, WEEKLY_PAGES - w.progress)
+}
+
+/**
+ * 도감이 읽는 **연재 레벨**. 수락한 적이 없으면 없다(0이 아니라 "없음" — 화면이 `—`를 적는다).
+ *
+ * ⚠️ **회차 하나가 한 칸이고 상한은 정규직과 같은 `CAREER_MAX_LEVEL`이다** — 도감 한 표에
+ * 두 척도를 섞으면 같은 열의 Lv.3이 자리마다 다른 뜻이 된다. 한 회차가 한 주이므로
+ * 정규직의 반 주기 개근(`CAREER_LEVEL_DAYS`)과 같은 무게로 맞춰진다.
+ * ⚠️ 판정 근거는 `startedDay`다 — **수락한 날에만 박히는 값**이라 "맡아 본 적 있는가"의
+ * 단일 출처다(`status`를 보면 제의만 받고 거절한 판이 경험으로 세어진다).
+ */
+export function webtoonLevel(state: GameState): number | undefined {
+  const w = state.webtoon
+  if (!w || w.startedDay === undefined) return undefined
+  return Math.min(CAREER_MAX_LEVEL, 1 + w.episodes)
 }
 
 /** 마감까지 남은 날. 0이면 오늘이 마감이다. */

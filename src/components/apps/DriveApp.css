@@ -1,0 +1,380 @@
+/*
+ * 너드라이브 — 사무직 출근이 여는 사내 프로그램.
+ * 판형: [성과 게이지 띠] / [왼쪽 대화창 | 오른쪽 드라이브].
+ *
+ * ⚠️ **색은 이 파일 안에 가둔다**(`--dv-*`, 사내 프로그램 공통 규칙). 콜센터(`--cc-*`)가
+ * 무채색 그래파이트인 것과 달리 여기는 **파랑 하나**만 쓴다 — 사내 도구가 둘이므로
+ * 성격이 갈려야 하고, 파랑은 "문서/저장소"의 색이다. 장식용 유채색을 더 넣지 말 것.
+ * ⚠️ 성과 게이지는 **색만으로 알리지 않는다** — 초과분과 야근비를 글자로 함께 적는다.
+ */
+.drv {
+  --dv-bg: #ffffff;
+  --dv-panel: #f6f8fa;
+  --dv-line: #d8dee4;
+  --dv-text: #14181d;
+  --dv-text-2: #5a636d; /* #f6f8fa 위 5.6:1 */
+  --dv-blue: #0b5fa5; /* #fff 위 6.5:1 */
+  --dv-blue-dim: #e4eefa;
+  --dv-over: #0f766e; /* 할당 초과분. #fff 위 5.5:1 */
+
+  display: flex;
+  flex-direction: column;
+  /* 탐색기·증기와 같은 높이 식. 안 묶으면 창 본문이 늘어나 [자동 넘기기]가 밖으로 밀린다. */
+  height: min(600px, calc(var(--vh, 100vh) - 140px));
+  min-height: 0;
+  background: var(--dv-bg);
+  color: var(--dv-text);
+  font-size: var(--fs-sm);
+}
+
+/* ── 성과 게이지 ─────────────────────────────────────── */
+.drv-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--dv-line);
+  background: var(--dv-panel);
+}
+
+.drv-head-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.drv-gauge {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.drv-gauge-bar {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 120px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--dv-line);
+  overflow: hidden;
+}
+
+.drv-gauge-fill {
+  height: 100%;
+  background: var(--dv-blue);
+  transition: width 200ms ease-out;
+}
+
+/* 할당을 넘은 분량. 색이 갈리는 것이 "여기부터 야근비"라는 뜻이다. */
+.drv-gauge-over {
+  height: 100%;
+  background: var(--dv-over);
+  transition: width 200ms ease-out;
+}
+
+.drv-gauge-text {
+  margin: 0;
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.drv-gauge-note {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--dv-text-2);
+}
+
+/* ── 본문 두 판 ──────────────────────────────────────── */
+.drv-body {
+  display: grid;
+  /* 대화창이 좁으면 요청 문장이 세 줄로 접혀 읽기가 일이 된다. */
+  grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.1fr);
+  gap: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* ── 왼쪽: 대화창 ────────────────────────────────────── */
+.drv-chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--dv-line);
+}
+
+.drv-chat-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--dv-line);
+  font-weight: 600;
+}
+
+.drv-clock {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--dv-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.drv-log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: var(--sp-3);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.drv-msg {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-start;
+}
+
+/* 이미 끝난 대화는 옅게 — 지금 읽어야 하는 것은 마지막 한 줄이다. */
+.drv-msg-done .drv-bubble {
+  background: var(--dv-panel);
+  color: var(--dv-text-2);
+}
+
+.drv-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.drv-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--dv-blue-dim);
+  line-height: 1.55;
+}
+
+.drv-who {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.drv-role {
+  font-weight: 400;
+  color: var(--dv-text-2);
+}
+
+.drv-grade {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--dv-over);
+}
+
+/* 놓는 자리. 점선은 "여기에 놓을 수 있다"는 신호이지 장식이 아니다. */
+.drv-drop {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex: 0 0 auto;
+  margin: 0 var(--sp-3) var(--sp-2);
+  padding: var(--sp-3);
+  border: 2px dashed var(--dv-line);
+  border-radius: var(--r-md);
+  transition: border-color 150ms ease-out, background 150ms ease-out;
+}
+
+.drv-drop-over {
+  border-color: var(--dv-blue);
+  background: var(--dv-blue-dim);
+}
+
+.drv-drop-text {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--fs-xs);
+  color: var(--dv-text-2);
+}
+
+.drv-send,
+.drv-close {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 var(--sp-4);
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--dv-blue);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.drv-send:disabled {
+  background: var(--dv-line);
+  color: var(--dv-text-2);
+  cursor: default;
+}
+
+.drv-feedback {
+  margin: 0 var(--sp-3) var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--dv-text-2);
+}
+
+/* 자동 넘기기. 눌러도 되는 길이지만 **덜 위험한 쪽처럼 보이지 않게** 테두리만 준다. */
+.drv-auto {
+  flex: 0 0 auto;
+  margin: 0 var(--sp-3) var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--dv-line);
+  border-radius: var(--r-md);
+  background: var(--dv-bg);
+  font: inherit;
+  font-size: var(--fs-xs);
+  color: var(--dv-text-2);
+  cursor: pointer;
+}
+
+.drv-auto:hover {
+  background: var(--dv-panel);
+}
+
+.drv-end {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex: 0 0 auto;
+  margin: 0 var(--sp-3) var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--dv-panel);
+}
+
+.drv-end-text {
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+/* ── 오른쪽: 드라이브 ────────────────────────────────── */
+.drv-files {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.drv-tree {
+  display: flex;
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--dv-line);
+  overflow-x: auto;
+}
+
+.drv-folder {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--dv-text);
+  cursor: pointer;
+}
+
+.drv-folder:hover {
+  background: var(--dv-panel);
+}
+
+/* 현재 폴더. 색만으로 알리지 않도록 배경·테두리·굵기를 함께 쓴다. */
+.drv-folder-on {
+  border-color: var(--dv-blue);
+  background: var(--dv-blue-dim);
+  font-weight: 700;
+}
+
+.drv-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: var(--sp-2);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.drv-file {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: grab;
+}
+
+.drv-file:hover {
+  background: var(--dv-panel);
+}
+
+.drv-file:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* 고른 파일. 끌지 않고 [보내기]로 보낼 수 있다는 것을 이 상태가 알린다. */
+.drv-file-on {
+  border-color: var(--dv-blue);
+  background: var(--dv-blue-dim);
+}
+
+.drv-file-name {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.drv-file-ext {
+  font-weight: 400;
+  color: var(--dv-text-2);
+}
+
+.drv-file-size {
+  flex: 0 0 auto;
+  font-size: var(--fs-xs);
+  color: var(--dv-text-2);
+  font-variant-numeric: tabular-nums;
+}

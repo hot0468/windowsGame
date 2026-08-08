@@ -9,8 +9,10 @@ import {
   isSerializing,
   offerEarned,
   pagesLeft,
+  webtoonLevel,
   webtoonMessages,
 } from './webtoon'
+import { CAREER_MAX_LEVEL } from '../data/careers'
 import { createInitialState, nightPayoutPending } from './turn'
 import {
   CONTEST_WINS_FOR_OFFER,
@@ -203,5 +205,25 @@ describe('⚠️ 불변식 — 연재가 물가를 이기지 못한다', () => {
     const draw = ACTIVITIES.find((a) => a.id === 'draw')!
     const webtoon = ACTIVITIES.find((a) => a.id === 'draw-webtoon')!
     expect(webtoon.burnoutKey).toBe(draw.burnoutKey)
+  })
+})
+
+describe('도감 레벨', () => {
+  it('제의만 받았거나 거절한 판은 경험으로 세지 않는다', () => {
+    expect(webtoonLevel(ready())).toBeUndefined()
+    expect(webtoonLevel(offered())).toBeUndefined()
+    expect(webtoonLevel(declineOffer(offered()))).toBeUndefined()
+  })
+
+  it('수락하면 Lv.1이고 회차마다 한 칸, 상한은 정규직과 같다', () => {
+    const s = serializing()
+    expect(webtoonLevel(s)).toBe(1)
+    expect(webtoonLevel({ ...s, webtoon: { ...s.webtoon!, episodes: 2 } })).toBe(3)
+    expect(webtoonLevel({ ...s, webtoon: { ...s.webtoon!, episodes: 99 } })).toBe(CAREER_MAX_LEVEL)
+  })
+
+  it('연재가 끝나도 기록은 남는다', () => {
+    const s = serializing()
+    expect(webtoonLevel({ ...s, webtoon: { ...s.webtoon!, status: 'ended', episodes: 1 } })).toBe(2)
   })
 })

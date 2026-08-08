@@ -23,6 +23,41 @@ import type { Stats } from '../types/game'
 /** 채용 단계가 보는 요건. 값은 그 스탯의 최소치다. */
 export type CareerRequirement = Partial<Record<keyof Stats, number>>
 
+/**
+ * 회사 규모. **급여 서열과 같은 순서다**(배열 순서 = 급여 오름차순).
+ *
+ * ⚠️ 이 값이 정하는 것은 딱 하나, **주말에 일이 넘어올 확률**이다
+ * (`WEEKEND_CALL_RATE`). 급여도 요건도 이 값을 보지 않는다 — 규모가 급여를 정하기
+ * 시작하면 `Career.salary`라는 단일 출처가 둘로 갈라진다.
+ */
+export type CompanyScale = '극소' | '중소' | '중견' | '대'
+
+/** 화면에 적는 이름. 코드 키를 그대로 노출하지 않는다. */
+export const SCALE_NAMES: Record<CompanyScale, string> = {
+  극소: '극소기업',
+  중소: '중소기업',
+  중견: '중견기업',
+  대: '대기업',
+}
+
+/**
+ * 주말에 업무 요청이 올 확률(%). **규모가 클수록 높다**(설계자 지시:
+ * "극소→중소→중견→대기업 순으로 주말 업무요청/야근률 높음").
+ *
+ * ⚠️ **확률이라고 `Math.random`을 쓰지 않는다** — 판정은 날짜의 순수 함수다
+ * (`systems/drive.ts`의 `weekendCallOn`). 굴리면 새로 고칠 때마다 답이 달라져
+ * 세이브 스커밍이 열린다(주식 시세·행사 개최와 같은 규칙).
+ *
+ * ⚠️ **오름차순인 것이 곧 규칙이다** — 급여가 높은 회사일수록 주말을 더 많이 가져간다.
+ * 그것이 이 게임에서 "좋은 회사"에 붙는 유일한 대가이고, `drive.test.ts`가 지킨다.
+ */
+export const WEEKEND_CALL_RATE: Record<CompanyScale, number> = {
+  극소: 10,
+  중소: 25,
+  중견: 45,
+  대: 65,
+}
+
 export interface Career {
   id: string
   /** 지어낸 상호. */
@@ -30,6 +65,12 @@ export interface Career {
   title: string
   /** 가짜 지역명. */
   area: string
+  /**
+   * 회사 규모. **주말 업무 요청 확률만 정한다**(`WEEKEND_CALL_RATE`).
+   * ⚠️ 급여 서열과 어긋나면 안 된다 — 급여가 높은데 규모가 작은 회사는
+   * "좋은 회사일수록 주말을 가져간다"는 규칙을 통째로 무너뜨린다(`drive.test.ts`).
+   */
+  scale: CompanyScale
   /** 근무 형태 문구. */
   schedule: string
   /** 공고 본문 한 줄. */
@@ -108,8 +149,11 @@ export const WORKDAYS = [1, 2, 3, 4, 5]
  */
 export const CAREER_LEVEL_DAYS = 5
 
-/** 직업 레벨 상한. 여기 닿으면 더 안 오른다(끝이 없으면 표가 숫자만 커진다). */
-export const CAREER_MAX_LEVEL = 5
+/**
+ * 직업 레벨 상한(설계자 지시: 10). 여기 닿으면 더 안 오른다(끝이 없으면 표가 숫자만 커진다).
+ * 한 칸이 반 주기 개근이므로 상한까지 **출근 45회 ≈ 9주**다.
+ */
+export const CAREER_MAX_LEVEL = 10
 
 /**
  * 무단결근 경고 기준. 이 횟수에 닿으면 경고 메일이 온다.
@@ -129,8 +173,12 @@ export const NOTICE_LIMIT = 24
  * 정규직 공고. 위로 갈수록 쉽고 아래로 갈수록 어렵다.
  *
  * 요건을 잡을 때 지킨 것:
- * 1. **서류는 지식·어휘력·창의력, 면접은 매력·평판·친화력**을 본다. 이 여섯이
- *    "올릴 수는 있는데 아무도 안 보는" 스탯이었다.
+ * 1. **서류는 증명서로 적히는 능력을, 면접은 만나 봐야 아는 것을 본다.**
+ *    서류 = 지식·어휘력·창의력·**운동**·**게임**(체력검사서·경력이 종이에 적힌다),
+ *    면접 = 매력·평판·친화력·**예의범절**·**도덕**(대면에서만 드러난다).
+ *    ⚠️ **이 두 집합이 곧 불변식이다**(`balance.verify.test.ts`) — 새 스탯을 요건에 쓰려면
+ *    그 스탯이 종이에 적히는 것인지 만나 봐야 아는 것인지를 먼저 정하고 목록에 넣어라.
+ *    ⚠️ 예술·감수성은 아직 어느 공고도 안 본다(그쪽은 창작 라인이 받는 축이다).
  * 2. **평판의 상한은 100이다**(`growthCap`). 그래서 면접 요건의 평판은 70을 넘기지 않는다 —
  *    상한을 넘는 요건은 도달 불가능한 공고를 만든다.
  * 3. 첫 공고(다솜기획)는 **지식 40 / 어휘력 20**이다. 공부·독서 열 번 남짓이라
@@ -148,6 +196,7 @@ export const CAREERS: Career[] = [
     company: '한울텔레콤 고객센터',
     title: '고객상담원 (정규직)',
     area: '늘봄구 한울로',
+    scale: '극소',
     schedule: '주 5일 · 월~금',
     summary: '전화로 들어오는 문의를 받습니다. 말을 고르는 속도가 곧 실력입니다.',
     salary: 1_500_000,
@@ -157,10 +206,31 @@ export const CAREERS: Career[] = [
     badge: '상시채용',
   },
   {
+    /**
+     * ⚠️ **서류가 지식을 한 줄도 안 본다** — 이 게임의 유일한 자리다. 몸으로 하는 일이라
+     * 종이에 적히는 것이 체력검사서 하나이고, 그래서 **`athletics`를 처음으로 읽는 공고**다
+     * (알바 `work-logistics`가 같은 스탯을 요구하니 알바로 몸을 만든 판이 그대로 이어진다).
+     * ⚠️ **출근에 미니게임이 없다**(사무직도 콜센터도 아니다 — `OFFICE_CAREER_IDS` 주석 참조).
+     */
+    id: 'saebit-logis',
+    company: '새빛물류',
+    title: '상하차 · 분류 (정규직)',
+    area: '늘봄산단 1블록',
+    scale: '극소',
+    schedule: '주 5일 · 월~금 새벽',
+    summary: '컨베이어에서 내려오는 짐을 지역별로 나눕니다. 몸이 버티는 만큼 오래 다닙니다.',
+    salary: 1_600_000,
+    paper: { athletics: 40 },
+    person: { sociability: 10 },
+    tags: ['학력 무관', '4대보험', '체력검사'],
+    badge: '상시채용',
+  },
+  {
     id: 'dasom-office',
     company: '다솜기획',
     title: '사무보조 · 총무 (정규직)',
     area: '늘봄구 갈밭동',
+    scale: '극소',
     schedule: '주 5일 · 월~금',
     summary: '문서 정리와 비품 관리를 맡습니다. 경력보다 성실함을 봅니다.',
     salary: 1_700_000,
@@ -170,10 +240,49 @@ export const CAREERS: Career[] = [
     badge: '상시채용',
   },
   {
+    /**
+     * ⚠️ **면접 요건이 넷인 유일한 자리이고 `manners`·`morality`를 처음으로 읽는다.**
+     * 아이를 맡기는 자리라 종이로 확인할 것이 보육 지식 하나뿐이고 나머지는 전부 만나 봐야
+     * 아는 것이다 — 요건의 무게가 서류가 아니라 **면접에 실려 있는 것이 이 공고의 성격**이다.
+     * ⚠️ 두 스탯의 상한은 100이므로(`growthCap`) 요건도 그 안에서 잡는다.
+     * ⚠️ **출근에 미니게임이 없다**(파일도 콜도 없는 자리다).
+     */
+    id: 'haetsal-daycare',
+    company: '햇살어린이집',
+    title: '보조교사 (정규직)',
+    area: '늘봄구 갈밭동',
+    scale: '중소',
+    schedule: '주 5일 · 월~금',
+    summary: '담임 선생님을 도와 아이들을 봅니다. 하루 종일 이름을 부르는 일입니다.',
+    salary: 1_900_000,
+    paper: { knowledge: 30 },
+    person: { manners: 35, morality: 30, sociability: 20, charm: 15 },
+    tags: ['보육 경험 우대', '4대보험', '정시 퇴근'],
+  },
+  {
+    /**
+     * ⚠️ **이 회사만 출근이 버그 찾기 미니게임을 연다**(`data/qa.ts`의 `QA_CAREER_ID`).
+     * 콜센터와 같은 규칙으로 **관계는 미니게임 → 공고 한 방향으로만** 적는다.
+     * ⚠️ `gaming`을 읽는 유일한 공고다 — 랭크 게임으로 올린 스탯이 처음 돈이 되는 자리다.
+     */
+    id: 'pixelroad-qa',
+    company: '픽셀로드',
+    title: '게임 QA 테스터 (정규직)',
+    area: '청람동 미디어센터',
+    scale: '중소',
+    schedule: '주 5일 · 월~금',
+    summary: '출시 전 빌드를 부숩니다. 남들이 못 보고 지나간 것을 보는 눈이 필요합니다.',
+    salary: 2_100_000,
+    paper: { gaming: 50, vocabulary: 30, knowledge: 25 },
+    person: { sociability: 20, charm: 15 },
+    tags: ['신입 가능', '4대보험', '업무 보너스'],
+  },
+  {
     id: 'nulbom-edu',
     company: '늘봄에듀',
     title: '교재 편집자 (정규직)',
     area: '청람동 대학로',
+    scale: '중소',
     schedule: '주 5일 · 월~금',
     summary: '초·중등 교재의 원고를 다듬습니다. 문장을 오래 들여다볼 수 있어야 합니다.',
     salary: 2_300_000,
@@ -186,6 +295,7 @@ export const CAREERS: Career[] = [
     company: '물빛에이전시',
     title: '브랜드 마케터 (정규직)',
     area: '늘봄구 물빛로',
+    scale: '중견',
     schedule: '주 5일 · 월~금',
     summary: '작은 브랜드의 목소리를 만듭니다. 사람 앞에 설 일이 많습니다.',
     salary: 2_900_000,
@@ -199,6 +309,7 @@ export const CAREERS: Career[] = [
     company: '한밭소프트',
     title: '주니어 개발자 (정규직)',
     area: '늘봄산단 3블록',
+    scale: '중견',
     schedule: '주 5일 · 월~금',
     summary: '사내 업무 시스템을 만들고 고칩니다. 기초를 깊게 봅니다.',
     salary: 3_500_000,
@@ -212,6 +323,7 @@ export const CAREERS: Career[] = [
     company: '청람그룹',
     title: '신입 공채 (정규직)',
     area: '서한리 본사',
+    scale: '대',
     schedule: '주 5일 · 월~금',
     summary: '연 1회 공채입니다. 서류부터 최종까지 통과하는 사람은 많지 않습니다.',
     salary: 4_600_000,

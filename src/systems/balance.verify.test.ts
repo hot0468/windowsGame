@@ -246,11 +246,20 @@ describe('정규직 공고 정의', () => {
     }
   })
 
+  /**
+   * ⚠️ **서류는 종이에 적히는 것, 면접은 만나 봐야 아는 것**(`data/careers.ts`의 요건 규칙 1).
+   * 운동은 체력검사서로, 게임은 경력으로 적히고, 예의범절·도덕은 대면에서만 드러난다.
+   * 목록을 늘릴 때는 그 갈래를 먼저 정하고 `REQUIREMENT_SOURCE`에 공급원도 함께 등록한다.
+   */
   it('서류는 이력서 스탯을, 면접은 사람 스탯을 본다', () => {
     const paperKeys = new Set(CAREERS.flatMap((c) => Object.keys(c.paper)))
     const personKeys = new Set(CAREERS.flatMap((c) => Object.keys(c.person)))
-    for (const k of paperKeys) expect(['knowledge', 'vocabulary', 'creativity']).toContain(k)
-    for (const k of personKeys) expect(['charm', 'reputation', 'sociability']).toContain(k)
+    for (const k of paperKeys)
+      expect(['knowledge', 'vocabulary', 'creativity', 'athletics', 'gaming']).toContain(k)
+    for (const k of personKeys)
+      expect(['charm', 'reputation', 'sociability', 'manners', 'morality']).toContain(k)
+    // 요건에 쓰인 스탯은 전부 공급원이 있어야 한다 — 없으면 도달 불가능한 자리가 된다.
+    for (const k of [...paperKeys, ...personKeys]) expect(REQUIREMENT_SOURCE[k]).toBeDefined()
   })
 
   it('출근 활동은 돈을 만지지 않는다 — 급여의 단일 출처는 공고다', () => {
@@ -276,6 +285,13 @@ const REQUIREMENT_SOURCE: Record<string, Activity> = {
   charm: social,
   sociability: club,
   reputation: findActivity('sns')!,
+  /* ⚠️ 아래 넷은 물류센터·어린이집·QA가 요구하면서 필요해졌다. 요건에 스탯을 새로 쓰려면
+     **그 스탯의 주 공급원을 여기 등록해야** 그 자리가 도달 가능한 엔딩이 된다 — 위 주석의
+     "그때 고쳐야 하는 것은 테스트가 아니라 이 정책이다"가 가리키는 표가 정확히 이것이다. */
+  athletics: findActivity('running')!,
+  gaming: findActivity('esports')!,
+  manners: findActivity('etiquette')!,
+  morality: findActivity('volunteer')!,
 }
 
 const tutor = findActivity('work-tutor')!

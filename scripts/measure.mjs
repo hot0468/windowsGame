@@ -34,7 +34,7 @@
  */
 
 import { spawn } from 'node:child_process'
-import { existsSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 
 const CHROME_PATHS = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
@@ -259,6 +259,9 @@ CDP 실측 하네스 — 헤드리스 크롬으로 찍고 합성 픽셀로 대�
   --scan             화면의 글자 있는 요소를 전부 훑어 **AA 미달만** 보고한다
   --reduced          prefers-reduced-motion을 켠다 (⚠️ CSS 애니메이션을 찍으려면 필수)
   --fresh            localStorage를 비우고 새 판으로 시작한다
+  --seed <json>      localStorage에 세이브를 심고 시작한다(키-값 JSON 파일).
+                     상태로 잠긴 화면(취직해야 뜨는 출근 미니게임 등)을 재려면
+                     클릭 수십 번 대신 이걸 쓴다. --fresh와 함께 주면 비운 뒤 심는다
   --name <이름>      잠금화면에 넣을 이름(기본 "측정")
   --url <주소>       dev 서버 주소(기본: 5173→5174→5175 순으로 탐색)
   --size <WxH>       창 크기(기본 1440x900). 모바일 셸을 보려면 예: --size 390x844
@@ -283,6 +286,7 @@ function parseArgs(argv) {
     else if (a === '--scan') o.scan = true
     else if (a === '--reduced') o.reduced = true
     else if (a === '--fresh') o.fresh = true
+    else if (a === '--seed') o.seed = next()
     else if (a === '--name') o.name = next()
     else if (a === '--url') o.url = next()
     else if (a === '--size') o.size = next()
@@ -314,8 +318,15 @@ async function main() {
     }
     await d.send('Page.navigate', { url })
     await until(() => d.evalJs(`document.readyState === 'complete'`), { label: '로드' })
-    if (o.fresh) {
-      await d.evalJs(`localStorage.clear()`)
+    if (o.fresh || o.seed) {
+      if (o.fresh) await d.evalJs(`localStorage.clear()`)
+      if (o.seed) {
+        const seed = JSON.parse(readFileSync(o.seed, 'utf8'))
+        for (const [k, v] of Object.entries(seed)) {
+          await d.evalJs(`localStorage.setItem(${JSON.stringify(k)}, ${JSON.stringify(JSON.stringify(v))})`)
+        }
+        console.log(`세이브 심음: ${Object.keys(seed).join(', ')}`)
+      }
       await d.send('Page.navigate', { url })
       await until(() => d.evalJs(`document.readyState === 'complete'`), { label: '재로드' })
     }

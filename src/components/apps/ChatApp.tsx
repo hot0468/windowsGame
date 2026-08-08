@@ -14,6 +14,7 @@ import {
   selectIncoming,
   visibleThreadsOf,
 } from '../../systems/messages'
+import { weekendCallMessages } from '../../systems/drive'
 import { STAT_NAMES } from '../../types/game'
 import type { Stats } from '../../types/game'
 import './ChatApp.css'
@@ -246,7 +247,10 @@ export function ChatListApp({ appId }: { appId: string }) {
             </li>
           )}
           {shown.map((t) => {
-            const last = lastMessage(t.id, state.day, state.slot)
+            const weekend = weekendCallMessages(state).find((m) => m.channel === t.id)
+            const last = weekend
+              ? { ...weekend, time: '주말', turn: Number.MAX_SAFE_INTEGER }
+              : lastMessage(t.id, state.day, state.slot)
             const fresh = freshChannels.has(t.id)
             return (
               <li key={t.id}>
@@ -299,7 +303,14 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
 
   if (!state || !thread) return null
 
-  const messages = selectChannel(thread.id, state.day, state.slot)
+  /* ⚠️ **주말 호출은 편성표에 없다** — 상태에서 파생되는 사실이라 (day, slot)만으로는
+     만들 수 없다(`MailApp`이 `examMessages`를 합치는 것과 같은 자리). */
+  const messages = [
+    ...selectChannel(thread.id, state.day, state.slot),
+    ...weekendCallMessages(state)
+      .filter((m) => m.channel === thread.id)
+      .map((m) => ({ ...m, time: '주말', turn: Number.MAX_SAFE_INTEGER })),
+  ]
   const canMeet = meetup ? canRun(state, meetup) : false
   const tone = findChatApp(thread.app)?.tone ?? 'warm'
 

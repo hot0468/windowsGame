@@ -1,6 +1,7 @@
 import { getLivingCost, getWageMultiplier } from './economy'
 import { burnoutKeyOf, getBurnoutPenalty, pushActivity } from './burnout'
 import { markAttended } from './careerLog'
+import { weekendCallOn } from './drive'
 import { weekdayOf } from '../data/calendar'
 import { DEFAULT_HOUSING_ID, findHousing } from '../data/housing'
 import { PAYOUT_INTERVAL_DAYS } from '../data/artworks'
@@ -154,8 +155,14 @@ export function jobStageOpen(state: GameState, gate: JobStageGate): boolean {
   if (gate === 'employed') {
     const job = state.employment
     if (!job) return false
-    // 근무일이 아닌 날의 출근은 슬롯만 먹고 아무 일도 일어나지 않는다(급여는 급여일에 온다).
-    if (!isWorkWeekday(weekdayOf(state.day))) return false
+    /* 근무일이 아닌 날의 출근은 슬롯만 먹고 아무 일도 일어나지 않는다(급여는 급여일에 온다).
+       ⚠️ **예외는 주말 호출 하나다**(2026-08-08): 그날 회사에서 일이 넘어왔으면 주말에도
+       출근할 수 있고, 그것이 이 게임의 **야근**이다 — 새 활동도 새 번아웃 키도 만들지
+       않는다(같은 `commute`가 같은 비용을 낸다). 주말은 근무일이 아니므로 안 나가도
+       결근으로 세지 않는다: 순수한 선택지다. 확률은 `systems/drive.ts`가 갖는다. */
+    if (!isWorkWeekday(weekdayOf(state.day)) && !weekendCallOn(state.day, job.careerId)) {
+      return false
+    }
     // 하루에 두 번 출근할 수는 없다 — 두 번 세면 결근 계산과 출근부가 어긋난다.
     return !job.attendedDays.includes(state.day)
   }

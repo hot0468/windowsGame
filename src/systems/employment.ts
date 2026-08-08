@@ -15,6 +15,7 @@ import { findItem } from '../data/items'
 import { MAILBOX } from '../data/messages'
 import { STAT_NAMES } from '../types/game'
 import { markHired } from './careerLog'
+import { overtimePay } from './drive'
 import { messageTime, turnIndex } from './messages'
 import { clampStats, owns, settleGameOver } from './turn'
 import type { TimedMessage } from './messages'
@@ -272,7 +273,10 @@ function payWages(state: GameState): { state: GameState; notices: JobNotice[] } 
     if (!job || current.day < job.paydayDay) break
     const career = findCareer(job.careerId)
     if (!career) break
-    const bonus = job.bonus ?? 0
+    /* ⚠️ **성과 게이지의 100% 초과분이 야근비가 된다**(사무직 드라이브 미니게임).
+       금액의 단일 출처는 `overtimePay` 하나이고 화면도 같은 함수를 본다 — 여기서 다시
+       곱하면 명세서와 실제 입금이 어긋난다. 할당량까지는 기본급이 사는 몫이라 0원이다. */
+    const bonus = (job.bonus ?? 0) + overtimePay(job.performance ?? 0)
     const paid = career.salary + bonus
     notices.push(notice(current, 'payday', career.id, { amount: paid, bonus }))
     const paydayDay = job.paydayDay + PAYDAY_INTERVAL
@@ -282,6 +286,9 @@ function payWages(state: GameState): { state: GameState; notices: JobNotice[] } 
       employment: {
         ...job,
         bonus: 0,
+        /* ⚠️ 게이지도 함께 비운다 — 안 비우면 초과분이 매 급여일 다시 지급된다
+           (`bonus`를 0으로 되돌리는 것과 정확히 같은 이유). */
+        performance: 0,
         paydayDay,
         // 지난 주기의 출근부는 버린다 — 배열이 무한히 자라면 세이브가 커진다.
         attendedDays: job.attendedDays.filter((d) => d >= job.paydayDay),
