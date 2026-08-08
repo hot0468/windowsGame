@@ -85,3 +85,4 @@ CLAUDE.md의 변경 이력 표에서 밀려난 과거 행. CLAUDE.md에는 최�
 | 2026-08-03 | 플레이 가능 코어 구현 완료 (Task 1~12) | src/ 전체 | 계획 2026-08-03-playable-core 실행 |
 | 2026-08-03 | project-context에 창 런타임 상태·캡션 버튼 회귀·윈도우 11 시각 규칙 추가 | project-context 스킬 | 최대화가 런타임 상태로 바뀌고 캡션 버튼 3종이 생겨 컨벤션이 변경됨 |
 | 2026-08-03 | 초기 구성 (dev/qa 에이전트, pipeline/context 스킬) | 전체 | 토큰 최적화 하네스 신규 구축 |
+| 2026-08-08 | 도감 직업 시트에 웹툰작가 한 줄 추가, 직업 레벨 상한 5 → 10 | careers(`CAREER_MAX_LEVEL`), webtoon(`webtoonLevel`+test 3건), ExcelApp |

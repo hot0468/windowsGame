@@ -186,6 +186,17 @@ export const THREADS: Thread[] = [
           // 6 = 토요일(0=일). 헬스장은 목요일이라 서로 안 겹친다.
           weekly: { weekday: 6, weeks: 4, activityId: 'salon-member' },
         },
+        {
+          /*
+           * ⚠️ **매력 A에서만 보인다**(`data/rankEvents.ts`의 `salon-model`). 조건을 여기
+           * 적지 않는 것이 규칙이다 — 문턱은 랭크 이벤트 한 곳이고 화면은 그 기록을
+           * 물어본다(`offerUnlockedByRank`). 새 방을 만들지 않은 이유는 그쪽 주석에 있다.
+           */
+          id: 'salon-model',
+          label: '모델요? 해볼게요',
+          desc: '홍보 사진 촬영 · 70,000원 · 1턴 소모',
+          activityId: 'model-shoot',
+        },
       ],
     },
   },
@@ -216,6 +227,71 @@ export const THREADS: Thread[] = [
           // 3 = 수요일(0=일). 활동은 기존 러닝을 그대로 쓴다 — 크루 전용 활동을 만들면
           // 같은 성격의 활동이 둘이 되고 번아웃 키가 갈린다.
           weekly: { weekday: 3, weeks: 4, activityId: 'running' },
+        },
+      ],
+    },
+  },
+  {
+    /*
+     * 게임 C가 여는 방(`data/rankEvents.ts`의 `raid-party`). **1:1 지인 방이 아니라
+     * 길드 단톡이다** — 같이 하자는 말은 아는 사람이 아니라 같이 하던 사람에게서 온다.
+     * ⚠️ 예약 요일이 목(헬스장)·토(미용실)·수(러닝크루)와 겹치지 않게 **화요일**이다.
+     */
+    id: 'raid-party',
+    app: 'kakao',
+    name: '고정팟',
+    members: 6,
+    offer: {
+      question: '자리 하나 비는데 들어오실래요?',
+      options: [
+        {
+          id: 'raid-join',
+          label: '들어갈게요',
+          desc: '회비 없음 · 매주 화요일 오후에 레이드가 자동 예약됩니다 (4주)',
+          weekly: { weekday: 2, weeks: 4, activityId: 'raid' },
+        },
+      ],
+    },
+  },
+  {
+    /*
+     * 어휘력 C가 여는 방. **오픈카톡이다**(설계자 지시) — 모르는 사람들의 방이다.
+     * ⚠️ 예약 요일은 **월요일**(다른 넷과 안 겹친다).
+     */
+    id: 'book-club',
+    app: 'kakao',
+    name: '수요일의 책 오픈채팅',
+    members: 23,
+    open: true,
+    offer: {
+      question: '이번 주 책 같이 읽으실래요?',
+      options: [
+        {
+          id: 'bookclub-join',
+          label: '참여할게요',
+          desc: '회비 없음 · 매주 월요일 오후에 독서모임이 자동 예약됩니다 (4주)',
+          weekly: { weekday: 1, weeks: 4, activityId: 'bookclub' },
+        },
+      ],
+    },
+  },
+  {
+    /*
+     * 지식 A가 여는 방. ⚠️ **주간 예약이 없다** — 특강은 정기권을 끊는 일이 아니라
+     * 부를 때 가는 일이고, 매주 자동으로 잡히면 다섯 번째 주간 예약이 되어 요일이 동난다.
+     */
+    id: 'academy',
+    app: 'kakao',
+    name: '한빛학원 실장',
+    members: 1,
+    offer: {
+      question: '이번 주 특강 맡아 주실 수 있을까요?',
+      options: [
+        {
+          id: 'academy-lecture',
+          label: '하겠습니다',
+          desc: '강의료 130,000원 · 1턴 소모',
+          activityId: 'lecture',
         },
       ],
     },

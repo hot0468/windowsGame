@@ -35,10 +35,17 @@ export interface RankEvent {
   /**
    * 무엇이 열리는가.
    * - `thread`: 대화방이 열린다(그 안의 제안이 나머지를 한다).
+   * - `offer`: **이미 있는 방의 제안 선택지 하나**가 열린다. 방을 새로 만들 자리가 아닌
+   *   경우다 — 미용실 단골에게 모델 제안이 오는 것은 새 방이 아니라 그 방의 다음 말이다.
    * - `window`: 창이 하나 뜬다.
+   * - `event`: **단발**이다. 도감(`data/events.ts`)에 한 줄 남기고 끝난다 — 여는 것이
+   *   없고 겪었다는 사실이 전부인 일들이 여기 온다.
    */
-  kind: 'thread' | 'window'
-  /** `kind: 'thread'`면 `Thread.id`, `kind: 'window'`면 `WindowKind`. */
+  kind: 'thread' | 'offer' | 'window' | 'event'
+  /**
+   * `thread`면 `Thread.id`, `offer`면 `OfferOption.id`, `window`면 `WindowKind`,
+   * `event`면 `data/events.ts`의 `GameEvent.id`.
+   */
   target: string
 }
 
@@ -71,6 +78,99 @@ export const RANK_EVENTS: RankEvent[] = [
     rank: 'A',
     kind: 'window',
     target: 'wish',
+  },
+  {
+    /*
+     * 게임 C(=100). 게임 활동이 4/회라 25번쯤이면 닿는다 — 멘탈 회복처를 게임으로 쓴
+     * 사람에게 자연스럽게 붙는 문턱이다(설계자 지시: "카톡으로 디스코드 초대").
+     * ⚠️ 러닝크루와 **요일이 달라야 한다**(주간 예약이 같은 슬롯에서 부딪힌다).
+     */
+    id: 'raid-party',
+    key: 'gaming',
+    rank: 'C',
+    kind: 'thread',
+    target: 'raid-party',
+  },
+  {
+    /*
+     * 어휘력 C(=100). 독서가 주 공급원이고 6/회라 17번쯤이다.
+     * ⚠️ **오픈카톡이다**(설계자 지시) — 모르는 사람들의 방이라 1:1 지인 방과 성격이 다르다.
+     */
+    id: 'book-club',
+    key: 'vocabulary',
+    rank: 'C',
+    kind: 'thread',
+    target: 'book-club',
+  },
+  {
+    /*
+     * 지식 A(=500). 상한 999의 절반이라 **지식에 특화해야 닿는다** — 과외(지식 60)보다
+     * 훨씬 위이고, 그래서 여는 것도 알바가 아니라 강사 자리다.
+     */
+    id: 'academy-offer',
+    key: 'knowledge',
+    rank: 'A',
+    kind: 'thread',
+    target: 'academy',
+  },
+  {
+    /*
+     * 매력 A(=500). ⚠️ **새 방이 아니라 미용실 방의 제안 하나가 열린다**(설계자 지시:
+     * "미용실에서 모델 제안"). 단골이 된 사람에게 오는 말이라 새 방을 만들면 그 맥락이
+     * 사라진다 — `kind: 'offer'`가 생긴 이유가 이 한 줄이다.
+     */
+    id: 'salon-model',
+    key: 'charm',
+    rank: 'A',
+    kind: 'offer',
+    target: 'salon-model',
+  },
+
+  /* ── 단발 이벤트 5종 (2026-08-08) ──────────────────────────────────────
+   * ⚠️ **여는 것이 없다.** 도감에 한 줄 남기는 것이 전부이고, 그래서 문턱을 낮게 잡아도
+   * 밸런스가 안 흔들린다 — 스탯을 올린 사람에게 "그래서 무엇이 달라졌는가"를 말해 주는
+   * 자리다. 돈·턴·활동을 주지 않는다(주려면 위의 `thread`/`offer`를 쓴다).
+   * ⚠️ 문구·아이콘은 `data/events.ts`가 갖는다 — 여기는 문턱만 정한다.
+   */
+  {
+    /* 평판 A(상한 100이라 =50). 트위터 계정에 인증 뱃지가 붙는 근거이기도 하다. */
+    id: 'verified-badge',
+    key: 'reputation',
+    rank: 'A',
+    kind: 'event',
+    target: 'verified-badge',
+  },
+  {
+    /* 예술 B(=300). 그림 30장쯤이라 그리는 판이면 중반에 닿는다. */
+    id: 'gallery-call',
+    key: 'art',
+    rank: 'B',
+    kind: 'event',
+    target: 'gallery-call',
+  },
+  {
+    /* 도덕 A(상한 100이라 =50). 봉사·기부가 주 공급원이라 일부러 쌓아야 한다. */
+    id: 'quiet-donor',
+    key: 'morality',
+    rank: 'A',
+    kind: 'event',
+    target: 'quiet-donor',
+  },
+  {
+    /* 창의력 B(=300). 여러 활동이 조금씩 올려서 특화 없이도 후반에 닿는다. */
+    id: 'idea-notebook',
+    key: 'creativity',
+    rank: 'B',
+    kind: 'event',
+    target: 'idea-notebook',
+  },
+  {
+    /* 예의범절 C(=100). ⚠️ 상한이 100 → 999로 바뀌면서(2026-08-08) 문턱도 10 → 100이 됐다. */
+    id: 'name-remembered',
+    key: 'manners',
+    rank: 'C',
+    kind: 'event',
+    target: 'name-remembered',
   },
 ]
 

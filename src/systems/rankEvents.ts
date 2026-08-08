@@ -2,6 +2,7 @@ import { RANK_EVENTS, WISH_AMOUNT, findRankEvent } from '../data/rankEvents'
 import { RANK_ORDER } from './rank'
 import { rankOf } from './rank'
 import { clampStats } from './turn'
+import { recordEvent } from './delivery'
 import type { RankEvent } from '../data/rankEvents'
 import type { GameState, GrowthStatKey } from '../types/game'
 
@@ -64,10 +65,28 @@ export function markRankEvent(state: GameState, id: string): GameState {
 export function settleRankEvents(state: GameState): GameState {
   let next = state
   for (const event of dueRankEvents(state)) {
-    if (event.kind !== 'thread') continue
+    /* `thread`·`offer`는 **나타나는 것 자체가 이벤트 전부**라 이 자리에서 찍는다.
+       `event`(단발)도 같다 — 도감에 한 줄 남기는 것이 곧 그 이벤트다. */
+    if (event.kind === 'window') continue
     next = markRankEvent(next, event.id)
+    /* ⚠️ 단발은 **이벤트 도감에도** 남긴다(`recordEvent`) — 랭크 기록은 "다시 안 뜬다"의
+       근거일 뿐이고, 플레이어가 되돌아볼 자리는 사진첩 하나다(새 창구를 만들지 않는다). */
+    if (event.kind === 'event') next = recordEvent(next, event.target)
   }
   return next
+}
+
+/**
+ * 그 제안 선택지가 랭크 이벤트로 열리는 것인가. 열리는 것이면 **겪은 뒤에만** 보인다.
+ *
+ * ⚠️ `threadUnlockedByRank`와 같은 모양·같은 이유다 — 문턱은 `data/rankEvents.ts` 한 곳이고
+ * `OfferOption`에 조건을 달지 않는다. `undefined`는 "랭크로 열리는 선택지가 아니다"이므로
+ * 그때만 통과시킨다(조건 없는 기존 선택지가 사라지면 안 된다).
+ */
+export function offerUnlockedByRank(state: GameState, optionId: string): boolean | undefined {
+  const event = RANK_EVENTS.find((e) => e.kind === 'offer' && e.target === optionId)
+  if (!event) return undefined
+  return seenRankEvent(state, event.id)
 }
 
 /**
@@ -121,15 +140,34 @@ export function grantWish(state: GameState, key: GrowthStatKey): GameState {
 export function rankEventMessages(
   state: GameState,
 ): { id: string; channel: string; from: string; text: string }[] {
-  if (!seenRankEvent(state, 'running-crew')) return []
-  return [
-    {
-      id: 'rank-running-crew',
-      channel: 'running-crew',
+  /* ⚠️ **방마다 한 줄씩 짝이 있어야 한다**(위 주석의 실측 버그) — 방을 새로 열면서
+     여기에 말을 안 붙이면 "아직 대화가 없습니다"만 뜬다. `rankEvents.test.ts`가 지킨다. */
+  const lines: Record<string, { from: string; text: string }> = {
+    'running-crew': {
       from: '크루장 유진',
       text: '천변에서 몇 번 뵀어요! 저희 수요일 저녁마다 10km 도네요. 회비도 없고 그냥 같이 뛰기만 하면 됩니다. 같이 하실래요?',
     },
-  ]
+    'raid-party': {
+      from: '길드원 도현',
+      text: '어제 그 판 보고 연락드려요. 저희 고정팟 자리가 하나 비는데 들어오실래요? 매주 같은 시간에 두 시간만 돕니다. 디스코드 주소 보내 둘게요.',
+    },
+    'book-club': {
+      from: '모임지기',
+      text: '독서모임 오픈카톡입니다. 매주 한 권 읽고 한 시간 이야기해요. 발제는 돌아가면서 하는데 처음 오시면 안 시킵니다.',
+    },
+    academy: {
+      from: '한빛학원 실장',
+      text: '이력 보고 연락드렸습니다. 주 1회 특강 맡아 주실 수 있을까요? 강의료는 회당 정산이고 준비 자료는 저희가 드립니다.',
+    },
+  }
+  return RANK_EVENTS.filter(
+    (e) => e.kind === 'thread' && seenRankEvent(state, e.id) && lines[e.target],
+  ).map((e) => ({
+    id: `rank-${e.id}`,
+    channel: e.target,
+    from: lines[e.target].from,
+    text: lines[e.target].text,
+  }))
 }
 
 /**

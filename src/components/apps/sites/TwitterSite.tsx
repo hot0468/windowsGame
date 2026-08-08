@@ -12,6 +12,7 @@ import { findSubscription } from '../../../data/subscriptions'
 import { countLabel, findAccount, tweetAge, TWEETS } from '../../../data/tweets'
 import { artGrade } from '../../../systems/artwork'
 import { streamReviews } from '../../../systems/channel'
+import { seenRankEvent } from '../../../systems/rankEvents'
 import {
   daysToPayout,
   followerGain,
@@ -121,7 +122,19 @@ export function TwitterSite({ site }: { site: Site }) {
               {state.playerName.slice(0, 1)}
             </span>
             <span className="tw-me-text">
-              <span className="tw-me-name">{state.playerName}</span>
+              <span className="tw-me-name">
+                {state.playerName}
+                {/* ⚠️ **평판 A에서 붙는다**(랭크 이벤트 `verified-badge`). 문턱을 여기서
+                    다시 묻지 않고 **겪은 기록**을 본다 — 등급이 나중에 내려가도 뱃지는
+                    남는 것이 맞고(한 번 알려진 것은 되돌아가지 않는다), 그 규칙은
+                    `markRankEvent` 하나가 이미 진다. 부품은 아래 인증 계정과 같은 것이다. */}
+                {seenRankEvent(state, 'verified-badge') && (
+                  <span className="tw-verified" title="인증된 계정">
+                    <AppIcon name="mdi:check-decagram" size={14} />
+                    <span className="tw-sr">인증된 계정</span>
+                  </span>
+                )}
+              </span>
               <span className="tw-me-handle">@{handle}</span>
             </span>
           </div>

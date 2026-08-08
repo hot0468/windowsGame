@@ -19,6 +19,7 @@ import {
 import { weekendCallMessages } from '../../systems/drive'
 import { rankEventMessages } from '../../systems/rankEvents'
 import { webtoonReviewMessages } from '../../systems/webtoon'
+import { offerUnlockedByRank } from '../../systems/rankEvents'
 import { STAT_NAMES } from '../../types/game'
 import type { GameState, Stats } from '../../types/game'
 import './ChatApp.css'
@@ -392,7 +393,12 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
       {thread.offer && (
         <div className="chat-action">
           <p className="chat-offer-q">{thread.offer.question}</p>
-          {thread.offer.options.map((opt) => {
+          {thread.offer.options
+            /* ⚠️ **랭크로 열리는 선택지는 겪은 뒤에만 그린다**(`undefined` = 랭크와 무관한
+               기존 선택지라 그대로 통과). 안 열린 것을 흐리게라도 그리면 "왜 못 누르는가"를
+               설명할 자리가 없다 — 조건이 등급이라 문장으로 적을 수도 없다. */
+            .filter((opt) => offerUnlockedByRank(state, opt.id) !== false)
+            .map((opt) => {
             const activity = opt.activityId ? findActivity(opt.activityId) : undefined
             const item = opt.itemId ? findItem(opt.itemId) : undefined
             // 즉시 활동은 조건을, 주문은 주문 가능 여부를, 결제는 잔액을 본다.

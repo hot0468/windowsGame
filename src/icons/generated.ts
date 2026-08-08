@@ -1,5 +1,5 @@
 // 이 파일은 `npm run icons`(scripts/build-icon-subset.mjs)가 생성한다. 직접 수정하지 말 것.
-// src/에서 실제로 쓰는 아이콘 200개만 담은 축소 세트다 —
+// src/에서 실제로 쓰는 아이콘 201개만 담은 축소 세트다 —
 // 전체 세트(8천여 개)를 번들에 넣지 않기 위한 것이다.
 import type { IconifyJSON } from '@iconify/react/offline'
 
@@ -361,7 +361,7 @@ export const mdi: IconifyJSON = {
   "height": 24
 }
 
-/** fluent-color — 사용 중인 90개 */
+/** fluent-color — 사용 중인 91개 */
 export const fluentColor: IconifyJSON = {
   "prefix": "fluent-color",
   "icons": {
@@ -457,6 +457,11 @@ export const fluentColor: IconifyJSON = {
     },
     "chat-multiple-24": {
       "body": "<g fill=\"none\"><path fill=\"url(#SVG4MvAEbGB)\" fill-rule=\"evenodd\" d=\"M22 13.5a7.5 7.5 0 1 0-4.411 6.836c1.258.29 2.613.54 3.236.652a.996.996 0 0 0 1.153-1.17a68 68 0 0 0-.681-3.143A7.5 7.5 0 0 0 22 13.5M14.517 18h-.034z\" clip-rule=\"evenodd\"/><path fill=\"url(#SVGwY5FYTIH)\" fill-rule=\"evenodd\" d=\"M2 10.5a7.5 7.5 0 1 1 4.411 6.836c-1.258.29-2.613.54-3.236.652a.996.996 0 0 1-1.153-1.17a68 68 0 0 1 .681-3.143A7.5 7.5 0 0 1 2 10.5M9.483 15h.034z\" clip-rule=\"evenodd\"/><defs><radialGradient id=\"SVG4MvAEbGB\" cx=\"0\" cy=\"0\" r=\"1\" gradientTransform=\"rotate(49.244 -5.402 17.032)scale(10.5735 10.5821)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\".63\" stop-color=\"#3d35b1\"/><stop offset=\".85\" stop-color=\"#6553c9\"/><stop offset=\"1\" stop-color=\"#7660d3\"/></radialGradient><linearGradient id=\"SVGwY5FYTIH\" x1=\"2\" x2=\"17.003\" y1=\"3\" y2=\"18\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#0fafff\"/><stop offset=\"1\" stop-color=\"#2764e7\"/></linearGradient></defs></g>",
+      "width": 24,
+      "height": 24
+    },
+    "checkmark-circle-24": {
+      "body": "<g fill=\"none\"><path fill=\"url(#SVG3u7HFbEC)\" d=\"M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2\"/><path fill=\"url(#SVG6gyMbb1m)\" d=\"m15.22 8.97l-4.47 4.47l-1.97-1.97a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.06 0l5-5a.75.75 0 1 0-1.06-1.06\"/><defs><linearGradient id=\"SVG3u7HFbEC\" x1=\"2.714\" x2=\"16.517\" y1=\"5.75\" y2=\"20.09\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#52d17c\"/><stop offset=\"1\" stop-color=\"#22918b\"/></linearGradient><linearGradient id=\"SVG6gyMbb1m\" x1=\"9.188\" x2=\"10.681\" y1=\"9.413\" y2=\"16.713\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#fff\"/><stop offset=\"1\" stop-color=\"#e3ffd9\"/></linearGradient></defs></g>",
       "width": 24,
       "height": 24
     },

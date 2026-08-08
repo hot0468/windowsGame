@@ -125,8 +125,50 @@ export const EVENTS: GameEvent[] = [
     icon: 'fluent-color:data-trending-24',
     ext: '.evt',
   },
+  /* ── 랭크 단발 이벤트 5종 (2026-08-08) ────────────────────────────────
+   * ⚠️ **문턱은 여기 없다** — `data/rankEvents.ts`가 어느 스탯 어느 등급인지 갖고,
+   * 여기는 문구·아이콘만 갖는다(관계는 한 방향으로만 적는다).
+   * ⚠️ `hint`는 **무엇을 하면 되는지**를 적되 수치는 안 적는다 — 등급 문턱을 두 곳에
+   * 쓰면 한쪽이 낡는다.
+   */
+  {
+    id: 'verified-badge',
+    name: '파란 딱지',
+    hint: '이름이 알려질 만큼 알려진다.',
+    desc: '트위터 계정 이름 옆에 뱃지가 붙었다. 달라진 것은 없는데 답글 수는 달라졌다.',
+    icon: 'fluent-color:checkmark-circle-24',
+    ext: '.evt',
+  },
+  {
+    id: 'gallery-call',
+    name: '작은 갤러리에서 온 전화',
+    hint: '그림을 오래 그린다.',
+    desc: '2층에 빈 벽이 있다고 했다. 팔릴지는 모르겠지만 걸어는 보자고.',
+    icon: 'fluent-color:paint-brush-24',
+    ext: '.evt',
+  },
+  {
+    id: 'quiet-donor',
+    name: '이름 없는 후원자',
+    hint: '옳은 쪽으로 자주 기운다.',
+    desc: '동네 소식지 구석에 익명 후원 이야기가 실렸다. 이름이 없어서 다행이었다.',
+    icon: 'fluent-color:heart-24',
+    ext: '.evt',
+  },
+  {
+    id: 'idea-notebook',
+    name: '다 쓴 노트',
+    hint: '떠오르는 것을 오래 적어 둔다.',
+    desc: '수첩 마지막 장까지 찼다. 절반은 쓸모없고 절반은 아직 모르겠다.',
+    icon: 'fluent-color:notebook-24',
+    ext: '.evt',
+  },
+  {
+    id: 'name-remembered',
+    name: '이름을 기억하는 사람들',
+    hint: '몸에 밴 말씨가 쌓인다.',
+    desc: '편의점 사장님이 이름을 불렀다. 언제 알려 줬는지 기억이 나지 않았다.',
+    icon: 'fluent-color:people-community-24',
+    ext: '.evt',
+  },
 ]
-
-export function findEvent(id: string): GameEvent | undefined {
-  return EVENTS.find((e) => e.id === id)
-}

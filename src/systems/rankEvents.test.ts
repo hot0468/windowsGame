@@ -8,6 +8,8 @@ import {
   seenRankEvent,
   settleRankEvents,
   threadUnlockedByRank,
+  offerUnlockedByRank,
+  rankEventMessages,
 } from './rankEvents'
 import { RANK_EVENTS, WISH_AMOUNT, findRankEvent } from '../data/rankEvents'
 import { RANK_THRESHOLDS } from './rank'
@@ -15,6 +17,7 @@ import { createInitialState, growthCap } from './turn'
 import { rankOf } from './rank'
 import { ACTIVITIES } from '../data/activities'
 import { THREADS } from '../data/messages'
+import { EVENTS } from '../data/events'
 import type { GameState, GrowthStatKey } from '../types/game'
 
 /**
@@ -31,11 +34,49 @@ function at(key: GrowthStatKey, rank: string): GameState {
 }
 
 describe('이벤트 정의', () => {
-  it('가리키는 대화방·활동·창이 실재한다', () => {
+  it('가리키는 대화방·제안·도감 항목이 실재한다', () => {
     const threads = new Set(THREADS.map((t) => t.id))
+    const options = new Set(THREADS.flatMap((t) => t.offer?.options.map((o) => o.id) ?? []))
+    const events = new Set(EVENTS.map((e) => e.id))
     for (const e of RANK_EVENTS) {
       if (e.kind === 'thread') expect(threads, e.id).toContain(e.target)
+      if (e.kind === 'offer') expect(options, e.id).toContain(e.target)
+      // 도감에 없는 id를 기록하면 사진첩에 이름 없는 칸이 생긴다.
+      if (e.kind === 'event') expect(events, e.id).toContain(e.target)
     }
+  })
+
+  it('⚠️ 랭크로 열리는 방에는 권유 메시지가 짝으로 있다 — 없으면 빈 방만 뜬다', () => {
+    // 실측으로 잡았던 버그다: 방은 생겼는데 "아직 대화가 없습니다"만 남았다.
+    let s = createInitialState('등급')
+    s = { ...s, rankEvents: RANK_EVENTS.map((e) => e.id) }
+    const channels = new Set(rankEventMessages(s).map((m) => m.channel))
+    for (const e of RANK_EVENTS.filter((x) => x.kind === 'thread')) {
+      expect(channels, `${e.target} 방에 첫 마디가 없다`).toContain(e.target)
+    }
+  })
+
+  it('⚠️ 주간 예약 요일이 서로 겹치지 않는다 — 겹치면 한쪽이 조용히 밀려난다', () => {
+    const weekdays = THREADS.flatMap(
+      (t) => t.offer?.options.flatMap((o) => (o.weekly ? [o.weekly.weekday] : [])) ?? [],
+    )
+    expect(new Set(weekdays).size, `요일 충돌: ${weekdays.join(',')}`).toBe(weekdays.length)
+  })
+
+  it('⚠️ 랭크로 열리는 제안은 겪기 전에는 안 보인다', () => {
+    const model = RANK_EVENTS.find((e) => e.kind === 'offer')!
+    const before = createInitialState('등급')
+    expect(offerUnlockedByRank(before, model.target)).toBe(false)
+    expect(offerUnlockedByRank(markRankEvent(before, model.id), model.target)).toBe(true)
+    // 랭크와 무관한 기존 선택지는 undefined다("잠겨 있다"와 구분된다).
+    expect(offerUnlockedByRank(before, 'salon-once')).toBeUndefined()
+  })
+
+  it('단발 이벤트는 도감에도 남는다 — 되돌아볼 자리가 사진첩 하나다', () => {
+    const single = RANK_EVENTS.find((e) => e.kind === 'event')!
+    const after = settleRankEvents(at(single.key, single.rank))
+    expect(seenRankEvent(after, single.id)).toBe(true)
+    expect((after.events ?? []).some((x) => x.id === single.target)).toBe(true)
   })
 
   it('id가 겹치지 않는다', () => {

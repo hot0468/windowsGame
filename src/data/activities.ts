@@ -772,8 +772,10 @@ export const ACTIVITIES: Activity[] = [
   },
   {
     /*
-     * 예의범절의 주 공급원 (2026-08-05 스탯 신설과 함께). 상한이 100이라 상승폭이 작다
-     * (위 규칙 1 — 평판·도덕과 같은 부류다).
+     * 예의범절의 주 공급원 (2026-08-05 스탯 신설과 함께).
+     * ⚠️ 상승폭이 작은 것은 한때 상한이 100이었기 때문이고, **2026-08-08에 999로 올랐다**
+     * (설계자 지시). 폭을 올릴지는 별개 판단이라 그대로 뒀다 — 지금 +5면 랭크 C(=100)까지
+     * 스무 번이고, 그 문턱에 단발 이벤트가 하나 걸려 있다(`data/rankEvents.ts`).
      *
      * **비용의 성격을 기존 활동과 겹치지 않게 잡았다**(위 규칙 2): 돈도 안 들고 몸도 거의
      * 안 쓰는 대신 **멘탈만 깎는다**. 하기 싫은 걸 참고 하는 종류의 일이라 그렇다 —
@@ -810,6 +812,60 @@ export const ACTIVITIES: Activity[] = [
     description: '한 판만 하려다 승급전에 걸린다. 이겨도 기분이 좋지만은 않다.',
     effects: { gaming: 7, reputation: 2, stamina: -15, mental: -3 },
     requires: { stamina: 15 },
+  },
+  /* ── 랭크 이벤트가 여는 활동 4종 (2026-08-08) ────────────────────────
+   * ⚠️ **바탕화면에 안 뜬다**(`onDesktop` 없음). 통로는 각자의 대화방 제안 하나뿐이고,
+   * 그 방은 랭크 이벤트가 연다(`data/rankEvents.ts`). 활동만 있고 방이 없으면 스케줄러
+   * 고르기 판에는 뜨는데 시작할 길이 없는 활동이 된다.
+   * ⚠️ **번아웃 키를 알바(`work`)와 나눠 쓰지 않는다** — `WORK_ACTIVITIES` 불변식
+   *    ("알바는 넷")이 깨진다(`stream`·`gig`와 같은 판단).
+   */
+  {
+    /* 레이드 파티. 게임과 사람이 함께 오는 자리라 **멘탈 회복처**이기도 하다. */
+    id: 'raid',
+    label: '레이드 파티',
+    icon: 'fluent-color:puzzle-piece-24',
+    category: 'leisure',
+    description: '고정팟 두 시간. 합이 맞으면 시간이 어떻게 가는지 모른다.',
+    effects: { gaming: 7, sociability: 3, mental: 10, stamina: -12 },
+    requires: { stamina: 12 },
+    burnoutKey: 'raid',
+  },
+  {
+    /* 독서모임. 혼자 읽는 것(`reading`)과 갈리는 것은 **말로 옮기는 몫**이다. */
+    id: 'bookclub',
+    label: '독서모임',
+    icon: 'fluent-color:book-open-24',
+    category: 'relation',
+    description: '한 권을 두고 한 시간을 떠든다. 읽은 것보다 들은 것이 많다.',
+    effects: { vocabulary: 5, sociability: 3, knowledge: 2, mental: 4, stamina: -12 },
+    requires: { stamina: 12 },
+    burnoutKey: 'bookclub',
+  },
+  {
+    /*
+     * 모델 촬영. ⚠️ **알바가 아니다**(`scalesWithWage` 없음) — 물가 배율을 안 타는
+     * 고정 보수라 후반에는 값이 떨어진다(정규직 급여·원고료와 같은 장치).
+     */
+    id: 'model-shoot',
+    label: '모델 촬영',
+    icon: 'fluent-color:camera-24',
+    category: 'living',
+    description: '동네 미용실 홍보 사진을 찍는다. 웃는 얼굴로 세 시간이 지나간다.',
+    effects: { money: 70000, charm: 3, reputation: 2, stamina: -20, mental: -6 },
+    requires: { stamina: 20 },
+    burnoutKey: 'shoot',
+  },
+  {
+    /* 학원 특강. 과외(지식 60)보다 훨씬 위의 자리라 보수도 위다. */
+    id: 'lecture',
+    label: '학원 특강',
+    icon: 'fluent-color:board-24',
+    category: 'living',
+    description: '스무 명 앞에서 두 시간을 말한다. 끝나면 목이 쉬어 있다.',
+    effects: { money: 130000, knowledge: 3, vocabulary: 3, manners: 1, stamina: -24, mental: -8 },
+    requires: { stamina: 24 },
+    burnoutKey: 'lecture',
   },
 ]
 
