@@ -258,6 +258,13 @@ export interface DesktopItem {
    * 차지한 칸이 빈 자리로 남아 열 가운데가 뚫린다.
    */
   requiresItem?: string | string[]
+  /**
+   * **재직 중이어야 바탕화면에 나타나는 항목**(생략 = 항상 보인다).
+   * ⚠️ 업무용 메신저(너아무튼온)가 쓴다 — 회사가 없으면 앱도 없다(설계자 지시).
+   * `requiresItem`과 같은 규칙이다: `DESKTOP_ITEMS`에서는 빠지지 않고 `desktopEntries`가
+   * 거르며, 조건부 항목이므로 **자기 열의 맨 뒤**에 둔다.
+   */
+  requiresEmployment?: boolean
 }
 
 /**

@@ -5,7 +5,7 @@ import { useGameStore } from '../../store/gameStore'
 import { useToastStore } from '../../store/toastStore'
 import { useWindowStore } from '../../store/windowStore'
 import { noticeMail } from '../../systems/employment'
-import { selectIncoming } from '../../systems/messages'
+import { channelVisible, selectIncoming } from '../../systems/messages'
 import './ToastHost.css'
 
 /** 토스트가 저절로 사라지기까지의 시간. ux `toast-dismiss`: 3~5초. */
@@ -36,6 +36,9 @@ const DELIVERY_ICON = 'fluent-color:document-folder-24'
 export function ToastHost() {
   const day = useGameStore((s) => s.state?.day)
   const slot = useGameStore((s) => s.state?.slot)
+  /* ⚠️ 아직 없는 방의 알림은 띄우지 않는다 — 누르면 열 수 없는 토스트가 된다.
+     판정은 `channelVisible` 하나이고 메신저 창의 목록과 같은 것을 본다. */
+  const state = useGameStore((s) => s.state)
   const toasts = useToastStore((s) => s.toasts)
   const push = useToastStore((s) => s.push)
   const dismiss = useToastStore((s) => s.dismiss)
@@ -56,7 +59,10 @@ export function ToastHost() {
     const key = `${day}-${slot}`
     if (lastTurn.current === key) return
     lastTurn.current = key
-    push(selectIncoming(day, slot))
+    push(selectIncoming(day, slot).filter((m) => !state || channelVisible(m.channel, state)))
+    // state는 턴마다 바뀌지만 이 effect는 (day, slot)이 바뀔 때만 돈다 —
+    // 같은 턴에 두 번 띄우지 않기 위해서다(lastTurn 가드와 같은 이유).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day, slot, push])
 
   /**

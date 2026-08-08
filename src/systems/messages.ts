@@ -1,6 +1,6 @@
-import { MESSAGE_SCHEDULE, THREAD_LIMIT } from '../data/messages'
-import type { Message } from '../data/messages'
-import type { Slot } from '../types/game'
+import { MESSAGE_SCHEDULE, THREAD_LIMIT, THREADS, threadsOf } from '../data/messages'
+import type { ChatAppId, Message, Thread } from '../data/messages'
+import type { GameState, Slot, Stats } from '../types/game'
 
 /**
  * 게임 시간(day, slot)을 0부터 세는 **턴 번호**로 바꾼다.
@@ -44,6 +44,37 @@ export interface TimedMessage extends Message {
    * 두 목록을 시간순으로 합칠 수 없어(같은 "오전 9:08"이 며칠에도 있다) 번호를 함께 준다.
    */
   turn: number
+}
+
+/**
+ * 이 방이 지금 목록에 있는가.
+ *
+ * ⚠️ **판정은 여기 하나뿐이다.** 목록(메신저 창)·알림(토스트)·자동 진행 요약이 모두 이걸
+ * 지나야 "없는 방의 알림이 뜨는" 어긋남이 안 생긴다 — 화면마다 자기 기준을 만들면
+ * 반드시 한 곳이 빠진다(`canRun`이 활동에서 하는 일과 같은 자리다).
+ */
+export function threadVisible(thread: Thread, state: GameState): boolean {
+  if (thread.requiresEmployment && !state.employment) return false
+  for (const [key, need] of Object.entries(thread.requires ?? {})) {
+    if (state.stats[key as keyof Stats] < need) return false
+  }
+  return true
+}
+
+/** 이 앱에서 지금 보이는 방. 컴포넌트가 조건을 다시 적지 않는다. */
+export function visibleThreadsOf(app: ChatAppId, state: GameState): Thread[] {
+  return threadsOf(app).filter((t) => threadVisible(t, state))
+}
+
+/**
+ * 이 채널의 메시지를 지금 보여 줘도 되는가.
+ *
+ * ⚠️ 채널은 방 id **또는** 사서함('outlook')이다 — 방이 아닌 채널은 늘 보인다
+ * (메일은 조건 없이 오고, 없는 방으로 오해될 일도 없다).
+ */
+export function channelVisible(channel: string, state: GameState): boolean {
+  const thread = THREADS.find((t) => t.id === channel)
+  return thread ? threadVisible(thread, state) : true
 }
 
 /** 이 턴에 **새로 도착하는** 메시지. 토스트가 이걸 띄운다. */

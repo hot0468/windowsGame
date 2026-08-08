@@ -72,10 +72,12 @@ export function MobileShell() {
   /** 조건부 항목 판정. ⚠️ 셀렉터가 새 배열을 만들면 무한 갱신이 된다(`Desktop`과 같다). */
   const inventory = useGameStore((s) => s.state?.inventory)
   const ownedIds = useMemo(() => (inventory ?? []).map((i) => i.id), [inventory])
+  /* 너아무튼온은 재직해야 나타난다(설계자 지시). 불리언 하나라 셀렉터가 새 값을 만들지 않는다. */
+  const employed = useGameStore((s) => Boolean(s.state?.employment))
 
   const entries = useMemo(
-    () => desktopEntries(shortcutIds, ownedIds),
-    [shortcutIds, ownedIds],
+    () => desktopEntries(shortcutIds, ownedIds, employed),
+    [shortcutIds, ownedIds, employed],
   )
 
   /**

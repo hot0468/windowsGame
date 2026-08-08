@@ -22,7 +22,7 @@ import { takeCourse as takeCourseOf } from '../systems/courses'
 import { playGame as playGameOf } from '../systems/steam'
 import { advanceCertification, takeExam as takeExamOf } from '../systems/certification'
 import { findHousing } from '../data/housing'
-import { selectIncoming } from '../systems/messages'
+import { channelVisible, selectIncoming } from '../systems/messages'
 import {
   AUTO_STOPPED_BY_PLAYER,
   appendStep,
@@ -621,8 +621,11 @@ export const useGameStore = create<GameStore>()(
           arrivals: result.arrivals,
           notices: result.jobNotices,
           skipped: result.skippedPlans,
-          // 토스트와 **같은 출처**를 본다 — 여기서 따로 계산하면 알림과 요약이 어긋난다.
-          messages: selectIncoming(after.day, after.slot),
+          // 토스트와 **같은 출처·같은 필터**를 본다 — 여기서 따로 계산하면 알림과 요약이
+          // 어긋나고, 아직 없는 방의 메시지가 요약에만 뜬다.
+          messages: selectIncoming(after.day, after.slot).filter((m) =>
+            channelVisible(m.channel, after),
+          ),
           slots: autoSlots + 1,
         }
 

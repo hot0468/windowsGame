@@ -1,4 +1,4 @@
-import type { IconName } from '../types/game'
+import type { IconName, Stats } from '../types/game'
 
 /**
  * 메신저 앱. 앱 하나가 **채팅방 여러 개**를 담는다(레퍼런스: 카톡 PC).
@@ -51,6 +51,27 @@ export interface Thread {
   /** true면 오픈채팅. 목록에서 라벨이 붙고, 모르는 사람들의 방이라는 뜻이다. */
   open?: boolean
   /**
+   * 이 방이 목록에 나타나는 조건(스탯). **없으면 처음부터 있다.**
+   *
+   * ⚠️ **첫 판의 카톡 목록은 비어 있다**(설계자 지시). 아는 사람 방을 처음부터 깔아 두면
+   * "혼자 시작해서 사람을 만들어 간다"는 이야기가 시작부터 완결돼 있다. 친화력이 오르면
+   * 하나씩 연락이 닿는다 — 축을 하나(`sociability`)로 묶은 이유는 "사람과 어울리는 능력이
+   * 늘면서 관계가 생긴다"가 한 문장으로 읽혀야 하기 때문이다.
+   *
+   * ⚠️ **오픈채팅에는 조건을 걸지 않는다.** 헬스장·미용실은 모르는 사람들의 방이고
+   * 여기서 파는 서비스가 초반 선택지라, 잠그면 시작하자마자 갈 곳이 하나 줄어든다.
+   *
+   * 판정은 `systems/messages.ts`의 `threadVisible` 하나가 한다(화면이 자기 기준을
+   * 만들면 목록과 알림이 갈린다).
+   */
+  requires?: Partial<Stats>
+  /**
+   * 재직 중이어야 나타나는가. 업무용 메신저(너아무튼온)가 이걸 쓴다 —
+   * ⚠️ **회사가 없으면 업무 대화방도 없다**(설계자 지시: "기업 취직하면 시작됨").
+   * 앱 아이콘 자체도 같은 조건으로 바탕화면에서 빠진다(`DesktopItem.requiresEmployment`).
+   */
+  requiresEmployment?: boolean
+  /**
    * 대화창 아래에 뜨는 **제안**. 있으면 [만나러 가기] 대신 이 선택지들이 나온다.
    *
    * 데이터로 두는 이유는 활동 효과와 같다 — 컴포넌트에 금액·활동 id를 적으면
@@ -85,9 +106,12 @@ export interface OfferOption {
 }
 
 export const THREADS: Thread[] = [
-  { id: 'minji', app: 'kakao', name: '민지', members: 1 },
-  { id: 'family', app: 'kakao', name: '가족', members: 4 },
-  { id: 'club', app: 'kakao', name: '동아리 사람들', members: 11 },
+  // 친화력 8 — 첫 친구. 가족(4)보다 뒤에 오는 것이 의도다(연락은 밖에서 안으로 온다).
+  { id: 'minji', app: 'kakao', name: '민지', members: 1, requires: { sociability: 8 } },
+  // 가장 먼저 닿는 방. 시작 친화력이 0이라 며칠은 아무 방도 없다.
+  { id: 'family', app: 'kakao', name: '가족', members: 4, requires: { sociability: 4 } },
+  // 모임에 나가야 생기는 방(동아리 모임 활동이 친화력 6을 준다).
+  { id: 'club', app: 'kakao', name: '동아리 사람들', members: 11, requires: { sociability: 16 } },
   {
     /*
      * 오픈채팅. 1:1 지인 방과 달리 **모르는 사람들의 방**이고, 여기서 서비스를 판다.
@@ -158,8 +182,8 @@ export const THREADS: Thread[] = [
       ],
     },
   },
-  { id: 'boss', app: 'nateon', name: '팀장님', members: 1 },
-  { id: 'devteam', app: 'nateon', name: '개발 2팀', members: 7 },
+  { id: 'boss', app: 'nateon', name: '팀장님', members: 1, requiresEmployment: true },
+  { id: 'devteam', app: 'nateon', name: '개발 2팀', members: 7, requiresEmployment: true },
 ]
 
 /** 메일 사서함. 채팅이 아니므로 앱 목록과 따로 둔다. */

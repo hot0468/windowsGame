@@ -128,7 +128,7 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - ⚠️ **화면을 꽉 채우는 창은 `min-height`가 아니라 `height`를 쓴다**(min-height는 내용이 더 크면 무력하다). 넘치는 부분은 **안쪽 목록만** 스크롤시킨다(`min-height: 0` + `overflow-y: auto`)
 
 ### 메시지 · 토스트
-- 데이터: `data/messages.ts` — **앱 → 채팅방** 2단계(`CHAT_APPS` → `THREADS`). 메일은 `MAILBOX`. 메시지는 `channel`(채팅방 id 또는 `'outlook'`)로 묶인다
+- 데이터: `data/messages.ts` — **앱 → 채팅방** 2단계(`CHAT_APPS` → `THREADS`). 메일은 `MAILBOX`. 메시지는 `channel`(채팅방 id 또는 `'outlook'`)로 묶인다. ⚠️ **첫 판의 목록은 비어 있다**(설계자 지시): 카톡은 **오픈채팅 둘만** 보이고 아는 사람 방은 `Thread.requires`(친화력 4·8·16)로, 너아무튼온은 **`requiresEmployment`**로 열린다(앱 아이콘도 `DesktopItem.requiresEmployment`로 같이 숨는다 — 취직해야 시작된다). ⚠️ **판정은 `systems/messages.ts`의 `threadVisible` 하나다** — 목록·토스트·자동 진행 요약이 전부 이걸 지나야 "없는 방의 알림"이 안 뜬다. **오픈채팅에는 조건을 걸지 말 것**(초반 선택지가 사라진다)
 - `MESSAGE_SCHEDULE`은 **턴 번호로 색인된 배열**이고 **끝에서 처음으로 순환**한다(유한한 대본을 결정적으로 계속 흐르게 한다). **빈 배열인 턴이 있는 게 중요하다** — 매 턴 알림은 소음이다
 - ⚠️ **받은 메시지를 세이브에 저장하지 않는다.** `(day, slot)`이면 언제든 다시 계산된다(`systems/messages.ts`의 `selectChannel`). 시각(`오전 9:08`)도 턴에서 뽑는다(`Date` 금지 — 결정성)
 - 토스트(`toastStore` + `ToastHost`)는 **턴이 넘어갈 때만** 뜬다. 누르면 해당 대화창/사서함이 열리고 게임 상태는 안 바뀐다

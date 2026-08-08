@@ -4,15 +4,17 @@ import { BROWSER_ICONS } from '../../data/icons'
 import { AppIcon } from '../../icons/AppIcon'
 import { useBrowserStore } from '../../store/browserStore'
 import { useGameStore } from '../../store/gameStore'
+import { canGoBack, canGoForward, currentSiteId, goBack, goForward } from '../../systems/browserHistory'
 import {
-  canGoBack,
-  canGoForward,
-  createHistory,
-  currentSiteId,
-  goBack,
-  goForward,
-  navigate,
-} from '../../systems/browserHistory'
+  activeTab,
+  closeTab,
+  createTabs,
+  navigateActive,
+  openTab,
+  setActive,
+  tabSiteId,
+  updateActive,
+} from '../../systems/browserTabs'
 import { AlbamonSite } from './sites/AlbamonSite'
 import { CampusSite } from './sites/CampusSite'
 import { CertSite } from './sites/CertSite'
@@ -46,9 +48,16 @@ import './BrowserApp.css'
  * 둘러보는 동안은 무료이고, 버튼을 누르는 그 한 번만 턴을 쓴다.
  */
 export function BrowserApp({ onClose }: { onClose?: () => void }) {
-  // 이력은 이 창 하나의 휘발 상태다. 스토어에 올리면 창 id별로 나눠 담고
-  // 닫을 때 지우는 코드가 따로 필요해지는데, 그 상태를 볼 다른 컴포넌트가 없다.
-  const [history, setHistory] = useState(() => createHistory(HOME_SITE_ID))
+  /*
+   * 탭 목록은 이 창 하나의 휘발 상태다. 스토어에 올리면 창 id별로 나눠 담고 닫을 때
+   * 지우는 코드가 따로 필요해지는데, 그 상태를 볼 다른 컴포넌트가 없다.
+   * ⚠️ 규칙(열기·전환·닫기·되돌리기)은 전부 `systems/browserTabs.ts`가 갖는다 —
+   * `useState` 콜백 안에 흩어 두면 화면을 열어 보지 않고는 확인할 수가 없다.
+   */
+  const [tabs, setTabs] = useState(() => createTabs(HOME_SITE_ID))
+  const history = activeTab(tabs).history
+  const setHistory = (fn: (h: typeof history) => typeof history) =>
+    setTabs((s) => updateActive(s, fn))
   // 새로고침은 페이지를 다시 마운트시켜 사이트의 로컬 상태(검색 입력 등)를 초기화한다.
   const [reloadCount, setReloadCount] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -75,7 +84,27 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
     setAddr(findSite(siteId)?.url ?? siteId)
   }, [siteId])
 
-  const goToSite = (id: string) => setHistory((h) => navigate(h, id))
+  /**
+   * 사이트를 **탭으로 연다**(설계자 지시). 이미 열려 있으면 그 탭으로 옮겨 간다.
+   * 포털 카드·퀵메뉴·쇼핑 띠·즐겨찾기 줄이 전부 이 통로를 쓴다.
+   */
+  const goToSite = (id: string) => setTabs((s) => openTab(s, id))
+  /**
+   * ⚠️ **주소창만 현재 탭을 바꾼다**(새 탭을 열지 않는다). 실제 브라우저의 갈래를
+   * 그대로 가져온 것이고, 이 통로가 남아 있어야 **뒤로/앞으로가 죽은 컨트롤이 되지 않는다**
+   * (모든 이동이 새 탭이면 탭마다 이력이 한 칸뿐이라 두 버튼이 영영 비활성이 된다).
+   */
+  const goInTab = (id: string) => setTabs((s) => navigateActive(s, id))
+  /** 마지막 탭을 닫으면 창이 닫힌다(실제 크롬과 같다 — 규칙은 `closeTab`이 갖는다). */
+  const closeTabAt = (id: number) =>
+    setTabs((s) => {
+      const next = closeTab(s, id)
+      if (next === null) {
+        onClose?.()
+        return s
+      }
+      return next
+    })
   const backEnabled = canGoBack(history)
   const forwardEnabled = canGoForward(history)
   const bookmarked = bookmarks.includes(siteId)
@@ -96,26 +125,54 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
       <div className="browser-chrome">
       {/*
         탭 줄. 실제 크롬의 상단 순서(탭 줄 → 도구 모음 → 즐겨찾기 줄)를 따른다.
-        ⚠️ **탭은 하나뿐이고 "+"(새 탭) 버튼이 없다.** 다중 탭은 구현되지 않았고,
-        눌러도 아무 일이 없는 버튼을 놓느니 없는 편이 낫다(ux `empty-nav-state`).
-        탭의 ✕는 진짜다 — 크롬도 마지막 탭을 닫으면 창이 닫히므로 창 닫기에 연결했다.
+        ⚠️ **사이트를 열면 여기에 탭이 하나 붙는다**(설계자 지시). 같은 사이트를 다시 열면
+        새로 만들지 않고 그 탭으로 옮겨 간다 — 규칙은 `systems/browserTabs.ts`가 갖는다.
+        ⚠️ 탭 하나에 버튼이 **둘**이라 `<button>`을 겹칠 수 없다(중첩 금지) — 바깥은
+        `<div role="tab">`이고 제목 쪽이 전환 버튼, ✕가 닫기 버튼이다.
+        마지막 탭의 ✕는 창을 닫는다(크롬과 같다).
       */}
       <div className="browser-tabs" role="tablist">
-        <div className="browser-tab" role="tab" aria-selected="true">
-          {site && <AppIcon name={site.icon} size={16} />}
-          <span className="browser-tab-title">{site?.title ?? '새 탭'}</span>
-          {onClose && (
-            <button
-              type="button"
-              className="browser-tab-close"
-              onClick={onClose}
-              aria-label="탭 닫기"
-              title="탭 닫기"
+        {tabs.tabs.map((tab) => {
+          const tabSite = findSite(tabSiteId(tab))
+          const on = tab.id === tabs.activeId
+          return (
+            <div
+              key={tab.id}
+              className={`browser-tab${on ? ' browser-tab-on' : ''}`}
+              role="tab"
+              aria-selected={on}
             >
-              <span className="browser-glyph browser-glyph-x" aria-hidden="true" />
-            </button>
-          )}
-        </div>
+              <button
+                type="button"
+                className="browser-tab-pick"
+                onClick={() => setTabs((s) => setActive(s, tab.id))}
+                title={tabSite ? `${tabSite.title} — ${tabSite.url}` : tabSiteId(tab)}
+              >
+                {tabSite && <AppIcon name={tabSite.icon} size={16} />}
+                <span className="browser-tab-title">{tabSite?.title ?? '새 탭'}</span>
+              </button>
+              <button
+                type="button"
+                className="browser-tab-close"
+                onClick={() => closeTabAt(tab.id)}
+                aria-label={`${tabSite?.title ?? '탭'} 닫기`}
+                title="탭 닫기"
+              >
+                <span className="browser-glyph browser-glyph-x" aria-hidden="true" />
+              </button>
+            </div>
+          )
+        })}
+        {/* ⚠️ 이제 진짜로 동작하는 버튼이라 놓는다(예전에는 다중 탭이 없어서 뺐다). */}
+        <button
+          type="button"
+          className="browser-tab-new"
+          onClick={() => goToSite(HOME_SITE_ID)}
+          aria-label="새 탭"
+          title="새 탭"
+        >
+          <span className="browser-glyph browser-glyph-plus" aria-hidden="true" />
+        </button>
       </div>
 
       <div className="browser-toolbar">
@@ -158,7 +215,8 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
           className="browser-addr"
           onSubmit={(e) => {
             e.preventDefault()
-            goToSite(resolveUrl(addr))
+            // ⚠️ 주소창은 **새 탭을 열지 않고 이 탭을 바꾼다**(실제 브라우저와 같다).
+            goInTab(resolveUrl(addr))
           }}
         >
           {site && <AppIcon name={site.icon} size={16} />}
@@ -219,7 +277,8 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
                   role="menuitem"
                   className="browser-menu-item"
                   autoFocus
-                  onClick={runFromMenu(() => goToSite(HOME_SITE_ID))}
+                  /* 메뉴의 [홈으로]는 이 탭을 홈으로 되돌린다(주소창과 같은 부류다). */
+                  onClick={runFromMenu(() => goInTab(HOME_SITE_ID))}
                 >
                   홈으로
                 </button>

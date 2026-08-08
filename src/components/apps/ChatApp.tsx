@@ -1,13 +1,19 @@
 import { useState } from 'react'
 import { AppIcon } from '../../icons/AppIcon'
-import { findChatApp, findThread, threadsOf } from '../../data/messages'
+import { findChatApp, findThread } from '../../data/messages'
 import { findActivity } from '../../data/activities'
 import { findItem } from '../../data/items'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
 import { canOrder, owns } from '../../systems/delivery'
 import { canRun } from '../../systems/turn'
-import { lastMessage, selectChannel, selectIncoming } from '../../systems/messages'
+import {
+  channelVisible,
+  lastMessage,
+  selectChannel,
+  selectIncoming,
+  visibleThreadsOf,
+} from '../../systems/messages'
 import { STAT_NAMES } from '../../types/game'
 import type { Stats } from '../../types/game'
 import './ChatApp.css'
@@ -70,13 +76,19 @@ export function ChatListApp({ appId }: { appId: string }) {
 
   if (!state || !app) return null
 
-  const allThreads = threadsOf(app.id)
+  /* ⚠️ 조건을 만족한 방만 본다 — 첫 판의 카톡 목록은 오픈채팅 둘뿐이고,
+     너아무튼온은 취직해야 방이 생긴다(판정은 `threadVisible` 하나). */
+  const allThreads = visibleThreadsOf(app.id, state)
   const threads = allThreads.filter((t) => (tab === 'open' ? t.open : !t.open))
   /** 오픈채팅이 하나도 없는 앱(너아무튼온)은 탭 자체를 만들지 않는다. */
   const hasOpen = allThreads.some((t) => t.open)
   // 이번 턴 도착분 = 아직 안 본 것으로 친다. 읽음 상태를 따로 저장하지 않는 이유는
   // 메시지 자체를 저장하지 않는 것과 같다 — (day, slot)이면 언제든 다시 계산된다.
-  const freshChannels = new Set(selectIncoming(state.day, state.slot).map((m) => m.channel))
+  const freshChannels = new Set(
+    selectIncoming(state.day, state.slot)
+      .filter((m) => channelVisible(m.channel, state))
+      .map((m) => m.channel),
+  )
   const unreadCount = threads.filter((t) => freshChannels.has(t.id)).length
   const shown = filter === 'unread' ? threads.filter((t) => freshChannels.has(t.id)) : threads
 
@@ -218,8 +230,19 @@ export function ChatListApp({ appId }: { appId: string }) {
 
         <ul className="chat-rows">
           {shown.length === 0 && (
+            /*
+             * ⚠️ **첫 판에는 이 자리가 기본 화면이다**(카톡 일반 탭·너아무튼온 모두 비어 있다).
+             * "대화방이 없습니다" 한 줄이면 고장으로 읽히므로 **무엇을 하면 생기는지**까지
+             * 적는다(ux `empty-states` — 알바몬·벼룩장터의 빈 목록과 같은 규칙).
+             */
             <li className="chat-rows-empty">
-              {filter === 'unread' ? '새 메시지가 없습니다.' : '대화방이 없습니다.'}
+              {filter === 'unread'
+                ? '새 메시지가 없습니다.'
+                : app.id === 'nateon'
+                  ? '업무용 메신저입니다. 회사에 들어가면 팀 대화방이 열립니다.'
+                  : tab === 'open'
+                    ? '참여 중인 오픈채팅이 없습니다.'
+                    : '아직 연락이 닿는 사람이 없습니다. 사람들과 어울리다 보면 하나씩 생깁니다.'}
             </li>
           )}
           {shown.map((t) => {

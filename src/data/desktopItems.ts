@@ -40,14 +40,6 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
     width: 400,
   },
   {
-    id: 'nateon',
-    label: '너아무튼온',
-    icon: 'fluent-color:people-chat-24',
-    kind: 'chat',
-    appId: 'nateon',
-    width: 400,
-  },
-  {
     id: 'scheduler',
     label: '일정',
     icon: 'fluent-color:calendar-24',
@@ -103,6 +95,23 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
     kind: 'stub',
     stubMessage: '작업 중인 폴더가 없습니다. 열어 볼 프로젝트를 먼저 만들어야 합니다.',
     width: 360,
+  },
+  {
+    /*
+     * 너아무튼온 — **업무용 메신저라 취직해야 나타난다**(설계자 지시: "기업 취직하면 시작됨").
+     * 회사가 없으면 팀장님도 개발 2팀도 없으므로 앱만 덩그러니 두면 빈 목록이 뜬다.
+     *
+     * ⚠️ **클립스튜디오와 같은 부류의 조건부 항목이라 프로그램 열의 맨 뒤에 있다** —
+     * 가운데에 두면 취직하기 전까지 그 칸이 빈 자리로 남아 열이 뚫린다.
+     * 방 목록 쪽 조건은 `Thread.requiresEmployment`가 따로 갖는다(판정은 `threadVisible`).
+     */
+    id: 'nateon',
+    label: '너아무튼온',
+    icon: 'fluent-color:people-chat-24',
+    kind: 'chat',
+    appId: 'nateon',
+    width: 400,
+    requiresEmployment: true,
   },
   {
     /*
@@ -205,9 +214,11 @@ export const DESKTOP_ITEMS: DesktopItem[] = [...ACTIVITY_ITEMS, ...NON_ACTIVITY_
 export function desktopEntries(
   shortcutActivityIds: readonly string[],
   ownedItemIds: readonly string[] = [],
+  employed = false,
 ): DesktopEntry[] {
-  const builtIn: DesktopEntry[] = DESKTOP_ITEMS.filter((item) =>
-    hasRequired(item.requiresItem, ownedItemIds),
+  const builtIn: DesktopEntry[] = DESKTOP_ITEMS.filter(
+    (item) =>
+      hasRequired(item.requiresItem, ownedItemIds) && (!item.requiresEmployment || employed),
   ).map((item) => ({
     id: item.id,
     label: item.label,

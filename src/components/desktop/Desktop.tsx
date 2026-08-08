@@ -117,10 +117,12 @@ export function Desktop() {
    */
   const inventory = useGameStore((s) => s.state?.inventory)
   const ownedIds = useMemo(() => (inventory ?? []).map((i) => i.id), [inventory])
+  /* 너아무튼온은 재직해야 나타난다(설계자 지시). 불리언 하나라 셀렉터가 새 값을 만들지 않는다. */
+  const employed = useGameStore((s) => Boolean(s.state?.employment))
 
   const entries = useMemo(
-    () => desktopEntries(shortcutIds, ownedIds),
-    [shortcutIds, ownedIds],
+    () => desktopEntries(shortcutIds, ownedIds, employed),
+    [shortcutIds, ownedIds, employed],
   )
   /** 실제로 그려지는 바로 가기만 칸을 차지한다(없는 활동을 가리키는 것은 빠진다). */
   const shortcutEntryIds = useMemo(
