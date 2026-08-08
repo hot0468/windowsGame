@@ -84,15 +84,15 @@ export const ACTIVITIES: Activity[] = [
   {
     /*
      * 몸으로 버는 쪽. 행동력을 가장 많이 먹고 멘탈도 가장 많이 깎지만 **조건이 스탯 하나**라
-     * 러닝만 꾸준히 하면 열린다. `maxStamina`가 조금 붙는 것은 부수 효과이지 목적이 아니다
-     * (그릇을 키우려면 운동 활동이 여전히 더 싸다).
+     * 러닝만 꾸준히 하면 열린다. 운동 스탯이 조금 붙는 것은 부수 효과이지 목적이 아니다
+     * (몸을 키우려면 운동 활동이 여전히 더 싸다).
      */
     id: 'work-logistics',
     label: '알바 (물류센터)',
     icon: 'fluent-color:toolbox-24',
     category: 'living',
     description: '새벽 상하차. 끝나면 손가락이 안 펴지지만 일당이 그날 들어온다.',
-    effects: { money: 95000, maxStamina: 2, stamina: -35, mental: -12 },
+    effects: { money: 95000, athletics: 2, stamina: -35, mental: -12 },
     requires: { stamina: 35, athletics: 25 },
     scalesWithWage: true,
     burnoutKey: 'work',
@@ -169,8 +169,8 @@ export const ACTIVITIES: Activity[] = [
     label: '운동',
     icon: 'fluent-color:sport-24',
     category: 'body',
-    description: '오늘 행동력을 태워 체력을 키운다.',
-    effects: { maxStamina: 4, stamina: -20, mental: 3 },
+    description: '오늘 체력을 태워 몸을 만든다.',
+    effects: { athletics: 4, stamina: -20, mental: 3 },
     requires: { stamina: 20 },
   },
   {
@@ -320,7 +320,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:sport-24',
     category: 'body',
     description: '하루치를 끊고 운동한다.',
-    effects: { maxStamina: 6, stamina: -20, mental: 2, money: -15000 },
+    effects: { athletics: 6, stamina: -20, mental: 2, money: -15000 },
     requires: { stamina: 20, money: 15000 },
   },
   {
@@ -334,14 +334,14 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:sport-24',
     category: 'body',
     description: '회원권으로 간다. 추가 비용은 없다.',
-    effects: { maxStamina: 6, stamina: -20, mental: 2 },
+    effects: { athletics: 6, stamina: -20, mental: 2 },
     requires: { stamina: 20 },
     requiresItem: 'gym-pass',
   },
   /*
    * ── 미용실 2종 (2026-08-08) ──
    * ⚠️ **헬스장과 완전히 같은 구조다**(1회권 / 정기권 잠금). 다른 것은 올리는 스탯뿐:
-   * 헬스장이 `maxStamina`(그릇)를 키운다면 미용실은 **매력**을 키운다.
+   * 헬스장이 **운동 스탯**을 키운다면 미용실은 **매력**을 키운다.
    * 같은 구조를 되풀이하는 것이 의도다 — 플레이어가 "오픈채팅에서 파는 것은 이렇게
    * 동작한다"를 한 번만 배우면 된다(`gym-pass` ← `gym-member`와 같은 방향).
    *
@@ -485,7 +485,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:shield-checkmark-24',
     category: 'living',
     description: '하루짜리 점검을 나간다. 체크리스트가 예순 줄이고 사진을 다 찍어야 한다.',
-    effects: { money: 92000, manners: 1, maxStamina: 1, stamina: -28, mental: -9 },
+    effects: { money: 92000, manners: 1, athletics: 1, stamina: -28, mental: -9 },
     requires: { stamina: 28 },
     requiresItem: 'cert-safety',
     burnoutKey: 'cert-gig',
@@ -570,9 +570,9 @@ export const ACTIVITIES: Activity[] = [
    * 메뉴들은 값이 같다 — 알바몬에서 같은 직종 공고 둘이 같은 일당인 것과 같은 이유다
    * (표시가 참이려면 화면이 파생시키는 값이 하나여야 한다).
    *
-   * ⚠️ **행동력을 회복시키지 않는다.** 활동으로 `stamina`를 채우면 "턴을 써서 행동력을
+   * ⚠️ **체력을 회복시키지 않는다.** 활동으로 `stamina`를 채우면 "턴을 써서 체력을
    * 얻는" 순환이 생기고, 취침만 회복한다는 자원 규칙이 무너진다. 음식이 주는 것은
-   * **멘탈**이고, 몸에 남는 것은 건강식의 `maxStamina`뿐이다.
+   * **멘탈**이고, 몸에 남는 것은 건강식의 **운동 스탯**뿐이다.
    */
   {
     /*
@@ -580,6 +580,25 @@ export const ACTIVITIES: Activity[] = [
      * ⚠️ 이 게임에서 성장 스탯을 **깎는** 몇 안 되는 활동이다 — 그래서 폭이 작다(-2).
      * 크게 깎으면 "싸게 멘탈을 채우는 길"이 아니라 그냥 함정이 된다.
      */
+    /*
+     * 병원 진료. **아픔에서 빠져나오는 두 번째 길이고, 그래서 돈으로 산다** —
+     * 날이 지나 저절로 낫는 길만 두면 아픔은 선택이 아니라 통행세다(`data/illness.ts`).
+     *
+     * ⚠️ **완치는 여기서 일어나지 않는다.** 이 활동이 갖는 것은 비용(돈·1턴)뿐이고
+     * `illness` 필드를 지우는 것은 `healIllness`다(`gameStore`가 둘을 잇는다) — 활동
+     * 효과에 상태 변경을 섞으면 "아프지 않은데 진료비만 나가는" 경로가 열린다.
+     * ⚠️ 진료비는 `CLINIC_FEE`가 정본이다. 여기 `money`에 적힌 값과 어긋나면 안 된다
+     * (`illness.test.ts`가 지킨다).
+     */
+    id: 'clinic',
+    label: '병원 진료',
+    icon: 'fluent-color:patient-24',
+    category: 'body',
+    description: '접수하고 한참 기다린다. 주사 한 대와 이틀치 약을 받아 나온다.',
+    effects: { mental: 4, stamina: -4, money: -25000 },
+    requires: { money: 25000 },
+  },
+  {
     id: 'meal-junk',
     label: '배달 (정크푸드)',
     icon: 'fluent-color:food-24',
@@ -598,7 +617,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:food-24',
     category: 'body',
     description: '채소가 반이다. 다 먹고 나면 뿌듯하긴 하다.',
-    effects: { mental: 6, maxStamina: 3, stamina: -5, money: -18000 },
+    effects: { mental: 6, athletics: 2, stamina: -5, money: -18000 },
     requires: { stamina: 5, money: 18000 },
   },
   /*
@@ -672,6 +691,25 @@ export const ACTIVITIES: Activity[] = [
      * 도덕·평판은 상한이 100이라 상승폭이 작다(위 규칙 1). 대신 **멘탈이 오르는
      * 유일한 고강도 활동**이다 — 몸은 힘든데 마음은 나아지는 종류의 일.
      */
+    /*
+     * 본가 방문. **관계 셋 중 활동이 없던 하나라 여기만 새로 만들었다**
+     * (민지는 `social`, 동아리는 `club`을 그대로 쓴다 — `data/relations.ts`).
+     *
+     * ⚠️ **돈을 주지 않는다.** 용돈을 받게 하면 가족이 수입원이 되어 "만나러 간다"가
+     * 벌이가 된다(행사가 수입원이 아닌 것과 같은 규칙). 대신 차비가 나가고,
+     * 얻는 것은 멘탈과 예의범절·도덕이다.
+     * ⚠️ 번아웃 키를 `social`과 공유하지 않는다 — 사람을 만나는 종류가 다르고,
+     * 공유하면 관계 셋을 번갈아 채우는 것이 곧 번아웃이 되어 부가엔딩이 함정이 된다.
+     */
+    id: 'family-visit',
+    label: '본가 방문',
+    icon: 'fluent-color:people-home-24',
+    category: 'relation',
+    description: '반찬통을 받아 온다. 나올 때 손이 무겁고 마음은 좀 가볍다.',
+    effects: { mental: 16, manners: 2, morality: 2, stamina: -12, money: -9000 },
+    requires: { stamina: 12, money: 9000 },
+  },
+  {
     id: 'volunteer',
     label: '봉사활동',
     icon: 'fluent-color:person-heart-24',
@@ -702,16 +740,16 @@ export const ACTIVITIES: Activity[] = [
   },
   {
     /*
-     * 운동 스탯의 주 공급원. ⚠️ `athletics`(운동)와 `maxStamina`(체력)는 다른 스탯이다 —
-     * 기존 운동 활동들은 그릇(maxStamina)만 키웠고 운동 스탯은 아무도 안 올렸다.
-     * 돈이 한 푼도 안 드는 대신 행동력을 가장 많이 먹는다.
+     * 운동 스탯의 주 공급원. ⚠️ **2026-08-08 통합 뒤 운동 계열이 전부 이 스탯으로 모였다**
+     * (예전에는 헬스장·운동이 `maxStamina`라는 그릇을 키웠고 운동 스탯은 러닝만 올렸다).
+     * 돈이 한 푼도 안 드는 대신 체력을 가장 많이 먹는다.
      */
     id: 'running',
     label: '러닝',
     icon: 'fluent-color:heart-24',
     category: 'body',
     description: '해 지기 전에 천변을 뛴다. 3km쯤에서 생각이 멈춘다.',
-    effects: { athletics: 6, maxStamina: 2, stamina: -18, mental: 4 },
+    effects: { athletics: 8, stamina: -18, mental: 4 },
     requires: { stamina: 18 },
   },
   {

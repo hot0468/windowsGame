@@ -18,7 +18,7 @@ function drawer(stats: Partial<Stats> = {}, tool: 'pen' | 'lcd' = 'pen'): GameSt
   const base = createInitialState('그림쟁이')
   return {
     ...base,
-    stats: { ...base.stats, stamina: 200, maxStamina: 200, ...stats },
+    stats: { ...base.stats, stamina: 200, ...stats },
     inventory: [{ id: tool === 'lcd' ? 'lcd-tablet' : 'pen-tablet', day: 1 }],
   }
 }

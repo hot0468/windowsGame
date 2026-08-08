@@ -1,5 +1,10 @@
 import {
   CONTEST_WINS_FOR_OFFER,
+  EDITOR_NAME,
+  EPISODE_REVIEWS,
+  VIEW_BASE,
+  VIEW_PER_EPISODE,
+  VIEW_PER_SCORE,
   DEADLINE_DAYS,
   EPISODE_PAY,
   LIKES_FOR_OFFER,
@@ -10,6 +15,7 @@ import {
   WEEKLY_PAGES,
 } from '../data/webtoon'
 import { CAREER_MAX_LEVEL } from '../data/careers'
+import { weekdayOf } from '../data/calendar'
 import { MAILBOX } from '../data/messages'
 import { findActivity } from '../data/activities'
 import { contestsStateOf } from './contests'
@@ -248,6 +254,88 @@ export function webtoonMessages(state: GameState): TimedMessage[] {
     })
   }
   return out
+}
+
+
+/* ── 월요일 연재 리뷰 ──────────────────────────────────────────────────── */
+
+/** 담당 편집자와 대화하는 카톡 방(`data/messages.ts`의 `THREADS`). */
+export const EDITOR_CHANNEL = 'webtoon-editor'
+
+/** 월요일인가. 요일 척도는 `data/careers.ts`의 근무일과 같다(0=일). */
+const MONDAY = 1
+
+/**
+ * 이번 회차의 독자 점수. **그림·이야기·글, 그리고 평판이 데려온다.**
+ *
+ * ⚠️ 평판에 가중치를 두는 것은 웹툰이 **알려진 사람일수록 잘 읽히는** 매체이기 때문이고,
+ * 상한이 100이라 그대로 더하면 999짜리 스탯들에 묻힌다.
+ * ⚠️ 나머지 셋은 **같은 무게다** — 상한이 같은 999이고, 웹툰 한 회차가 서는 다리가
+ * 셋이기 때문이다: `art`는 실제로 그린 손, `creativity`는 이야기를 만드는 힘,
+ * **`vocabulary`는 그 안에 들어가는 말**(대사와 나레이션)이다. 하나에 가중치를 주면
+ * 그 스탯만 올리는 것이 정답이 되어 나머지 둘이 장식이 된다.
+ */
+export function readerScore(state: GameState): number {
+  const { art, creativity, vocabulary, reputation } = state.stats
+  return art + creativity + vocabulary + reputation * 3
+}
+
+/**
+ * 이번 주 조회수.
+ *
+ * ⚠️ **돈을 만들지 않는다** — 원고료는 `EPISODE_PAY` 하나가 낸다(`data/webtoon.ts` 주석).
+ * 회차가 쌓이면 고정 독자가 붙지만 **덧셈 비율**이라 지수로 커지지 않는다.
+ * ⚠️ **놓친 마감은 독자를 깎는다** — 쉰 주가 있으면 돌아오지 않는 사람이 생긴다.
+ */
+export function weeklyViews(state: GameState): number {
+  const w = state.webtoon
+  if (!w) return 0
+  const loyal = 1 + Math.max(0, w.episodes - 1) * VIEW_PER_EPISODE
+  const base = (VIEW_BASE + readerScore(state) * VIEW_PER_SCORE) * loyal
+  // 마감을 놓칠 때마다 5분의 1씩 잃는다. 0 밑으로는 안 내려간다.
+  return Math.max(0, Math.round(base * Math.max(0, 1 - w.missed * 0.2)))
+}
+
+/**
+ * 이번 회차의 평가 단계(0 조용 / 1 자리 잡음 / 2 화제).
+ * ⚠️ **한 단계만 쓴다** — 누적으로 섞으면 "화제작"과 "아무도 안 본다"가 같은 주에 뜬다.
+ */
+export function reviewTier(state: GameState): 0 | 1 | 2 {
+  /* 임계는 만점(999×3 + 평판 300 ≈ 3,300)을 기준으로 잡는다 — **만점 대비 비율을
+     유지한다**(화제는 상위 20%쯤). ⚠️ 320이었을 때는 중간 실력이 곧바로 '화제'로
+     읽혔다(실측). ⚠️ 점수 축이 늘면 여기 두 값도 함께 올린다 — 안 올리면 축을 더한
+     만큼 모두가 저절로 화제작이 된다(어휘력을 더할 때 500 → 700). */
+  const score = readerScore(state)
+  if (score < 200) return 0
+  return score < 700 ? 1 : 2
+}
+
+/**
+ * 월요일 아침에 오는 담당 편집자의 카톡.
+ *
+ * ⚠️ **저장하지 않고 매번 만든다**(`weekendCallMessages`·`examMessages`와 같은 자리) —
+ * 조회수도 평가도 지금 상태의 파생값이라 편성표(`MESSAGE_SCHEDULE`)에 넣을 수 없다.
+ * ⚠️ **넘긴 회차가 있어야 온다** — 아직 한 주도 안 넘겼는데 지난 회차 성적을 말하면 거짓이다.
+ * ⚠️ 문장 고르기는 **회차 번호로 회전**시킨다(`Math.random` 금지) — 같은 회차면 늘 같은 말이다.
+ */
+export function webtoonReviewMessages(
+  state: GameState,
+): { id: string; channel: string; from: string; text: string }[] {
+  const w = state.webtoon
+  if (!w || w.status !== 'serializing' || w.episodes < 1) return []
+  if (weekdayOf(state.day) !== MONDAY) return []
+
+  const tier = reviewTier(state)
+  const pool = EPISODE_REVIEWS.filter((r) => r.tier === tier)
+  const review = pool[w.episodes % pool.length]
+  return [
+    {
+      id: `webtoon-review-${state.day}`,
+      channel: EDITOR_CHANNEL,
+      from: EDITOR_NAME,
+      text: `「${SERIES_TITLE}」 ${w.episodes}화 성적 알려드립니다. 조회수 ${weeklyViews(state).toLocaleString('ko-KR')}회입니다. ${review.text}`,
+    },
+  ]
 }
 
 export { EPISODE_PAY, WEEKLY_PAGES, SERIES_TITLE, STUDIO_NAME, MISSES_TO_END }

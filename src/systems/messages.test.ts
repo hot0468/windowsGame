@@ -111,7 +111,10 @@ describe('방이 나타나는 조건', () => {
   })
 
   it('조건이 없는 방은 언제나 보인다', () => {
-    for (const t of THREADS.filter((x) => !x.requires && !x.requiresEmployment)) {
+    // ⚠️ 조건 축이 늘면 여기도 늘어야 한다(`requiresWebtoon` 2026-08-08).
+    for (const t of THREADS.filter(
+      (x) => !x.requires && !x.requiresEmployment && !x.requiresWebtoon,
+    )) {
       expect(threadVisible(t, state()), t.id).toBe(true)
     }
   })

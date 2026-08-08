@@ -3,11 +3,14 @@ import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
-import { growthCap } from '../../systems/turn'
+import { STAMINA_CAP, growthCap } from '../../systems/turn'
 import { rankOf, toNextRank } from '../../systems/rank'
+import { isIll } from '../../systems/illness'
+import { ILL_EFFICIENCY } from '../../data/illness'
 import type { StatRank } from '../../systems/rank'
 import { CALENDAR_PANEL_LAYOUT } from '../../data/calendar'
 import { STAT_META, GROWTH_STAT_ORDER } from '../../data/statMeta'
+import { HUD_ICONS } from '../../data/icons'
 import { STAT_NAMES } from '../../types/game'
 import type { GrowthStatKey, Stats } from '../../types/game'
 
@@ -138,6 +141,7 @@ export function StatPanel() {
 
   const { stats, day } = state
   const nextTier = getNextTier(day)
+  const ill = isIll(state)
 
   return (
     <HudPanel
@@ -160,14 +164,34 @@ export function StatPanel() {
       {/* 1구역: 매 턴 변하고 상한이 의미 있는 자원 — 게이지로 한눈에 본다.
           구역 라벨("자원")은 설계자가 걷어냈다. 여기는 본문 첫 줄이라 위쪽 헤어라인도
           필요 없어 HudSection 자체를 빼 버린다 — 헤더 아래 구분선이 이미 경계다. */}
-      <ResourceRow statKey="stamina" value={stats.stamina} max={stats.maxStamina} />
+      {/*
+       * 앓는 중 배지. **행동력 바로 위인 것이 규칙이다** — 아픔이 깎는 것이 회복과 효율이라
+       * 그 두 게이지 옆에서 읽혀야 인과가 보인다.
+       *
+       * ⚠️ **아프지 않으면 아예 그리지 않는다**(빈 자리를 남기지 않는다 — 늘 떠 있는
+       * "건강함" 배지는 아무것도 알리지 않으면서 매일 자리를 먹는다).
+       * ⚠️ 색만으로 알리지 않는다: 남은 날과 무엇이 줄어드는지를 글자로 적는다.
+       * `role="status"`를 붙인 것은 이 줄이 **나타나는 것 자체가 소식**이기 때문이다
+       * (아픔은 토스트도 알림창도 쓰지 않는다 — `activityPreview.ts`의 경고가 예고를 맡는다).
+       */}
+      {ill && (
+        <p className="stat-ill" role="status">
+          <AppIcon name={HUD_ICONS.illness} size={15} />
+          <span className="stat-ill-title">앓는 중</span>
+          <span className="stat-ill-note">
+            {state.illness!.daysLeft}일 남음 · 회복 절반 · 얻는 것 {Math.round(ILL_EFFICIENCY * 100)}%
+          </span>
+        </p>
+      )}
+      {/* ⚠️ 자원 줄이 둘이다(2026-08-08 통합 전에는 행동력·체력이 따로 있어 셋이었다).
+          몸을 키운 결과는 아래 성장 스탯의 **운동**이 진다. */}
+      <ResourceRow statKey="stamina" value={stats.stamina} max={STAMINA_CAP} />
       <ResourceRow statKey="mental" value={stats.mental} max={100} warn={stats.mental <= 20} />
-      <ResourceRow statKey="maxStamina" value={stats.maxStamina} max={200} />
       {/* 평판은 성장 스탯이지만 자원 줄에 둔다(설계자 지시).
           상한이 999라 게이지는 의미가 없으므로 max 없이 숫자만 보여준다. */}
       {/* 막대 기준은 실제 상한이다 — growthCap()이 클램프와 같은 값을 주므로
           표시와 규칙이 어긋날 수 없다(평판·도덕·예의범절은 100, 나머지 성장 스탯은 999).
-          ⚠️ 이 둘만 등급을 함께 단다 — 위의 행동력·멘탈·체력은 잔량이지 쌓은 것이 아니다. */}
+          ⚠️ 이 둘만 등급을 함께 단다 — 위의 체력·멘탈은 잔량이지 쌓은 것이 아니다. */}
       <ResourceRow
         statKey="reputation"
         value={stats.reputation}

@@ -55,6 +55,7 @@ export interface TimedMessage extends Message {
  */
 export function threadVisible(thread: Thread, state: GameState): boolean {
   if (thread.requiresEmployment && !state.employment) return false
+  if (thread.requiresWebtoon && state.webtoon?.status !== 'serializing') return false
   for (const [key, need] of Object.entries(thread.requires ?? {})) {
     if (state.stats[key as keyof Stats] < need) return false
   }

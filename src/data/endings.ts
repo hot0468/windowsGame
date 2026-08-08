@@ -46,7 +46,10 @@ export const ACHIEVEMENT_ENDINGS: Ending[] = [
     title: '철인',
     icon: 'fluent-color:sport-24',
     text: '거울 속의 몸이 낯설다. 무엇을 하든 지치지 않는 몸을 얻었다.',
-    condition: { maxStamina: 200 },
+    /* ⚠️ **예전에는 `maxStamina: 200`이었다**(2026-08-08 체력 통합). 그 스탯이 사라지면서
+       "몸을 키웠다"를 재는 값은 `athletics` 하나가 됐다 — 헬스장·운동·러닝·건강식이
+       전부 여기로 모인다. 도달 가능성은 `balance.verify.test.ts`가 지킨다. */
+    condition: { athletics: 200 },
     tier: 3,
   },
   {

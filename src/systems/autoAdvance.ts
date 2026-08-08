@@ -399,10 +399,10 @@ export function appendStep(run: AutoRun, ctx: StopContext): AutoRun {
  * 진행을 끝내고 증감을 확정한다.
  *
  * ⚠️ `stamina`(행동력)는 세지 않는다 — 매일 취침으로 회복되는 자원이라 며칠을 밀면
- * 증감이 언제나 잡음이다. 보여 줄 값은 **며칠 사이에 실제로 남은 것**(성장 스탯·멘탈·체력)이다.
+ * 증감이 언제나 잡음이다. 보여 줄 값은 **며칠 사이에 실제로 남은 것**(성장 스탯·멘탈)이다.
  */
 export function endRun(run: AutoRun, stop: AutoStop | null): AutoRun {
-  const keys: (keyof Stats)[] = ['mental', 'maxStamina', ...GROWTH_STAT_KEYS]
+  const keys: (keyof Stats)[] = ['mental', ...GROWTH_STAT_KEYS]
   const statDelta = keys
     .map((key) => ({ key, label: STAT_NAMES[key], value: run.statsAfter[key] - run.statsBefore[key] }))
     .filter((d) => d.value !== 0)

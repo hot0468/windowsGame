@@ -4,7 +4,7 @@ import {
   canRun,
   runActivity,
   skipSlot,
-  MAX_STAMINA_CAP,
+  STAMINA_CAP,
   GROWTH_STAT_CAP,
   growthCap,
   MENTAL_CAP,
@@ -127,51 +127,38 @@ describe('runActivity — 스탯 적용', () => {
     expect(runActivity(s, study).stats.stamina).toBe(1)
   })
 
-  it('취침 회복으로도 체력은 maxStamina를 넘지 않는다', () => {
-    // 오후에 활동하면 취침 회복(maxStamina * 0.6)이 붙는다.
+  it('취침 회복으로도 체력은 상한을 넘지 않는다', () => {
+    // 오후에 활동하면 취침 회복(`SLEEP_RECOVERY`)이 붙는다.
     // 체력이 이미 높으면 상한을 넘겨야 하는데, 클램핑이 이를 막는지 확인한다.
     const s = stateWith({
       slot: 'afternoon',
-      stats: { ...createInitialState('t').stats, stamina: 100, maxStamina: 100 },
+      stats: { ...createInitialState('t').stats, stamina: STAMINA_CAP },
     })
     const after = runActivity(s, findActivity('game')!)
-    expect(after.stats.stamina).toBe(100)
-  })
-
-  it('최대 체력은 상한을 넘지 않는다', () => {
-    const s = stateWith({
-      stats: { ...createInitialState('t').stats, maxStamina: MAX_STAMINA_CAP, stamina: 100 },
-    })
-    expect(runActivity(s, exercise).stats.maxStamina).toBe(MAX_STAMINA_CAP)
+    expect(after.stats.stamina).toBe(STAMINA_CAP)
   })
 
   it('상한을 넘긴 세이브 값도 상한으로 끌어내린다', () => {
     const s = stateWith({
-      stats: { ...createInitialState('t').stats, maxStamina: 9999, stamina: 100 },
+      stats: { ...createInitialState('t').stats, stamina: 9999 },
     })
-    expect(runActivity(s, study).stats.maxStamina).toBe(MAX_STAMINA_CAP)
+    expect(runActivity(s, study).stats.stamina).toBeLessThanOrEqual(STAMINA_CAP)
   })
 
-  it('운동을 아무리 반복해도 최대 체력이 상한을 넘지 않는다', () => {
+  it('⚠️ 어떤 활동도 체력 상한을 올리지 못한다 — 상한은 모두에게 같다', () => {
+    // 2026-08-08 통합: 예전에는 운동이 `maxStamina`(그릇)를 키웠고, 그래서 키울수록
+    // 체력이 덜 묶였다. 상한을 고정으로 되돌리지 말 것.
     let s = createInitialState('t')
     for (let i = 0; i < 300; i++) {
       s = canRun(s, exercise) ? runActivity(s, exercise) : skipSlot(s)
       if (s.gameOver) break
-      expect(s.stats.maxStamina).toBeLessThanOrEqual(MAX_STAMINA_CAP)
+      expect(s.stats.stamina).toBeLessThanOrEqual(STAMINA_CAP)
     }
   })
 
-  it('상한이 철인 엔딩 조건과 같아 상한 도달이 곧 엔딩이다', () => {
-    expect(MAX_STAMINA_CAP).toBe(200)
-  })
-
-  it('체력은 상한을 넘긴 maxStamina가 아니라 클램핑된 값을 따른다', () => {
-    // maxStamina가 상한 위로 저장돼 있으면 체력도 그만큼 회복되면 안 된다.
-    const s = stateWith({
-      slot: 'afternoon',
-      stats: { ...createInitialState('t').stats, maxStamina: 9999, stamina: 9999 },
-    })
-    expect(runActivity(s, findActivity('game')!).stats.stamina).toBeLessThanOrEqual(MAX_STAMINA_CAP)
+  it('운동은 이제 운동 스탯을 올린다 — 몸을 키운 결과가 가는 자리', () => {
+    const s = createInitialState('t')
+    expect(runActivity(s, exercise).stats.athletics).toBeGreaterThan(s.stats.athletics)
   })
 
   it('알바비에 물가 배율이 적용된다', () => {
@@ -278,12 +265,12 @@ describe('스탯 상한', () => {
     expect(runActivity(s, study).stats.mental).toBe(MENTAL_CAP)
   })
 
-  it('최대 체력 상한은 200으로 유지되어 성장 스탯 상한에 휩쓸리지 않는다', () => {
-    expect(MAX_STAMINA_CAP).toBe(200)
+  it('체력 상한은 성장 스탯 상한에 휩쓸리지 않는다', () => {
+    expect(STAMINA_CAP).toBeLessThan(GROWTH_STAT_CAP)
     const s = stateWith({
-      stats: { ...createInitialState('t').stats, maxStamina: GROWTH_STAT_CAP, stamina: 100 },
+      stats: { ...createInitialState('t').stats, stamina: GROWTH_STAT_CAP },
     })
-    expect(runActivity(s, study).stats.maxStamina).toBe(MAX_STAMINA_CAP)
+    expect(runActivity(s, study).stats.stamina).toBeLessThanOrEqual(STAMINA_CAP)
   })
 })
 

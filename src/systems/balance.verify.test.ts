@@ -17,7 +17,7 @@ import { ABSENCE_FIRE, ABSENCE_WARNING, CAREERS, PAYDAY_INTERVAL, findCareer } f
 import { getLivingCost } from './economy'
 import { countConsecutive } from './burnout'
 import { getFailureEnding } from './ending'
-import { careerEnding } from '../data/endings'
+import { ACHIEVEMENT_ENDINGS, careerEnding } from '../data/endings'
 import { advanceEmployment, applyTo, passes } from './employment'
 import { advanceBank, bankOf, bankedTotal, borrow, loanRoom, openDeposit, withdraw } from './bank'
 import { DEPOSIT_MIN, LOAN_LIMIT_BASE } from '../data/bank'
@@ -673,5 +673,31 @@ describe('엔딩 도달 가능성', () => {
     expect(reachedDay).not.toBeNull()
     expect(reachedDay!).toBeGreaterThanOrEqual(25)
     expect(reachedDay!).toBeLessThanOrEqual(40)
+  })
+  /*
+   * ⚠️ **철인이 이 파일에 있어야 하는 이유**(2026-08-08 체력 통합).
+   * 예전에는 조건이 `maxStamina: 200`이고 그 값이 곧 스탯 상한이라 "상한에 닿으면 엔딩"이
+   * 자명했다(`turn.test.ts`가 두 숫자가 같은지만 봤다). 지금은 조건이 `athletics`이고
+   * 상한(999)과 무관해서, **실제로 도달하는지는 굴려 봐야만 안다.**
+   * 조건을 올리려면 이 시뮬레이션을 먼저 통과시킬 것 — 느슨하게 고쳐 통과시키지 말 것.
+   */
+  it('철인 기준은 실제 플레이로 도달 가능하다', () => {
+    const running = findActivity('running')!
+    const ironman = ACHIEVEMENT_ENDINGS.find((e) => e.id === 'ironman')!
+    const goal = ironman.condition!.athletics!
+    let state = createInitialState('시뮬')
+    let reachedDay: number | null = null
+    while (!state.gameOver && state.day <= 200) {
+      if (reachedDay === null && state.stats.athletics >= goal) reachedDay = state.day
+      // 돈이 마르면 일하고, 아니면 뛴다. 러닝은 돈이 안 들고 멘탈을 채운다.
+      const streak = countConsecutive(state.recentActivities, 'work')
+      if (state.stats.money < 200_000 && canRun(state, work) && state.stats.mental - (8 + streak * 4) > 3) {
+        state = runActivity(state, work)
+      } else if (canRun(state, running)) state = runActivity(state, running)
+      else if (canRun(state, work) && state.stats.mental - (8 + streak * 4) > 3) {
+        state = runActivity(state, work)
+      } else state = skipSlot(state)
+    }
+    expect(reachedDay, `운동 ${goal}에 못 닿았다 — 철인 엔딩이 도달 불가다`).not.toBeNull()
   })
 })

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { AppIcon } from '../../icons/AppIcon'
 import { findChatApp, findThread } from '../../data/messages'
 import { findActivity } from '../../data/activities'
+import { personOfThread, AFFECTION_FOR_ENDING, AFFECTION_PER_MEET } from '../../data/relations'
+import { affectionOf } from '../../systems/affection'
 import { findItem } from '../../data/items'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
@@ -15,6 +17,7 @@ import {
   visibleThreadsOf,
 } from '../../systems/messages'
 import { weekendCallMessages } from '../../systems/drive'
+import { webtoonReviewMessages } from '../../systems/webtoon'
 import { STAT_NAMES } from '../../types/game'
 import type { Stats } from '../../types/game'
 import './ChatApp.css'
@@ -247,9 +250,11 @@ export function ChatListApp({ appId }: { appId: string }) {
             </li>
           )}
           {shown.map((t) => {
-            const weekend = weekendCallMessages(state).find((m) => m.channel === t.id)
-            const last = weekend
-              ? { ...weekend, time: '주말', turn: Number.MAX_SAFE_INTEGER }
+            const derived = [...weekendCallMessages(state), ...webtoonReviewMessages(state)].find(
+              (m) => m.channel === t.id,
+            )
+            const last = derived
+              ? { ...derived, time: '방금', turn: Number.MAX_SAFE_INTEGER }
               : lastMessage(t.id, state.day, state.slot)
             const fresh = freshChannels.has(t.id)
             return (
@@ -298,7 +303,11 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
   const state = useGameStore((s) => s.state)
   const doActivity = useGameStore((s) => s.doActivity)
   const thread = findThread(threadId)
-  const meetup = threadId === 'minji' ? findActivity('social') : undefined
+  /* ⚠️ **하드코딩(`threadId === 'minji'`)을 걷어냈다** — [만나러 가기]가 뜨는 방과 그
+     활동은 이제 `data/relations.ts`의 인물이 갖는다. 여기서 방 id를 나열하면 사람이 늘 때
+     이 줄과 관계 데이터가 갈라지고, 한쪽만 고쳐도 아무 테스트가 안 터진다. */
+  const person = personOfThread(threadId)
+  const meetup = person ? findActivity(person.activityId) : undefined
   const acceptOffer = useGameStore((s) => s.acceptOffer)
 
   if (!state || !thread) return null
@@ -307,11 +316,12 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
      만들 수 없다(`MailApp`이 `examMessages`를 합치는 것과 같은 자리). */
   const messages = [
     ...selectChannel(thread.id, state.day, state.slot),
-    ...weekendCallMessages(state)
+    ...[...weekendCallMessages(state), ...webtoonReviewMessages(state)]
       .filter((m) => m.channel === thread.id)
-      .map((m) => ({ ...m, time: '주말', turn: Number.MAX_SAFE_INTEGER })),
+      .map((m) => ({ ...m, time: '방금', turn: Number.MAX_SAFE_INTEGER })),
   ]
   const canMeet = meetup ? canRun(state, meetup) : false
+  const affection = person ? affectionOf(state, person.id) : 0
   const tone = findChatApp(thread.app)?.tone ?? 'warm'
 
   return (
@@ -409,6 +419,15 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
               </li>
             ))}
           </ul>
+          {/* ⚠️ 호감도는 **얼마나 남았는지까지** 적는다(ux `error-clarity`의 형태판 —
+              숫자만 보여 주면 문턱이 몇인지 알 수 없다). 문턱을 넘긴 뒤에는 그 사실만 말한다:
+              부가엔딩의 내용은 엔딩에서 처음 읽혀야 하므로 여기서 미리 말하지 않는다. */}
+          <p className="chat-affection">
+            {person!.name}와의 관계 {affection}/{AFFECTION_FOR_ENDING}
+            {affection >= AFFECTION_FOR_ENDING
+              ? ' · 충분히 가까워졌습니다'
+              : ` · ${Math.ceil((AFFECTION_FOR_ENDING - affection) / AFFECTION_PER_MEET)}번 더`}
+          </p>
           <button
             className="chat-btn"
             onClick={() => {

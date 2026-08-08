@@ -11,8 +11,15 @@ import {
   pagesLeft,
   webtoonLevel,
   webtoonMessages,
+  EDITOR_CHANNEL,
+  readerScore,
+  reviewTier,
+  webtoonReviewMessages,
+  weeklyViews,
 } from './webtoon'
 import { CAREER_MAX_LEVEL } from '../data/careers'
+import { weekdayOf } from '../data/calendar'
+import { EDITOR_NAME, SERIES_TITLE } from '../data/webtoon'
 import { createInitialState, nightPayoutPending } from './turn'
 import {
   CONTEST_WINS_FOR_OFFER,
@@ -26,7 +33,7 @@ import {
 import { ECONOMY_TIERS } from '../data/economy'
 import { MAILBOX } from '../data/messages'
 import { ACTIVITIES } from '../data/activities'
-import type { GameState } from '../types/game'
+import type { GameState, Stats, WebtoonState } from '../types/game'
 
 /**
  * ⚠️ **이 파일은 연재가 깨뜨릴 수 있는 것만 덮는다.** 원고료가 돈을 만들므로 마감 정산과
@@ -38,7 +45,7 @@ function ready(): GameState {
   return {
     ...base,
     inventory: [{ id: 'pen-tablet', day: 1 }],
-    stats: { ...base.stats, money: 500_000, stamina: 200, maxStamina: 200, reputation: 50 },
+    stats: { ...base.stats, money: 500_000, stamina: 200, reputation: 50 },
   }
 }
 
@@ -225,5 +232,108 @@ describe('도감 레벨', () => {
   it('연재가 끝나도 기록은 남는다', () => {
     const s = serializing()
     expect(webtoonLevel({ ...s, webtoon: { ...s.webtoon!, status: 'ended', episodes: 1 } })).toBe(2)
+  })
+})
+
+/* ── 월요일 연재 리뷰 (2026-08-08) ────────────────────────────────────── */
+
+describe('담당 편집자의 월요일 카톡', () => {
+  /** 연재 중인 상태. 요일은 호출부가 정한다. */
+  function serializing(day: number, over: Partial<WebtoonState> = {}, stats: Partial<Stats> = {}) {
+    const s = createInitialState('테스터')
+    return {
+      ...s,
+      day,
+      stats: { ...s.stats, ...stats },
+      webtoon: {
+        status: 'serializing' as const,
+        startedDay: 1,
+        progress: 0,
+        dueDay: day + 7,
+        episodes: 3,
+        missed: 0,
+        earned: 0,
+        ...over,
+      },
+    }
+  }
+
+  /** 월요일인 첫 날. 게임과 같은 요일 척도를 쓴다(0=일, 1=월). */
+  const monday = (() => {
+    let d = 1
+    while (weekdayOf(d) !== 1) d++
+    return d
+  })()
+
+  it('월요일에만 온다', () => {
+    expect(webtoonReviewMessages(serializing(monday))).toHaveLength(1)
+    expect(webtoonReviewMessages(serializing(monday + 1))).toEqual([])
+  })
+
+  it('⚠️ 넘긴 회차가 없으면 안 온다 — 지난 회차 성적을 말할 수 없다', () => {
+    expect(webtoonReviewMessages(serializing(monday, { episodes: 0 }))).toEqual([])
+  })
+
+  it('연재 중이 아니면 안 온다 (제의만 받은 상태·연재 종료 포함)', () => {
+    expect(webtoonReviewMessages(serializing(monday, { status: 'offered' }))).toEqual([])
+    expect(webtoonReviewMessages(serializing(monday, { status: 'ended' }))).toEqual([])
+    expect(webtoonReviewMessages(createInitialState('테스터'))).toEqual([])
+  })
+
+  it('담당 편집자 방으로 오고 조회수가 본문에 박힌다', () => {
+    const s = serializing(monday)
+    const [msg] = webtoonReviewMessages(s)
+    expect(msg.channel).toBe(EDITOR_CHANNEL)
+    expect(msg.from).toBe(EDITOR_NAME)
+    expect(msg.text).toContain(weeklyViews(s).toLocaleString('ko-KR'))
+    expect(msg.text).toContain(SERIES_TITLE)
+  })
+
+  it('같은 상태면 늘 같은 말이다 (결정성 — `Math.random` 금지)', () => {
+    const s = serializing(monday)
+    expect(webtoonReviewMessages(s)).toEqual(webtoonReviewMessages(s))
+  })
+
+  it('그림 실력과 평판이 조회수를 올린다', () => {
+    const plain = serializing(monday)
+    const good = serializing(monday, {}, { art: 300, creativity: 200, reputation: 80 })
+    expect(weeklyViews(good)).toBeGreaterThan(weeklyViews(plain))
+    expect(reviewTier(good)).toBeGreaterThan(reviewTier(plain))
+  })
+
+  it('⚠️ 점수 축은 넷이고 그림·이야기·글은 무게가 같다', () => {
+    // 셋 중 하나만 올려도 같은 만큼 오른다 — 하나에 가중치를 주면 그 스탯만 올리는 것이
+    // 정답이 되어 나머지 둘이 장식이 된다.
+    const base = readerScore(serializing(monday))
+    const byArt = readerScore(serializing(monday, {}, { art: 100 }))
+    const byWords = readerScore(serializing(monday, {}, { vocabulary: 100 }))
+    const byStory = readerScore(serializing(monday, {}, { creativity: 100 }))
+    expect(byArt - base).toBe(100)
+    expect(byWords - base).toBe(100)
+    expect(byStory - base).toBe(100)
+    // 평판은 상한이 100이라 그대로 더하면 999짜리에 묻힌다 — 그래서 가중치가 있다.
+    expect(readerScore(serializing(monday, {}, { reputation: 100 })) - base).toBe(300)
+  })
+
+  it('어휘력이 조회수를 올린다 — 대사도 회차의 일부다', () => {
+    const plain = serializing(monday, {}, { art: 200 })
+    const wordy = serializing(monday, {}, { art: 200, vocabulary: 300 })
+    expect(weeklyViews(wordy)).toBeGreaterThan(weeklyViews(plain))
+  })
+
+  it('회차가 쌓이면 고정 독자가 붙고, 놓친 마감은 독자를 깎는다', () => {
+    const few = serializing(monday, { episodes: 2 })
+    const many = serializing(monday, { episodes: 20 })
+    expect(weeklyViews(many)).toBeGreaterThan(weeklyViews(few))
+    const missed = serializing(monday, { episodes: 20, missed: 1 })
+    expect(weeklyViews(missed)).toBeLessThan(weeklyViews(many))
+  })
+
+  it('⚠️ 조회수는 돈을 만들지 않는다 — 상태를 하나도 안 바꾼다', () => {
+    const s = serializing(monday)
+    const before = JSON.stringify(s)
+    webtoonReviewMessages(s)
+    weeklyViews(s)
+    expect(JSON.stringify(s)).toBe(before)
   })
 })

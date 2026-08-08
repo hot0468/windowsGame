@@ -16,6 +16,8 @@ import { collect, order, owns, recordEvent } from '../systems/delivery'
 import { advanceEmployment, applyTo, canApply } from '../systems/employment'
 import { creditCall, reviveBonus, worksAtCallCenter } from '../systems/callcenter'
 import { creditPerformance, revivePerformance, worksAtOffice } from '../systems/drive'
+import { healIllness, reviveIllness } from '../systems/illness'
+import { creditAffection, reviveAffection } from '../systems/affection'
 import { useWindowStore } from './windowStore'
 import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../systems/bank'
 import { moveTo } from '../systems/housing'
@@ -101,6 +103,9 @@ import type { Housing } from '../data/housing'
  * INITIAL_STATS에서 파생시켜, 스탯이 추가돼도 검증에서 빠지지 않게 한다.
  */
 const REQUIRED_STAT_KEYS = Object.keys(INITIAL_STATS) as (keyof Stats)[]
+
+/** 체력 통합(2026-08-08) 전 `maxStamina`의 시작값. 이 위로 쌓은 몫만 운동 스탯이 된다. */
+const LEGACY_MAX_STAMINA_START = 100
 
 /**
  * 정규직 상태 복원.
@@ -425,11 +430,24 @@ function reviveState(raw: unknown): GameState | null {
   )
   // 개명 전 세이브 호환: intelligence는 knowledge의 옛 이름이다.
   // 매핑 없이 기본값을 덮으면 그 스탯 진행만 조용히 초기화된다.
-  const savedStats = { ...(saved.stats ?? {}) } as Partial<Stats> & { intelligence?: number }
+  const savedStats = { ...(saved.stats ?? {}) } as Partial<Stats> & {
+    intelligence?: number
+    maxStamina?: number
+  }
   if (savedStats.knowledge === undefined && Number.isFinite(savedStats.intelligence)) {
     savedStats.knowledge = savedStats.intelligence
   }
   delete savedStats.intelligence
+  /* 체력 통합 전 세이브 호환(2026-08-08): `maxStamina`는 운동으로 키우던 그릇이었고
+     시작값이 100이었다. 그래서 **100을 넘는 몫이 곧 그 사람이 몸에 쌓아 둔 것**이므로
+     운동 스탯으로 옮긴다 — 그냥 지우면 삼십 일치 운동이 조용히 사라진다
+     (`intelligence`를 매핑한 것과 같은 이유). 남은 키는 지운다: 아무도 안 읽는 값이
+     세이브에 남아 있으면 다음 사람이 "이건 뭐지"를 다시 묻게 된다. */
+  if (Number.isFinite(savedStats.maxStamina)) {
+    const earned = Math.max(0, Math.round(savedStats.maxStamina!) - LEGACY_MAX_STAMINA_START)
+    savedStats.athletics = (savedStats.athletics ?? 0) + earned
+  }
+  delete savedStats.maxStamina
   const stats: Stats = { ...defaults.stats, ...savedStats }
 
   // 스탯이 하나라도 유한한 숫자가 아니면 세이브를 신뢰할 수 없다.
@@ -506,6 +524,9 @@ function reviveState(raw: unknown): GameState | null {
     stocks: reviveStocks(saved),
     subscriptions: reviveSubscriptions(saved),
     gigs: reviveGigs(saved),
+    /* ⚠️ 날씨는 여기 없다 — 저장하지 않는 파생값이다(`systems/weather.ts`). */
+    illness: reviveIllness(saved.illness),
+    affection: reviveAffection(saved.affection),
     // ⚠️ 응시 기록은 **돈을 만들지 않으므로** 검증이 은행·정규직만큼 빡빡할 필요가 없다
     //    (합격해도 나오는 것은 아이템 하나다). 날짜만 유한하면 통과시키고, 없는 종목을
     //    가리키는 기록은 `advanceCertification`이 조용히 닫는다.
@@ -1226,7 +1247,17 @@ export const useGameStore = create<GameStore>()(
         doActivity: (activity) => {
           const current = get().state
           if (!current || !canRun(current, activity)) return
-          set(afterTurn(runActivity(current, activity)))
+          const ran = runActivity(current, activity)
+          /* ⚠️ **진료는 활동이 비용을, 여기가 완치를 맡는다**(`data/activities.ts`의 `clinic`).
+             활동 효과에 상태 변경을 섞을 자리가 없어서 이렇게 갈렸다 — 낫는 판정 자체는
+             `healIllness` 하나가 갖는다(안 아프면 상태를 그대로 돌려준다).
+             ⚠️ **`afterTurn`보다 먼저 낫는다**: 오후 진료면 그 밤이 이미 지나갔으므로
+             여기서 지우지 않으면 앓은 날이 하루 더 세어진다. */
+          /* ⚠️ **호감도는 통로를 가리지 않고 여기서 오른다** — 대화방이든 스케줄러 예약이든
+             같은 `doActivity`를 지나므로, 이 한 자리가 곧 단일 출처다(`creditAffection`은
+             관계와 무관한 활동이면 상태를 그대로 돌려준다). */
+          const healed = activity.id === 'clinic' ? healIllness(ran) : ran
+          set(afterTurn(creditAffection(healed, activity.id)))
           openCallCenterIfWorking(current, activity.id)
           openDriveIfWorking(current, activity.id)
         },

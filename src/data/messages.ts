@@ -1,3 +1,4 @@
+import { EDITOR_NAME } from './webtoon'
 import type { IconName, Stats } from '../types/game'
 
 /**
@@ -71,6 +72,12 @@ export interface Thread {
    * 앱 아이콘 자체도 같은 조건으로 바탕화면에서 빠진다(`DesktopItem.requiresEmployment`).
    */
   requiresEmployment?: boolean
+  /**
+   * 웹툰을 **연재 중**이어야 나타나는가. 담당 편집자 방이 이걸 쓴다 —
+   * ⚠️ 연재가 없으면 담당도 없다(`requiresEmployment`와 같은 결). 연재가 끝나면
+   * 방도 사라진다: 해고된 뒤 팀장님 방이 사라지는 것과 같은 규칙이다.
+   */
+  requiresWebtoon?: boolean
   /**
    * 대화창 아래에 뜨는 **제안**. 있으면 [만나러 가기] 대신 이 선택지들이 나온다.
    *
@@ -182,6 +189,9 @@ export const THREADS: Thread[] = [
       ],
     },
   },
+  /* ⚠️ **카톡이지 너아무튼온이 아니다**(설계자 지시). 연재처는 다니는 회사가 아니라
+     외부 거래처라 사내 메신저에 자리가 없다 — 담당자는 개인 메신저로 연락한다. */
+  { id: 'webtoon-editor', app: 'kakao', name: EDITOR_NAME, members: 1, requiresWebtoon: true },
   { id: 'boss', app: 'nateon', name: '팀장님', members: 1, requiresEmployment: true },
   { id: 'devteam', app: 'nateon', name: '개발 2팀', members: 7, requiresEmployment: true },
 ]

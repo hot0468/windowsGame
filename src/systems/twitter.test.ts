@@ -37,7 +37,7 @@ function withArtworks(n: number, day = 1): GameState {
   let s: GameState = {
     ...base,
     day,
-    stats: { ...base.stats, stamina: 200, maxStamina: 200, art: 400, creativity: 400 },
+    stats: { ...base.stats, stamina: 200, art: 400, creativity: 400 },
     inventory: [{ id: 'lcd-tablet', day: 1 }],
   }
   for (let i = 0; i < n; i++) s = runActivity(s, DRAW)

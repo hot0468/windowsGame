@@ -36,6 +36,26 @@ describe('migrateSave — 정상 세이브', () => {
     expect('intelligence' in (result.state?.stats ?? {})).toBe(false)
   })
 
+  it('체력 통합 전 세이브의 maxStamina를 운동 스탯으로 넘겨받는다', () => {
+    // 통합 전 그릇의 시작값은 100이었다 — 그 위로 쌓은 몫이 곧 몸에 남은 것이다.
+    const saved = {
+      state: {
+        ...createInitialState('t'),
+        stats: { ...INITIAL_STATS, athletics: 10, maxStamina: 160 },
+      },
+    }
+    const result = migrateSave(saved as never)
+    expect(result.state?.stats.athletics).toBe(70)
+    expect('maxStamina' in (result.state?.stats ?? {})).toBe(false)
+  })
+
+  it('⚠️ 그릇을 안 키운 세이브는 운동 스탯이 그대로다 — 없던 성장을 만들지 않는다', () => {
+    const saved = {
+      state: { ...createInitialState('t'), stats: { ...INITIAL_STATS, maxStamina: 100 } },
+    }
+    expect(migrateSave(saved as never).state?.stats.athletics).toBe(INITIAL_STATS.athletics)
+  })
+
   it('두 키가 공존하면 새 키(knowledge)를 우선한다', () => {
     const saved = {
       state: {
@@ -70,7 +90,7 @@ describe('migrateSave — 손상/부분 세이브 거부', () => {
     const result = migrateSave(saved)
     expect(result.state?.stats.money).toBe(50000)
     // 빠진 키가 undefined로 남으면 clampStats가 NaN을 만든다.
-    expect(result.state?.stats.maxStamina).toBe(INITIAL_STATS.maxStamina)
+    expect(result.state?.stats.stamina).toBe(INITIAL_STATS.stamina)
     expect(Number.isFinite(result.state?.stats.stamina)).toBe(true)
   })
 

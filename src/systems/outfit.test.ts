@@ -75,12 +75,12 @@ describe('보너스 판정', () => {
 describe('실행 결과', () => {
   const gym = findActivity('gym-member')!
 
-  it('운동복을 가진 채 헬스장에 가면 체력 상승분이 커진다', () => {
+  it('운동복을 가진 채 헬스장에 가면 운동 스탯 상승분이 커진다', () => {
     const plain = runActivity(state({ inventory: [{ id: 'gym-pass', day: 1 }] }), gym)
     const dressed = runActivity(wearing('gym-pass', 'sportswear'), gym)
-    expect(dressed.stats.maxStamina).toBeGreaterThan(plain.stats.maxStamina)
+    expect(dressed.stats.athletics).toBeGreaterThan(plain.stats.athletics)
     // "소량"이다 — 활동 한 회분(+6)을 통째로 더 주는 것이 아니다.
-    expect(dressed.stats.maxStamina - plain.stats.maxStamina).toBeLessThanOrEqual(2)
+    expect(dressed.stats.athletics - plain.stats.athletics).toBeLessThanOrEqual(2)
   })
 
   it('⚠️ 돈·행동력·멘탈은 그대로다 — 옷이 경제와 비용을 건드리지 않는다', () => {
@@ -107,8 +107,8 @@ describe('실행 결과', () => {
     const dressed = wearing('gym-pass', 'sportswear')
     const preview = previewActivity(dressed, gym)
     const after = runActivity(dressed, gym)
-    const row = preview.rows.find((r) => r.key === 'maxStamina')!
-    expect(after.stats.maxStamina - dressed.stats.maxStamina).toBe(row.value)
+    const row = preview.rows.find((r) => r.key === 'athletics')!
+    expect(after.stats.athletics - dressed.stats.athletics).toBe(row.value)
     expect(preview.outfit).toBe('기능성 운동복')
   })
 

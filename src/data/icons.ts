@@ -162,6 +162,11 @@ export const HUD_ICONS = {
   autoStop: 'mdi:stop-circle-outline',
   /** 턴 소모 안내. */
   turnCost: 'mdi:timer-sand',
+  /**
+   * 앓는 중 배지(스탯창). ⚠️ **단색이라야 한다** — 배지가 경고색을 입으므로
+   * `currentColor`가 통해야 하고, 다색 아이콘에는 CSS `color`가 먹지 않는다.
+   */
+  illness: 'mdi:emoticon-sick',
   // calendarPanel(날짜칸 머리 글리프)은 제거했다 — 날짜칸에서 타이틀 영역 자체가 사라졌다.
   // sectionOrnament(✳)도 제거했다 — 다크 판타지 테마 장식이라 모던 시스템 카드와 맞지 않는다.
 } as const satisfies Record<string, IconName>

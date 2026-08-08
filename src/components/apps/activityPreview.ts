@@ -1,4 +1,7 @@
 import { burnoutKeyOf, getBurnoutPenalty } from '../../systems/burnout'
+import { illnessEfficiency, isIll } from '../../systems/illness'
+import { ILLNESS_DAYS, ILL_EFFICIENCY, ILL_STAMINA_FLOOR } from '../../data/illness'
+import { weatherEfficiency } from '../../systems/weather'
 import { getLivingCost, getWageMultiplier } from '../../systems/economy'
 import { canRun, jobStageOpen, outfitFor, ownsRequired, subscribed } from '../../systems/turn'
 import { findSubscription } from '../../data/subscriptions'
@@ -70,6 +73,12 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
   const outfit = outfitFor(state, activity.id)
   const bonus = outfit ? OUTFIT_BONUS : 0
 
+  /* ⚠️ **날씨·아픔도 실행과 같은 함수로 뽑아 곱한다**(`runActivity`와 같은 자리).
+     여기서 빠뜨리면 확인창이 "예술 +12"라고 적어 놓고 비 오는 날 실제로는 10만 오른다.
+     ⚠️ **`efficiency`에 합치지 않는 것이 규칙이다** — 아래 `isBurnedOut`이 그 값을 보므로
+     합치면 비만 와도 번아웃 경고가 뜬다(둘은 서로 다른 사실이다). */
+  const applied = efficiency * weatherEfficiency(state.day, activity.id) * illnessEfficiency(state)
+
   const rows = Object.entries(activity.effects).map(([key, raw]) => {
     const statKey = key as keyof Stats
     let value = raw
@@ -83,7 +92,7 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
       bonus > 0 && (GROWTH_STAT_KEYS as readonly string[]).concat('maxStamina').includes(statKey)
         ? Math.max(1, Math.round(value * bonus))
         : 0
-    return { key: statKey, value: Math.round(value * efficiency + boost) }
+    return { key: statKey, value: Math.round(value * applied + boost) }
   })
 
   return { rows, efficiency, mentalPenalty, isBurnedOut: efficiency < 1, outfit: outfit?.name }
@@ -92,7 +101,7 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
 /** 확정 전에 반드시 보여 줘야 하는 경고 한 줄. */
 export interface ActivityWarning {
   /** 렌더 키. 같은 종류의 경고가 두 번 나오지 않는다. */
-  id: 'burnout' | 'blocked' | 'living'
+  id: 'burnout' | 'blocked' | 'living' | 'illness'
   text: string
 }
 
@@ -128,6 +137,27 @@ export function previewWarnings(state: GameState, activity: Activity): ActivityW
       text: reasons.length
         ? `지금은 할 수 없습니다 — ${reasons.join(' · ')}`
         : '지금은 할 수 없습니다. 행동력이나 소지금이 부족합니다.',
+    })
+  }
+
+  /* ⚠️ **아픔은 일어난 뒤에 알리면 사고다** — 그래서 경고를 여기 둔다(토스트도 알림창도
+     만들지 않았다: 누르기 전에 읽히는 자리가 이 목록이고, HUD 배지가 앓는 동안 계속 남는다).
+     판정 기준은 `nextIllness`와 같은 값(`ILL_STAMINA_FLOOR`)을 보되 **여기서 판정을 만들지
+     않는다** — 오후에만 뜨는 것은 발병이 취침 정산 자리 하나에서만 일어나기 때문이다. */
+  if (isIll(state)) {
+    warnings.push({
+      id: 'illness',
+      text: `앓고 있습니다. 얻는 것이 ${Math.round(
+        ILL_EFFICIENCY * 100,
+      )}%로 줄고 취침 회복도 절반입니다. 병원에 가면 바로 낫습니다.`,
+    })
+  } else if (
+    state.slot === 'afternoon' &&
+    state.stats.stamina + (activity.effects.stamina ?? 0) <= ILL_STAMINA_FLOOR
+  ) {
+    warnings.push({
+      id: 'illness',
+      text: `이대로 하루를 끝내면 행동력이 바닥나 앓아눕습니다 (${ILLNESS_DAYS}일).`,
     })
   }
 

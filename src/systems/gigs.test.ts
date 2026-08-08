@@ -28,7 +28,7 @@ const TOOL = ACTIVITIES.find((a) => a.toolId === FREE.tool)!
 
 function ready(day = 1): GameState {
   const base = createInitialState('외주쟁이')
-  return { ...base, day, stats: { ...base.stats, money: 500_000, stamina: 200, maxStamina: 200 } }
+  return { ...base, day, stats: { ...base.stats, money: 500_000, stamina: 200 } }
 }
 
 /** 도구를 n번 켠다. 사이사이 행동력을 채운다 — 여기서 보려는 건 체력이 아니다. */

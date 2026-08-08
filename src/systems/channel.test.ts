@@ -107,7 +107,7 @@ describe('방송 켜기', () => {
 
 describe('시청자 반응', () => {
   it('켠 횟수만큼 늘고, 그 단계의 풀이 상한이다', () => {
-    let s = ready({ stats: { stamina: 999, maxStamina: 999 } })
+    let s = ready({ stats: { stamina: 999 } })
     s = startStream(s, TOPIC)
     expect(streamReviews(s)).toHaveLength(1)
     s = startStream(s, TOPIC)

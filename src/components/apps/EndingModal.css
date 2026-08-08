@@ -161,3 +161,32 @@
 .ending-btn-ghost:active {
   background: #e6e6e6;
 }
+
+/*
+ * 관계 부가엔딩. **본엔딩 문단과 시각적으로 한 급 낮다** — 곁에 붙는 이야기라
+ * 같은 크기로 두면 두 엔딩이 겨루는 것처럼 읽힌다. 왼쪽 세로선 하나로 "인용"의
+ * 결을 주고 판을 새로 깔지 않는다(카드로 만들면 요약 블록과 같은 층이 된다).
+ */
+.ending-companion {
+  align-self: stretch;
+  margin: var(--sp-3) 0 0;
+  padding-left: var(--sp-3);
+  border-left: 2px solid var(--os-border);
+  text-align: left;
+}
+
+.ending-companion-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+.ending-companion-text {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  color: var(--os-text-2);
+}

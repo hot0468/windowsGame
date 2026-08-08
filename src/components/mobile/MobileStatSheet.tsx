@@ -6,7 +6,7 @@ import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
 import { rankOf, toNextRank } from '../../systems/rank'
-import { growthCap } from '../../systems/turn'
+import { growthCap, STAMINA_CAP } from '../../systems/turn'
 import { STAT_NAMES } from '../../types/game'
 import type { GrowthStatKey, Stats } from '../../types/game'
 
@@ -69,11 +69,10 @@ export function MobileStatSheet({ onClose }: { onClose: () => void }) {
 
         <div className="mo-sheet-body">
           {/* 1구역: 매 턴 변하고 상한이 의미 있는 자원. 데스크톱과 같은 편성이다.
-              ⚠️ 행동력·멘탈·체력에는 등급을 붙이지 않는다 — 쌓아 올린 것이 아니라
+              ⚠️ 체력·멘탈에는 등급을 붙이지 않는다 — 쌓아 올린 것이 아니라
               오르내리는 잔량이라 "등급"이 성립하지 않는다(데스크톱과 같은 규칙). */}
-          <Row statKey="stamina" value={stats.stamina} max={stats.maxStamina} />
+          <Row statKey="stamina" value={stats.stamina} max={STAMINA_CAP} />
           <Row statKey="mental" value={stats.mental} max={100} warn={stats.mental <= 20} />
-          <Row statKey="maxStamina" value={stats.maxStamina} max={200} />
           <Row
             statKey="reputation"
             value={stats.reputation}

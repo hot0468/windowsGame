@@ -1,12 +1,19 @@
 /**
- * 15종 스탯.
- * - 소모 자원: stamina(일일 소모/취침 회복), mental(0~100), money
- * - 성장 스탯: maxStamina(운동으로 영구 상승, 상한 200) + GROWTH_STAT_KEYS 11종
- *   (상한은 `growthCap`이 정한다 — 평판·도덕·예의범절만 100, 나머지 999)
+ * 스탯.
+ * - 소모 자원: stamina(=**체력**, 일일 소모/취침 회복), mental(0~100), money
+ * - 성장 스탯: GROWTH_STAT_KEYS 12종 (상한은 `growthCap`이 정한다 —
+ *   평판·도덕·예의범절만 100, 나머지 999)
+ *
+ * ⚠️ **행동력과 체력은 2026-08-08에 하나로 합쳤다**(설계자 지시: "스탯이 너무 헷갈려").
+ * 예전에는 `stamina`(행동력, 매일 쓰는 값)와 `maxStamina`(체력, 운동으로 키우는 그릇)가
+ * 따로 있었는데, **그릇이 상한과 취침 회복량을 동시에 정하는 바람에 키울수록 행동력이
+ * 덜 묶여서** "성장할수록 자원 하나가 사라지는" 구조였다. 지금은 **체력 하나**가
+ * 행동의 대가이고, 몸을 키운 결과는 `athletics`(운동 스탯)로 간다.
+ * **되살리지 말 것** — 되살리려면 회복을 상한에서 떼어 내는 설계부터 다시 해야 한다.
  */
 export interface Stats {
+  /** **체력.** 행동의 대가이고 자고 나면 회복된다. 상한은 `STAMINA_CAP` 고정. */
   stamina: number
-  maxStamina: number
   mental: number
   money: number
   /** 지식 */
@@ -42,7 +49,7 @@ export interface Stats {
 /**
  * 성장 스탯 키. 상한은 `systems/turn.ts`의 `growthCap(key)`가 정한다
  * (기본 999, 평판·도덕·예의범절만 100).
- * maxStamina는 상한 규칙도 성격도 다르므로(200, 운동으로 키우는 그릇) 여기에 넣지 않는다.
+ * ⚠️ `stamina`(체력)는 **소모 자원**이라 여기 없다 — 쓰면 줄고 자면 돌아온다.
  */
 export const GROWTH_STAT_KEYS = [
   'knowledge',
@@ -64,19 +71,13 @@ export type GrowthStatKey = (typeof GROWTH_STAT_KEYS)[number]
 /**
  * 스탯 한국어 라벨. UI는 이 표만 참조한다.
  *
- * ⚠️ **`stamina` = 행동력, `maxStamina` = 체력이다**(설계자 지시로 개명. 코드 키는 그대로).
- * "체력 / 최대 체력"은 같은 것의 현재값과 상한처럼 읽혀 둘이 왜 나뉘어 있는지 설명하지
- * 못했다. 실제 관계는 **매일 쓰고 채우는 소모 자원(행동력)** 과 **운동으로 영구히 키우는
- * 그릇(체력)** 이므로 이름을 그렇게 맞췄다. 게임 규칙은 하나도 바뀌지 않았다 —
- * 취침 회복량도 철인 엔딩 조건(`maxStamina: 200`)도 그대로다.
- *
- * 키를 함께 바꾸지 않은 이유: 세이브 데이터·systems·밸런스 테스트 전체가 키를 참조하는데,
- * 표시 이름을 바꾸는 데 그 위험을 질 이유가 없다. **코드에서 `stamina`를 볼 때 "행동력"으로
- * 읽어라.**
+ * ⚠️ **`stamina`가 곧 체력이다**(2026-08-08 통합). 예전에는 `stamina`=행동력 /
+ * `maxStamina`=체력 둘이었다 — 사연은 위 `Stats` 주석에 있다.
+ * 키를 `health` 같은 것으로 바꾸지 않은 이유: 세이브·systems·밸런스 테스트 전체가
+ * 이 키를 참조하는데, 표시 이름을 바꾸는 데 그 위험을 질 이유가 없다.
  */
 export const STAT_NAMES: Record<keyof Stats, string> = {
-  stamina: '행동력',
-  maxStamina: '체력',
+  stamina: '체력',
   mental: '멘탈',
   money: '소지금',
   knowledge: '지식',
@@ -1155,11 +1156,37 @@ export interface GameState {
   contests?: ContestState
   /** 웹툰 연재. 제의가 온 적 없으면 없다. */
   webtoon?: WebtoonState
+  /**
+   * 앓는 중인 병. **아프지 않으면 필드가 없다**(`daysLeft: 0`을 남기지 않는다 — 규칙은
+   * `systems/illness.ts`). 옵셔널이라 이 필드가 없던 세이브도 그냥 "안 아픔"이 된다.
+   *
+   * ⚠️ **날씨는 여기 없다.** 날씨는 날짜의 순수 함수라 저장하지 않는다(`systems/weather.ts`) —
+   * 저장하면 새로 고칠 때마다 다시 굴러 세이브 스커밍이 열린다.
+   */
+  illness?: Illness
+  /**
+   * 사람별 호감도(0~`AFFECTION_CAP`). 만난 적 없으면 그 키가 없다.
+   *
+   * ⚠️ **`Stats`에 넣지 않았다** — 성장 스탯은 하나의 값이고 이것은 사람마다 다른 값이다.
+   * 넣으면 `STAT_NAMES`·`STAT_META`·`growthCap`·랭크가 인물 수만큼 늘고 스탯창이 명단이
+   * 된다(규칙은 `systems/affection.ts`).
+   */
+  affection?: Record<string, number>
+}
+
+/**
+ * 앓는 중인 병. 종류는 두지 않았다 — 종류마다 효과가 갈리지 않는데 이름만 여럿이면
+ * 그것은 상태가 아니라 장식이다(필요해지면 그때 `kind`를 만든다).
+ */
+export interface Illness {
+  /** 앓기 시작한 날. 화면이 "며칠째"를 적는다. */
+  startedDay: number
+  /** 남은 날. 취침마다 하나씩 줄고 0이 되는 순간 필드 자체가 사라진다. */
+  daysLeft: number
 }
 
 export const INITIAL_STATS: Stats = {
   stamina: 100,
-  maxStamina: 100,
   mental: 100,
   money: 300000,
   knowledge: 10,

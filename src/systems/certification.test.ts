@@ -182,7 +182,7 @@ describe('자격증이 여는 것', () => {
     expect(locked.length).toBe(2)
     for (const a of locked) {
       // 행동력·돈을 다 채워도 아이템이 없으면 못 한다(판정은 `canRun` 하나가 한다).
-      const rich = stocked({ stamina: 200, maxStamina: 200 })
+      const rich = stocked({ stamina: 200 })
       expect(canRun(rich, a), `${a.id}이 자격증 없이 실행된다`).toBe(false)
       const held = { ...rich, inventory: [{ id: requiredItemIds(a.requiresItem)[0], day: 1 }] }
       expect(canRun(held, a)).toBe(true)

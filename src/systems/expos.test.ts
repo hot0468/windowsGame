@@ -39,7 +39,7 @@ function ready(day = 1): GameState {
   return {
     ...base,
     day,
-    stats: { ...base.stats, money: 900_000, stamina: 200, maxStamina: 200 },
+    stats: { ...base.stats, money: 900_000, stamina: 200 },
   }
 }
 

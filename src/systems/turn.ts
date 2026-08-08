@@ -2,6 +2,8 @@ import { getLivingCost, getWageMultiplier } from './economy'
 import { burnoutKeyOf, getBurnoutPenalty, pushActivity } from './burnout'
 import { markAttended } from './careerLog'
 import { weekendCallOn } from './drive'
+import { illnessEfficiency, illnessRecoveryRatio, nextIllness } from './illness'
+import { weatherEfficiency } from './weather'
 import { weekdayOf } from '../data/calendar'
 import { DEFAULT_HOUSING_ID, findHousing } from '../data/housing'
 import { PAYOUT_INTERVAL_DAYS } from '../data/artworks'
@@ -17,30 +19,34 @@ import type {
   EventLog,
   GameState,
   GrowthStatKey,
+  Illness,
   JobStageGate,
   Slot,
   Stats,
 } from '../types/game'
 
-/** 취침 시 회복되는 체력 비율 (maxStamina 기준). */
-const SLEEP_RECOVERY_RATIO = 0.6
+/**
+ * 취침 시 회복되는 체력. **고정값이다.**
+ *
+ * ⚠️ **예전에는 `maxStamina × 0.6`이었다**(2026-08-08 통합 전). 회복이 상한에 비례하니
+ * 몸을 키울수록 체력이 덜 묶여서 **성장할수록 자원이 사라졌다** — 비례로 되돌리지 말 것.
+ * 지금 값은 통합 전 시작값(그릇 100 × 0.6)과 같아 체감이 그대로다.
+ */
+const SLEEP_RECOVERY = 60
 
 /** 취침 시 회복되는 멘탈. */
 const SLEEP_MENTAL_RECOVERY = 5
 
 /**
- * 최대 체력 상한.
- * 철인 엔딩 조건(maxStamina 200)과 같은 값이다 — 상한에 닿는 순간이 곧 엔딩 획득 시점이 되어,
- * 그 너머로 무의미하게 성장하는 구간을 없앤다.
- * 상한이 없으면 취침 회복량(maxStamina * SLEEP_RECOVERY_RATIO)도 함께 무한히 커져
- * 체력이 자원으로서 기능하지 않게 된다.
+ * 체력 상한. **고정이고 아무 활동도 이 값을 올리지 못한다.**
+ *
+ * ⚠️ 예전에는 `maxStamina`라는 스탯이 이 자리를 대신했고 운동으로 키울 수 있었다.
+ * 그것을 없앤 이유는 위 `SLEEP_RECOVERY` 주석에 있다 — 몸을 키운 결과는 이제
+ * `athletics`(운동 스탯)로 가고, 체력은 **모두에게 같은 크기의 하루**다.
  */
-export const MAX_STAMINA_CAP = 200
+export const STAMINA_CAP = 100
 
-/**
- * 성장 스탯(지식·매력·감수성 등 9종)의 상한.
- * maxStamina와 달리 엔딩 조건과 묶여 있지 않으므로, 장기 육성의 여유를 두고 999로 잡는다.
- */
+/** 성장 스탯의 기본 상한. 장기 육성의 여유를 두고 999로 잡는다. */
 export const GROWTH_STAT_CAP = 999
 
 /**
@@ -199,17 +205,11 @@ export function canRun(state: GameState, activity: Activity): boolean {
   )
 }
 
-/**
- * 체력은 0~maxStamina, 멘탈은 0~MENTAL_CAP, maxStamina는 1~MAX_STAMINA_CAP,
- * 성장 스탯 9종은 0~GROWTH_STAT_CAP으로 제한한다.
- */
+/** 체력은 0~`STAMINA_CAP`, 멘탈은 0~`MENTAL_CAP`, 성장 스탯은 0~`growthCap(key)`로 제한한다. */
 export function clampStats(stats: Stats): Stats {
-  const maxStamina = Math.min(MAX_STAMINA_CAP, Math.max(1, Math.round(stats.maxStamina)))
   const clamped: Stats = {
     ...stats,
-    maxStamina,
-    // 체력 상한은 클램핑된 maxStamina를 기준으로 한다 — 원본 값을 쓰면 상한을 넘길 수 있다.
-    stamina: Math.round(Math.min(Math.max(0, stats.stamina), maxStamina)),
+    stamina: Math.round(Math.min(Math.max(0, stats.stamina), STAMINA_CAP)),
     mental: Math.round(Math.min(Math.max(0, stats.mental), MENTAL_CAP)),
     money: Math.round(stats.money),
   }
@@ -257,7 +257,7 @@ function applyEffects(
  */
 function outfitBoost(key: keyof Stats, value: number, bonus: number): number {
   if (bonus <= 0) return 0
-  if (!(GROWTH_STAT_KEYS as readonly string[]).includes(key) && key !== 'maxStamina') return 0
+  if (!(GROWTH_STAT_KEYS as readonly string[]).includes(key)) return 0
   return Math.max(1, Math.round(value * bonus))
 }
 
@@ -288,21 +288,40 @@ function housingMentalCost(state: GameState): number {
  * `nightPayoutPending`이 `employment.ts`를 import하지 않는 것과 같은 규칙이다 —
  * 의존은 계속 한 방향이다(housing → turn).
  */
-function sleep(stats: Stats, state: GameState): Stats {
+function sleep(stats: Stats, state: GameState, ill: Illness | undefined): Stats {
+  /* ⚠️ **아픈 밤은 회복이 반이다**(`ILL_RECOVERY_RATIO`) — 그것이 아픔이 하는 일의 전부이고,
+     활동을 막지 않는 이유이기도 하다(`data/illness.ts`). 집이 갉는 멘탈에는 곱하지 않는다:
+     그 방에서 자는 대가는 병과 아무 상관이 없다. */
+  const recovery = illnessRecoveryRatio(ill)
   return {
     ...stats,
-    stamina: stats.stamina + stats.maxStamina * SLEEP_RECOVERY_RATIO,
-    mental: stats.mental + SLEEP_MENTAL_RECOVERY - housingMentalCost(state),
+    stamina: stats.stamina + SLEEP_RECOVERY * recovery,
+    mental: stats.mental + SLEEP_MENTAL_RECOVERY * recovery - housingMentalCost(state),
     money: stats.money - getLivingCost(state),
   }
 }
 
-/** 슬롯을 넘기고, 오후였다면 취침 정산까지 처리한다. */
-function advance(state: GameState, stats: Stats): { day: number; slot: Slot; stats: Stats } {
+/**
+ * 슬롯을 넘기고, 오후였다면 취침 정산까지 처리한다.
+ *
+ * ⚠️ **아픔 판정이 여기 하나뿐이다**(`nextIllness`). 슬롯마다 물으면 같은 하루에 앓고
+ * 낫는 일이 생기고, 무엇보다 근거가 "무리해서 하루를 끝냈다"이므로 그 하루가 끝나는
+ * 자리에서만 물어야 뜻이 맞다. 넘겨주는 행동력은 **취침 회복을 얹기 전** 값이다.
+ */
+function advance(
+  state: GameState,
+  stats: Stats,
+): { day: number; slot: Slot; stats: Stats; illness: Illness | undefined } {
   if (state.slot === 'morning') {
-    return { day: state.day, slot: 'afternoon', stats }
+    return { day: state.day, slot: 'afternoon', stats, illness: state.illness }
   }
-  return { day: state.day + 1, slot: 'morning', stats: sleep(stats, state) }
+  const illness = nextIllness(state.illness, stats.stamina, state.day)
+  return {
+    day: state.day + 1,
+    slot: 'morning',
+    stats: sleep(stats, state, illness),
+    illness,
+  }
 }
 
 function detectGameOver(stats: Stats): GameState['gameOver'] {
@@ -520,11 +539,14 @@ export function runActivity(state: GameState, activity: Activity): GameState {
   // 알바 4종은 같은 키를 공유한다 — 종류를 바꿔 가며 일해도 연속 노동은 연속 노동이다.
   const key = burnoutKeyOf(activity)
   const { efficiency, mentalPenalty } = getBurnoutPenalty(state.recentActivities, key)
+  /* ⚠️ **날씨와 아픔이 번아웃 효율과 정확히 같은 자리에 곱해진다** — 곧 긍정 효과에만
+     붙고 소모량은 안 건드린다. 새 계수를 여기 말고 `applyEffects` 안에 넣지 말 것:
+     그러면 활동 미리보기(`activityPreview.ts`)가 못 보는 두 번째 출처가 생긴다. */
   const withEffects = applyEffects(
     state.stats,
     activity,
     state.day,
-    efficiency,
+    efficiency * weatherEfficiency(state.day, activity.id) * illnessEfficiency(state),
     outfitBonusFor(state, activity.id),
   )
   withEffects.mental -= mentalPenalty
@@ -543,6 +565,7 @@ export function runActivity(state: GameState, activity: Activity): GameState {
     day: advanced.day,
     slot: advanced.slot,
     stats,
+    illness: advanced.illness,
     recentActivities: pushActivity(state.recentActivities, key),
   })
 
@@ -600,6 +623,7 @@ export function skipSlot(state: GameState): GameState {
     day: advanced.day,
     slot: advanced.slot,
     stats,
+    illness: advanced.illness,
     recentActivities: pushActivity(state.recentActivities, 'rest'),
   })
 }

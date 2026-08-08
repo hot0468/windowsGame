@@ -29,7 +29,7 @@ function ready(art = 200): GameState {
   return {
     ...base,
     inventory: [{ id: 'pen-tablet', day: 1 }],
-    stats: { ...base.stats, money: 500_000, stamina: 200, maxStamina: 200, art, creativity: art },
+    stats: { ...base.stats, money: 500_000, stamina: 200, art, creativity: art },
   }
 }
 

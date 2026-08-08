@@ -4,6 +4,7 @@ import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { HUD_ICONS } from '../../data/icons'
 import { CALENDAR_PANEL_LAYOUT, formatGameDate } from '../../data/calendar'
+import { weatherOf } from '../../systems/weather'
 
 /**
  * 날짜칸. 스탯창 왼쪽에 붙는 바탕화면 상시 패널이다.
@@ -52,6 +53,7 @@ export function CalendarPanel() {
 
   const isMorning = state.slot === 'morning'
   const slotIcon = isMorning ? HUD_ICONS.slotMorning : HUD_ICONS.slotAfternoon
+  const weather = weatherOf(state.day)
 
   return (
     <HudPanel
@@ -75,6 +77,19 @@ export function CalendarPanel() {
           {isMorning ? '오전' : '오후'}
         </span>
       </div>
+
+      {/*
+       * 오늘 날씨. **날짜칸에 있는 이유는 날씨가 날짜의 순수 함수라서다**(저장되지 않는
+       * 파생값이므로 스탯창에 두면 스탯처럼 읽힌다 — `systems/weather.ts`).
+       *
+       * ⚠️ **아이콘만으로 알리지 않는다**(ux `color-not-only`): 이름과 보정폭을 글자로 적는다.
+       * 야외 활동만 영향을 받으므로 그 문장도 날씨가 직접 갖고 있다(`Weather.note`).
+       */}
+      <p className="cal-weather" title={weather.note}>
+        <AppIcon name={weather.icon} size={13} />
+        <span className="cal-weather-label">{weather.label}</span>
+        <span className="cal-weather-note">{weather.note}</span>
+      </p>
 
       {/* 구역 라벨도 구분선도 없다(설계자 지시). 아래가 버튼 하나뿐이라 무엇인지는
           버튼 글자가 이미 말하고, 선을 그으면 없는 구역을 있는 척하게 된다. */}

@@ -463,6 +463,40 @@
   color: var(--hud-accent);
 }
 
+/* 오늘 날씨. **칩이 아니라 한 줄이다** — 슬롯 칩과 같은 모양으로 두면 둘이 같은 종류의
+   사실로 읽히는데, 슬롯은 플레이어가 쓰는 자원이고 날씨는 그냥 오늘의 조건이다.
+   글리프에만 액센트를 주는 규칙은 슬롯 칩과 같다(반투명 카드 위 대비 때문). */
+.cal-weather {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--hud-text-3);
+}
+
+.cal-weather svg {
+  color: var(--hud-accent);
+  align-self: center;
+  flex: none;
+}
+
+/* ⚠️ **줄바꿈을 막는다.** 실측에서 "맑음"이 글자 단위로 쪼개져 두 줄이 됐다 — 옆의 보정
+   문장이 flex 여유를 다 먹으면서 이 칸이 한 글자 폭까지 눌린 것이다. 날씨 이름은 짧고
+   반드시 한 줄이어야 하므로 `flex: none`으로 자기 폭을 지키고, 접히는 것은 문장 쪽이다. */
+.cal-weather-label {
+  flex: none;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--hud-text);
+}
+
+/* 보정폭 문장. 좁은 패널이라 줄바꿈을 허용한다 — 잘라내면 규칙을 글자로 알린다는
+   약속이 깨진다(`color-not-only`). */
+.cal-weather-note {
+  min-width: 0;
+}
+
 /* 건너뛰기는 시간을 소모하는 행동이지만 **권장 행동은 아니다**.
    그래서 액센트 채움(윈도우 11 accent button)이 아니라 표준 버튼으로 둔다 —
    style `primary-action`: 화면의 주 CTA는 하나뿐이고 나머지는 시각적으로 종속돼야 한다.
@@ -640,7 +674,15 @@
   padding-block: 3px;
   text-align: center;
   letter-spacing: 0.02em;
-  color: var(--hud-accent);
+  /* ⚠️ **글자는 잉크다. 액센트는 테두리와 면에만 남는다.**
+     한때 `--hud-accent`였고 실측에서 **3.82:1**이 나왔다(필요 4.5) — 반투명 HUD 카드
+     위에서 9% 액센트 틴트와 액센트 글자가 겹치면 대비가 그만큼 무너진다. 이것은
+     `.cal-slot svg` 주석에 이미 적혀 있던 규칙("액센트를 글자에 쓰면 4.5:1 경계로
+     떨어진다")을 이 뱃지만 어기고 있던 것이다 — 그래서 새 토큰을 만들지 않고 그 규칙에
+     맞췄다(잉크는 12.18:1).
+     ⚠️ `--hud-accent-strong`(4.69:1)로는 고치지 말 것. 통과는 하지만 여유가 0.19뿐이라
+     틴트를 한 단만 진하게 해도 같은 자리에 다시 걸린다. */
+  color: var(--hud-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -776,4 +818,40 @@
   font-weight: 600;
   color: var(--hud-text-2);
   font-variant-numeric: tabular-nums;
+}
+
+/* 앓는 중 배지(스탯창). **경고색을 쓰지만 게이지의 stat-warn과 같은 색은 아니다** —
+   그쪽은 "값이 낮다"는 잔량 경고이고 이쪽은 지속 상태라, 같은 빨강이면 두 사실이
+   한 종류로 읽힌다. 그래서 배경 틴트가 있는 줄로 두고 글자는 잉크로 남긴다
+   (반투명 HUD 카드 위에서 색 글자는 4.5:1 경계로 떨어진다 — 슬롯 칩과 같은 규칙). */
+.stat-ill {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 var(--sp-2);
+  padding: var(--sp-2);
+  /* ⚠️ **경고색 면을 새로 만들지 않았다.** `--hud-danger`는 글자색 토큰 하나뿐이고
+     틴트·헤어라인 짝이 없다 — 없는 var(`--hud-danger-wash` 같은 것)를 쓰면 선언 전체가
+     조용히 무효가 되고, 새로 정의하면 그 순간 새 시각 언어다. 그래서 면은 중립
+     (`--hud-fill`)으로 두고 위험은 **글리프 색 + 굵은 제목 + 글자**가 전한다. */
+  border: 1px solid var(--hud-rule);
+  border-radius: var(--r-sm);
+  background: var(--hud-fill);
+  font-size: var(--fs-xs);
+  color: var(--hud-text-3);
+}
+
+.stat-ill svg {
+  color: var(--hud-danger);
+  align-self: center;
+  flex: none;
+}
+
+.stat-ill-title {
+  font-weight: 600;
+  color: var(--hud-text);
+}
+
+.stat-ill-note {
+  min-width: 0;
 }

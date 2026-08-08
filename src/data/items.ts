@@ -79,7 +79,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     desc: '한 통이면 한 달. 광고 문구는 늘 그렇듯 조금 과장돼 있다.',
     icon: 'fluent-color:food-24',
     ext: '.sup',
-    effects: { maxStamina: 4, stamina: 12 },
+    effects: { athletics: 4, stamina: 12 },
   },
   {
     /*
@@ -259,7 +259,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     desc: '문을 닫으면 세상이 조용해진다. 조립에 이틀이 걸렸다는 후기가 많다.',
     icon: 'fluent-color:headset-24',
     ext: '.booth',
-    effects: { knowledge: 12, creativity: 10, mental: 12, maxStamina: 6, sensitivity: 6 },
+    effects: { knowledge: 12, creativity: 10, mental: 12, athletics: 6, sensitivity: 6 },
     store: 'tech',
   },
   /*

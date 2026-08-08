@@ -5,6 +5,9 @@ import { CAREER_LEVEL_DAYS, CAREER_MAX_LEVEL } from '../../data/careers'
 import { STAT_NAMES } from '../../types/game'
 import { attendedCount, careerLevel, heldCareer, toNextCareerLevel } from '../../systems/careerLog'
 import { achievementProgress } from '../../systems/achievements'
+import { affectionOf, hasRelationEnding } from '../../systems/affection'
+import { AFFECTION_FOR_ENDING, AFFECTION_PER_MEET, PEOPLE } from '../../data/relations'
+import { findActivity } from '../../data/activities'
 import { EPISODE_PAY, SERIES_TITLE, STUDIO_NAME, WEEKLY_PAGES, webtoonLevel } from '../../systems/webtoon'
 import { useGameStore } from '../../store/gameStore'
 import { useMetaStore } from '../../store/metaStore'
@@ -41,7 +44,7 @@ import './ExcelApp.css'
  * ⚠️ **읽기 전용 창이다.** `gameStore`를 읽기만 하고 턴·스탯을 건드리지 않는다.
  */
 
-type SheetId = 'career' | 'ending' | 'achievement'
+type SheetId = 'career' | 'ending' | 'achievement' | 'relation'
 
 /** 표 한 줄. 시트가 둘이지만 그리는 코드는 하나다 — 열 이름만 시트가 갖는다. */
 interface Row {
@@ -65,6 +68,7 @@ interface Sheet {
 export function ExcelApp() {
   const state = useGameStore((s) => s.state)
   const unlockedEndings = useMetaStore((s) => s.unlockedEndings)
+  const unlockedRelations = useMetaStore((s) => s.unlockedRelations)
   const [sheetId, setSheetId] = useState<SheetId>('career')
   /** 고른 행. 엑셀에서 셀 하나를 고른 것과 같고, 수식 입력줄이 그 값을 적는다. */
   const [picked, setPicked] = useState<string | null>(null)
@@ -78,6 +82,7 @@ export function ExcelApp() {
     careerSheet(state),
     endingSheet(seenEndings),
     achievementSheet(state, seenEndings),
+    relationSheet(state, unlockedRelations),
   ]
   const sheet = sheets.find((s) => s.id === sheetId) ?? sheets[0]
   const doneCount = sheet.rows.filter((r) => r.done).length
@@ -304,6 +309,55 @@ function achievementSheet(state: GameState, seenEndings: Set<string>): Sheet {
         : `${achievement.desc}. 앞으로 ${achievement.goal - value}개 남았습니다.`,
     })),
     countLabel: (done, total) => `업적 ${total}개 중 ${done}개 달성`,
+  }
+}
+
+/**
+ * 관계 시트.
+ *
+ * ⚠️ **엔딩 시트와 따로인 것이 설계다**(설계자 지시: 관계엔딩은 본엔딩의 **부가**엔딩).
+ * 같은 표에 섞으면 "엔딩 n개 중 m개"가 관계를 세기 시작하고, 파산 엔딩과 민지 엔딩이
+ * 한 층에 놓여 서로 배타로 읽힌다.
+ *
+ * ⚠️ **두 곳을 합친다**(엔딩 시트와 같은 이유): 지금 판의 호감도(`GameState.affection`)와
+ * 판을 넘어 남는 해금 기록(`metaStore.unlockedRelations`). 세이브만 보면 **파산으로 끝난
+ * 판의 관계가 영영 안 뜬다** — 강제 종료된 게임의 세이브는 지워지기 때문이다.
+ *
+ * ⚠️ **부가엔딩 본문은 감춘다**(엔딩과 같은 규칙) — 도달하는 법이 아니라 **그 끝의 문장**을
+ * 지키는 것이 그 결정의 뜻이었다. 대신 진행도는 그대로 보여 준다: 관계는 감춰야 할 답이
+ * 아니라 **목표**다(업적과 같은 부류).
+ */
+function relationSheet(state: GameState, unlocked: string[]): Sheet {
+  const seen = new Set(unlocked)
+  return {
+    id: 'relation',
+    label: '관계',
+    columns: ['사람', '만나는 곳', '호감도', '상태'],
+    rows: PEOPLE.map((person) => {
+      const value = affectionOf(state, person.id)
+      const reached = hasRelationEnding(state, person.id)
+      const done = reached || seen.has(person.id)
+      return {
+        key: person.id,
+        done,
+        cells: [
+          person.name,
+          findActivity(person.activityId)?.label ?? '—',
+          // ⚠️ 업적 시트와 같은 표기다(`Math.min(value, goal)`) — 안 자르면 '80 / 60'이 되어
+          //    같은 창 안에서 두 표가 다른 규칙으로 진행도를 적는다.
+          `${Math.min(value, AFFECTION_FOR_ENDING)} / ${AFFECTION_FOR_ENDING}`,
+          seen.has(person.id) ? '엔딩 확인' : reached ? '충분함' : '진행 중',
+        ],
+        detail: seen.has(person.id)
+          ? `${person.endingTitle} — ${person.endingText}`
+          : reached
+            ? `충분히 가까워졌습니다. 이번 판이 끝날 때 ${person.name}의 이야기가 함께 나옵니다.`
+            : `${person.name}를 ${Math.ceil(
+                (AFFECTION_FOR_ENDING - value) / AFFECTION_PER_MEET,
+              )}번 더 만나면 이 사람의 이야기가 엔딩에 함께 나옵니다.`,
+      }
+    }),
+    countLabel: (done, total) => `관계 ${total}명 중 ${done}명`,
   }
 }
 

@@ -26,10 +26,9 @@ export interface StatMeta {
 }
 
 export const STAT_META: Record<keyof Stats, StatMeta> = {
-  // ⚠️ stamina = 행동력, maxStamina = 체력이다(types/game.ts의 STAT_NAMES 주석 참조).
-  // 개명에 맞춰 글리프도 바꿨다 — 행동력에 심장, 체력에 팔 근육이면 이름과 그림이 어긋난다.
-  stamina: { icon: 'fluent-color:gauge-24', hudIcon: 'mdi:lightning-bolt-outline' },
-  maxStamina: { icon: 'fluent-color:heart-24', hudIcon: 'mdi:arm-flex-outline' },
+  // ⚠️ `stamina`가 곧 **체력**이다(2026-08-08 통합) — 그래서 심장 글리프가 이쪽으로 왔다.
+  // 팔 근육은 운동 스탯(`athletics`)이 가져갔다: 몸을 키운 결과가 이제 그쪽이기 때문이다.
+  stamina: { icon: 'fluent-color:heart-24', hudIcon: 'mdi:heart-outline' },
   mental: { icon: 'fluent-color:person-24', hudIcon: 'mdi:emoticon-happy-outline' },
   money: { icon: 'fluent-color:coin-multiple-24', hudIcon: 'mdi:wallet-outline' },
   knowledge: { icon: 'fluent-color:lightbulb-filament-24', hudIcon: 'mdi:brain' },
@@ -40,7 +39,7 @@ export const STAT_META: Record<keyof Stats, StatMeta> = {
   creativity: { icon: 'fluent-color:lightbulb-24', hudIcon: 'mdi:lightbulb-outline' },
   sociability: { icon: 'fluent-color:people-24', hudIcon: 'mdi:handshake-outline' },
   vocabulary: { icon: 'fluent-color:book-24', hudIcon: 'mdi:book-open-page-variant-outline' },
-  athletics: { icon: 'fluent-color:sport-24', hudIcon: 'mdi:run' },
+  athletics: { icon: 'fluent-color:sport-24', hudIcon: 'mdi:arm-flex-outline' },
   gaming: { icon: 'fluent-color:puzzle-piece-24', hudIcon: 'mdi:gamepad-variant-outline' },
   // 예의범절: 고개 숙여 인사하는 그림이 mdi에는 없다. 가장 가까운 것이
   // "손을 모아 인사하는" 합장 글리프이고, 외곽선 변형이 있어 HUD 규칙도 지킨다.
