@@ -14,6 +14,8 @@ import { findItem } from '../data/items'
 import { clearPlan, planWeekly, runPlans, setPlan } from '../systems/schedule'
 import { collect, order, owns, recordEvent } from '../systems/delivery'
 import { advanceEmployment, applyTo, canApply } from '../systems/employment'
+import { creditCall, reviveBonus, worksAtCallCenter } from '../systems/callcenter'
+import { useWindowStore } from './windowStore'
 import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../systems/bank'
 import { moveTo } from '../systems/housing'
 import { advanceLottery, buyTickets } from '../systems/lottery'
@@ -26,8 +28,26 @@ import {
   unsubscribe as unsubscribeOf,
 } from '../systems/subscription'
 import { findSubscription } from '../data/subscriptions'
+import {
+  createProject as createProjectOf,
+  drawIntoProject as drawIntoProjectOf,
+  sellAtComicon as sellAtComiconOf,
+} from '../systems/projects'
+import { advanceContests, enterContest as enterContestOf } from '../systems/contests'
+import { joinExpo as joinExpoOf, visitExpo as visitExpoOf } from '../systems/expos'
+import {
+  acceptOffer,
+  advanceWebtoon,
+  declineOffer,
+  drawWebtoon as drawWebtoonOf,
+} from '../systems/webtoon'
+import { abandonGig as abandonGigOf, advanceGigs, takeGig as takeGigOf } from '../systems/gigs'
+import { findGig } from '../data/gigs'
 import { takeCourse as takeCourseOf } from '../systems/courses'
 import { playGame as playGameOf } from '../systems/steam'
+import { renameChannel as renameChannelOf, startStream as startStreamOf } from '../systems/channel'
+import { watchFilm as watchFilmOf } from '../systems/cinema'
+import { sellItem as sellItemOf, sellPostcard as sellPostcardOf } from '../systems/resale'
 import { advanceCertification, takeExam as takeExamOf } from '../systems/certification'
 import { findHousing } from '../data/housing'
 import { channelVisible, selectIncoming } from '../systems/messages'
@@ -45,6 +65,7 @@ import type { Career } from '../data/careers'
 import type { Cert } from '../data/certs'
 import type { Course } from '../data/courses'
 import type { SteamGame } from '../data/steam'
+import type { StreamTopic } from '../data/videos'
 import type { OfferOption } from '../data/messages'
 import type { ShopItem } from '../data/items'
 import type { SkippedPlan } from '../systems/schedule'
@@ -61,14 +82,17 @@ import type {
   HousingState,
   LotteryState,
   LotteryTicket,
+  Postcard,
   Slot,
   Stats,
+  GigState,
   StockState,
   StockTrade,
   SubscriptionState,
   TermDeposit,
   TwitterState,
 } from '../types/game'
+import type { Film } from '../data/media'
 import type { Housing } from '../data/housing'
 
 /**
@@ -122,6 +146,8 @@ function reviveJob(
           absences: Number(job.absences),
           checkedDay: Number(job.checkedDay),
           warnedAt: Number.isFinite(job.warnedAt) ? Number(job.warnedAt) : undefined,
+          // 급여일에 소지금으로 흘러 들어가는 값이라 스탯과 같은 강도로 검증한다.
+          bonus: reviveBonus(job.bonus),
         }
       : undefined
 
@@ -276,6 +302,8 @@ function reviveTwitter(saved: Partial<GameState>): TwitterState | undefined {
   return {
     gained: Number(t.gained),
     paidDay,
+    // ⚠️ 구세이브에는 `likes`가 없다 — 0으로 메운다(마이그레이션 대신 기본값).
+    likes: Number.isFinite(t.likes) && Number(t.likes) >= 0 ? Number(t.likes) : 0,
     postedIds: Array.isArray(t.postedIds)
       ? t.postedIds.filter((id): id is string => typeof id === 'string')
       : [],
@@ -312,6 +340,39 @@ function reviveStocks(saved: Partial<GameState>): StockState | undefined {
       (t): t is StockTrade =>
         !!t && typeof t.id === 'string' && Number.isFinite(t.day) && Number.isFinite(t.amount),
     ),
+  }
+}
+
+/**
+ * 그목 외주 상태 복원.
+ *
+ * ⚠️ **돈을 만드는 상태다**(납품 보수) — 다만 위험은 잔액이 아니라 **기한**에 있다:
+ * `dueDay`가 NaN이면 `day > NaN`이 영원히 false라 **마감이 안 오는 계약**이 된다.
+ * 그래서 숫자 하나라도 못 믿으면 **계약만** 버린다(납품 기록까지 버릴 이유는 없다).
+ * ⚠️ 없는 일감을 가리키는 계약도 버린다 — 채울 수도 납품할 수도 없는 유령이 된다.
+ */
+function reviveGigs(saved: Partial<GameState>): GigState | undefined {
+  const g = saved.gigs
+  if (!g || typeof g !== 'object') return undefined
+  const c = g.active
+  const active =
+    c &&
+    findGig(c.gigId) &&
+    Number.isFinite(c.takenDay) &&
+    Number.isFinite(c.dueDay) &&
+    Number.isFinite(c.progress)
+      ? {
+          gigId: c.gigId,
+          takenDay: Number(c.takenDay),
+          dueDay: Number(c.dueDay),
+          progress: Math.max(0, Math.floor(Number(c.progress))),
+        }
+      : undefined
+  return {
+    active,
+    done: Array.isArray(g.done) ? g.done.filter((id): id is string => typeof id === 'string') : [],
+    missed: Number.isFinite(g.missed) ? Number(g.missed) : 0,
+    earned: Number.isFinite(g.earned) ? Number(g.earned) : 0,
   }
 }
 
@@ -402,6 +463,22 @@ function reviveState(raw: unknown): GameState | null {
     courses: saved.courses && typeof saved.courses === 'object' ? saved.courses : undefined,
     // 증기 플레이 횟수. 표시에만 쓰이고 돈·턴을 만들지 않으므로 `courses`와 같은 수준으로 본다.
     steam: saved.steam && typeof saved.steam === 'object' ? saved.steam : undefined,
+    // ⚠️ 판 물건 목록. **돈을 만드는 값은 아니지만 돈이 새는 것을 막는 값이다** —
+    //    빠지면 팔았던 물건을 되사서 효과를 다시 받는 구멍이 열린다(`systems/resale.ts`).
+    sold: Array.isArray(saved.sold) ? saved.sold.filter((id): id is string => typeof id === 'string') : undefined,
+    // 직업 이력. 도감이 읽기만 하고 돈·턴을 만들지 않으므로 `steam`과 같은 수준으로 본다.
+    careerLog:
+      saved.careerLog && typeof saved.careerLog === 'object' ? saved.careerLog : undefined,
+    // 방송 채널. 이름이 문자열이 아니면 통째로 버린다 — 이름 없는 채널은 트위터 검색이
+    // 모든 글에 걸리게 만든다. 횟수는 표시·개수에만 쓰이므로 `steam` 수준으로 본다.
+    channel:
+      saved.channel && typeof saved.channel.name === 'string' && saved.channel.name.trim()
+        ? {
+            name: saved.channel.name,
+            streams: Number.isFinite(saved.channel.streams) ? Number(saved.channel.streams) : 0,
+            topic: typeof saved.channel.topic === 'string' ? saved.channel.topic : undefined,
+          }
+        : undefined,
     // ⚠️ 그림 자체는 **돈을 만들지 않는다**(올려야 팔로워가 되고, 그 판정은 아래 트위터
     //    상태가 진다). 그래서 검증은 `exams` 수준이면 충분하다 — 모양만 보고 통과시키고,
     //    등급은 어차피 `artGrade`가 매번 계산한다(저장된 등급이라는 것이 없다).
@@ -415,9 +492,17 @@ function reviveState(raw: unknown): GameState | null {
             Number.isFinite(a.creativity),
         ) as Artwork[])
       : undefined,
+    // ⚠️ 포스트카드는 **돈도 스탯도 만들지 않는다**(모으는 것이 전부다) — 그래서 검증은
+    //    모양만 본다. 없는 영화를 가리키는 장은 탐색기가 조용히 건너뛴다.
+    postcards: Array.isArray(saved.postcards)
+      ? (saved.postcards.filter(
+          (p) => p && typeof p.filmId === 'string' && Number.isFinite(p.day),
+        ) as Postcard[])
+      : undefined,
     twitter: reviveTwitter(saved),
     stocks: reviveStocks(saved),
     subscriptions: reviveSubscriptions(saved),
+    gigs: reviveGigs(saved),
     // ⚠️ 응시 기록은 **돈을 만들지 않으므로** 검증이 은행·정규직만큼 빡빡할 필요가 없다
     //    (합격해도 나오는 것은 아이템 하나다). 날짜만 유한하면 통과시키고, 없는 종목을
     //    가리키는 기록은 `advanceCertification`이 조용히 닫는다.
@@ -480,13 +565,25 @@ function afterTurn(next: GameState, chain?: number) {
   //    못 내서 해지될 때도 그날 밤의 판정에 그대로 반영된다.
   //    ⚠️ `nightPayoutPending`에는 넣지 않는다 — 그 술어는 "받을 돈이 남았으니 미뢬다"라
   //    나가는 돈을 넣으면 "낼 돈이 남아서 안 죽는다"는 거꿒된 말이 된다.
-  const billed = advanceSubscriptions(exams.state)
+  // ⚠️ **마감 감사는 돈을 안 만진다**(평판만 깎는다) — 그래서 `nightPayoutPending`에
+  //    원천을 더할 필요가 없고 밤 정산 어디에 놓아도 파산 판정이 안 흔들린다
+  //    (자격시험 발표와 같은 부류). 구독료보다 먼저인 것은 둘이 서로 무관하기 때문이다.
+  const gigged = advanceGigs(exams.state)
+  const billed = advanceSubscriptions(gigged)
   const drawn = advanceLottery(billed)
   // ⚠️ **트위터 주간 정산도 밤에 돈을 넣는다**(`nightPayoutPending`의 네 번째 원천).
   //    은행·복권과 같은 자리·같은 이유이고, 셋 다 마지막 줄에서 `settleGameOver`를 부르므로
   //    순서 자체가 판정을 바꾸지는 않는다(확정된 사유는 되살아나지 않는다).
   const tweeted = advanceTwitter(drawn)
-  const banked = advanceBank(tweeted)
+  // ⚠️ **공모전 상금과 웹툰 원고료도 밤에 들어온다**(`nightPayoutPending`의 다섯째·여섯째
+  //    원천 — `turn.ts`가 `resultDay`·`dueDay`를 본다). 둘 다 마지막 줄에서
+  //    `settleGameOver`를 부르므로 순서가 판정을 바꾸지는 않는다.
+  // ⚠️ **웹툰이 공모전보다 뒤인 것은 의도다** — 제의 조건이 공모전 입상 횟수를 보므로
+  //    (`offerEarned`), 같은 밤에 입상이 확정되면 그 밤에 제의가 온다. 순서를 뒤집으면
+  //    제의가 하루 늦게 오고 "입상했는데 아무 일도 안 일어난 밤"이 한 번 생긴다.
+  const judged = advanceContests(tweeted)
+  const serialized = advanceWebtoon(judged)
+  const banked = advanceBank(serialized)
   // ⚠️ 고용 정산은 **예약 연쇄가 끝난 뒤**에 한 번 돈다. 커서(`checkedDay`)와
   //    급여 루프가 밀린 날짜를 따라잡도록 돼 있어, 며칠이 한 번에 흘러도 새지 않는다.
   // ⚠️ **반드시 마지막이다.** 게임오버는 밤이 다 정산된 뒤 딱 한 번 확정되는데
@@ -502,6 +599,29 @@ function afterTurn(next: GameState, chain?: number) {
   }
 }
 
+/**
+ * 콜센터에 출근했으면 사내 프로그램을 띄운다.
+ *
+ * ⚠️ **`doActivity`에만 붙인다.** 스케줄러 예약·자동 진행으로 지나간 출근은 창을 열지 않고
+ * 그래서 보너스도 없다 — 설계자가 말한 "자동 넘기기 = 기본급만"이 그 자리에서 그대로 성립한다
+ * (미니게임 안의 [자동 응대] 버튼은 그 선택을 근무 중에도 할 수 있게 하는 같은 규칙의 손잡이다).
+ *
+ * ⚠️ 판정에 쓰는 상태는 **출근하기 전 것**이다. 그래야 오후 출근으로 날이 넘어가
+ * 급여일 정산이 도는 프레임에서도 "출근한 그 회사"가 흔들리지 않는다.
+ */
+function openCallCenterIfWorking(before: GameState, activityId: string) {
+  if (activityId !== 'commute' || !worksAtCallCenter(before)) return
+  useWindowStore.getState().open({
+    id: 'callcenter',
+    kind: 'callcenter',
+    title: '한울 상담 지원 시스템',
+    icon: 'fluent-color:headphones-24', // ⚠️ fluent-color에 call/phone 계열 다색 글리프가 없다
+    x: 96,
+    y: 64,
+    width: 900,
+  })
+}
+
 interface GameStore {
   state: GameState | null
   /** 잠금화면을 통과했는지. 저장하지 않아 새로고침 시 잠금화면부터 시작한다. */
@@ -511,6 +631,8 @@ interface GameStore {
   logout: () => void
   doActivity: (activity: Activity) => void
   doSkip: () => void
+  /** 콜센터 미니게임에서 콜 한 건을 마쳤다. 인자는 그 콜의 보너스(원). */
+  finishCall: (won: number) => void
   /** 포털 광고 배너 보상(하루 한 번 100원). 턴은 소모하지 않는다. */
   claimAdBonus: () => void
   /**
@@ -543,6 +665,12 @@ interface GameStore {
    * 효과도 그때 붙는다(`systems/delivery.ts`).
    */
   orderItem: (item: ShopItem) => void
+  /**
+   * 중고마켓에 판다. **턴은 소모하지 않고 돈이 바로 들어온다**(`orderItem`의 반대 방향).
+   * ⚠️ 되사기 구멍을 막는 `sold` 기록까지 `systems/resale.ts`가 진다 — 여기서는 부르기만 한다.
+   */
+  sellItem: (itemId: string) => void
+  sellPostcard: (filmId: string) => void
   /**
    * 방금 도착한 택배. **휘발**이다 — 토스트를 띄우고 나면 남길 이유가 없다
    * (`skippedPlans`와 같은 규칙). 보유 기록은 `state.inventory`가 들고 있다.
@@ -584,6 +712,22 @@ interface GameStore {
    */
   postArtwork: (artworkId: string) => void
   /**
+   * 개인방송을 켠다. **1턴을 쓴다**(`stream` 활동이 비용을 갖는다).
+   * ⚠️ `playGame`과 같은 모양 — 활동만으로는 못 넘기는 값(켠 횟수·주제)이 하나 더 있다.
+   */
+  startStream: (topic: StreamTopic) => void
+  /**
+   * 시집이에서 영화를 본다. **`movie` 활동을 실행하고 그 영화의 포스트카드를 남긴다.**
+   * ⚠️ `doActivity`와 갈라 둔 이유는 `startStream`과 같다 — 무엇을 봤는지는 활동이
+   * 모르는 사실이라, 활동만 실행하면 사라진다.
+   */
+  watchFilm: (film: Film) => void
+  /**
+   * 방송 채널 이름을 짓는다. **턴을 쓰지 않는다** — 그래서 `afterTurn`도 부르지 않는다
+   * (은행 창구·쇼핑 주문과 같은 통로: 상태만 바꾸고 하루는 흐르지 않는다).
+   */
+  renameChannel: (name: string) => void
+  /**
    * 방금 도착한 정규직 소식. **휘발**이다 — 토스트를 띄우고 나면 비운다
    * (`arrivals`·`skippedPlans`와 같은 규칙). 원본은 `state.jobNotices`가 들고 있다.
    */
@@ -621,6 +765,36 @@ interface GameStore {
    * 구독 가입·해지. **턴을 쓰지 않는다**(은행 거래·쇼핑 주문과 같은 규칙 —
    * 결제는 시간을 쓰는 일이 아니다). 규칙은 `systems/subscription.ts`가 갖는다.
    */
+  /**
+   * 그목 일감을 받는다/포기한다. **둘 다 턴을 쓰지 않는다** — 계약은 시간을 쓰는
+   * 일이 아니다(은행 거래와 같은 규칙). 실제로 시간을 쓰는 것은 **도구 앱**이다.
+   * ⚠️ 포기는 마감을 놓친 것과 같은 평판 손해를 진다(규칙은 `systems/gigs.ts`).
+   */
+  /**
+   * 새 작품집을 만든다. **턴을 안 쓴다**(폴더를 만드는 일이다).
+   * 그 안에 한 장 그리기(`drawIntoProject`)만 1턴을 쓴다.
+   */
+  createProject: () => void
+  /** 그 작품집에 한 장 그려 넣는다. **1턴.** */
+  drawIntoProject: (projectId: string) => void
+  /** 코미콘에서 회지를 판다. **1턴**(부스에 앉아 있는 하루). */
+  sellAtComicon: (projectId: string) => void
+  /** 공모전에 낸다. **턴을 안 쓴다**(봉투를 부치는 일이다 — 기다림이 비용이다). */
+  enterContest: (contestId: string, pick: { projectId?: string; artworkId?: string }) => void
+  /** 웹툰 연재 제의를 받는다/거절한다. 둘 다 턴을 안 쓴다(계약이다). */
+  acceptWebtoon: () => void
+  declineWebtoon: () => void
+  /** 웹툰 원고를 한 장 친다. **1턴.** */
+  drawWebtoon: () => void
+  /**
+   * 행사를 보러 간다 / 부스로 참여한다. **둘 다 1턴 + 돈**(입장료·참가비)이고,
+   * 그 돈은 활동이 아니라 **행사**가 갖는다(`Expo.fee`·`ExpoJoin.fee`).
+   * ⚠️ 코미콘 참여는 여기 오지 않는다 — 고를 것이 있어 코미콘 사이트로 보낸다.
+   */
+  visitExpo: (expoId: string) => void
+  joinExpo: (expoId: string) => void
+  takeGig: (gigId: string) => void
+  abandonGig: () => void
   subscribeTo: (id: string) => void
   unsubscribeFrom: (id: string) => void
   buyStock: (stockId: string, shares: number) => void
@@ -823,11 +997,98 @@ export const useGameStore = create<GameStore>()(
           if (next !== current) set(afterTurn(next))
         },
 
+        createProject: () => {
+          const current = get().state
+          if (!current) return
+          // ⚠️ 턴을 안 쓰므로 `afterTurn`을 거치지 않는다(은행 거래·그몽 수주와 같다).
+          const next = createProjectOf(current)
+          if (next !== current) set({ state: next })
+        },
+
+        drawIntoProject: (projectId) => {
+          const current = get().state
+          if (!current) return
+          const next = drawIntoProjectOf(current, projectId)
+          if (next !== current) set(afterTurn(next))
+        },
+
+        sellAtComicon: (projectId) => {
+          const current = get().state
+          if (!current) return
+          const next = sellAtComiconOf(current, projectId)
+          if (next !== current) set(afterTurn(next))
+        },
+
+        enterContest: (contestId, pick) => {
+          const current = get().state
+          if (!current) return
+          const next = enterContestOf(current, contestId, pick)
+          if (next !== current) set({ state: next })
+        },
+
+        acceptWebtoon: () => {
+          const current = get().state
+          if (!current) return
+          const next = acceptOffer(current)
+          if (next !== current) set({ state: next })
+        },
+
+        declineWebtoon: () => {
+          const current = get().state
+          if (!current) return
+          const next = declineOffer(current)
+          if (next !== current) set({ state: next })
+        },
+
+        drawWebtoon: () => {
+          const current = get().state
+          if (!current) return
+          const next = drawWebtoonOf(current)
+          if (next !== current) set(afterTurn(next))
+        },
+
+        visitExpo: (expoId) => {
+          const current = get().state
+          if (!current) return
+          const next = visitExpoOf(current, expoId)
+          if (next !== current) set(afterTurn(next))
+        },
+
+        joinExpo: (expoId) => {
+          const current = get().state
+          if (!current) return
+          const next = joinExpoOf(current, expoId)
+          if (next !== current) set(afterTurn(next))
+        },
+
         postArtwork: (artworkId) => {
           const current = get().state
           if (!current) return
           const next = postArtworkOf(current, artworkId)
           if (next !== current) set(afterTurn(next))
+        },
+
+        startStream: (topic) => {
+          const current = get().state
+          if (!current) return
+          // `startStream`이 조건(행동력·장비)을 다 보고 안 되면 상태를 그대로 돌려준다.
+          const next = startStreamOf(current, topic)
+          if (next !== current) set(afterTurn(next))
+        },
+
+        watchFilm: (film) => {
+          const current = get().state
+          if (!current) return
+          // `watchFilm`이 조건(행동력·관람료)을 다 보고 안 되면 상태를 그대로 돌려준다.
+          const next = watchFilmOf(current, film)
+          if (next !== current) set(afterTurn(next))
+        },
+
+        renameChannel: (name) => {
+          const current = get().state
+          if (!current) return
+          const next = renameChannelOf(current, name)
+          if (next !== current) set({ state: next })
         },
 
         takeExam: (cert) => {
@@ -845,6 +1106,21 @@ export const useGameStore = create<GameStore>()(
           const next = order(current, item)
           if (next === current) return
           set({ state: next })
+        },
+
+        /* 파는 것은 턴을 안 쓰므로 `afterTurn`을 부르지 않는다(쇼핑 주문과 같은 통로). */
+        sellItem: (itemId) => {
+          const current = get().state
+          if (!current) return
+          const next = sellItemOf(current, itemId)
+          if (next !== current) set({ state: next })
+        },
+
+        sellPostcard: (filmId) => {
+          const current = get().state
+          if (!current) return
+          const next = sellPostcardOf(current, filmId)
+          if (next !== current) set({ state: next })
         },
 
         acceptOffer: (option) => {
@@ -922,6 +1198,18 @@ export const useGameStore = create<GameStore>()(
           const current = get().state
           if (!current || !canRun(current, activity)) return
           set(afterTurn(runActivity(current, activity)))
+          openCallCenterIfWorking(current, activity.id)
+        },
+
+        /**
+         * 콜 한 건 처리 완료. 금액 판정은 화면(경과 시간)이 하고 상한은 `creditCall`이 쥔다.
+         * **소지금은 안 움직인다** — 급여일에 기본급과 함께 들어온다.
+         */
+        finishCall: (won) => {
+          const current = get().state
+          if (!current) return
+          const credited = creditCall(current, won)
+          if (credited !== current) set({ state: credited })
         },
 
         /**
@@ -1017,6 +1305,20 @@ export const useGameStore = create<GameStore>()(
           if (!current) return
           const next = buyTickets(current, count)
           if (next !== current) set({ state: recordEvent(next, 'first-lottery') })
+        },
+
+        takeGig: (gigId) => {
+          const current = get().state
+          if (!current) return
+          const next = takeGigOf(current, gigId)
+          if (next !== current) set({ state: recordEvent(next, 'first-gig') })
+        },
+
+        abandonGig: () => {
+          const current = get().state
+          if (!current) return
+          const next = abandonGigOf(current)
+          if (next !== current) set({ state: next })
         },
 
         subscribeTo: (id) => {

@@ -74,3 +74,29 @@ export const TRENDING_TERMS: TrendingTerm[] = [
   { label: '번아웃 자가진단' },
   { label: '중고 거래 꿀팁', siteId: 'shopping' },
 ]
+
+/**
+ * 검색창을 눌렀을 때 뜨는 **검색어 추천**.
+ *
+ * ⚠️ **실시간 검색어(`TRENDING_TERMS`)와 다른 목록이다**(설계자 지시). 실검은 "지금 사람들이
+ * 많이 찾는 것"이고 이건 **"여기서 찾을 수 있는 것"**이라 성격이 다르다 — 그래서 대부분
+ * `siteId`를 갖는다. 같은 목록으로 묶으면 어도비를 넣는 순간 트위터 트렌드와 실검 줄에도
+ * 뜨는데, 거기서는 "지금 화제인 검색어"라는 거짓말이 된다.
+ *
+ * ⚠️ **어도비가 여기 있는 것이 어도비 사이트의 입구다**(2026-08-08 설계자 지시로 하단 소개
+ * 카드를 뺐다). 구독을 안 하면 포토샵도 프리미어도 없고 그몽 디자인 일감도 잠기는데,
+ * 결제 화면으로 갈 길이 없으면 그 잠금이 막다른 골목이 된다 — `subscription.test.ts`가
+ * 순회로 지킨다.
+ */
+export const SEARCH_SUGGESTIONS: TrendingTerm[] = [
+  { label: '어도비', siteId: 'adobe' },
+  { label: '공모전', siteId: 'contest' },
+  { label: '행사', siteId: 'expo' },
+  { label: '부업 외주', siteId: 'gmong' },
+  { label: '단기 알바', siteId: 'albamon' },
+  { label: '정규직 채용', siteId: 'flea' },
+  { label: '자격증 시험', siteId: 'onet' },
+  { label: '전세 보증금 계산', siteId: 'realty' },
+  { label: '주식 시세', siteId: 'stock' },
+  { label: '번아웃 자가진단' },
+]

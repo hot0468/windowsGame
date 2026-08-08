@@ -1,14 +1,19 @@
 import type { ReactNode } from 'react'
 import { BrowserApp } from '../apps/BrowserApp'
+import { CallCenterApp } from '../apps/CallCenterApp'
 import { ChatListApp, ChatThreadApp } from '../apps/ChatApp'
 import { MailApp } from '../apps/MailApp'
 import { CommandPromptApp, SaveApp, TaskManagerApp } from '../apps/SystemApps'
 import { SchedulerApp } from '../apps/SchedulerApp'
 import { ExplorerApp } from '../apps/ExplorerApp'
 import { AutoLogApp } from '../apps/AutoLogApp'
+import { ExcelApp } from '../apps/ExcelApp'
 import { ExeApp } from '../apps/ExeApp'
+import { SettingsApp } from '../apps/SettingsApp'
 import { SolitaireApp } from '../apps/SolitaireApp'
 import { SteamApp } from '../apps/SteamApp'
+import { ToolRun } from '../apps/ToolRun'
+import { ClipStudioApp } from '../apps/ClipStudioApp'
 import { StubApp } from '../apps/StubApp'
 import type { OpenWindow } from '../../store/windowStore'
 import type { WindowKind } from '../../types/game'
@@ -49,6 +54,11 @@ export const WINDOW_APP_KINDS = [
   'browser',
   'solitaire',
   'steam',
+  'settings',
+  'callcenter',
+  'tool',
+  'clipstudio',
+  'excel',
 ] as const satisfies readonly WindowKind[]
 
 /**
@@ -100,12 +110,27 @@ export function appForWindow(w: OpenWindow, { onClose }: AppSlots): ReactNode {
     /* 탭의 ✕가 창을 닫는다 — 크롬도 마지막 탭을 닫으면 창이 닫힌다. */
     case 'browser':
       return <BrowserApp onClose={onClose} />
+    /* 이 가짜 OS의 시스템 앱. 지금 관리하는 것은 구독 하나뿐이다. */
+    case 'settings':
+      return <SettingsApp />
     /* 판이 컴포넌트 안에서만 산다 — 창을 닫으면 끝난다(실제 윈도우 솔리테어와 같다). */
     case 'solitaire':
       return <SolitaireApp />
     /* 라이브러리 한 화면. 게임을 켜는 것은 활동 `game` 1턴이다. */
     case 'steam':
       return <SteamApp />
+    /* 출근이 여는 사내 프로그램. 턴은 이미 지나갔고 여기서 버는 것은 보너스뿐이다. */
+    case 'callcenter':
+      return <CallCenterApp onClose={onClose} />
+    /* 도구 앱(포토샵·프리미어·VS 코드). 활동 창이 아니라 **단독 창**이고 상태를 안 바꾼다. */
+    case 'tool':
+      return w.toolRun ? <ToolRun payload={w.toolRun} onClose={onClose} /> : null
+    /* 클립스튜디오. **고르는 창**이라 활동 창이 아니다 — 고른 뒤에 확인창이 뜬다. */
+    case 'clipstudio':
+      return <ClipStudioApp />
+    /* 도감(직업·엔딩). 표를 읽기만 하고 게임 상태를 바꾸지 않는다. */
+    case 'excel':
+      return <ExcelApp />
     default:
       return null
   }
@@ -133,6 +158,9 @@ export function windowChrome(kind: WindowKind): WindowChrome {
        창 꼭대기까지 올라와야 뒤집힌 글리프가 얹힐 바닥이 생긴다. */
     bareTitle: kind === 'chat' || kind === 'thread' || kind === 'cmd' || kind === 'steam',
     /* 어두운 프로그램. 캡션 글리프까지 밝게 뒤집어야 타이틀 바에서 안 보이지 않는다. */
-    dark: kind === 'cmd' || kind === 'steam',
+    /* ⚠️ 도구 앱도 어둡다 — 창이 곧 그 프로그램이라 **실제 타이틀 바가 프로그램 이름표**를
+       진다(그래서 가짜 프로그램 띠를 따로 그리지 않는다). `bareTitle`은 안 준다:
+       제목과 로고가 보여야 작업 표시줄에서 무엇이 도는지 알 수 있다. */
+    dark: kind === 'cmd' || kind === 'steam' || kind === 'tool',
   }
 }

@@ -97,6 +97,16 @@ export const EVENTS: GameEvent[] = [
     ext: '.evt',
   },
   {
+    /* ⚠️ 마감이 걸린 일을 받는 것은 이 게임에서 이것뿐이다 — 알바도 정규직도
+       "오늘 하면 오늘 받는" 구조라 내일을 약속하지 않는다. */
+    id: 'first-gig',
+    name: '날짜를 약속하다',
+    hint: '기한이 있는 일을 받는다.',
+    desc: '받을 때는 넘치는 시간이었다. 드 바꿔 보니 아니었다.',
+    icon: 'fluent-color:clipboard-text-edit-24',
+    ext: '.evt',
+  },
+  {
     /* ⚠️ 이 게임의 **첫 지속 지출**이다 — 다른 사건은 전부 한 번 내고 끝나는 것이었다. */
     id: 'first-subscribe',
     name: '매달 나가는 것',

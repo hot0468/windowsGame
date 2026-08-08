@@ -1,0 +1,301 @@
+/*
+ * 코미콘(회지 판매 행사).
+ *
+ * ## 색 — 앰버 + 짙은 갈색
+ * ⚠️ **이웃 사이트와 갈라 둔 값이다.** 하이마루가 주황(#C2410C)을 쓰므로 같은 계열로는
+ * 못 간다 — 그래서 **정체성을 앰버가 아니라 짙은 갈색(#451A03)에 두었다**: 제호 띠가
+ * 갈색 판이라 한눈에 하이마루의 주황 크롬과 갈린다(축제 천막·종이 부스 쪽 인상).
+ * 앰버(#B45309)는 금액·버튼에만 얹는 강조색이다.
+ * 대비: #451A03/흰 배경 **15.0:1** · #B45309/흰 배경 **5.0:1** · #78716C/크림 **4.6:1** ·
+ * #FEF3C7/갈색 띠 **13.5:1** · 흰 글자/앰버 버튼 **5.0:1** · 잠금 #B91C1C/크림 **6.2:1**.
+ *
+ * ⚠️ **접두사가 `--cc-*`가 아니다.** 그 이름은 이미 콜센터(`CallCenterApp.css`)가 쓴다 —
+ * 겹치면 "색의 출처를 한 곳으로 모은다"는 규칙 자체가 뜻을 잃는다.
+ *
+ * ## 구역 순서
+ * 제호 띠 → 내 부스 현황(3칸) → 낼 수 있는 회지 → 아직 회지가 안 되는 작품집 → 각주.
+ * 판형은 그몽과 같은 부류(세로 목록 + 잠금 사유 + 금액)다 — 권이 몇 안 되므로 격자로
+ * 벌리면 판이 빈다.
+ * ⚠️ 반응형은 뷰포트가 아니라 컨테이너로 판정한다(사이트는 창 안이다).
+ */
+.cmc {
+  --cmc-bg: #fffbeb;
+  --cmc-surface: #ffffff;
+  --cmc-deep: #451a03; /* 제호 띠 — 이 사이트의 정체성 */
+  --cmc-on-deep: #fef3c7; /* 갈색 위 13.5:1 */
+  --cmc-line: #fde68a;
+  --cmc-line-soft: #e7e5e4;
+  --cmc-text: #451a03; /* #fff 위 15.0:1 */
+  --cmc-text-2: #78716c; /* 크림 위 4.6:1 (WCAG AA) */
+  --cmc-brand: #b45309; /* #fff 위 5.0:1 — 금액·버튼 */
+  --cmc-brand-hover: #92400e;
+  --cmc-lock: #b91c1c; /* 크림 위 6.2:1 */
+
+  container-type: inline-size;
+  min-height: 100%;
+  padding-bottom: var(--sp-8);
+  background: var(--cmc-bg);
+  color: var(--cmc-text);
+}
+
+.cmc-booth,
+.cmc-sec,
+.cmc-foot {
+  width: min(960px, 100% - 48px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── 제호 띠 ───────────────────────────────────────────── */
+.cmc-head {
+  background: var(--cmc-deep);
+  color: var(--cmc-on-deep);
+}
+
+.cmc-head-in {
+  width: min(960px, 100% - 48px);
+  margin: 0 auto;
+  padding: var(--sp-6) 0;
+}
+
+.cmc-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-family: var(--font-point);
+  font-weight: 400; /* 한 벌짜리 서체라 합성 볼드를 막는다 */
+  font-size: var(--fs-2xl);
+}
+
+.cmc-lede {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-sm);
+}
+
+/* ── 내 부스 현황 ─────────────────────────────────────── */
+.cmc-booth {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-2);
+  margin-top: calc(-1 * var(--sp-4));
+  margin-bottom: var(--sp-5);
+}
+
+.cmc-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--cmc-line);
+  border-radius: var(--r-lg);
+  background: var(--cmc-surface);
+  box-shadow: var(--el-1);
+}
+
+.cmc-stat-label {
+  font-size: var(--fs-xs);
+  color: var(--cmc-text-2);
+}
+
+.cmc-stat-value {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 목록 ─────────────────────────────────────────────── */
+.cmc-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.cmc-sec-head-sub {
+  margin-top: var(--sp-6);
+}
+
+.cmc-sec-count {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--cmc-text-2);
+}
+
+.cmc-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmc-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  width: 100%;
+  padding: var(--sp-4);
+  border: 1px solid var(--cmc-line-soft);
+  border-radius: var(--r-lg);
+  background: var(--cmc-surface);
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.cmc-card:hover {
+  border-color: var(--cmc-brand);
+}
+
+/* 못 파는 권은 감추지 않고 흐리게 둔다(ux `disabled-states`). 버튼이 아니라 판이다. */
+.cmc-card-locked {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.cmc-card-locked:hover {
+  border-color: var(--cmc-line-soft);
+}
+
+.cmc-mark {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--cmc-line);
+  color: var(--cmc-deep);
+}
+
+.cmc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cmc-name {
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.cmc-terms {
+  font-size: var(--fs-xs);
+  color: var(--cmc-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 계산식은 카드에서 가장 중요한 한 줄이다 — "장수가 많을수록 더 번다"가 여기서 읽힌다. */
+.cmc-formula {
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  color: var(--cmc-brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmc-pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-top: var(--sp-1);
+}
+
+.cmc-page {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--cmc-bg);
+  font-size: var(--fs-xs);
+  color: var(--cmc-text-2);
+}
+
+.cmc-lock {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  color: var(--cmc-lock);
+}
+
+/* ── 금액 ─────────────────────────────────────────────── */
+.cmc-money {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.cmc-money-label {
+  font-size: var(--fs-xs);
+  color: var(--cmc-text-2);
+}
+
+.cmc-money-value {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--cmc-brand);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 카드 전체가 버튼이므로 이것은 `<button>`이 아니라 표시다(중첩 버튼 금지). */
+.cmc-cta {
+  margin-top: var(--sp-2);
+  padding: 6px var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--cmc-brand);
+  color: #ffffff; /* 앰버 위 5.0:1 */
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.cmc-card:hover .cmc-cta {
+  background: var(--cmc-brand-hover);
+}
+
+.cmc-empty {
+  margin: 0;
+  padding: var(--sp-5);
+  border: 1px dashed var(--cmc-line);
+  border-radius: var(--r-lg);
+  font-size: var(--fs-sm);
+  color: var(--cmc-text-2);
+  text-align: center;
+}
+
+/* ── 각주 ─────────────────────────────────────────────── */
+.cmc-foot {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--cmc-line);
+  font-size: var(--fs-xs);
+  color: var(--cmc-text-2);
+}
+
+.cmc-foot p {
+  margin: 0 0 var(--sp-1);
+}
+
+/* 좁아지면 현황이 한 줄로 서고 금액 칸이 카드 아래로 내려간다. */
+@container (max-width: 620px) {
+  .cmc-booth {
+    grid-template-columns: 1fr;
+  }
+
+  .cmc-card {
+    flex-wrap: wrap;
+  }
+
+  .cmc-money {
+    align-items: flex-start;
+    width: 100%;
+    padding-left: 56px;
+  }
+}

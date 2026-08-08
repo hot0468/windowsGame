@@ -14,6 +14,7 @@ import {
 import { findItem } from '../data/items'
 import { MAILBOX } from '../data/messages'
 import { STAT_NAMES } from '../types/game'
+import { markHired } from './careerLog'
 import { messageTime, turnIndex } from './messages'
 import { clampStats, owns, settleGameOver } from './turn'
 import type { TimedMessage } from './messages'
@@ -142,7 +143,7 @@ function notice(
   state: GameState,
   kind: JobNotice['kind'],
   careerId: string,
-  extra?: { reason?: string; amount?: number },
+  extra?: { reason?: string; amount?: number; bonus?: number },
 ): JobNotice {
   return {
     // 같은 종류·같은 회사라도 날이 다르면 다른 소식이다(토스트 중복 제거 키를 겸한다).
@@ -207,6 +208,9 @@ function advanceApplication(state: GameState): { state: GameState; notices: JobN
     const hired: GameState = {
       ...state,
       application: undefined,
+      /* ⚠️ 도감의 "다녀 본 곳"은 **채용된 이 지점에서** 생긴다(`peakCareerId`와 같은 자리).
+         출근을 한 번도 안 하고 해고돼도 다녀 본 것은 다녀 본 것이다. */
+      careerLog: markHired(state.careerLog, career.id),
       employment: {
         careerId: career.id,
         hiredDay: state.day,
@@ -254,6 +258,11 @@ function auditAbsences(state: GameState): GameState {
  *
  * ⚠️ **해고보다 먼저 처리한다** — 이미 일한 주기의 급여는 받아야 한다.
  * `while`인 이유: 스케줄러 연쇄로 여러 주기가 한 번에 지나갈 수 있다.
+ *
+ * ⚠️ **업무 보너스도 여기서 함께 나간다**(콜센터 미니게임이 쌓아 둔 `Employment.bonus`).
+ * 따로 입금하지 않는 이유는 "급여가 우선한다" 규칙 때문이다 — 급여와 보너스가 서로 다른
+ * 자리에서 들어오면 밤의 게임오버 판정을 미루는 `nightPayoutPending`이 한쪽만 지킨다.
+ * 기본급은 회사가, 보너스 금액은 미니게임이 정하고, **더하는 줄은 여기 하나**다.
  */
 function payWages(state: GameState): { state: GameState; notices: JobNotice[] } {
   let current = state
@@ -263,13 +272,16 @@ function payWages(state: GameState): { state: GameState; notices: JobNotice[] } 
     if (!job || current.day < job.paydayDay) break
     const career = findCareer(job.careerId)
     if (!career) break
-    notices.push(notice(current, 'payday', career.id, { amount: career.salary }))
+    const bonus = job.bonus ?? 0
+    const paid = career.salary + bonus
+    notices.push(notice(current, 'payday', career.id, { amount: paid, bonus }))
     const paydayDay = job.paydayDay + PAYDAY_INTERVAL
     current = {
       ...current,
-      stats: clampStats({ ...current.stats, money: current.stats.money + career.salary }),
+      stats: clampStats({ ...current.stats, money: current.stats.money + paid }),
       employment: {
         ...job,
+        bonus: 0,
         paydayDay,
         // 지난 주기의 출근부는 버린다 — 배열이 무한히 자라면 세이브가 커진다.
         attendedDays: job.attendedDays.filter((d) => d >= job.paydayDay),
@@ -416,7 +428,11 @@ export function noticeMail(n: JobNotice): { from: string; subject: string; text:
       return {
         from: `${company} 급여담당`,
         subject: '급여명세서가 발행되었습니다',
-        text: `이번 급여 ${won(n.amount)}이 지급되었습니다. 명세서는 사내 시스템에서 확인하실 수 있습니다.`,
+        // 보너스가 0인 회사(콜센터 외 전부)에는 그 줄을 아예 안 붙인다 — 늘 '보너스 0원'이
+        // 적혀 있으면 실제로 보너스가 있는 판에서 그 줄이 눈에 들어오지 않는다.
+        text: n.bonus
+          ? `이번 급여 ${won(n.amount)}이 지급되었습니다 — 기본급 ${won((n.amount ?? 0) - n.bonus)} · 업무 보너스 ${won(n.bonus)}. 명세서는 사내 시스템에서 확인하실 수 있습니다.`
+          : `이번 급여 ${won(n.amount)}이 지급되었습니다. 명세서는 사내 시스템에서 확인하실 수 있습니다.`,
       }
     case 'absence-warning':
       return {

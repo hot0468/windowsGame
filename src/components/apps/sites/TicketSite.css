@@ -390,6 +390,8 @@
   color: var(--tk-text-2);
 }
 
+/* 카드의 잔여 좌석 줄. ⚠️ 좌석 선택 화면은 `.tk-book-*`이다 — 이름을 겹치지 말 것
+   (`.tk-seats`로 지었다가 이 flex 규칙에 걸려 화면이 가로로 눕는 것을 실측이 잡았다). */
 .tk-seats {
   display: flex;
   align-items: center;
@@ -418,4 +420,133 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--tk-primary);
+}
+
+/* ── 좌석 선택 ───────────────────────────────────────────────
+ * 예매의 마지막 단계. ⚠️ **떠 있는 창이 아니라 목록을 갈아 끼운 화면이다**
+ * (이유는 `SeatPicker.tsx` 주석 — `.tk`의 container-type이 fixed의 기준을 바꾼다).
+ * 색은 새로 만들지 않는다: 불이 꺼진 자리는 --tk-line, 들어온 자리는 --tk-primary다.
+ * 좌석은 **모양이 아니라 밝기로** 갈린다 — 0.5초 안에 찾아야 하는 것은 "가장 진한 칸"이다.
+ */
+.tk-book {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5);
+  text-align: center;
+}
+
+.tk-book-head {
+  margin-bottom: var(--sp-5);
+}
+
+.tk-book-title {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--tk-primary);
+}
+
+.tk-book-sub {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--tk-text-2);
+}
+
+.tk-book-rule {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: var(--sp-4) 0 0;
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-md);
+  background: #f5f5ff;
+  font-size: var(--fs-sm);
+  color: var(--tk-primary);
+  text-align: left;
+}
+
+/* 무대. 좌석이 어느 쪽을 보고 있는지가 있어야 격자가 "좌석"으로 읽힌다. */
+.tk-stage {
+  margin: 0 auto var(--sp-5);
+  padding: var(--sp-2);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: var(--tk-line);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.4em;
+  color: var(--tk-text-2);
+}
+
+.tk-seat-map {
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-5);
+}
+
+.tk-seat-block-id {
+  display: block;
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--tk-text-3);
+}
+
+.tk-seat-grid {
+  display: grid;
+  gap: 4px;
+}
+
+.tk-seat {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--tk-line-strong);
+  border-radius: 3px;
+  background: var(--tk-line);
+  cursor: pointer;
+}
+
+/*
+ * 불이 들어온 자리. ⚠️ **전환(transition)을 주지 않는다** — 0.5초짜리 시험에서
+ * 페이드는 곧 반응 시간을 갉아먹는 거짓말이다. 켜짐은 즉시여야 한다.
+ */
+.tk-seat-on {
+  border-color: var(--tk-primary-hi);
+  background: var(--tk-primary);
+  box-shadow: 0 0 0 3px rgba(55, 48, 163, 0.25);
+}
+
+.tk-book-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: 24px;
+  margin: var(--sp-5) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--tk-text-2);
+}
+
+.tk-book-btns {
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.tk-book-back,
+.tk-book-retry {
+  padding: var(--sp-2) var(--sp-5);
+  border: 1px solid var(--tk-line-strong);
+  border-radius: var(--r-md);
+  background: var(--tk-surface);
+  font-size: var(--fs-sm);
+  color: var(--tk-text);
+  cursor: pointer;
+}
+
+.tk-book-retry {
+  border-color: var(--tk-primary);
+  background: var(--tk-primary);
+  color: #ffffff;
 }

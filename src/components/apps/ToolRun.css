@@ -1,0 +1,255 @@
+/*
+ * 도구 앱 작업 화면 — 포토샵·프리미어·VS 코드.
+ *
+ * 판형(위 → 아래): 작업 영역(가짜 캔버스 · 상태 줄 · 진행 막대 · 건너뛰기)
+ * → 다 되면 그 위에 결과 알림이 얹힌다.
+ *
+ * ⚠️ **프로그램 이름표는 창의 진짜 타이틀 바가 진다**(`windowChrome`의 `dark`).
+ * 가짜 프로그램 띠를 안에 그렸다가 걷어냈다 — 창이 곧 그 프로그램이므로 이름과 로고가
+ * 두 벌이 되면 "창 안에 창"으로 읽힌다. **되살리지 말 것.**
+ *
+ * ⚠️ **다섯 번째 시각 언어다**(OS 크롬 `--os-*` / HUD `--hud-*` / 모바일 셸 `--mo-*` /
+ * 사이트별 색 다음). 색을 `--os-*`에서 안 가져온 것은 이것이 **가짜 OS 위에서 돌아가는
+ * 남의 프로그램**이기 때문이다 — 사이트가 자기 색을 자기 파일에 가두는 규칙과 같다.
+ * 어두운 판을 고른 이유도 같다: 실제 편집기·IDE가 전부 어둡고, 밝은 OS 크롬 안에서
+ * 어두운 상자가 서면 "저건 창이 아니라 프로그램 안"으로 읽힌다.
+ *
+ * ⚠️ **간격·타입·모서리는 전역 토큰만 쓴다**(`--sp-*`·`--fs-*`·`--r-*`). 새로 만든 것은
+ * 색뿐이다.
+ *
+ * ## 대비(어두운 판 #0F172A 위, 전부 실측 대상)
+ * 본문 #F8FAFC 17:1 · 보조 #94A3B8 6.9:1 · 액센트 6.5~10.3:1
+ * ⚠️ **액센트를 원색(#7C3AED·#EC4899·#22C55E)으로 되돌리지 말 것** — 어두운 판에서 3:1을
+ * 못 넘는다. 어두운 판은 **밝은 색조 변형**을 쓴다(ux `color-dark-mode`).
+ */
+
+.tr {
+  --tr-bg: #0f172a;
+  --tr-card: #192134;
+  --tr-line: rgba(255, 255, 255, 0.1);
+  --tr-fg: #f8fafc;
+  --tr-dim: #94a3b8;
+  /* 기본값. 아래 도구별 클래스가 덮어쓴다. */
+  --tr-accent: #a78bfa;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /*
+   * ⚠️ **높이를 고정한다.** 결과 알림이 `position: absolute`로 이 상자를 덮는데, 작업이
+   * 끝나면 [건너뛰기]가 사라져 상자가 줄어든다 — 그러면 결과가 나타나는 바로 그 순간
+   * 자리가 좁아져 목록이 안쪽 스크롤로 잘린다. 여기서 채우는 것이 곧 알림의 판이다.
+   */
+  min-height: 340px;
+  /* 창 본문이 패딩 0이라(Window.css) 모서리는 창이 이미 깎는다. */
+  overflow: hidden;
+  background: var(--tr-bg);
+  color: var(--tr-fg);
+}
+
+/* 도구별로 갈리는 것은 이 한 줄뿐이다. */
+.tr-photoshop {
+  --tr-accent: #a78bfa;
+}
+.tr-premiere {
+  --tr-accent: #f472b6;
+}
+.tr-vscode {
+  --tr-accent: #4ade80;
+}
+
+/* ── 작업 영역 ───────────────────────────────────────────── */
+/*
+ * ⚠️ **가짜 캔버스가 남는 자리를 전부 먹고 상태 줄은 아래에 붙는다.** 위에서부터 쌓으면
+ * 판 아래쪽에 200px짜리 빈 칸이 남아 "덜 그려진 창"으로 보인다 — 실제 편집기도 작업
+ * 영역이 가운데를 차지하고 진행 표시는 바닥에 있다.
+ */
+.tr-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-4);
+}
+
+.tr-canvas {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+/*
+ * 가짜 작업 줄. ⚠️ **폭·투명도만 움직인다**(ux `transform-performance`) — 높이나 위치를
+ * 애니메이션하면 상태 줄과 막대가 매 프레임 밀린다.
+ */
+.tr-row {
+  height: 8px;
+  border-radius: var(--r-sm);
+  background: var(--tr-card);
+  transform-origin: left center;
+  animation: tr-work 1.4s ease-in-out infinite;
+}
+
+.tr-row:nth-child(odd) {
+  background: color-mix(in srgb, var(--tr-accent) 22%, var(--tr-card));
+}
+
+@keyframes tr-work {
+  0%,
+  100% {
+    transform: scaleX(0.35);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.tr-status {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-base);
+  color: var(--tr-dim);
+}
+
+.tr-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--tr-card);
+  overflow: hidden;
+}
+
+.tr-fill {
+  display: block;
+  height: 100%;
+  background: var(--tr-accent);
+  transition: width 240ms ease-out;
+}
+
+.tr-skip {
+  margin-top: var(--sp-3);
+  align-self: flex-start;
+  padding: 6px var(--sp-3);
+  min-height: 32px;
+  border: 1px solid var(--tr-line);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--tr-dim);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.tr-skip:hover {
+  color: var(--tr-fg);
+  border-color: var(--tr-dim);
+}
+
+/* ── 결과 알림 ───────────────────────────────────────────── */
+.tr-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(2px);
+}
+
+.tr-result {
+  position: absolute;
+  inset: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--tr-line);
+  border-radius: var(--r-md);
+  background: var(--tr-card);
+  overflow-y: auto;
+}
+
+.tr-result-head {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  /* 도구를 가리키는 유일한 색 신호. 글자라 대비가 4.5:1을 넘어야 한다. */
+  color: var(--tr-accent);
+}
+
+.tr-effects {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tr-effect {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-size: var(--fs-md);
+}
+
+.tr-effect-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tr-dim);
+}
+
+/* 어두운 판 위의 증감 색. ⚠️ `--os-success`/`--os-danger`는 밝은 판 기준이라 안 쓴다. */
+.tr-plus {
+  color: #4ade80;
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-minus {
+  color: #fca5a5;
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-gig {
+  margin: 0;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--tr-line);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--tr-fg);
+}
+
+.tr-close {
+  margin-top: auto;
+  min-height: 40px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--tr-accent);
+  /* 밝은 액센트 위라 글자는 어두워야 한다(흰 글자면 1.5:1 안팎으로 떨어진다). */
+  color: #0f172a;
+  font: inherit;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tr-close:hover {
+  filter: brightness(1.08);
+}
+
+/*
+ * ⚠️ 모션을 줄이면 **막대를 멈추되 정보는 그대로 둔다**(날 밝음 알림과 같은 규칙).
+ * `animation: none`만 걸면 시작 프레임(scaleX 0.35 · opacity .55)에 얼어붙으므로
+ * 다 자란 상태를 명시한다.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .tr-row {
+    animation: none;
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  .tr-fill {
+    transition: none;
+  }
+}

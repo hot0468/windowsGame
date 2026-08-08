@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { clearPlan, findPlan, planWeekly, prunePast, runPlans, setPlan } from './schedule'
+import {
+  clearPlan,
+  findPlan,
+  firstFreeSlot,
+  planWeekly,
+  prunePast,
+  runPlans,
+  setPlan,
+} from './schedule'
 import { createInitialState } from './turn'
 import type { GameState, Plan } from '../types/game'
 
@@ -14,6 +22,15 @@ describe('예약 목록', () => {
     plans = setPlan(plans, 1, 'morning', 'work')
     expect(plans).toHaveLength(1)
     expect(findPlan(plans, 1, 'morning')?.activityId).toBe('work')
+  })
+
+  /* 예매(노24)가 이 함수로 관람일을 잡는다. 남의 예약을 덮으면 달력을 믿을 수 없게 된다. */
+  it('첫 빈 슬롯을 찾고 이미 찬 자리는 건너뛴다', () => {
+    expect(firstFreeSlot([], 4)).toEqual({ day: 4, slot: 'morning' })
+
+    let plans = setPlan([], 4, 'morning', 'study')
+    plans = setPlan(plans, 4, 'afternoon', 'work')
+    expect(firstFreeSlot(plans, 4)).toEqual({ day: 5, slot: 'morning' })
   })
 
   it('지운 슬롯은 비어 있다', () => {

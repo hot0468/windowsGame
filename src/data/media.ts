@@ -90,8 +90,14 @@ export interface Film {
   showtimes: Showtime[]
 }
 
-/** 히어로 배너에 거는 영화. 홈에서 가장 큰 자리라 데이터가 정한다. */
-export const MAIN_FILM_ID = 'odyssey'
+/**
+ * 한 구역에 **한 주 동안** 걸리는 편수.
+ *
+ * ⚠️ 구역마다 풀이 5편이므로 4를 걸면 **매주 한 편이 갈린다**(규칙은 `systems/cinema.ts`).
+ * 풀과 같은 수로 올리면 편성이 영영 안 바뀌고, 너무 줄이면 지난주에 봐 둔 영화가
+ * 몇 주씩 사라진다.
+ */
+export const SHOWN_PER_SECTION = 4
 
 /** 아점의 글감 하나. */
 export interface WritingPrompt {

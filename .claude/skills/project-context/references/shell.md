@@ -9,7 +9,7 @@
 
 ## 바탕화면 아이콘 (격자 + 드래그)
 - ⚠️ **아이콘은 격자에 절대 배치되고 끌어서 옮길 수 있다.** 모델은 실제 윈도우의 "아이콘 자동 정렬 끔 + 격자에 맞춤 켬"이다. **구 `ICON_COLUMNS`·`.desktop-column` flex 열은 사라졌다.**
-- 기본 배치는 `src/data/desktopIcons.ts`의 **`DEFAULT_ICON_CELLS`**(+`DESKTOP_ICON_ORDER`)가 갖는다(배치는 콘텐츠이므로 `src/data/`). 규칙: **왼쪽 열 프로그램 / 오른쪽 열 폴더**
+- 기본 배치는 `src/data/desktopIcons.ts`의 **`DEFAULT_ICON_CELLS`**(+`DESKTOP_ICON_ORDER`)가 갖는다(배치는 콘텐츠이므로 `src/data/`). 규칙: **왼쪽 열 프로그램 / 오른쪽 열 "모아 보는 것"**. ⚠️ 오른쪽 열은 `kind === 'folder'`가 아니라 **`COLLECTION_KINDS`**(폴더 셋 + 도감 `excel`)가 정한다 — 새 도감류가 생기면 그 배열에만 kind를 더한다(`desktopGrid.test.ts`가 그 배열을 그대로 읽는다)
 - 계산은 순수 함수 `src/systems/desktopGrid.ts`: `gridSize`·`cellOrigin`·`snapToCell`·`clampCell`·`nearestFreeCell`·`resolveLayout`. ⚠️ **`resolveLayout`이 "저장된 칸이 지금 화면에 없다"를 흡수한다**(클램프 → 겹침 해소). 없으면 좁은 화면에서 아이콘이 화면 밖에 그려져 다시 잡을 수도 열 수도 없다. **사용자가 옮긴 칸이 남의 기본 칸을 이긴다**(2단계 배치)
 - 위치는 **`src/store/desktopIconStore.ts`**(persist, 키 `windows-game-desktop-icons`)에 남는다. ⚠️ **`gameStore`에 넣지 않는다** — `reset()`이 비워 새 판마다 제자리로 튄다. 아이콘 위치는 판이 아니라 사람의 취향이다(`browserStore`와 같은 판단). **옮긴 아이콘만** 저장한다(전부 저장하면 기본 배치 변경이 아무에게도 반영되지 않는다)
 

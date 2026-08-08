@@ -1,0 +1,181 @@
+/*
+ * 설정 앱.
+ *
+ * ⚠️ **OS 크롬과 같은 층이라 `--os-*` 토큰만 쓴다** — 사이트(`--nv-*`·`--ad-*` 등)와
+ * 달리 이 창은 "설치된 시스템 도구"로 읽혀야 한다. 새 색을 만들지 않는다.
+ * 판형은 윈도우 11 설정의 본문(제목 → 구역 머리 → 카드 줄)이되 **좌측 레일은 없다** —
+ * 카테고리가 하나뿐이라 레일을 두면 갈 데 없는 항목이 여섯 생긴다(SettingsApp 주석 참조).
+ * ⚠️ 간격 척도에 `--sp-7`은 없다(4/8 리듬).
+ */
+.set {
+  /* 반응형은 뷰포트가 아니라 컨테이너로 판정한다 — 창을 줄이면 접혀야 한다. */
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  /* 창 본문 패딩(--sp-5)이 이미 있으므로 여기서 더 주지 않는다. */
+  min-height: 0;
+  color: var(--os-text);
+}
+
+.set-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.set-title {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+}
+
+.set-sub {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+}
+
+/* ── 구역 ─────────────────────────────────────────────── */
+.set-sec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.set-sec-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.set-total {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.set-total b {
+  color: var(--os-text);
+}
+
+.set-total-note {
+  margin-left: var(--sp-3);
+  font-size: var(--fs-xs);
+}
+
+.set-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── 구독 한 줄 ───────────────────────────────────────── */
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-lg);
+  background: var(--os-surface);
+}
+
+/* 구독 중인 줄. ⚠️ 색만으로 알리지 않는다 — 안의 "구독 중" 글자가 함께 간다. */
+.set-row-on {
+  border-color: var(--os-accent-line);
+  background: var(--os-accent-wash);
+}
+
+.set-row-mark {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--os-fill);
+}
+
+.set-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.set-row-name {
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.set-row-state {
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.set-row-perks {
+  font-size: var(--fs-xs);
+  color: var(--os-text-3);
+}
+
+.set-row-act {
+  flex: 0 0 auto;
+}
+
+/* ── 버튼 ─────────────────────────────────────────────── */
+.set-btn {
+  min-height: 32px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-md);
+  background: var(--os-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--os-text);
+  cursor: pointer;
+  transition: background 150ms ease-out;
+}
+
+.set-btn:hover {
+  background: var(--os-fill);
+}
+
+/* 가입하러 가는 버튼. **이 화면의 주된 동작이 아니므로** 면을 채우지 않는다 —
+   여기는 관리하는 곳이고 가입은 상품 사이트의 몫이다(style `primary-action`). */
+.set-btn-go {
+  border-color: var(--os-accent);
+  color: var(--os-accent);
+  font-weight: 700;
+}
+
+.set-btn-go:hover {
+  background: var(--os-accent-wash);
+}
+
+.set-note {
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--os-text-2);
+}
+
+/* 좁은 창에서는 버튼이 아래로 내려간다. */
+@container (max-width: 460px) {
+  .set-row {
+    flex-wrap: wrap;
+  }
+
+  .set-row-act {
+    width: 100%;
+    padding-left: 56px;
+  }
+}

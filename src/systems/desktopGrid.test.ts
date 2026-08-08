@@ -9,7 +9,7 @@ import {
   snapToCell,
 } from './desktopGrid'
 import { DESKTOP_GRID, SHELL } from '../data/shell'
-import { DEFAULT_ICON_CELLS, DESKTOP_ICON_ORDER } from '../data/desktopIcons'
+import { COLLECTION_KINDS, DEFAULT_ICON_CELLS, DESKTOP_ICON_ORDER } from '../data/desktopIcons'
 import { DESKTOP_ITEMS } from '../data/desktopItems'
 import type { GridCell } from '../types/game'
 
@@ -130,13 +130,27 @@ describe('nearestFreeCell', () => {
 
 describe('resolveLayout', () => {
   it('저장된 것이 없으면 기본 배치 그대로다', () => {
-    const layout = resolveLayout(DESKTOP_ICON_ORDER, DEFAULT_ICON_CELLS, {}, SIZE)
+    /*
+     * ⚠️ **판 크기를 기본 배치에서 파생시킨다.** 예전에는 뷰포트에서 나온 `SIZE`를 썼는데,
+     * 프로그램 열이 늘어나 기본 배치가 그 판보다 길어지는 순간 `resolveLayout`이
+     * 마지막 아이콘을 다음 열로 끌어들여 이 단언이 깨졌다(설정 앱을 더할 때 실제로 터졌다).
+     * 여기서 확인하려는 것은 "판이 좁을 때 어떻게 되는가"가 아니라 **"저장된 것이 없으면
+     * 손대지 않는다"**이므로, 판은 기본 배치가 다 들어가는 크기여야 한다.
+     */
+    const cells = Object.values(DEFAULT_ICON_CELLS)
+    const fits = {
+      cols: Math.max(...cells.map((c) => c.col)) + 1,
+      rows: Math.max(...cells.map((c) => c.row)) + 1,
+    }
+    const layout = resolveLayout(DESKTOP_ICON_ORDER, DEFAULT_ICON_CELLS, {}, fits)
     expect(layout).toEqual(DEFAULT_ICON_CELLS)
   })
 
-  it('기본 배치는 설계자 규칙을 지킨다 — 왼쪽 열 프로그램 / 오른쪽 열 폴더', () => {
+  it('기본 배치는 설계자 규칙을 지킨다 — 왼쪽 열 프로그램 / 오른쪽 열 모아 보는 것', () => {
+    // ⚠️ 목록(`COLLECTION_KINDS`)을 여기 다시 적지 않는다 — 두 곳에 적으면 새 도감류가
+    //    생겼을 때 한쪽만 고치고도 통과한다.
     for (const item of DESKTOP_ITEMS) {
-      expect(DEFAULT_ICON_CELLS[item.id].col).toBe(item.kind === 'folder' ? 1 : 0)
+      expect(DEFAULT_ICON_CELLS[item.id].col).toBe(COLLECTION_KINDS.includes(item.kind) ? 1 : 0)
     }
   })
 

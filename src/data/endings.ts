@@ -92,6 +92,15 @@ export const ACHIEVEMENT_ENDINGS: Ending[] = [
  */
 export const CAREER_ENDINGS: Ending[] = [
   {
+    id: 'career-hanul-call',
+    careerId: 'hanul-call',
+    title: '하루 세 통',
+    icon: 'fluent-color:headphones-24', // ⚠️ fluent-color에 call/phone 계열 다색 글리프가 없다
+    text: '남의 요금이 왜 이렇게 나왔는지는 하루에 세 번씩 설명했다. 정작 자기 몫을 물어볼 번호는 어디에도 없었다.',
+    tier: 0,
+    isFailure: true,
+  },
+  {
     id: 'career-dasom-office',
     careerId: 'dasom-office',
     title: '성실한 사무직',

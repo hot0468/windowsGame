@@ -13,15 +13,21 @@ describe('바탕화면 항목', () => {
     for (const id of onDesktopIds) expect(exeIds).toContain(id)
   })
 
-  it('onDesktop에서 안 온 exe 항목은 반드시 조건부다', () => {
-    // ⚠️ 이 단언이 위 등호를 대신한다. 조건 없이 손으로 얹은 `exe` 항목은
-    // "누르면 잠금 사유만 적는 죽은 아이콘"이 되므로 만들면 안 된다.
-    const onDesktopIds = ACTIVITIES.filter((a) => a.onDesktop).map((a) => a.id)
-    const extra = DESKTOP_ITEMS.filter(
-      (i) => i.kind === 'exe' && !onDesktopIds.includes(i.activityId!),
-    )
-    for (const item of extra) {
-      expect(item.requiresItem, `${item.id}이 조건 없이 얹혀 있다`).toBeTruthy()
+  it('⚠️ 도구 활동은 빠짐없이 바탕화면 항목이 있다', () => {
+    /*
+     * 2026-08-08 그몽 재설계로 생긴 불변식이다. 도구 활동(`toolId`)은 **바탕화면 아이콘을
+     * 켜는 것 말고는 실행 통로가 없다** — 항목을 안 만들면 그 도구가 필요한 일감을
+     * 영영 못 채운다(받을 수는 있는데 끝낼 수가 없는 계약이 된다).
+     *
+     * ⚠️ 예전에 여기 있던 "손으로 얹은 exe 항목은 반드시 조건부다"는 폐기했다 —
+     * VS 코드가 **조건 없이 항상 실행 가능한** 도구가 되면서 더 이상 참이 아니다
+     * (그때의 근거였던 "죽은 아이콘"은 조건이 아니라 **실행 가능성**의 문제였다).
+     */
+    const toolActivities = ACTIVITIES.filter((a) => a.toolId)
+    expect(toolActivities.length).toBeGreaterThan(0)
+    for (const a of toolActivities) {
+      const item = DESKTOP_ITEMS.find((i) => i.kind === 'exe' && i.activityId === a.id)
+      expect(item, `${a.id}을 켤 바탕화면 항목이 없다`).toBeDefined()
     }
   })
 

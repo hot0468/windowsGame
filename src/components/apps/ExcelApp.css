@@ -1,0 +1,227 @@
+/*
+ * 도감(엑셀 판형). 레퍼런스는 실제 엑셀이고 **판형이 곧 스펙이다**:
+ * [수식 입력줄] / [열 머리 + 격자] / [시트 탭 + 상태 표시줄].
+ *
+ * ⚠️ **색은 이 파일 안에 가둔다**(`--xl-*`) — 사이트·사내 프로그램과 같은 규칙이다.
+ * 전역 팔레트를 앱 수만큼 부풀리면 색의 출처를 못 찾는다. 간격·타입·모서리만 전역 토큰.
+ *
+ * ⚠️ **회색(`--xl-off`)은 #6E6E6E보다 옅어질 수 없다** — 흰 판 위 5.1:1로 AA를 겨우 넘는
+ * 값이다. "안 겪은 것은 회색"이라는 지시를 지키면서 읽히지 않는 글자를 만들지 않는 선이다.
+ */
+.xls {
+  --xl-bg: #ffffff;
+  --xl-grid: #d4d4d4;
+  --xl-head: #f5f5f5;
+  --xl-head-line: #b1b1b1;
+  --xl-head-text: #3c3c3c; /* #f5f5f5 위 9.9:1 */
+  --xl-on: #1a1a1a; /* 겪은 것 — 검정 */
+  --xl-off: #6e6e6e; /* 안 겪은 것 — 회색. #fff 위 5.1:1 (AA) */
+  --xl-green: #217346; /* 엑셀 초록. #fff 위 5.8:1 */
+  --xl-sel: #f0f7f3; /* 고른 행. 회색 글자와도 4.6:1이 남는 옅기다 */
+  --xl-bar: #f3f3f3;
+
+  display: flex;
+  flex-direction: column;
+  /* ⚠️ 탐색기·증기와 **같은 높이 식**이다. 높이를 안 묶으면 창 본문이 통째로 늘어나
+     엔딩 시트(12줄)에서 **시트 탭과 상태 표시줄이 화면 밖으로 밀려난다**(실측으로 잡았다) —
+     스크롤은 격자만 해야 하고 아래 띠는 늘 붙어 있어야 한다. */
+  height: min(560px, calc(var(--vh, 100vh) - 160px));
+  min-height: 0;
+  background: var(--xl-bg);
+  color: var(--xl-on);
+  font-size: var(--fs-sm);
+}
+
+/* ── 수식 입력줄 ──────────────────────────────────────── */
+.xls-formula {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--xl-grid);
+  background: var(--xl-bg);
+}
+
+.xls-namebox {
+  flex: 0 0 auto;
+  min-width: 56px;
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--xl-head-line);
+  border-radius: var(--r-sm);
+  background: var(--xl-head);
+  color: var(--xl-head-text);
+  font-size: var(--fs-xs);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.xls-fx {
+  flex: 0 0 auto;
+  padding-right: var(--sp-2);
+  border-right: 1px solid var(--xl-grid);
+  color: var(--xl-head-text);
+  font-style: italic;
+  font-size: var(--fs-xs);
+}
+
+/* 한 줄로 자르지 않는다 — 엔딩 본문이 여기 들어오므로 잘리면 읽을 방법이 없다
+   (ux `truncation-strategy`: 자르기보다 줄바꿈). */
+.xls-formula-text {
+  margin: 0;
+  min-width: 0;
+  line-height: 1.5;
+  color: var(--xl-on);
+}
+
+/* ── 격자 ────────────────────────────────────────────── */
+.xls-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.xls-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.xls-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.xls-grid th,
+.xls-grid td {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--xl-grid);
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* 열 머리·행 번호는 스크롤해도 자리를 지킨다(엑셀의 틀 고정). */
+.xls-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--xl-head);
+  border-color: var(--xl-head-line);
+  color: var(--xl-head-text);
+  font-weight: 600;
+}
+
+/* A·B·C 줄은 격자의 생김새일 뿐이라 더 작고 더 옅다. */
+.xls-alpha th {
+  top: 0;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  text-align: center;
+}
+
+.xls-grid thead tr:last-child th {
+  top: 20px;
+}
+
+.xls-corner,
+.xls-rownum {
+  width: 34px;
+  background: var(--xl-head);
+  border-color: var(--xl-head-line);
+  color: var(--xl-head-text);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  text-align: center;
+}
+
+.xls-row {
+  cursor: pointer;
+  transition: background 150ms ease-out;
+}
+
+.xls-row:hover td {
+  background: var(--xl-sel);
+}
+
+/* ⚠️ 이 두 줄이 설계자 지시의 본체다 — 겪은 것은 검정, 안 겪은 것은 회색.
+   색만으로 알리지 않도록 마지막 열이 '경험함/미경험'을 글자로 적는다. */
+.xls-on td {
+  color: var(--xl-on);
+}
+
+.xls-off td {
+  color: var(--xl-off);
+}
+
+/* 겪은 항목의 이름만 굵게. 표를 훑을 때 검정/회색보다 먼저 눈에 들어온다. */
+.xls-on td:first-of-type {
+  font-weight: 600;
+}
+
+/* 고른 행. 엑셀의 선택 테두리를 왼쪽 굵은 선 하나로 줄였다(칸마다 두르면 격자가 깨진다). */
+.xls-picked td {
+  background: var(--xl-sel);
+}
+
+.xls-picked th.xls-rownum {
+  box-shadow: inset 3px 0 0 var(--xl-green);
+  color: var(--xl-green);
+  font-weight: 700;
+}
+
+.xls-row:focus-visible {
+  outline: 2px solid var(--xl-green);
+  outline-offset: -2px;
+}
+
+/* ── 시트 탭 + 상태 표시줄 ────────────────────────────── */
+.xls-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex: 0 0 auto;
+  padding: 0 var(--sp-3);
+  border-top: 1px solid var(--xl-grid);
+  background: var(--xl-bar);
+}
+
+.xls-tabs {
+  display: flex;
+  align-items: stretch;
+}
+
+.xls-tab {
+  padding: var(--sp-2) var(--sp-4);
+  border: none;
+  border-top: 2px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--xl-head-text);
+  cursor: pointer;
+}
+
+.xls-tab:hover {
+  background: #e9e9e9;
+}
+
+/* 현재 시트. 색만으로 알리지 않도록 배경·굵기·윗줄을 함께 쓴다(ux `nav-state-active`). */
+.xls-tab-on {
+  border-top-color: var(--xl-green);
+  background: var(--xl-bg);
+  color: var(--xl-green);
+  font-weight: 700;
+}
+
+.xls-status {
+  margin: 0;
+  color: var(--xl-head-text);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}

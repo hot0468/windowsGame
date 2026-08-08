@@ -80,5 +80,5 @@ description: 이 육성 게임 프로젝트의 압축 컨텍스트 — 확정된
 - ⚠️ **관계는 한 방향으로만 적고 반대쪽은 파생시킨다**(목록을 두 번 적으면 한쪽만 고친다)
 
 ## 검증 도구 (CDP 실측)
-`node scripts/measure.mjs --help`. 반투명·그라데이션 위 글자 대비는 **계산이 아니라 합성 픽셀**로만 판정한다 — 스크립트가 헤드리스 크롬을 몰아 로그인까지 진행하고, 캡처한 PNG를 페이지 안 canvas로 되돌려 잰다. **의존성 0**(Node 내장 `WebSocket`+`fetch`. `ws`·puppeteer 설치 금지).
+`node scripts/measure.mjs --help`. 반투명·그라데이션 위 글자 대비는 **계산이 아니라 합성 픽셀**로만 판정한다 — 스크립트가 헤드리스 크롬을 몰아 로그인까지 진행하고, 캡처한 PNG를 페이지 안 canvas로 되돌려 잰다. **의존성 0**(Node 내장 `WebSocket`+`fetch`. `ws`·puppeteer 설치 금지). ⚠️ **바탕화면 아이콘은 `--dblclick`이라야 열린다**(`--click`은 `el.click()`이라 선택만 된다). 셀렉터는 텍스트로 못 고르므로 `--contrast .desktop-icon`으로 순서를 먼저 확인하고 `:nth-child(n)`을 쓴다.
 ⚠️ **실측은 새로 만든 화면에만 쓴다.** 기존 화면 수정·수치 조정은 테스트+빌드로 끝낸다(CLAUDE.md 검증 규칙).

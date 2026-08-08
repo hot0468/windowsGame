@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { findActivity } from '../../../data/activities'
 import {
   SHORTS,
@@ -10,6 +10,8 @@ import {
 } from '../../../data/videos'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
+import { CHANNEL_NAME_MAX, channelOf } from '../../../systems/channel'
+import type { ChannelState } from '../../../types/game'
 import type { Site } from '../../../data/sites'
 import type { StreamTopic, Video } from '../../../data/videos'
 import { ActivityConfirm } from '../ActivityConfirm'
@@ -31,6 +33,11 @@ import './TubeSite.css'
  * 트위터 팔로워처럼 저장된 상태로 만들지 않았고 **정산도 붙이지 않았다** —
  * 방송은 `stream` 활동이 회당 돈을 직접 주므로, 구독자에까지 수익을 붙이면
  * 한 행동이 두 번 벌게 된다.
+ *
+ * ⚠️ **채널 이름만은 저장한다**(2026-08-08, `GameState.channel`). 파생시킬 수 없는
+ * 유일한 값이라서다 — 플레이어가 지은 것이고, **트위터에서 그 이름을 검색하면 시청자
+ * 반응이 뜬다**(`systems/channel.ts`의 `streamReviews`). 이름을 안 지었으면 플레이어
+ * 이름이 곧 채널 이름이다(빈 화면을 만들지 않는다).
  */
 
 const RAIL = [
@@ -55,8 +62,14 @@ export function TubeSite({ site }: { site: Site }) {
   /** 방금 방송을 켰는가. 화면이 그대로라 무슨 일이 있었는지 글자로 남긴다. */
   const [streamed, setStreamed] = useState<string | null>(null)
 
-  const playerName = useGameStore((s) => s.state?.playerName ?? '나')
-  const reputation = useGameStore((s) => s.state?.stats.reputation ?? 0)
+  /* ⚠️ 상태 하나만 고른다 — `channelOf`는 매번 새 객체를 만들므로 셀렉터 안에서 부르면
+     zustand가 매 렌더 다른 값으로 보고 다시 그린다(파생은 셀렉터 밖에서 한다). */
+  const state = useGameStore((s) => s.state)
+  const renameChannel = useGameStore((s) => s.renameChannel)
+  const startStream = useGameStore((s) => s.startStream)
+  const playerName = state?.playerName ?? '나'
+  const reputation = state?.stats.reputation ?? 0
+  const channel = state ? channelOf(state) : { name: playerName, streams: 0 }
   const streamActivity = findActivity(site.activityId ?? '')
 
   const q = query.trim().toLowerCase()
@@ -160,10 +173,11 @@ export function TubeSite({ site }: { site: Site }) {
         <main className="tube-main">
           {rail === 'studio' ? (
             <Studio
-              playerName={playerName}
+              channel={channel}
               reputation={reputation}
               streamed={streamed}
               onPick={setTopic}
+              onRename={renameChannel}
             />
           ) : playing ? (
             <Watch video={playing} onPick={setPlaying} onBack={() => setPlaying(null)} />
@@ -220,7 +234,15 @@ export function TubeSite({ site }: { site: Site }) {
           kicker="너튜브"
           title={`「${topic.label}」으로 방송을 켜시겠습니까?`}
           actionLabel="방송 시작"
-          notes={[{ label: '방송 주제', value: topic.desc }]}
+          notes={[
+            { label: '방송 주제', value: topic.desc },
+            /* 채널 이름은 활동 증감에 안 잡히지만 **이 방송이 누구 이름으로 나가는지**는
+               켜기 전에 알아야 한다(수강료·응시료를 `notes`로 적는 것과 같은 규칙). */
+            { label: '채널 이름', value: channel.name },
+          ]}
+          /* ⚠️ 기본 동작(`doActivity`) 대신 `startStream`이다 — 켠 횟수·주제를 남겨야
+             트위터 검색이 보여 줄 시청자 반응이 생긴다(`postArtwork`와 같은 모양). */
+          onCommit={() => startStream(topic)}
           onCommitted={() => setStreamed(topic.label)}
           onClose={() => setTopic(null)}
         />
@@ -230,37 +252,84 @@ export function TubeSite({ site }: { site: Site }) {
 }
 
 /**
- * 내 채널. 채널 머리 + 방송 주제 고르기.
+ * 내 채널. 채널 머리 + 이름 짓기 + 방송 주제 고르기.
  *
  * ⚠️ **구독자 수는 평판 파생이다**(읽기 전용) — 무엇에서 나온 숫자인지 함께 적는다.
  * 저장된 상태로 만들지 않은 이유는 이 파일 상단 주석에 있다.
+ *
+ * ⚠️ **이름 짓기는 턴을 안 쓴다**(타이핑은 행동이 아니다). 그래서 확인창을 거치지 않고
+ * 저장 버튼 하나로 끝난다 — 1턴을 쓰는 방송 시작과 무게가 다르다.
  */
 function Studio({
-  playerName,
+  channel,
   reputation,
   streamed,
   onPick,
+  onRename,
 }: {
-  playerName: string
+  channel: ChannelState
   reputation: number
   streamed: string | null
   onPick: (t: StreamTopic) => void
+  onRename: (name: string) => void
 }) {
   const subs = subscribersFrom(reputation)
+  const [draft, setDraft] = useState(channel.name)
+  const nameId = useId()
+  const trimmed = draft.trim()
+
   return (
     <section className="tube-studio" aria-label="내 채널">
       <header className="tube-studio-head">
         <span className="tube-avatar tube-avatar-studio" aria-hidden="true">
-          {playerName.slice(0, 2)}
+          {channel.name.slice(0, 2)}
         </span>
         <span className="tube-studio-id">
-          <h2 className="tube-studio-name">{playerName}</h2>
+          <h2 className="tube-studio-name">{channel.name}</h2>
           <p className="tube-studio-meta">
             구독자 {subs.toLocaleString('ko-KR')}명
             <span className="tube-studio-note">평판 {reputation}에서 환산</span>
+            {/* 켠 횟수는 파생이 아니라 사실이다 — 켠 적이 있어야 반응이 생긴다. */}
+            {channel.streams > 0 && (
+              <span className="tube-studio-note">방송 {channel.streams}회</span>
+            )}
           </p>
         </span>
       </header>
+
+      {/*
+        채널 이름 짓기. **저장 버튼은 실제로 바뀔 때만 눌린다**(같은 이름·빈 이름은 막는다)
+        — 눌러도 아무 일 없는 버튼은 이 프로젝트에서 금지다.
+      */}
+      <form
+        className="tube-rename"
+        onSubmit={(e) => {
+          e.preventDefault()
+          onRename(draft)
+        }}
+      >
+        <label className="tube-rename-label" htmlFor={nameId}>
+          채널 이름
+        </label>
+        <input
+          id={nameId}
+          className="tube-rename-input"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          maxLength={CHANNEL_NAME_MAX}
+          autoComplete="off"
+        />
+        <button
+          type="submit"
+          className="tube-rename-save"
+          disabled={!trimmed || trimmed === channel.name}
+        >
+          저장
+        </button>
+      </form>
+      <p className="tube-rename-note">
+        이 이름으로 방송이 나갑니다. 트위터에서 이 이름을 검색하면 시청자 반응을 볼 수 있습니다.
+      </p>
 
       {streamed && (
         <p className="tube-studio-receipt" role="status">

@@ -1,0 +1,324 @@
+/*
+ * 클립스튜디오 — 고르는 창.
+ *
+ * 판형(위 → 아래): 헤더 → [연재 제의 / 이번 주 마감] → 개인 작업(단일 · 작품집 목록) → 푸터
+ *
+ * ⚠️ **새 팔레트를 만들지 않았다.** 이것은 사이트가 아니라 **OS 위의 프로그램 창**이고
+ * 증기·설정과 같은 부류라 `--os-*`를 그대로 쓴다 — 사이트마다 색을 가두는 규칙의 반대편이다
+ * (색을 새로 만들면 "브라우저 안"으로 잘못 읽힌다).
+ * 강조 하나만 그리기의 색으로 두는데, 그것도 새 값이 아니라 **바탕화면 클립스튜디오
+ * 아이콘과 같은 계열**(`--cs-accent`)이고 이 파일 안에 갇혀 있다.
+ */
+
+.cs {
+  /* 그리기의 색. ⚠️ 이 파일 밖으로 내보내지 말 것 — 전역 팔레트를 늘리지 않는다.
+     #1d4ed8 대비: 흰 글자 위 8.6:1 / --os-surface(#fdfdfd) 위 7.0:1. */
+  --cs-accent: #1d4ed8;
+  --cs-accent-wash: rgba(29, 78, 216, 0.08);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-height: min(560px, calc(100vh - 140px));
+}
+
+/* ── 헤더 ────────────────────────────────────────────────── */
+.cs-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.cs-logo {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+.cs-lede {
+  margin: 2px 0 0;
+  font-size: var(--fs-md);
+  color: var(--os-text-3);
+}
+
+/* ── 연재 제의 · 마감 ────────────────────────────────────── */
+.cs-offer,
+.cs-deadline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  align-items: flex-start;
+  padding: var(--sp-4);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-lg);
+  background: var(--cs-accent-wash);
+}
+
+.cs-offer-kicker {
+  margin: 0;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--cs-accent);
+}
+
+.cs-offer-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+.cs-offer-terms,
+.cs-note {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--os-text-2);
+}
+
+.cs-note {
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+}
+
+.cs-offer-btns,
+.cs-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.cs-confirm {
+  width: 100%;
+  padding: var(--sp-3);
+  border: 1px solid var(--os-warn-border);
+  border-radius: var(--r-md);
+  background: var(--os-warn-bg);
+}
+
+.cs-confirm-text {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--os-warn-text);
+}
+
+/* 진행 막대. 색만으로 알리지 않으므로 옆의 문장이 같은 사실을 말한다. */
+.cs-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--os-fill);
+  overflow: hidden;
+}
+
+.cs-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--cs-accent);
+  transition: width 200ms ease-out;
+}
+
+.cs-due {
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--os-text-2);
+}
+
+/* 급한 마감. ⚠️ 색은 거들기만 한다 — 문장 자체가 "오늘까지"라고 말한다. */
+.cs-due-soon {
+  color: var(--os-danger);
+  font-weight: 600;
+}
+
+/* ── 개인 작업 ───────────────────────────────────────────── */
+.cs-sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.cs-sec-head {
+  margin: 0;
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--os-border);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+.cs-single {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-4);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-lg);
+  background: var(--os-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cs-single:hover:not(:disabled) {
+  border-color: var(--cs-accent);
+  background: var(--cs-accent-wash);
+}
+
+.cs-single:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.cs-single-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cs-single-title {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+.cs-single-desc {
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--os-text-3);
+}
+
+.cs-projects-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.cs-sub {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--os-text-2);
+}
+
+.cs-empty {
+  margin: 0;
+  padding: var(--sp-4);
+  border: 1px dashed var(--os-border-strong);
+  border-radius: var(--r-md);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--os-text-3);
+}
+
+.cs-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.cs-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-md);
+  background: var(--os-surface);
+}
+
+.cs-card-mark {
+  flex: 0 0 auto;
+  display: flex;
+}
+
+.cs-card-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cs-card-title {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+.cs-card-meta {
+  font-size: var(--fs-md);
+  color: var(--os-text-2);
+}
+
+.cs-card-note {
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+}
+
+/* ── 버튼 ────────────────────────────────────────────────── */
+.cs-btn,
+.cs-btn-ghost {
+  flex: 0 0 auto;
+  /* ux `touch-target-size`: 실제 클릭 대상은 36px 아래로 내리지 않는다. */
+  min-height: 36px;
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-sm);
+  font: inherit;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cs-btn {
+  border: 0;
+  background: var(--cs-accent);
+  color: #fff;
+}
+
+.cs-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.cs-btn:disabled {
+  cursor: default;
+  background: var(--os-chrome-alt);
+  color: var(--os-text-3);
+}
+
+.cs-btn-ghost {
+  border: 1px solid var(--os-border-strong);
+  background: transparent;
+  color: var(--os-text-2);
+}
+
+.cs-btn-ghost:hover {
+  border-color: var(--os-text-3);
+  color: var(--os-text);
+}
+
+/* 되돌릴 수 없는 쪽. 색과 함께 글자("거절합니다")가 뜻을 진다. */
+.cs-btn-danger {
+  border-color: var(--os-danger);
+  color: var(--os-danger);
+}
+
+.cs-foot {
+  margin-top: auto;
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--os-border);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: var(--os-text-3);
+}
+
+.cs-foot p {
+  margin: 0;
+}

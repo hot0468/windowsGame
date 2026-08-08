@@ -8,6 +8,7 @@ import { canRun } from '../../systems/turn'
 import { STAT_NAMES } from '../../types/game'
 import type { Activity } from '../../types/game'
 import { blockReasons, previewActivity, previewWarnings } from './activityPreview'
+import { openToolWindow } from './ToolRun'
 import './ActivityConfirm.css'
 
 /** 경고 글리프. ExeApp과 같은 아이콘을 쓴다(같은 뜻은 같은 그림이어야 한다). */
@@ -44,6 +45,7 @@ export function ActivityConfirm({
   actionLabel = '실행',
   notes = [],
   blocked,
+  costNote,
   onCommit,
   onCommitted,
 }: {
@@ -62,6 +64,12 @@ export function ActivityConfirm({
   notes?: { label: string; value: string }[]
   /** 사이트만 아는 잠금 사유. 있으면 `canRun`과 무관하게 막는다. */
   blocked?: string
+  /**
+   * 맨 아래 대가 한 줄을 갈아 끼운다.
+   * ⚠️ **`onCommit`이 턴을 안 쓰는 확정일 때만 쓴다**(노24 예매) — 기본 문장은
+   * "1턴을 소모합니다"이고, 그 자리가 통로마다 달라 보이면 플레이어가 다시 배워야 한다.
+   */
+  costNote?: string
   /** 기본 동작(`doActivity`)을 대신할 확정 처리(수강 신청·원서 접수·정규직 지원). */
   onCommit?: () => void
   /** 확정 직후 사이트가 남길 영수증 문구용. `onClose`는 별도로 항상 불린다. */
@@ -177,7 +185,13 @@ export function ActivityConfirm({
               className="acd-run"
               onClick={() => {
                 if (onCommit) onCommit()
-                else doActivity(activity)
+                else {
+                  /* ⚠️ 도구 앱은 활동 창과 **같은 규칙**을 탄다 — 여기서 빠뜨리면
+                     바로 가기로 켤 때만 프로그램이 안 뜬다(실행 통로가 갈리는 자리다).
+                     창을 여는 것이 `doActivity`보다 먼저인 이유도 그쪽과 같다. */
+                  if (activity.toolId) openToolWindow(state, activity)
+                  doActivity(activity)
+                }
                 onCommitted?.()
                 onClose()
               }}
@@ -189,7 +203,8 @@ export function ActivityConfirm({
 
         {allowed && (
           <p className="acd-cost">
-            <AppIcon name={UI_ICONS.turnCost} size={13} />1턴을 소모합니다
+            <AppIcon name={UI_ICONS.turnCost} size={13} />
+            {costNote ?? '1턴을 소모합니다'}
           </p>
         )}
 

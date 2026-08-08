@@ -3,6 +3,8 @@ import { MAILBOX } from '../../data/messages'
 import { useShell } from '../../hooks/useShell'
 import { useGameStore } from '../../store/gameStore'
 import { examMessages } from '../../systems/certification'
+import { contestMessages } from '../../systems/contests'
+import { webtoonMessages } from '../../systems/webtoon'
 import { noticeMessages } from '../../systems/employment'
 import { selectChannel } from '../../systems/messages'
 import type { TimedMessage } from '../../systems/messages'
@@ -53,7 +55,8 @@ export function MailApp() {
    *  ① 편성표(`selectChannel`) — (day, slot)만으로 언제든 다시 계산되는 대본.
    *  ② 정규직 소식(`noticeMessages`) — 플레이어가 언제 어디에 지원했는지에 달려 있어
    *     다시 계산할 수 없다. 그래서 그쪽만 세이브에 사실이 남는다.
-   *  ③ 자격시험 발표(`examMessages`) — ②와 같은 이유로 세이브에 사실이 남는다.
+   *  ③ 자격시험 발표(`examMessages`)·**공모전 결과**(`contestMessages`)·**웹툰 연재 제의**
+   *     (`webtoonMessages`) — ②와 같은 이유로 세이브에 사실이 남는다.
    *     ⚠️ **새 창구를 만들지 않는다** — 채널을 사서함으로 맞춰 이 목록에 그냥 합류한다.
    * 합칠 때는 **턴 번호**로 정렬한다 — 시각 문자열("오전 9:08")은 며칠에도 같은 값이라
    * 정렬 키가 되지 못한다. 최신이 위로 오게 내림차순이다.
@@ -62,6 +65,8 @@ export function MailApp() {
     ...selectChannel(MAILBOX.id, state.day, state.slot),
     ...noticeMessages(state),
     ...examMessages(state),
+    ...contestMessages(state),
+    ...webtoonMessages(state),
   ].sort((a, b) => b.turn - a.turn)
   const mails = all.filter((m) => (folder === 'ad' ? isAd(m) : !isAd(m)))
   /*

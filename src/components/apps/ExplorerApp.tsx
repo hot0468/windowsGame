@@ -3,13 +3,17 @@ import { dateOf } from '../../data/calendar'
 import { desktopEntries } from '../../data/desktopItems'
 import { EVENTS } from '../../data/events'
 import { fakeSize, findItem } from '../../data/items'
+import { FILMS } from '../../data/media'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
 import { inventoryOf } from '../../systems/delivery'
 import { artFileName, artGrade, artworksOf } from '../../systems/artwork'
+import { postcardsOf } from '../../systems/cinema'
+import { findProject, openProjects, pagesOf } from '../../systems/projects'
 import { RANK_ORDER } from '../../systems/rank'
-import type { FolderId, IconName } from '../../types/game'
+import { folderProjectId, projectFolderId } from '../../types/game'
+import type { Artwork, FolderId, GameState, IconName } from '../../types/game'
 import { ContextMenu } from '../ContextMenu'
 import './ExplorerApp.css'
 
@@ -43,7 +47,11 @@ interface FolderMeta {
   empty: string
 }
 
-const FOLDERS: Record<FolderId, FolderMeta> = {
+/** 고정 폴더 셋. ⚠️ **프로젝트 폴더는 여기 없다** — 개수가 정해져 있지 않아 데이터가 된다. */
+const FIXED_FOLDERS = ['inventory', 'codex', 'gallery', 'postcard'] as const
+type FixedFolderId = (typeof FIXED_FOLDERS)[number]
+
+const FOLDERS: Record<FixedFolderId, FolderMeta> = {
   inventory: {
     label: '아이템 인벤토리',
     icon: 'fluent-color:document-folder-24',
@@ -59,6 +67,11 @@ const FOLDERS: Record<FolderId, FolderMeta> = {
     icon: 'fluent-color:design-ideas-24',
     empty: '아직 그린 그림이 없습니다. 클립스튜디오를 켜면 한 장씩 여기에 쌓입니다.',
   },
+  postcard: {
+    label: '포스트카드',
+    icon: 'fluent-color:mail-multiple-24',
+    empty: '아직 받은 포스트카드가 없습니다. 인터넷 → 시집이에서 영화를 보면 한 장씩 쌓입니다.',
+  },
 }
 
 /**
@@ -67,6 +80,26 @@ const FOLDERS: Record<FolderId, FolderMeta> = {
  * 그래야 마지막 칸만 진하게(현재 위치) 그릴 수 있다.
  */
 const crumbsOf = (meta: FolderMeta) => ['내 PC', '바탕 화면', meta.label]
+
+/**
+ * 그 폴더의 이름·아이콘·빈 안내.
+ *
+ * ⚠️ **작품집 폴더는 고정 목록에 없다**(플레이어가 원하는 만큼 만든다) — 그래서
+ * `FOLDERS` 표를 색인하는 대신 이 함수 하나가 둘을 함께 판정한다. 화면 여러 곳이
+ * 각자 `startsWith('project:')`를 적으면 한 곳이 반드시 낡는다.
+ */
+function metaOf(folderId: FolderId, state: GameState | null): FolderMeta {
+  const projectId = folderProjectId(folderId)
+  if (projectId) {
+    const project = state ? findProject(state, projectId) : undefined
+    return {
+      label: project?.name ?? '작품집',
+      icon: 'fluent-color:document-folder-24',
+      empty: '아직 이 작품집에 넣은 장이 없습니다. 클립스튜디오에서 이 작품집을 골라 그리면 한 장씩 쌓입니다.',
+    }
+  }
+  return FOLDERS[folderId as FixedFolderId]
+}
 
 /** 목록에 그릴 한 줄. 아이템과 사건을 같은 모양으로 눕힌다. */
 interface Entry {
@@ -95,6 +128,28 @@ function bytesOf(size: string): number {
   return size.includes('MB') ? n * 1024 * 1024 : n * 1024
 }
 
+/**
+ * 그림 한 장의 파일 줄. **갤러리와 작품집 폴더가 함께 쓴다** — 같은 그림을 가리키는 다른
+ * 자루일 뿐이라 파일 이름·크기·설명이 갈리면 "같은 그림인데 폴더마다 다른" 판이 된다.
+ */
+function artworkRow(work: Artwork): Entry {
+  const grade = artGrade(work)
+  return {
+    id: work.id,
+    name: artFileName(work),
+    ext: '.png',
+    icon: 'fluent-color:image-24',
+    // 크기도 등급에서 파생시킨다 — 잘 그린 그림일수록 무겁다(무작위 금지).
+    size: `${420 + RANK_ORDER.indexOf(grade) * 260} KB`,
+    bytes: (420 + RANK_ORDER.indexOf(grade) * 260) * 1024,
+    day: work.day,
+    desc: `${work.day}일차 ${work.slot === 'morning' ? '오전' : '오후'}에 ${
+      work.tool === 'lcd' ? '액정' : '팬'
+    } 타블렛으로 그렸다. 그릴 때 예술 ${work.art} · 창의력 ${work.creativity} → ${grade}등급.`,
+    owned: true,
+  }
+}
+
 function entriesOf(folder: FolderId, state: ReturnType<typeof useGameStore.getState>['state']): Entry[] {
   if (!state) return []
 
@@ -121,6 +176,43 @@ function entriesOf(folder: FolderId, state: ReturnType<typeof useGameStore.getSt
     })
   }
 
+  /*
+   * 작품집 폴더. ⚠️ **갤러리와 같은 줄 모양을 쓴다** — 같은 그림을 가리키는 다른 자루일
+   * 뿐이라 파일 이름도 등급 표시도 갈리면 안 된다(`artFileName` 하나가 정한다).
+   */
+  const projectId = folderProjectId(folder)
+  if (projectId && state) {
+    const project = findProject(state, projectId)
+    return project ? pagesOf(state, project).map((work) => artworkRow(work)) : []
+  }
+
+  /*
+   * 포스트카드. 갤러리·인벤토리와 같은 부류다(**받은 것만** 보여 준다).
+   * ⚠️ **영화의 사실을 복사해 두지 않는다** — 제목·태그라인은 `FILMS`가 단일 출처이고
+   * 여기서는 id로 되찾는다(`Postcard.filmId`). 없는 영화를 가리키는 장은 조용히 건너뛴다.
+   */
+  if (folder === 'postcard') {
+    return postcardsOf(state).flatMap((card) => {
+      const film = FILMS.find((f) => f.id === card.filmId)
+      if (!film) return []
+      // 크기도 상영 시간에서 파생시킨다 — 긴 영화일수록 무겁다(무작위 금지).
+      const size = `${film.runtime * 8} KB`
+      return [
+        {
+          id: card.filmId,
+          name: `${film.title} 포스트카드`,
+          ext: '.png',
+          icon: 'fluent-color:image-24',
+          size,
+          bytes: bytesOf(size),
+          day: card.day,
+          desc: `${card.day}일차에 시집이에서 관람하고 받았다. ${film.tagline}`,
+          owned: true,
+        },
+      ]
+    })
+  }
+
   if (folder === 'gallery') {
     /*
      * 갤러리는 인벤토리와 같은 부류다 — **그린 것만** 보여 준다(안 그린 그림은 없다).
@@ -131,23 +223,7 @@ function entriesOf(folder: FolderId, state: ReturnType<typeof useGameStore.getSt
      * (`습작_A`를 'A'로 검색하면 A등급만 걸린다).
      * ⚠️ 등급은 저장값이 아니라 계산값이다 — 규칙은 `systems/artwork.ts` 하나가 갖는다.
      */
-    return artworksOf(state).map((work) => {
-      const grade = artGrade(work)
-      return {
-        id: work.id,
-        name: artFileName(work),
-        ext: '.png',
-        icon: 'fluent-color:image-24',
-        // 크기도 등급에서 파생시킨다 — 잘 그린 그림일수록 무겁다(무작위 금지).
-        size: `${420 + RANK_ORDER.indexOf(grade) * 260} KB`,
-        bytes: (420 + RANK_ORDER.indexOf(grade) * 260) * 1024,
-        day: work.day,
-        desc: `${work.day}일차 ${work.slot === 'morning' ? '오전' : '오후'}에 ${
-          work.tool === 'lcd' ? '액정' : '팬'
-        } 타블렛으로 그렸다. 그릴 때 예술 ${work.art} · 창의력 ${work.creativity} → ${grade}등급.`,
-        owned: true,
-      }
-    })
+    return artworksOf(state).map(artworkRow)
   }
 
   // 도감은 **안 겪은 것도 자리를 남긴다** — 빈 칸이 있어야 채울 마음이 생긴다.
@@ -219,12 +295,25 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
     const visible = desktopEntries([], owned).flatMap((e) =>
       !e.shortcut && e.item.folderId ? [e.item.folderId] : [],
     )
-    return (Object.keys(FOLDERS) as FolderId[]).filter(
-      (id) => id === folderId || visible.includes(id),
+    /* ⚠️ **포스트카드 폴더는 바탕화면에 아이콘이 없다** — 받은 장이 있을 때만 트리에
+       올린다(없는 폴더는 적지 않는다는 이 파일의 규칙. 갤러리가 타블렛을 사야 생기는 것과
+       같은 자리이고, 다른 점은 조건이 물건이 아니라 상태라는 것뿐이다). */
+    const hasCards = (state?.postcards ?? []).length > 0
+    const fixed = (Object.keys(FOLDERS) as FolderId[]).filter(
+      (id) =>
+        id === folderId || (id === 'postcard' ? hasCards : visible.includes(id)),
     )
-  }, [state?.inventory, folderId])
+    /*
+     * ⚠️ **작업 중인 작품집만 트리에 올린다.** 공모전에 냈거나 회지로 판 권(`usedFor`)은
+     * 목록에서 빠지는데, **지금 열려 있는 폴더면 남긴다** — 자기 자리는 트리에 있어야 한다
+     * (갤러리를 그렇게 다루는 것과 같은 규칙).
+     */
+    const projects = state ? openProjects(state).map((p) => projectFolderId(p.id)) : []
+    const here = folderProjectId(folderId) && !projects.includes(folderId) ? [folderId] : []
+    return [...fixed, ...projects, ...here]
+  }, [state, folderId])
 
-  const meta = FOLDERS[folderId]
+  const meta = metaOf(folderId, state)
   const all = entriesOf(folderId, state)
   const q = query.trim()
   const entries = all
@@ -317,8 +406,8 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
                 open({
                   id: `folder-${id}`,
                   kind: 'folder',
-                  title: FOLDERS[id].label,
-                  icon: FOLDERS[id].icon,
+                  title: metaOf(id, state).label,
+                  icon: metaOf(id, state).icon,
                   folderId: id,
                   x: 200,
                   y: 100,
@@ -326,8 +415,8 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
                 })
               }}
             >
-              <AppIcon name={FOLDERS[id].icon} size={16} />
-              {FOLDERS[id].label}
+              <AppIcon name={metaOf(id, state).icon} size={16} />
+              {metaOf(id, state).label}
             </button>
           ))}
         </nav>

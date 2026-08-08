@@ -600,6 +600,66 @@
   font-size: var(--fs-xs);
 }
 
+/* 채널 이름 짓기. 검색창과 같은 부품 언어(알약 입력 + 알약 버튼)를 쓴다 —
+   같은 사이트 안에서 입력이 두 가지 모양을 갖지 않게. */
+.tube-rename {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-top: var(--sp-4);
+}
+
+.tube-rename-label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--tb-text);
+}
+
+.tube-rename-input {
+  flex: 1 1 180px;
+  min-width: 0;
+  max-width: 320px;
+  height: 36px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--tb-line);
+  border-radius: 999px;
+  background: var(--tb-bg);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--tb-text);
+}
+
+.tube-rename-save {
+  height: 36px;
+  padding: 0 var(--sp-4);
+  border: none;
+  border-radius: 999px;
+  background: var(--tb-chip-on);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.tube-rename-save:hover:not(:disabled) {
+  background: var(--tb-text-2);
+}
+
+/* 못 누르는 이유는 옆의 입력이 말한다(이름이 그대로거나 비었다). */
+.tube-rename-save:disabled {
+  background: var(--tb-chip);
+  color: var(--tb-text-2);
+  cursor: default;
+}
+
+.tube-rename-note {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--tb-text-2);
+}
+
 .tube-studio-receipt {
   margin: var(--sp-4) 0 0;
   padding: var(--sp-3) var(--sp-4);

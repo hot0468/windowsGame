@@ -72,7 +72,7 @@ describe('⚠️ 불변식 — 트위터 수입만으로는 살 수 없다', () 
     const maxed: GameState = {
       ...s,
       stats: { ...s.stats, reputation: 100 },
-      twitter: { gained: 10_000_000, postedIds: [], paidDay: 1 },
+      twitter: { gained: 10_000_000, postedIds: [], likes: 0, paidDay: 1 },
     }
     expect(totalFollowers(maxed)).toBe(FOLLOWER_CAP)
     expect(followersFrom(100)).toBeGreaterThan(0) // 평판 몫이 실제로 존재한다

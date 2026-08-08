@@ -8,8 +8,19 @@ import type { IconName } from '../types/game'
  */
 export type SiteRender =
   | 'portal'
+  /** 행사 안내(모두의행사) — 참관·참여 두 축이라 기본 `activityId`가 없다. */
+  | 'expo'
+  /** 공모전 모음(콘테스트하다) — 출품은 턴을 안 쓴다. */
+  | 'contest'
+  /** 코미콘 — 만든 회지를 파는 곳. 참가가 1턴이다. */
+  | 'comicon'
   | 'construction'
   | 'shop'
+  /**
+   * 두손마켓 — **중고 매입**. 쇼핑 띠에 걸리지만 방향이 반대다(가진 것을 돈으로 바꾼다).
+   * `activityId` 없음 — 파는 것은 턴을 쓰지 않는다. 규칙은 `systems/resale.ts`.
+   */
+  | 'resale'
   | 'library'
   | 'cinema'
   | 'publish'
@@ -23,15 +34,15 @@ export type SiteRender =
   /** 벼룩장터 — 정규직 구인. 알바('jobs')와 달리 채용 절차와 재직 상태를 다룬다. */
   | 'career'
   /**
-   * 그목 — **부업(외주) 중개**. 알바몬('jobs')과 구조가 같다(고른 일감이 실행 활동을
-   * 정하고 `Site.activityId`는 기본값이다). 다른 점은 **잠금의 종류**다: 알바는 스탯이
-   * 열고, 여기는 **수료증과 구독**이 열어 준다.
+   * 그몽 — **부업(외주) 중개**. ⚠️ 알바몬('jobs')과 **구조가 다르다**(2026-08-08 재설계):
+   * 여기서는 **계약만 맺고**(턴 없음, `activityId` 없음) 실제 작업은 바탕화면의 도구 앱이
+   * 한다 — 수주 → 기한 안에 업무량 채우기 → 납품. 규칙은 `systems/gigs.ts`.
    */
   | 'gig'
   /**
    * 어도비 — **구독 결제**. 은행·부동산과 같은 "기능 사이트"다(`activityId` 없음,
    * 확정 패널 없음, 턴을 쓰지 않는다). ⚠️ 파는 것은 물건도 활동도 아니라
-   * **매달 나가는 지출과 그것이 여는 둘**(포토샵 아이콘 + 그목 디자인 일감)이다.
+   * **매달 나가는 지출과 그것이 여는 둘**(포토샵 아이콘 + 그몽 디자인 일감)이다.
    */
   | 'adobe'
   /**
@@ -188,21 +199,84 @@ export const SITES: Site[] = [
   },
   {
     /*
-     * 그목 — **부업 중개**. 버룩장터 바로 옆이 자리의 뜻이다(설계자 지시):
+     * 모두의행사 — 행사 안내. 설계자 지시로 신설했고 포털 **검색어 추천**이 입구다.
+     *
+     * ⚠️ **`activityId`가 없다** — 여기서 고르는 것은 "어느 행사에 어떻게 가는가"이고
+     * 참관·참여가 **서로 다른 활동**을 실행하기 때문이다(알바몬·배달의정석과 같은 부류이되
+     * 축이 둘이라 기본값을 둘 수 없다). 실행할 활동은 `Expo.visitActivityId` /
+     * `ExpoJoin.activityId`가 가리키고, 코미콘 참여만 **코미콘 사이트로 보낸다**.
+     */
+    id: 'expo',
+    url: 'https://expo.modu.kr',
+    title: '모두의행사',
+    // ⚠️ 다른 사이트와 겹치지 않는 글리프여야 한다(`sites.test.ts`가 지킨다).
+    icon: 'fluent-color:calendar-24',
+    render: 'expo',
+    promo: {
+      tag: '모두의행사',
+      title: '이번 주에 열리는 행사',
+      desc: '보러 가거나, 부스를 열거나',
+      gradient: 'linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%)',
+    },
+  },
+  {
+    /*
+     * 콘테스트하다 — 공모전 모음. 설계자 지시로 신설했고 포털 **검색어 추천**이 입구다.
+     *
+     * ⚠️ **`activityId`가 없다** — 출품은 봉투를 부치는 일이라 턴을 안 쓴다(그몽 수주·은행
+     * 거래와 같은 부류). 시간의 비용은 **발표까지의 기다림**이 진다.
+     */
+    id: 'contest',
+    url: 'https://contest.hada.co.kr',
+    title: '콘테스트하다',
+    // ⚠️ 다른 사이트와 겹치지 않는 글리프여야 한다(`sites.test.ts`가 지킨다).
+    icon: 'fluent-color:trophy-24',
+    render: 'contest',
+    promo: {
+      tag: '콘테스트하다',
+      title: '지금 열려 있는 공모전',
+      desc: '그린 것을 상금으로 바꿉니다',
+      gradient: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)',
+    },
+  },
+  {
+    /*
+     * 코미콘 — 만든 작품집을 회지로 파는 곳.
+     *
+     * ⚠️ **`activityId`가 있다**(`comicon`): 부스에 앉아 있는 하루라 **1턴을 쓴다.**
+     * 고르는 것은 "어느 회지를 파는가"뿐이고 매출은 그 회지의 장수·완성도가 정한다
+     * (배달 메뉴·여행 상품과 같은 규칙 — 사이트는 수치를 갖지 않는다).
+     */
+    id: 'comicon',
+    url: 'https://www.comicon.kr',
+    title: '코미콘',
+    icon: 'fluent-color:people-community-24',
+    render: 'comicon',
+    activityId: 'comicon',
+    promo: {
+      tag: '코미콘',
+      title: '이번 회차 부스 신청',
+      desc: '직접 만든 회지를 팔 수 있습니다',
+      gradient: 'linear-gradient(135deg, #7c2d12 0%, #c2410c 100%)',
+    },
+  },
+  {
+    /*
+     * 그몽 — **부업 중개**. 벼룩장터 바로 옆이 자리의 뜻이다(설계자 지시):
      * 저기는 "들어가서 다니는 일", 여기는 "건별로 받는 일"이라 둘이 나란히 서야
      * 고를 것이 된다. 이름은 재능 거래 플랫폼 상호의 호의적 패러디이고 실존 상호가 아니다.
      */
     id: 'gmong',
     url: 'https://www.gmong.com',
-    title: '그목',
+    title: '그몽',
     // ⚠️ 다른 사이트와 겹치지 않는 글리프여야 한다(`sites.test.ts`가 지킨다).
     icon: 'fluent-color:people-team-24',
     render: 'gig',
-    /* ⚠️ **아무것도 안 고른 상태의 기본값**이다(알바몬·슬로우캐퍼스와 같은 구조).
-       조건 없는 일감을 기본값으로 두어야 확정 창이 처음부터 무언가를 그린다. */
-    activityId: 'gig-typing',
+    /* ⚠️ **`activityId`가 없다**(2026-08-08 재설계) — 여기서 누르는 것은 활동이 아니라
+       **계약**이고 턴도 스탯도 안 움직인다(은행·부동산과 같은 부류). 실제로 시간을 쓰는
+       것은 바탕화면의 도구 앱이고, 그 활동은 `Activity.toolId`가 가리킨다. */
     promo: {
-      tag: '그목',
+      tag: '그몽',
       title: '건별로 받는 일',
       desc: '자격과 도구가 일감을 열어 줍니다',
       gradient: 'linear-gradient(135deg, #0b5163 0%, #1a9fb0 100%)',
@@ -210,7 +284,7 @@ export const SITES: Site[] = [
   },
   {
     /*
-     * 어도비 — **구독**. 그목 바로 뒤에 두는 것이 자리의 뜻이다:
+     * 어도비 — **구독**. 그몽 바로 뒤에 두는 것이 자리의 뜻이다:
      * 저기서 받고 싶은 일감이 여기서 열린다.
      * ⚠️ **은행·부동산처럼 `activityId`가 없다** — 결제는 턴을 쓰지 않는다.
      * ⚠️ 이름은 바탕화면의 포토샵·VS 코드와 같은 **프로그램 이름 계열**이다
@@ -221,15 +295,10 @@ export const SITES: Site[] = [
     title: '어도비',
     icon: 'fluent-color:design-ideas-24',
     render: 'adobe',
-    /* ⚠️ **소개 카드가 이 사이트의 유일한 입구다.** 그몽이 "어도비 구독 중이어야 합니다"라고
-       막아 두는데 갈 길이 없으면 그 사유가 막다른 골목이 된다 — 갈 데 없는 링크를 만들지
-       않는다는 규칙의 뒤집힌 형태다. 그몽 카드 바로 옆이라 "일감 → 도구"가 자리로 읽힌다. */
-    promo: {
-      tag: '어도비',
-      title: '구독하면 열리는 것',
-      desc: '포토샵이 설치되고 디자인 일감을 받을 수 있습니다',
-      gradient: 'linear-gradient(135deg, #1a1a1a 0%, #e0483c 100%)',
-    },
+    /* ⚠️ **입구는 포털 검색창의 검색어 추천이다**(2026-08-08 설계자 지시로 하단 소개 카드를
+       뺐다). 즐겨찾기도 소개 카드도 없지만 갈 길은 반드시 있어야 한다 — 그몽이 "어도비
+       구독 중이어야 합니다"로 막는데 결제 화면에 못 가면 그 사유가 막다른 골목이 된다.
+       `SEARCH_SUGGESTIONS`의 첫 줄이 그 길이고 `subscription.test.ts`가 순회로 지킨다. */
   },
   {
     /*
@@ -339,6 +408,22 @@ export const SITES: Site[] = [
     icon: 'fluent-color:food-24',
     render: 'food',
     activityId: 'meal-junk',
+  },
+  {
+    /*
+     * 두손마켓 — **중고마켓**. 쇼핑 띠의 다른 가게들과 **방향이 반대인 유일한 자리다**:
+     * 저쪽은 돈을 쓰는 곳이고 여기는 가진 것을 돈으로 바꾸는 곳이다.
+     * ⚠️ **`activityId`가 없다** — 파는 것은 턴을 쓰지 않는다(쇼핑 주문·은행 창구와 같은
+     * 규칙). 규칙·시세는 전부 `systems/resale.ts`·`data/resale.ts`가 갖는다.
+     * ⚠️ **벼룩장터(`career`)와 다른 것이다** — 그쪽은 정규직 구인이다(이름이 헷갈리기
+     * 쉬우니 화면 문구에서도 '중고'를 앞세운다). 상호는 지어낸 것이다.
+     */
+    id: 'dusonmarket',
+    url: 'https://www.duson-market.com',
+    title: '두손마켓',
+    icon: 'fluent-color:receipt-24',
+    render: 'resale',
+    notice: '팔면 되돌릴 수 없습니다. 물건은 정가의 반값에 매입합니다.',
   },
   {
     /*
@@ -533,7 +618,14 @@ export const BOOKMARK_SITES: Site[] = SITES.filter((s) => s.bookmark)
  * `render`가 같은 글자라는 사실로 파생된다(`storeSiteIdOf`).
  */
 export const STORE_SITES: Site[] = SITES.filter(
-  (s) => s.render === 'shop' || s.render === 'tech' || s.render === 'wear' || s.render === 'food',
+  (s) =>
+    s.render === 'shop' ||
+    s.render === 'tech' ||
+    s.render === 'wear' ||
+    s.render === 'food' ||
+    // ⚠️ 두손마켓은 **돈을 받는 쪽**이지만 같은 줄에 선다 — 플레이어에게 이 줄은
+    //    "물건을 파는 곳"이 아니라 **물건을 다루는 곳**이다(배달 탭과 같은 확장).
+    s.render === 'resale',
 )
 
 /**

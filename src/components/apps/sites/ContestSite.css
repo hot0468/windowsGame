@@ -1,0 +1,469 @@
+/*
+ * 콘테스트하다(공모전 접수처).
+ *
+ * ## 색 — 짙은 초록(green-700 계열)
+ * ⚠️ **이웃 사이트와 갈라 둔 값이다**: 파랑·청록은 이미 넷이 나눠 가졌고
+ * (알바몬 #0369A1 · 벼룩장터 #2563EB · 그몽 #0E7490 · 부동산 #0F766E), 주황은
+ * 하이마루(#C2410C)와 코미콘이, 로즈는 무진장(#BE185D), 보라는 O넷(#6D28D9)이 갖는다.
+ * 비어 있던 **초록**을 잡았다 — 상장·수상이라는 정중한 자리와도 맞는다.
+ * 흰 배경 위 5.0:1이라 글자에 그대로 쓸 수 있다.
+ *
+ * ## 구역 순서
+ * 제호(누적 상금·입상 수) → **심사 중** → 발표된 결과 → 종류 탭 → 공모전 카드 격자 → 각주.
+ * ⚠️ 심사 중이 목록보다 위다 — 이 사이트에서 시간의 비용을 지는 것은 기다림이라,
+ * "지금 무엇을 기다리는가"가 "무엇을 더 낼까"보다 먼저 읽혀야 한다(그몽 진행 카드와 같다).
+ *
+ * ⚠️ 반응형은 뷰포트가 아니라 컨테이너로 판정한다(사이트는 창 안이다).
+ * ⚠️ 간격 척도에 `--sp-7`은 없다(4/8 리듬).
+ */
+.ct {
+  --ct-bg: #f0fdf4;
+  --ct-surface: #ffffff;
+  --ct-line: #e2efe7;
+  --ct-line-soft: #e2e8f0;
+  --ct-text: #14532d; /* #fff 위 8.5:1 */
+  --ct-text-2: #64748b; /* #fff 위 4.8:1 (WCAG AA) */
+  --ct-primary: #15803d; /* #fff 위 5.0:1 — 제호·상금·주 버튼 */
+  --ct-lock: #b91c1c; /* #fff 위 5.9:1 — 잠금 사유 */
+  --ct-badge-bg: #dcfce7;
+  --ct-badge-fg: #166534; /* 연한 초록 위 6.5:1 */
+
+  container-type: inline-size;
+  min-height: 100%;
+  padding-bottom: var(--sp-8);
+  background: var(--ct-bg);
+  color: var(--ct-text);
+}
+
+.ct-head,
+.ct-sec,
+.ct-tabs,
+.ct-foot {
+  width: min(1000px, 100% - 48px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── 제호 ─────────────────────────────────────────────── */
+.ct-head {
+  padding: var(--sp-6) 0 var(--sp-4);
+}
+
+.ct-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-family: var(--font-point);
+  font-weight: 400; /* 한 벌짜리 서체라 합성 볼드를 막는다 */
+  font-size: var(--fs-2xl);
+  color: var(--ct-primary);
+}
+
+.ct-lede {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--ct-text-2);
+}
+
+/* ── 구역 머리 ────────────────────────────────────────── */
+.ct-sec {
+  margin-bottom: var(--sp-5);
+}
+
+.ct-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.ct-sec-count {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--ct-text-2);
+}
+
+/* ── 심사 중 · 발표된 결과 ────────────────────────────── */
+.ct-pending {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ct-pending-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--sp-2) var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--ct-line);
+  border-left: 3px solid var(--ct-primary);
+  border-radius: var(--r-md);
+  background: var(--ct-surface);
+  font-size: var(--fs-sm);
+}
+
+.ct-pending-name {
+  font-weight: 700;
+}
+
+.ct-pending-what,
+.ct-pending-when {
+  color: var(--ct-text-2);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.ct-pending-when {
+  text-align: right;
+}
+
+/* 결과는 색만으로 알리지 않는다 — 글자가 상 이름 또는 "낙선"을 그대로 말한다. */
+.ct-result {
+  justify-self: end;
+  font-size: var(--fs-sm);
+  color: var(--ct-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.ct-result-won {
+  color: var(--ct-primary);
+  font-weight: 700;
+}
+
+/* ── 종류 탭 ──────────────────────────────────────────── */
+.ct-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+.ct-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 36px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--ct-line);
+  border-radius: 999px;
+  background: var(--ct-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--ct-text-2);
+  cursor: pointer;
+}
+
+.ct-tab:hover {
+  border-color: var(--ct-primary);
+  color: var(--ct-primary);
+}
+
+/* 지금 어디인지 — 색만이 아니라 굵기와 채움으로도 말한다(ux `nav-state-active`). */
+.ct-tab-on {
+  border-color: var(--ct-primary);
+  background: var(--ct-primary);
+  color: #ffffff; /* #15803d 위 5.0:1 */
+  font-weight: 700;
+}
+
+.ct-tab-count {
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+/* ── 공모전 카드 ──────────────────────────────────────── */
+/* ⚠️ 최소 폭은 판 폭에서 계산한 값이다: 판 1000px·gap 16px에서 3열은 340×3+32=1052로
+   넘치고 2열은 696로 들어간다 — 상금 표가 들어가는 카드라 2열이 상한이다. */
+.ct-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--sp-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ct-grid > li {
+  display: flex;
+}
+
+.ct-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--ct-line);
+  border-radius: var(--r-lg);
+  background: var(--ct-surface);
+}
+
+/* 열린 카드만 한 단 진하게 — 지금 다루는 것이 무엇인지 판에서 하나여야 한다. */
+.ct-card-open {
+  border-color: var(--ct-primary);
+  box-shadow: var(--el-1);
+}
+
+.ct-host {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--ct-text-2);
+}
+
+.ct-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: 2px 0 var(--sp-2);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.ct-badge {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--ct-badge-bg);
+  color: var(--ct-badge-fg);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.ct-terms {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--ct-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.ct-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin: 0 0 var(--sp-3);
+  padding: 0;
+  list-style: none;
+}
+
+.ct-tag {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--ct-bg);
+  font-size: var(--fs-xs);
+  color: var(--ct-text-2);
+}
+
+/* ── 상금 표 ──────────────────────────────────────────── */
+.ct-prize {
+  width: 100%;
+  margin-bottom: var(--sp-3);
+  border-collapse: collapse;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.ct-prize th,
+.ct-prize td {
+  padding: var(--sp-1) var(--sp-2);
+  border-bottom: 1px solid var(--ct-line);
+  text-align: right;
+}
+
+.ct-prize thead th {
+  color: var(--ct-text-2);
+  font-weight: 400;
+}
+
+.ct-prize th:first-child,
+.ct-prize td:first-child {
+  text-align: left;
+}
+
+.ct-prize tbody th {
+  font-weight: 400;
+}
+
+/* 1등 줄만 강조한다. ⚠️ 색이 아니라 굵기가 먼저다 — 표는 글자로 이미 상 이름을 말한다. */
+.ct-prize-top th,
+.ct-prize-top td {
+  font-weight: 700;
+  color: var(--ct-primary);
+}
+
+/* ── 출품 ─────────────────────────────────────────────── */
+.ct-open {
+  margin-top: auto;
+  min-height: 36px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--ct-primary);
+  border-radius: var(--r-md);
+  background: var(--ct-primary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: #ffffff; /* #15803d 위 5.0:1 */
+  cursor: pointer;
+}
+
+.ct-open:hover {
+  background: #116331;
+}
+
+.ct-card-open .ct-open {
+  background: var(--ct-surface);
+  color: var(--ct-primary);
+}
+
+.ct-pick {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--ct-line);
+}
+
+.ct-pick-set {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin: 0 0 var(--sp-3);
+  padding: 0;
+  border: 0;
+}
+
+.ct-pick-legend {
+  padding: 0 0 var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--ct-text-2);
+}
+
+/* 후보 한 줄. 네이티브 라디오를 그대로 쓴다 — 키보드·스크린 리더가 공짜로 붙는다. */
+.ct-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  min-height: 36px;
+  padding: var(--sp-2);
+  border: 1px solid var(--ct-line-soft);
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.ct-opt:hover:not(.ct-opt-locked) {
+  border-color: var(--ct-primary);
+}
+
+.ct-opt input {
+  margin-top: 3px;
+  accent-color: var(--ct-primary);
+}
+
+/* ux `disabled-states`: 투명도 + 커서 + 의미론적 속성을 함께 준다.
+   ⚠️ 감추지 않는다 — 왜 못 내는지가 카드 안에 글자로 남아야 한다. */
+.ct-opt-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ct-opt-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ct-opt-name {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.ct-opt-meta {
+  font-size: var(--fs-xs);
+  color: var(--ct-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.ct-lock {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--ct-lock);
+}
+
+.ct-submit {
+  min-height: 36px;
+  padding: 0 var(--sp-5);
+  border: 1px solid var(--ct-primary);
+  border-radius: var(--r-md);
+  background: var(--ct-primary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.ct-submit:hover:not(:disabled) {
+  background: #116331;
+}
+
+.ct-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ct-submit-note {
+  margin-left: var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--ct-text-2);
+}
+
+/* ── 빈 상태 · 각주 ───────────────────────────────────── */
+.ct-empty {
+  margin: 0;
+  padding: var(--sp-5);
+  border: 1px dashed var(--ct-line);
+  border-radius: var(--r-lg);
+  font-size: var(--fs-sm);
+  color: var(--ct-text-2);
+  text-align: center;
+}
+
+.ct-empty-sm {
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-4);
+  text-align: left;
+}
+
+.ct-foot {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--ct-line);
+  font-size: var(--fs-xs);
+  color: var(--ct-text-2);
+}
+
+.ct-foot p {
+  margin: 0 0 var(--sp-1);
+}
+
+/* 좁아지면 현황 줄이 한 열로 쌓인다(가로 스크롤 금지). */
+@container (max-width: 620px) {
+  .ct-pending-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ct-pending-when,
+  .ct-result {
+    justify-self: start;
+    text-align: left;
+  }
+}

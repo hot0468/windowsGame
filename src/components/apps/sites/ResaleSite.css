@@ -1,0 +1,215 @@
+/*
+ * 두손마켓(중고마켓). 레퍼런스는 실제 중고거래 앱의 '내 물건 팔기' 목록이다.
+ * 판형: [머리(로고+한 줄 안내)] / [탭 + 합계] / [목록] / [되사기 규칙 한 줄].
+ *
+ * ⚠️ 색은 이 파일 안에 가둔다(`--rs-*`, 사이트 공통 규칙). 청록 #0F766E는 다른 사이트가
+ * 쓰지 않는 계열이고 흰 판 위 5.5:1이라 글자에도 쓸 수 있다.
+ * ⚠️ 파는 화면이라 **빨강을 쓰지 않는다** — 되돌릴 수 없다는 사실은 색이 아니라
+ * **확인 한 단계와 글자**가 전한다(`color-not-only`).
+ */
+.rsl {
+  --rs-brand: #0f766e; /* #fff 위 5.5:1 */
+  --rs-brand-dim: #e6f2f0;
+  --rs-bg: #ffffff;
+  --rs-line: #e2e5e4;
+  --rs-text: #17211f;
+  --rs-text-2: #5d6664; /* #fff 위 5.9:1 */
+  --rs-warn: #8a5a00; /* #fff 위 5.1:1. 경고는 노랑 계열이되 글자로 읽히는 어둡기 */
+
+  container-type: inline-size;
+  /* 사이트 판이 창 높이를 채운다 — 안 채우면 목록이 짧을 때 아래가 회색 바닥으로 남는다. */
+  min-height: 100%;
+  padding: var(--sp-5) var(--sp-6) var(--sp-8);
+  background: var(--rs-bg);
+  color: var(--rs-text);
+}
+
+.rsl-head {
+  padding-bottom: var(--sp-4);
+  border-bottom: 2px solid var(--rs-brand);
+}
+
+.rsl-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-xl);
+  color: var(--rs-brand);
+}
+
+.rsl-lead {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: var(--rs-text-2);
+}
+
+.rsl-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: var(--sp-4) 0 var(--sp-3);
+}
+
+.rsl-tab {
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--rs-line);
+  border-radius: 999px;
+  background: var(--rs-bg);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--rs-text-2);
+  cursor: pointer;
+  transition: background 150ms ease-out, color 150ms ease-out;
+}
+
+.rsl-tab:hover {
+  background: var(--rs-brand-dim);
+}
+
+/* 현재 탭. 색만으로 알리지 않도록 배경·굵기를 함께 쓴다(ux `nav-state-active`). */
+.rsl-tab-on {
+  border-color: var(--rs-brand);
+  background: var(--rs-brand);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.rsl-total {
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--rs-brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.rsl-receipt {
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-left: 3px solid var(--rs-brand);
+  border-radius: var(--r-sm);
+  background: var(--rs-brand-dim);
+  font-size: var(--fs-sm);
+}
+
+.rsl-empty {
+  padding: var(--sp-8) 0;
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--rs-text-2);
+}
+
+.rsl-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rsl-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--rs-line);
+}
+
+.rsl-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 200px;
+  min-width: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+/* 잃는 것. 색이 아니라 **문장**이 경고를 진다. */
+.rsl-warn {
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--rs-warn);
+}
+
+.rsl-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.rsl-price b {
+  font-size: var(--fs-lg);
+  color: var(--rs-brand);
+}
+
+.rsl-list-price {
+  font-size: var(--fs-xs);
+  color: var(--rs-text-2);
+  text-decoration: line-through;
+}
+
+.rsl-sell,
+.rsl-yes,
+.rsl-no {
+  flex: 0 0 auto;
+  /* 최소 44px은 손가락 규격이 아니라 이 게임의 다른 확정 버튼과 같은 무게를 주기 위함이다. */
+  min-height: 34px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--rs-brand);
+  border-radius: var(--r-md);
+  background: var(--rs-bg);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--rs-brand);
+  cursor: pointer;
+}
+
+.rsl-sell:hover,
+.rsl-no:hover {
+  background: var(--rs-brand-dim);
+}
+
+.rsl-confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.rsl-ask {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+/* 확정 버튼만 채운다 — 한 줄에 같은 무게의 버튼이 둘이면 무엇이 확정인지 안 읽힌다. */
+.rsl-yes {
+  background: var(--rs-brand);
+  color: #ffffff;
+}
+
+.rsl-yes:hover {
+  background: #0b5c56;
+}
+
+.rsl-no {
+  border-color: var(--rs-line);
+  color: var(--rs-text-2);
+}
+
+.rsl-foot {
+  margin: var(--sp-5) 0 0;
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  color: var(--rs-text-2);
+}
+
+/* 사이트는 창 안이라 뷰포트가 아니라 **컨테이너**로 접는다(사이트 공통 규칙). */
+@container (max-width: 520px) {
+  .rsl-price {
+    align-items: flex-start;
+  }
+}

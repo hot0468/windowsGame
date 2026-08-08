@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { findActivity } from '../../../data/activities'
-import { FILMS, MAIN_FILM_ID, findShowtime } from '../../../data/media'
+import { findShowtime } from '../../../data/media'
 import { AppIcon } from '../../../icons/AppIcon'
+import { useGameStore } from '../../../store/gameStore'
+import { filmsForWeek, hasPostcard, heroFilm } from '../../../systems/cinema'
 import type { Film, FilmSection } from '../../../data/media'
 import type { Site } from '../../../data/sites'
 import { ActivityConfirm } from '../ActivityConfirm'
@@ -23,6 +25,13 @@ import './CinemaSite.css'
  * ⚠️ **동작하는 것만 컨트롤로 만든다**(카톡·너튜브와 같은 규칙). 포스터·회차·배너 닫기는
  * 실제로 동작하고, 내비 탭(예매·영화관·이벤트·스토어)과 로그인 줄은 **표시만** 한다 —
  * 눌러도 아무 일 없는 버튼을 늘리면 그 사이트다움이 오히려 깎인다.
+ *
+ * ## ⚠️ 편성은 주마다 바뀌고, 보면 포스트카드가 남는다 (설계자 지시)
+ * 목록은 `FILMS` 전체가 아니라 **`filmsForWeek(day, 구역)`**이 정한다 — 구역마다 5편 중
+ * 4편이 걸리므로 이레마다 한 편이 갈린다(`systems/cinema.ts`). 히어로도 **이번 주
+ * 개봉 예정작의 첫 편**이라 화면에 없는 영화가 배너에 걸리지 않는다.
+ * 확정은 `doActivity`가 아니라 **`watchFilm`**을 탄다 — 어떤 영화를 봤는지는 활동이
+ * 모르는 사실이고, 그것이 남아야 포스트카드가 생긴다(너튜브 방송 주제와 같은 자리).
  */
 
 const SECTIONS: { id: FilmSection; label: string }[] = [
@@ -36,6 +45,8 @@ const NAV = ['예매', '영화', '영화관', '이벤트', '스토어']
 
 export function CinemaSite({ site }: { site: Site }) {
   const activity = site.activityId ? findActivity(site.activityId) : undefined
+  const state = useGameStore((s) => s.state)
+  const watchFilm = useGameStore((s) => s.watchFilm)
   const [pickedId, setPickedId] = useState<string | null>(null)
   /** 시간표를 펼친 영화. 포스터를 누르면 그 영화만 열린다. */
   const [openFilmId, setOpenFilmId] = useState<string | null>(null)
@@ -43,10 +54,12 @@ export function CinemaSite({ site }: { site: Site }) {
   const [ticket, setTicket] = useState<string | null>(null)
   const [promo, setPromo] = useState(true)
 
-  if (!activity) return null
+  if (!activity || !state) return null
   const picked = pickedId ? findShowtime(pickedId) : undefined
-  const main = FILMS.find((f) => f.id === MAIN_FILM_ID)
-  const openFilm = openFilmId ? FILMS.find((f) => f.id === openFilmId) : undefined
+  const main = heroFilm(state.day)
+  /* ⚠️ 이번 주 편성 안에서만 찾는다 — 내려간 영화의 시간표가 열려 있으면 안 된다. */
+  const weekly = SECTIONS.flatMap((sec) => filmsForWeek(state.day, sec.id))
+  const openFilm = openFilmId ? weekly.find((f) => f.id === openFilmId) : undefined
 
   return (
     <div className="cine">
@@ -88,9 +101,21 @@ export function CinemaSite({ site }: { site: Site }) {
         ))}
       </nav>
 
-      {/* 히어로. 개봉 예정 대작 한 편이 홈에서 가장 큰 자리를 갖는다. */}
+      {/*
+       * 히어로. 이번 주 개봉 예정작 한 편이 홈에서 가장 큰 자리를 갖는다.
+       * ⚠️ **포스터 위에 어두운 막을 겹쳐 깐다.** 편성이 주마다 돌면서 히어로에 밝은
+       * 포스터(예: `#b3e5fc`로 끝나는 그라데이션)가 걸릴 수 있게 됐고, 흰 글자를 포스터
+       * 색에 맡기면 **그 주에만 대비가 무너진다**(실측 3.13:1). 아래쪽이 더 짙은 것은
+       * 등급·개봉일 배지가 거기 앉기 때문이다. 막은 인라인이라야 한다 — 배경은 인라인
+       * style이 정하므로 CSS에 적으면 통째로 덮인다.
+       */}
       {main && (
-        <div className="cine-hero" style={{ background: main.poster }}>
+        <div
+          className="cine-hero"
+          style={{
+            background: `linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%), ${main.poster}`,
+          }}
+        >
           <span className="cine-hero-rating">{main.rating} 관람가</span>
           <p className="cine-hero-kicker">
             {main.genre} · {main.runtime}분
@@ -110,7 +135,7 @@ export function CinemaSite({ site }: { site: Site }) {
       )}
 
       {SECTIONS.map((sec) => {
-        const films = FILMS.filter((f) => f.section === sec.id)
+        const films = filmsForWeek(state.day, sec.id)
         if (!films.length) return null
         return (
           <section key={sec.id} className="cine-sec">
@@ -190,7 +215,16 @@ export function CinemaSite({ site }: { site: Site }) {
           notes={[
             { label: '회차', value: `${picked.showtime.time} · ${picked.showtime.screen}` },
             { label: '잔여 좌석', value: `${picked.showtime.seats}석` },
+            {
+              label: '포스트카드',
+              value: hasPostcard(state, picked.film.id)
+                ? '이미 받은 영화입니다'
+                : '관람하면 한 장 받습니다',
+            },
           ]}
+          /* ⚠️ 기본 동작(`doActivity`)을 갈아 끼운다 — 어떤 영화를 봤는지가 남아야
+             포스트카드가 생긴다. 턴·수치는 여전히 `movie` 활동 하나가 낸다. */
+          onCommit={() => watchFilm(picked.film)}
           onCommitted={() => {
             setTicket(`「${picked.film.title}」 ${picked.showtime.time} ${picked.showtime.screen}`)
             setOpenFilmId(null)

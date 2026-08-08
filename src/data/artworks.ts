@@ -49,6 +49,25 @@ export const FOLLOWERS_BY_GRADE: Record<StatRank, number> = {
   SS: 7000,
 }
 
+/**
+ * 그 등급의 그림을 올렸을 때 받는 좋아요.
+ *
+ * ⚠️ **팔로워와 따로 세는 축이다**(`TwitterState.likes`). 팔로워는 상한(`FOLLOWER_CAP`)이
+ * 걸린 **수입의 축**이고 좋아요는 상한 없는 **평가의 축**이다 — 웹툰 제의(`LIKES_FOR_OFFER`)가
+ * 보는 것이 이쪽이라 팔로워로 판정하면 평판만 올려도 제의가 와서 "그림을 그려서 알려졌다"가
+ * 거짓이 된다.
+ * ⚠️ **F도 0이 아니다**(팔로워와 다른 점) — 아무도 안 보는 그림은 없다. 다만 F만 올려서는
+ * `LIKES_FOR_OFFER`(4,000)에 닿는 데 200장이 필요해 사실상 길이 아니다.
+ */
+export const LIKES_BY_GRADE: Record<StatRank, number> = {
+  F: 20,
+  C: 120,
+  B: 400,
+  A: 1_100,
+  S: 2_400,
+  SS: 4_500,
+}
+
 /** 정산 주기(일). 설계자 지시: 주 1회. */
 export const PAYOUT_INTERVAL_DAYS = 7
 

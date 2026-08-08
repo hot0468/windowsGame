@@ -139,6 +139,18 @@ const clickJs = (sel) => `(() => {
   return true
 })()`
 
+/**
+ * ⚠️ **바탕화면 아이콘은 더블클릭이라야 열린다** — `el.click()`으로는 선택만 된다.
+ * `HTMLElement.click()`에 해당하는 더블클릭 메서드가 없어 이벤트를 직접 쏜다
+ * (React 합성 이벤트는 `bubbles: true`면 정상적으로 받는다).
+ */
+const dblClickJs = (sel) => `(() => {
+  const e = document.querySelector(${JSON.stringify(sel)})
+  if (!e) return false
+  e.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true, view: window }))
+  return true
+})()`
+
 /** 잠금화면을 통과해 바탕화면까지 간다. 새 판이면 이름을 넣고, 세이브가 있으면 그대로 들어간다. */
 async function login(d, name) {
   if (!(await d.evalJs(`!!document.querySelector('.lock')`))) return
@@ -240,6 +252,7 @@ CDP 실측 하네스 — 헤드리스 크롬으로 찍고 합성 픽셀로 대�
 
 옵션
   --click <셀렉터>   요소를 누른다. 여러 번 줄 수 있고 준 순서대로 실행된다
+  --dblclick <셀>    더블클릭한다. **바탕화면 아이콘(.desktop-icon)은 이쪽이라야 열린다**
   --wait <ms>        --click 사이 대기(기본 400)
   --shot <파일>      스크린샷을 저장한다
   --contrast <셀>    그 셀렉터에 걸리는 요소의 합성 대비를 잰다(기본 검사 대상 없음)
@@ -262,7 +275,8 @@ function parseArgs(argv) {
     const a = argv[i]
     const next = () => argv[++i]
     if (a === '--help' || a === '-h') o.help = true
-    else if (a === '--click') o.clicks.push(next())
+    else if (a === '--click') o.clicks.push({ sel: next(), dbl: false })
+    else if (a === '--dblclick') o.clicks.push({ sel: next(), dbl: true })
     else if (a === '--wait') o.wait = Number(next())
     else if (a === '--shot') o.shot = next()
     else if (a === '--contrast') o.contrast = next()
@@ -308,9 +322,9 @@ async function main() {
     await sleep(500)
     await login(d, o.name)
 
-    for (const sel of o.clicks) {
-      const ok = await d.evalJs(clickJs(sel))
-      console.log(`클릭 ${sel}: ${ok ? 'ok' : '없음'}`)
+    for (const { sel, dbl } of o.clicks) {
+      const ok = await d.evalJs(dbl ? dblClickJs(sel) : clickJs(sel))
+      console.log(`${dbl ? '더블클릭' : '클릭'} ${sel}: ${ok ? 'ok' : '없음'}`)
       await sleep(o.wait)
     }
 

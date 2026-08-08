@@ -66,10 +66,12 @@ describe('사이트 목록', () => {
     expect(PROMO_SITES.map((s) => s.id)).toEqual([
       'albamon',
       'flea',
+      'expo',
+      'contest',
+      'comicon',
       'gmong',
-      // ⚠️ 어도비는 소개 카드가 **유일한 입구**다(즐겨찾기·퀵메뉴에 없다) —
-      //    그몽의 잠금 사유가 여기로 보낸다.
-      'adobe',
+      // ⚠️ **어도비는 여기 없다**(2026-08-08 설계자 지시로 소개 카드를 뺐다) —
+      //    입구는 포털 검색창의 **검색어 추천**이고 `subscription.test.ts`가 지킨다.
       'onet',
       'bank',
       'stock',
@@ -81,10 +83,18 @@ describe('사이트 목록', () => {
   it('쇼핑 띠에 걸리는 사이트는 하단 소개와 겹치지 않는다', () => {
     // 돈 쓰러 가는 곳은 뉴스 위 상단 띠가 그린다 — 하단에도 있으면 같은 것이 두 번 뜬다.
     // ⚠️ 배달의정석은 물건을 팔지 않지만 같은 줄에 선다(설계자 지시: 쇼핑에 배달 탭).
-    expect(STORE_SITES.map((s) => s.id)).toEqual(['shopping', 'himaru', 'mujinjang', 'baedal'])
+    // ⚠️ 두손마켓은 **돈을 받는 쪽**이지만 같은 줄에 선다(2026-08-08 중고마켓) —
+    //    이 줄의 뜻은 "물건을 파는 곳"이 아니라 **물건을 다루는 곳**이다.
+    expect(STORE_SITES.map((s) => s.id)).toEqual([
+      'shopping',
+      'himaru',
+      'mujinjang',
+      'baedal',
+      'dusonmarket',
+    ])
     for (const s of STORE_SITES) expect(PROMO_SITES).not.toContain(s)
     // 카드로도 뜨는 가게 셋은 소개 문구가 있어야 한다(없으면 빈 카드가 뜬다).
-    for (const s of STORE_SITES.filter((x) => x.render !== 'food')) {
+    for (const s of STORE_SITES.filter((x) => x.render !== 'food' && x.render !== 'resale')) {
       expect(s.promo, `${s.id}의 소개 문구`).toBeDefined()
     }
   })
@@ -153,9 +163,12 @@ describe('활동을 실행하는 사이트', () => {
     expect(ids).toEqual([
       'work',
       'job-apply',
-      // ⚠️ 그몽의 'gig-typing'은 **아무것도 안 고른 상태의 기본값**이다(알바몬과 같은 구조) —
-      //    실제로 무엇을 실행할지는 `data/gigs.ts`의 일감이 정한다.
-      'gig-typing',
+      // ⚠️ **코미콘은 여기 있다** — 부스에 앉아 있는 하루라 1턴을 쓴다.
+      //    고르는 것은 "어느 회지를 파는가"뿐이고 매출은 그 회지가 정한다(배달 메뉴와 같다).
+      //    ⚠️ **공모전(콘테스트하다)는 여기 없다** — 출품은 봉투를 부치는 일이라 턴을 안 쓴다.
+      'comicon',
+      // ⚠️ **그몽은 여기 없다**(2026-08-08 재설계) — 계약만 맺고 턴을 안 쓰므로
+      //    `activityId`가 없다(은행·부동산·어도비와 같은 부류). 실제 작업은 도구 앱이 한다.
       'exam',
       'meal-junk',
       'concert',

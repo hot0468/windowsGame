@@ -4,7 +4,7 @@ import { bannersFor } from '../../../data/banners'
 import type { Banner } from '../../../data/banners'
 import { BUYABLE_ITEMS } from '../../../data/items'
 import type { ShopItem } from '../../../data/items'
-import { NEWS_CATEGORIES, TRENDING_TERMS } from '../../../data/news'
+import { NEWS_CATEGORIES, SEARCH_SUGGESTIONS, TRENDING_TERMS } from '../../../data/news'
 import type { NewsCategory } from '../../../data/news'
 import { BOOKMARK_SITES, PROMO_SITES, STORE_SITES } from '../../../data/sites'
 import type { Site } from '../../../data/sites'
@@ -237,8 +237,11 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
                 (브라우저 더보기 메뉴와 같은 방식). */}
             <div className="nv-suggest-scrim" onClick={() => setSuggestOpen(false)} />
             <div className="nv-suggest" id="nv-suggest" role="listbox" aria-label="추천 검색어">
-              <p className="nv-suggest-head">인기 검색어</p>
-              {TRENDING_TERMS.map((term, i) => (
+              {/* ⚠️ **실시간 검색어가 아니라 검색어 추천이다**(설계자 지시) — 목록도 다르다
+                  (`SEARCH_SUGGESTIONS`). 실검은 "지금 화제인 것", 여기는 "여기서 찾을 수
+                  있는 것"이라 대부분 갈 곳이 있고, **어도비 사이트의 유일한 입구**이기도 하다. */}
+              <p className="nv-suggest-head">검색어 추천</p>
+              {SEARCH_SUGGESTIONS.map((term, i) => (
                 <button
                   key={term.label}
                   type="button"

@@ -89,28 +89,18 @@
   border: 1px solid var(--gm-line-soft);
   border-radius: var(--r-lg);
   background: var(--gm-surface);
-  font: inherit;
   text-align: left;
   color: inherit;
-  cursor: pointer;
-  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
 }
 
-.gm-card:hover:not(:disabled) {
-  border-color: var(--gm-primary);
-  box-shadow: var(--el-1);
-}
-
-.gm-card-on {
-  border-color: var(--gm-primary);
-  box-shadow: inset 0 0 0 1px var(--gm-primary);
-}
+/* ⚠️ 카드는 더 이상 버튼이 아니다(2026-08-08 재설계) — 누르는 것은 안의 [받기]뿐이다.
+   그래서 `cursor: pointer`도 hover 강조도 카드에 주지 않는다: 판 전체가 눌릴 것처럼
+   보이면 "어디를 눌러야 하나"가 흐려진다(style `state-clarity`). */
 
 /* 조건 미달 일감은 **감추지 않는다** — 흐리게 두고 사유를 글자로 적는다
    (ux `disabled-states`: 투명도 + 커서 + 의미론적 disabled 속성). */
 .gm-card-locked {
   opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .gm-mark {
@@ -232,4 +222,183 @@
     width: 100%;
     padding-left: 56px;
   }
+}
+
+/* ── 진행 중인 일 (2026-08-08 재설계) ──
+   ⚠️ 목록보다 위에 선다 — "지금 무엇을 해야 하는지"가 먼저 읽혀야 한다. */
+.gm-active {
+  width: min(960px, 100% - 48px);
+  margin: 0 auto var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+  /* 목록 카드보다 한 단 진하게 — 이 판에서 유일하게 "진행 중"인 것이다. */
+  border: 1px solid var(--gm-primary);
+  border-radius: var(--r-lg);
+  background: var(--gm-surface);
+  box-shadow: var(--el-1);
+}
+
+.gm-active-kicker {
+  margin: 0;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--gm-primary);
+}
+
+.gm-active-title {
+  margin: 2px 0 var(--sp-3);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.gm-progress {
+  margin-bottom: var(--sp-2);
+}
+
+/* 게이지. ⚠️ **색만으로 알리지 않는다** — 바로 아래 숫자가 같은 사실을 말한다. */
+.gm-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--gm-line);
+  overflow: hidden;
+}
+
+.gm-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gm-primary);
+  transition: width 200ms ease-out;
+}
+
+.gm-progress-text {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-due {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--gm-text-2);
+}
+
+/* 마감이 코앞이면 색을 얹는다 — 다만 문장 자체가 이미 "오늘이 마감"이라고 말한다. */
+.gm-due-soon {
+  color: var(--gm-lock);
+  font-weight: 700;
+}
+
+.gm-active-pay {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 포기는 되돌릴 수 없고 대가가 있으므로 주된 동작처럼 보이지 않게 한다. */
+.gm-abandon {
+  min-height: 32px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--gm-line-soft);
+  border-radius: var(--r-md);
+  background: var(--gm-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--gm-text-2);
+  cursor: pointer;
+}
+
+.gm-abandon:hover {
+  border-color: var(--gm-lock);
+  color: var(--gm-lock);
+}
+
+.gm-abandon-note {
+  margin-left: var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--gm-text-2);
+}
+
+/* ── 목록 머리·계약 조건 ── */
+.gm-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.gm-sec-count {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--gm-text-2);
+}
+
+/* 받기 전에 알아야 하는 셋(도구·기한·보수)을 한 줄로 적는다. */
+.gm-terms {
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  color: var(--gm-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-take {
+  margin-top: var(--sp-2);
+  min-height: 32px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--gm-primary);
+  border-radius: var(--r-md);
+  background: var(--gm-primary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: #ffffff; /* 청록 #0e7490 위 5.1:1 */
+  cursor: pointer;
+}
+
+.gm-take:hover:not(:disabled) {
+  background: #0b5f77;
+}
+
+/* ux `disabled-states`: 투명도 + 커서 + 의미론적 속성을 함께 준다. */
+.gm-take:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.gm-empty {
+  margin: 0;
+  padding: var(--sp-5);
+  border: 1px dashed var(--gm-line);
+  border-radius: var(--r-lg);
+  font-size: var(--fs-sm);
+  color: var(--gm-text-2);
+  text-align: center;
+}
+
+/* 포기 확인. ⚠️ 인라인 alertdialog다 — 판 전체를 덮는 모달까지 갈 일이 아니고
+   (되돌릴 수 있는 자리에서 한 번 묻는 것뿐이다), `window.confirm`은 가짜 OS 컨셉을 깬다. */
+.gm-confirm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--gm-lock);
+  border-radius: var(--r-md);
+  background: var(--gm-surface);
+}
+
+.gm-confirm-text {
+  flex: 1 1 220px;
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--gm-lock);
+}
+
+/* 위험한 쪽만 색을 준다 — 기본 초점은 덜 위험한 [그대로 두기]에 있다. */
+.gm-abandon-yes {
+  border-color: var(--gm-lock);
+  color: var(--gm-lock);
+  font-weight: 700;
 }

@@ -35,9 +35,14 @@ const ALL_KINDS = [
   'cmd',
   'solitaire',
   'steam',
+  'settings',
+  'callcenter',
   'folder',
   'scheduler',
   'autolog',
+  'tool',
+  'clipstudio',
+  'excel',
 ] as const satisfies readonly WindowKind[]
 
 /*

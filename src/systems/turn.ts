@@ -1,8 +1,10 @@
 import { getLivingCost, getWageMultiplier } from './economy'
 import { burnoutKeyOf, getBurnoutPenalty, pushActivity } from './burnout'
+import { markAttended } from './careerLog'
 import { weekdayOf } from '../data/calendar'
 import { DEFAULT_HOUSING_ID, findHousing } from '../data/housing'
 import { PAYOUT_INTERVAL_DAYS } from '../data/artworks'
+import { WORK_PER_SESSION, findGig } from '../data/gigs'
 import { OUTFIT_BONUS, outfitsFor, requiredItemIds } from '../data/items'
 import { FINAL_DAYS, isWorkWeekday } from '../data/careers'
 import { GROWTH_STAT_KEYS, INITIAL_STATS } from '../types/game'
@@ -353,6 +355,16 @@ export function nightPayoutPending(state: GameState): boolean {
   if ((state.lottery?.pending ?? 0) > 0) return true
   const twitter = state.twitter
   if (twitter && state.day - twitter.paidDay >= PAYOUT_INTERVAL_DAYS) return true
+  /* ⚠️ **공모전 상금** — 발표일 밤에 `advanceContests`가 넣는다. 안 보면 상금이 들어오기
+     직전 밤에 굶어 죽는다(정기예금 만기와 같은 형태 — 금액이 아니라 **날짜**를 본다). */
+  if ((state.contests?.entries ?? []).some((e) => e.prize === undefined && state.day >= e.resultDay)) {
+    return true
+  }
+  /* ⚠️ **웹툰 원고료** — 마감을 채운 주는 그 밤에 원고료가 들어온다. 여기서도 금액이 아니라
+     `dueDay`만 본다: `turn.ts`는 `webtoon.ts`를 import하지 않고 날짜 하나만 읽는다
+     (`employment`·`bank`와 같은 예외이자 같은 규칙). */
+  const webtoon = state.webtoon
+  if (webtoon && webtoon.status === 'serializing' && state.day > webtoon.dueDay) return true
   return (state.bank?.deposits ?? []).some((d) => state.day >= d.matureDay)
 }
 
@@ -401,12 +413,15 @@ function withGameOver(next: GameState): GameState {
 function stampJob(
   state: GameState,
   activity: Activity,
-): { employment?: Employment; application?: Application } {
+): { employment?: Employment; application?: Application; careerLog?: GameState['careerLog'] } {
   const { employment, application } = state
   if (activity.requiresJobStage === 'employed' && employment) {
     return {
       application,
       employment: { ...employment, attendedDays: [...employment.attendedDays, state.day] },
+      /* ⚠️ 출근부(`attendedDays`)는 급여일마다 지난 주기를 버리므로 **누적을 셀 수 없다**.
+         도감의 직업 레벨이 읽는 것은 이쪽이다(`systems/careerLog.ts`). */
+      careerLog: markAttended(state.careerLog, employment.careerId),
     }
   }
   if (activity.requiresJobStage === 'interview' && application) {
@@ -452,6 +467,45 @@ function stampArtwork(state: GameState, activity: Activity): Artwork[] | undefin
   ]
 }
 
+/**
+ * 도구를 한 번 켠 결과를 반영한다 — **업무량이 오르고, 다 채우면 그 자리에서 납품된다.**
+ *
+ * ⚠️ **`systems/gigs.ts`가 아니라 여기 있다**(그쪽이 재수출한다). 이유는 `owns`가
+ * `delivery.ts`에서 옮겨 온 것과 같다: 반영이 `runActivity` 밖에 있으면 활동 실행 통로 넷
+ * 중 하나(스케줄러 예약)가 샌다. 규칙의 나머지(수주·마감·포기)는 전부 `gigs.ts`에 있다.
+ *
+ * ⚠️ **받아 둔 일이 없거나 도구가 다르면 아무 일도 없다** — 도구는 계약 없이도 켤 수 있고
+ * 그때는 스탯만 오르는 연습이다(게이트를 늘리지 않는다).
+ *
+ * ⚠️ **보수는 밤으로 미루지 않는다.** 미루면 `nightPayoutPending`에 원천이 하나 더 생기고
+ * "다 했는데 그날 밤 굶어 죽는" 판이 난다 — 즉시 지급이면 그 위험 자체가 없다.
+ * ⚠️ **물가 배율을 타지 않는다**(`scalesWithWage`를 안 쓴다) — 정규직 급여와 같은 장치다.
+ */
+export function applyToolSession(state: GameState, tool: string): GameState {
+  const prev = state.gigs
+  const contract = prev?.active
+  if (!prev || !contract) return state
+  const gig = findGig(contract.gigId)
+  // 없는 일감을 가리키는 계약은 조용히 닫는다(일감을 지워도 화면이 안 깨진다).
+  if (!gig) return { ...state, gigs: { ...prev, active: undefined } }
+  if (gig.tool !== tool) return state
+
+  const progress = contract.progress + WORK_PER_SESSION
+  if (progress < gig.workload) {
+    return { ...state, gigs: { ...prev, active: { ...contract, progress } } }
+  }
+  return {
+    ...state,
+    stats: clampStats({ ...state.stats, money: state.stats.money + gig.pay }),
+    gigs: {
+      active: undefined,
+      done: [...prev.done, gig.id],
+      missed: prev.missed,
+      earned: prev.earned + gig.pay,
+    },
+  }
+}
+
 /** 활동을 실행하고 다음 슬롯 상태를 반환한다. 원본은 변경하지 않는다. */
 export function runActivity(state: GameState, activity: Activity): GameState {
   if (state.gameOver) return state
@@ -475,7 +529,7 @@ export function runActivity(state: GameState, activity: Activity): GameState {
   const advanced = advance(state, withEffects)
   const stats = clampStats(advanced.stats)
 
-  return withGameOver({
+  const advancedState = withGameOver({
     ...state,
     ...stamped,
     artworks,
@@ -484,6 +538,10 @@ export function runActivity(state: GameState, activity: Activity): GameState {
     stats,
     recentActivities: pushActivity(state.recentActivities, key),
   })
+
+  /* ⚠️ **턴을 넘긴 뒤에 반영한다.** 납품 보수는 그 슬롯의 결과이므로 취침 정산(생활비)
+     **뒤에** 들어와야 "다 했는데 그날 밤 굶어 죽는" 판이 안 난다. */
+  return activity.toolId ? applyToolSession(advancedState, activity.toolId) : advancedState
 }
 
 /**

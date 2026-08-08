@@ -216,6 +216,101 @@ export const ACTIVITIES: Activity[] = [
   },
   {
     /*
+     * 웹툰 원고. **개인 작업(`draw`)과 갈리는 자리가 여기다**(설계자 지시: "작업량 채울지,
+     * 개인작업물 만들지 선택").
+     *
+     * ⚠️ **`producesArt`가 없다** — 이것은 남의 원고라 갤러리에 안 남고 공모전에도 회지에도
+     * 못 쓴다. 그 대신 **돈이 주간 원고료로 돌아온다**(`data/webtoon.ts`의 `EPISODE_PAY`).
+     * ⚠️ **`effects`에 money가 없다.** 원고료는 회차 단위라 장마다 주면 마감을 채우지 않고
+     * 한 장만 그려도 돈을 버는 판이 된다 — 정규직 출근(`commute`)이 돈을 안 만지는 것과
+     * 정확히 같은 이유다.
+     * ⚠️ 예술이 `draw`보다 덜 오른다(+8 vs +12): 남이 정한 것을 그리는 일이라 배움이 적다.
+     * 대신 마감이 있어 멘탈을 더 깎는다.
+     */
+    id: 'draw-webtoon',
+    label: '웹툰 원고',
+    icon: 'fluent-color:document-edit-24',
+    category: 'leisure',
+    description: '마감이 있는 원고를 한 장 친다. 내 이야기는 아니지만 돈이 된다.',
+    effects: { art: 8, creativity: 4, stamina: -20, mental: -6 },
+    requires: { stamina: 20 },
+    requiresItem: ['pen-tablet', 'lcd-tablet'],
+    /* ⚠️ 번아웃은 `draw`와 **함께 센다** — 키를 가르면 개인 작업과 원고를 번갈아
+       그려 연속 노동의 대가를 한 번도 안 치른다(알바 4종과 같은 판단). */
+    burnoutKey: 'draw',
+  },
+  {
+    /*
+     * 코미콘 — 만든 작품집을 회지로 파는 하루.
+     *
+     * ⚠️ **`effects`에 money가 없다.** 매출은 회지의 장수·완성도가 정하므로 활동이 들고
+     * 있을 수 없다(알바몬 공고와 정반대 방향의 같은 원칙 — `Career.salary`·`Gig.pay`와 같다).
+     * 실제 지급은 `systems/projects.ts`의 `sellAtComicon`이 한다.
+     * ⚠️ **부스에 앉아 있는 일이라 1턴을 쓴다** — 판매를 공짜로 두면 그린 장수가 곧
+     * 그대로 수입이 되어 회지 수익 상한이 헐거워진다.
+     */
+    id: 'comicon',
+    label: '코미콘 참가',
+    icon: 'fluent-color:people-community-24',
+    category: 'leisure',
+    description: '부스에 앉아 하루 종일 회지를 판다. 몇 권이나 나갈지는 그려 놓은 것에 달렸다.',
+    effects: { sociability: 3, sensitivity: 2, stamina: -22, mental: 2 },
+    requires: { stamina: 22 },
+  },
+  {
+    /*
+     * 행사 참관 — 창작·전시 계열(코미콘·일러스트 페어·도서전·게임쇼).
+     *
+     * ⚠️ **`effects`에 money가 없다.** 입장료는 행사마다 다르므로 `Expo.fee`가 갖는다
+     * (강의 수강료·일감 보수와 같은 방향 — 활동 하나가 여러 행사를 대신 실행한다).
+     * ⚠️ 멘탈이 오른다: 남이 만든 것을 보고 오는 하루는 쉬는 축에 든다. 다만 폭이 작아
+     * **회복처로 쓰기엔 입장료가 아깝다** — `game`·`movie`가 여전히 싸고 확실하다.
+     */
+    id: 'expo-visit',
+    label: '행사 참관',
+    icon: 'fluent-color:calendar-24',
+    category: 'leisure',
+    description: '하루를 비워 행사장을 돈다. 남이 만든 것을 보는 것도 배움이다.',
+    effects: { sensitivity: 5, creativity: 4, sociability: 2, stamina: -14, mental: 3 },
+    requires: { stamina: 14 },
+    burnoutKey: 'expo',
+  },
+  {
+    /*
+     * 행사 참관 — 산업·강연 계열(취업 박람회·개발자 컨퍼런스).
+     * 창작 쪽과 갈리는 이유는 **가서 얻는 것이 다르기 때문**이다(감수성 vs 지식·인맥).
+     * 하나로 합치면 어느 행사를 골라도 같아져 목록이 장식이 된다.
+     */
+    id: 'expo-visit-biz',
+    label: '박람회 참관',
+    icon: 'fluent-color:briefcase-24',
+    category: 'study',
+    description: '부스를 돌며 설명을 듣고 명함을 받는다. 종일 서 있어야 한다.',
+    effects: { knowledge: 5, sociability: 4, reputation: 1, stamina: -16, mental: -2 },
+    requires: { stamina: 16 },
+    burnoutKey: 'expo',
+  },
+  {
+    /*
+     * 행사 참여 — 부스에 서는 쪽.
+     *
+     * ⚠️ **돈을 한 푼도 주지 않는다.** 참가비를 내고 얻는 것은 **평판과 인맥**이다 —
+     * 부스로 돈을 벌게 하면 회지 판매(`comicon`)와 같은 수입원이 하나 더 생겨
+     * "판은 반드시 끝난다"를 받치는 상한이 두 곳으로 갈린다. 회지를 파는 참여는
+     * 이 활동이 아니라 **코미콘 사이트**를 지난다.
+     * ⚠️ 번아웃 키는 참관과 같다 — 참관·참여를 번갈아 하며 대가를 피해 갈 수 없게.
+     */
+    id: 'expo-booth',
+    label: '행사 참여 (부스)',
+    icon: 'fluent-color:megaphone-loud-24',
+    category: 'relation',
+    description: '작은 부스를 지키며 하루를 보낸다. 몇 사람이 이름을 기억해 간다.',
+    effects: { reputation: 4, sociability: 5, charm: 2, stamina: -24, mental: -4 },
+    requires: { stamina: 24 },
+    burnoutKey: 'expo',
+  },
+  {
+    /*
      * 헬스장 1일권. 회원권으로 가는 것(gym-member)과 효과가 같고 **돈만 더 든다** —
      * 그래서 회원권 쪽에 `requiresItem` 잠금이 걸려 있어야만 이 활동이 존재 이유를 갖는다.
      * 잠금이 없던 동안 1일권은 순수하게 열등한 선택지였다(2026-08-04 수정).
@@ -291,64 +386,55 @@ export const ACTIVITIES: Activity[] = [
    */
   {
     /*
-     * 그목의 **조건 없는 유일한 일감**이다 — 알바몬의 편의점과 같은 자리다.
-     * 여기까지 잠그면 그목은 자격을 갖추기 전까지 통째로 닫힌 사이트가 된다.
-     * 보수가 가장 낮은 것이 그 값이고, 수료증·구독이 여는 일감은 전부 이보다 난다.
+     * ── 도구 활동 3종 (2026-08-08 그몽 재설계) ──
+     *
+     * ⚠️ **예전의 외주 활동 4종(`gig-typing`·`gig-design`·`gig-ai`·`gig-brand`)을 대체한다.**
+     * 그때는 "일감 = 활동 하나 = 즉시 보수"였고, 지금은 **수주 → 도구로 업무량 채우기
+     * → 납품**이라 돈은 일감이 갖는다(`Gig.pay`). 그래서 이 활동들은 **한 푼도 안 준다.**
+     *
+     * ⚠️ **받아 둔 일이 없어도 켤 수 있다** — 그때는 스탯만 오르는 연습이다.
+     * 게이트를 늘리지 않기 위한 결정이고, 도구를 잠그는 것은 여전히 **구독**뿐이다.
+     *
+     * ⚠️ **번아웃 키는 셋 다 `'gig'`다** — 도구를 바꿔 가며 켜도 "외주를 계속 하고 있는"
+     * 것은 같다(알바 4종이 `'work'`를 나누는 것과 같은 이유). 키는 여전히 넷이다.
      */
-    id: 'gig-typing',
-    label: '단순 입력 외주',
-    icon: 'fluent-color:document-text-24',
+    id: 'tool-photoshop',
+    label: '포토샵 작업',
+    icon: 'devicon:photoshop',
     category: 'living',
-    description: '녹취를 받아 적는다. 아무 자격도 필요 없고 그만큼 싸다.',
-    effects: { money: 38000, vocabulary: 1, stamina: -18, mental: -6 },
-    requires: { stamina: 18 },
+    description: '레이어를 쓰다 말고 다시 열었다. 이번엔 이름을 붙였다.',
+    effects: { art: 5, creativity: 3, stamina: -20, mental: -7 },
+    requires: { stamina: 20 },
+    requiresSubscription: 'adobe',
+    toolId: 'photoshop',
     burnoutKey: 'gig',
-    scalesWithWage: true,
+  },
+  {
+    id: 'tool-premiere',
+    label: '프리미어 작업',
+    icon: 'devicon:premierepro',
+    category: 'living',
+    description: '컷 하나에 십 분을 썼다. 되돌려 보면 처음 것과 같아 보인다.',
+    effects: { sensitivity: 4, creativity: 4, stamina: -22, mental: -7 },
+    requires: { stamina: 22 },
+    requiresSubscription: 'adobe',
+    toolId: 'premiere',
+    burnoutKey: 'gig',
   },
   {
     /*
-     * ⚠️ **이 게임에서 구독이 여는 유일한 활동이다**(`requiresSubscription`).
-     * 수료증 외주와 구조는 같지만 **잠금의 성격이 다르다**: 수료증은 한 번 따면
-     * 영원히 남고, 구독은 **돈을 못 내면 끊겨 이 일감도 다시 잠긴다.**
-     * 그래서 보수를 AI 외주(95,000)보다 조금 낮게 둔다 — 월 10,000원을 계속 내야
-     * 유지되는 자격이라 실질 수입은 그만큼 더 깎인다.
+     * ⚠️ **구독이 필요 없는 유일한 도구다** — 그래서 그몽의 "조건 없는 일감"이 VS 코드 쪽이고,
+     * 판을 시작하자마자 부업을 받을 수 있다.
      */
-    id: 'gig-design',
-    label: '디자인 외주',
-    icon: 'fluent-color:design-ideas-24',
+    id: 'tool-vscode',
+    label: 'VS 코드 작업',
+    icon: 'devicon:vscode',
     category: 'living',
-    description: '상세페이지 한 장. 시안은 세 번 엎어진다.',
-    effects: { money: 88000, art: 3, creativity: 2, stamina: -24, mental: -10 },
-    requires: { stamina: 24 },
-    requiresSubscription: 'adobe',
+    description: '동작하는 데까지 두 시간, 이해하는 데까지는 아직이다.',
+    effects: { knowledge: 4, creativity: 3, stamina: -20, mental: -6 },
+    requires: { stamina: 20 },
+    toolId: 'vscode',
     burnoutKey: 'gig',
-    scalesWithWage: true,
-  },
-  {
-    /* 수료증(cert-ai)이 여는 고소득 일감. 과외(지식 60)보다 조건이 이르지만 멘탈을 더 먹는다. */
-    id: 'gig-ai',
-    label: 'AI 외주',
-    icon: 'fluent-color:bot-sparkle-24',
-    category: 'living',
-    description: '수료증을 걸고 받은 첫 외주. 요구사항이 세 번 바뀐다.',
-    effects: { money: 95000, knowledge: 3, stamina: -25, mental: -10 },
-    requires: { stamina: 25 },
-    requiresItem: 'cert-ai',
-    burnoutKey: 'gig',
-    scalesWithWage: true,
-  },
-  {
-    /* 수료증(cert-brand)이 여는 일감. 돈은 덜 되지만 평판이 붙는다 — 성격을 갈라 둔다. */
-    id: 'gig-brand',
-    label: '브랜드 외주',
-    icon: 'fluent-color:megaphone-loud-24',
-    category: 'living',
-    description: '작은 가게의 간판 문구를 다듬어 준다. 사장님이 커피를 내준다.',
-    effects: { money: 72000, reputation: 2, charm: 1, stamina: -22, mental: -6 },
-    requires: { stamina: 22 },
-    requiresItem: 'cert-brand',
-    burnoutKey: 'gig',
-    scalesWithWage: true,
   },
   /*
    * ── 자격시험 (2026-08-05 O넷) ──

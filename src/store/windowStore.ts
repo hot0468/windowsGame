@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { LAYERS } from '../data/layers'
-import type { FolderId, IconName, WindowKind } from '../types/game'
+import { DESKTOP_ITEMS } from '../data/desktopItems'
+import type { FolderId, IconName, ToolRunPayload, WindowKind } from '../types/game'
 
 /** 최대화 이전의 좌표·크기. 복원할 때 이 값으로 되돌린다. */
 export interface RestoreBounds {
@@ -46,6 +47,12 @@ export interface OpenWindow {
   threadId?: string
   /** kind가 'folder'일 때 어느 폴더를 열지. */
   folderId?: FolderId
+  /**
+   * kind가 'tool'일 때 무엇을 그릴지(`ToolRunPayload`).
+   * ⚠️ **실행 직전에 찍은 사실이라 창이 들고 있어야 한다** — 창이 열릴 때는 이미 턴이
+   * 지나갔으므로 그 자리에서 다시 계산하면 방금 일어난 일과 다른 숫자가 나온다.
+   */
+  toolRun?: ToolRunPayload
 }
 
 /**
@@ -63,7 +70,26 @@ export type OpenWindowInput = Omit<
 interface WindowStore {
   windows: OpenWindow[]
   topZ: number
+  /**
+   * 브라우저에게 남기는 **이동 요청**. `BrowserApp`이 마운트 뒤 받아 가고 곧바로 비운다.
+   *
+   * ⚠️ **탭 목록이 `BrowserApp`의 `useState`에 살기 때문에 이 자리가 필요하다.** 창을
+   * 여는 것만으로는 목적지를 정할 수 없고(`open`은 이미 열린 창이면 앞으로 가져오기만 한다),
+   * 그렇다고 탭 상태를 스토어로 올리면 창 id별로 나눠 담고 닫을 때 지우는 코드가 딸려 온다.
+   * **소비하고 비우는 방식**이라 같은 사이트를 두 번 눌러도 null → 값으로 다시 바뀐다
+   * (`gameStore.arrivals`와 같은 형태 — 논스가 따로 필요 없는 이유가 그것이다).
+   */
+  pendingSite: string | null
   open: (win: OpenWindowInput) => void
+  /**
+   * **브라우저를 열고 그 사이트로 보낸다.** 이미 열려 있으면 앞으로 가져오고 이동만 시킨다.
+   *
+   * ⚠️ 브라우저를 여는 방법을 부르는 쪽마다 적지 않는다 — 폭·최대화 규칙이 두 벌이 되면
+   * 한쪽만 고치게 된다. 바탕화면의 인터넷 항목 정의를 그대로 재사용한다.
+   */
+  openSite: (siteId: string) => void
+  /** 이동 요청을 받아 갔다. `BrowserApp`만 부른다. */
+  clearPendingSite: () => void
   close: (id: string) => void
   focus: (id: string) => void
   move: (id: string, x: number, y: number) => void
@@ -83,6 +109,25 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
   windows: [],
   /** 일반 창은 바탕화면 패널(스탯창·날짜칸)보다 위에서 시작한다. */
   topZ: LAYERS.WINDOW_BASE,
+  pendingSite: null,
+
+  openSite: (siteId) => {
+    const browser = DESKTOP_ITEMS.find((i) => i.id === 'browser')
+    if (!browser) return
+    get().open({
+      id: `${browser.kind}-${browser.id}`,
+      title: browser.label,
+      icon: browser.icon,
+      x: 120,
+      y: 80,
+      width: browser.width,
+      maximized: browser.openMaximized,
+      kind: browser.kind,
+    })
+    set({ pendingSite: siteId })
+  },
+
+  clearPendingSite: () => set({ pendingSite: null }),
 
   /** 이미 열린 창이면 새로 열지 않고 (최소화돼 있었다면 복원해서) 앞으로 가져온다. */
   open: (win) => {

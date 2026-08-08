@@ -1,0 +1,305 @@
+/*
+ * 모두의행사(행사 안내).
+ *
+ * ## 색 — 인디고(indigo-700 계열 #4338CA)
+ * ⚠️ **이웃과 갈라 둔 값이다**: 하늘 #0369A1(알바몬) · 남색 #2563EB(벼룩장터) ·
+ * 주황 #C2410C(하이마루) · 로즈 #BE185D(무진장) · 보라 #6D28D9(O넷) · 초록 #15803D(공모전) ·
+ * 앰버+갈색(코미콘) · 청록(부동산) · 코랄(캠퍼스) · 슬레이트(주식) · 검정(트위터).
+ * 비어 있던 **인디고**를 잡았다 — 포털 소개 카드의 그라데이션(#1e1b4b → #4338ca)이 이미
+ * 그 계열이라 들어오는 길과 도착지의 색이 이어진다.
+ * ⚠️ **접두사는 `--ep-*`다.** `--ex-*`는 파일 탐색기가 쓴다.
+ *
+ * ## 왜 중립 배경 + 액센트 하나인가
+ * 여기는 **여러 행사를 나란히 놓고 고르는 곳**이다. 카드마다 색이 다르면 "무엇이 열렸나"가
+ * 색이 아니라 소음으로 읽힌다 — 그래서 유채색은 인디고 하나뿐이고, 열림/닫힘은
+ * **글자와 채도**가 함께 말한다(ux `color-not-only`).
+ *
+ * ## 구역 순서
+ * 제호(오늘 열린 건수·소지금) → **오늘 열린 행사** → 예정된 행사 → 각주.
+ * ⚠️ 열린 것이 위다 — 이 사이트에서 지금 실행할 수 있는 것은 오늘 열린 행사뿐이다.
+ *
+ * ⚠️ 반응형은 뷰포트가 아니라 컨테이너로 판정한다(사이트는 창 안이다).
+ * ⚠️ 간격 척도에 `--sp-7`은 없다(4/8 리듬).
+ */
+.ep {
+  --ep-bg: #f5f5ff;
+  --ep-surface: #ffffff;
+  --ep-line: #e2e0f5;
+  --ep-line-soft: #e2e8f0;
+  --ep-text: #1e1b4b; /* #fff 위 16.0:1 */
+  /* ⚠️ **흰색이 아니라 `--ep-bg`(#f5f5ff) 위에서 재야 한다** — 이 판의 보조 글자는
+     대부분 연한 인디고 바탕 위에 얹힌다. #64748b은 흰 위 4.8:1이지만 그 바탕에서는
+     **합성 4.39:1**로 AA를 못 넘겼다(실측이 잡았다). #475569는 같은 자리에서 6.99:1. */
+  --ep-text-2: #475569;
+  --ep-primary: #4338ca; /* #fff 위 7.9:1 — 제호·주 버튼 */
+  --ep-primary-hover: #362bab;
+  --ep-lock: #b91c1c; /* #fff 위 5.9:1 — 잠금 사유 */
+  --ep-badge-bg: #e0e7ff;
+  --ep-badge-fg: #3730a3; /* #e0e7ff 위 8.1:1 */
+
+  container-type: inline-size;
+  min-height: 100%;
+  padding-bottom: var(--sp-8);
+  background: var(--ep-bg);
+  color: var(--ep-text);
+}
+
+.ep-head,
+.ep-sec,
+.ep-foot {
+  width: min(1000px, 100% - 48px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── 제호 ─────────────────────────────────────────────── */
+.ep-head {
+  padding: var(--sp-6) 0 var(--sp-4);
+}
+
+.ep-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-family: var(--font-point);
+  font-weight: 400; /* 한 벌짜리 서체라 합성 볼드를 막는다 */
+  font-size: var(--fs-2xl);
+  color: var(--ep-primary);
+}
+
+.ep-lede {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--ep-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.ep-lede b {
+  color: var(--ep-text);
+}
+
+/* ── 구역 ─────────────────────────────────────────────── */
+.ep-sec {
+  margin-bottom: var(--sp-5);
+}
+
+.ep-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.ep-sec-count {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--ep-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 카드 격자 ────────────────────────────────────────── */
+/* ⚠️ 최소 폭은 판 폭에서 계산한 값이다: 판 1000px·gap 16px에서 3열은 300×3+32=932로
+   들어가고 4열은 1232로 넘친다 — 버튼 둘이 세로로 쌓이는 카드라 3열이 상한이다. */
+.ep-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--sp-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ep-grid > li {
+  display: flex;
+}
+
+.ep-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--ep-line);
+  border-left: 3px solid var(--ep-primary);
+  border-radius: var(--r-lg);
+  background: var(--ep-surface);
+}
+
+/*
+ * 닫힌 행사. ⚠️ **감추지 않는다** — 언제 여는지가 이 사이트의 정보다.
+ * 색은 거들 뿐이고 상태는 `.ep-status`의 글자가 말한다.
+ */
+.ep-card-off {
+  border-left-color: var(--ep-line-soft);
+  background: color-mix(in srgb, var(--ep-surface) 92%, var(--ep-bg));
+}
+
+.ep-status {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--ep-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ep-card-off .ep-status {
+  color: var(--ep-text-2);
+  font-weight: 400;
+}
+
+.ep-host {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--ep-text-2);
+}
+
+.ep-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: 2px 0 var(--sp-1);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.ep-badge {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--ep-badge-bg);
+  color: var(--ep-badge-fg);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.ep-place {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--ep-text-2);
+}
+
+.ep-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin: 0 0 var(--sp-2);
+  padding: 0;
+  list-style: none;
+}
+
+.ep-tag {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--ep-bg);
+  font-size: var(--fs-xs);
+  color: var(--ep-text-2);
+}
+
+.ep-fee {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--ep-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.ep-fee b {
+  color: var(--ep-text);
+}
+
+/* ── 신청 ─────────────────────────────────────────────── */
+.ep-acts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin-top: auto;
+  padding-top: var(--sp-2);
+}
+
+.ep-btn {
+  min-height: 36px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--ep-primary);
+  border-radius: var(--r-md);
+  background: var(--ep-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--ep-primary);
+  cursor: pointer;
+}
+
+.ep-btn-main {
+  background: var(--ep-primary);
+  color: #ffffff; /* #4338ca 위 7.9:1 */
+}
+
+.ep-btn:hover:not(:disabled) {
+  border-color: var(--ep-primary-hover);
+  background: var(--ep-badge-bg);
+  color: var(--ep-badge-fg);
+}
+
+.ep-btn-main:hover:not(:disabled) {
+  background: var(--ep-primary-hover);
+  color: #ffffff;
+}
+
+/* ux `disabled-states`: 투명도 + 커서 + 의미론적 속성을 함께 준다.
+   ⚠️ 사유는 바로 아래 글자로 남는다 — 막힌 버튼만 보이면 왜 막혔는지 알 길이 없다. */
+.ep-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ep-desc {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-xs);
+  color: var(--ep-text-2);
+}
+
+.ep-lock {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-xs);
+  color: var(--ep-lock);
+}
+
+/* ── 빈 상태 · 각주 ───────────────────────────────────── */
+.ep-empty {
+  margin: 0;
+  padding: var(--sp-5);
+  border: 1px dashed var(--ep-line);
+  border-radius: var(--r-lg);
+  font-size: var(--fs-sm);
+  color: var(--ep-text-2);
+  text-align: center;
+}
+
+.ep-foot {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--ep-line);
+  font-size: var(--fs-xs);
+  color: var(--ep-text-2);
+}
+
+.ep-foot p {
+  margin: 0 0 var(--sp-1);
+}
+
+/* 좁아지면 카드가 한 열로 쌓인다(가로 스크롤 금지). */
+@container (max-width: 560px) {
+  .ep-head,
+  .ep-sec,
+  .ep-foot {
+    width: calc(100% - 24px);
+  }
+
+  .ep-grid {
+    grid-template-columns: 1fr;
+  }
+}

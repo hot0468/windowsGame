@@ -39,6 +39,22 @@ export function prunePast(plans: Plan[], day: number, slot: Slot): Plan[] {
 }
 
 /**
+ * `fromDay`부터 **비어 있는 첫 슬롯**. 예매처럼 "며칠 뒤에 잡아 달라"는 예약이 쓴다.
+ *
+ * ⚠️ **남의 예약을 덮지 않는다** — `setPlan`은 같은 자리를 말없이 교체하는데,
+ * 플레이어가 직접 짠 계획을 예매가 지워 버리면 달력을 믿을 수 없게 된다.
+ * 2주(28슬롯)를 다 뒤져도 빈자리가 없으면 마지막 날 오후를 돌려준다 — 달력을 통째로
+ * 채운 사람에게 "예매할 수 없다"고 하는 것보다 하나를 밀어내는 편이 낫다.
+ */
+export function firstFreeSlot(plans: Plan[], fromDay: number): { day: number; slot: Slot } {
+  const SLOTS: Slot[] = ['morning', 'afternoon']
+  for (let day = fromDay; day < fromDay + 14; day++) {
+    for (const slot of SLOTS) if (!findPlan(plans, day, slot)) return { day, slot }
+  }
+  return { day: fromDay + 13, slot: 'afternoon' }
+}
+
+/**
  * 앞으로 `weeks`주 동안 **매주 같은 요일**에 예약을 건다(헬스장 월결제).
  *
  * 오늘이 그 요일이어도 **다음 주부터** 잡는다 — 등록한 그날 바로 운동하러 가는 건

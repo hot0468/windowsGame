@@ -1,6 +1,7 @@
 import {
   FOLLOWERS_BY_GRADE,
   FOLLOWER_CAP,
+  LIKES_BY_GRADE,
   PAYOUT_INTERVAL_DAYS,
   WON_PER_FOLLOWER,
 } from '../data/artworks'
@@ -32,11 +33,14 @@ import type { Artwork, GameState, TwitterState } from '../types/game'
 
 /** 아직 아무것도 안 올린 사람의 상태. `day`가 첫 정산 기준일이 된다. */
 export function emptyTwitter(day: number): TwitterState {
-  return { gained: 0, postedIds: [], paidDay: day }
+  return { gained: 0, postedIds: [], likes: 0, paidDay: day }
 }
 
 export function twitterOf(state: GameState): TwitterState {
-  return state.twitter ?? emptyTwitter(state.day)
+  const t = state.twitter
+  if (!t) return emptyTwitter(state.day)
+  // ⚠️ 구세이브에는 `likes`가 없다 — 마이그레이션 대신 여기서 메운다(옵셔널 상태 규칙).
+  return t.likes === undefined ? { ...t, likes: 0 } : t
 }
 
 /**
@@ -53,6 +57,15 @@ export function totalFollowers(state: GameState): number {
 /** 이 그림을 올리면 늘어나는 팔로워. 등급이 낮으면 0이다(확인창이 미리 적는다). */
 export function followerGain(work: Artwork): number {
   return FOLLOWERS_BY_GRADE[artGrade(work)]
+}
+
+/**
+ * 이 그림이 받을 좋아요. **팔로워와 다른 축이다** — 팔로워는 상한이 걸린 수입의 축이고
+ * 좋아요는 상한 없는 평가의 축이라 **웹툰 제의가 보는 값**이 이쪽이다.
+ * ⚠️ F도 0이 아니다: 아무도 안 보는 그림은 없지만, 그 수로는 제의에 한참 못 미친다.
+ */
+export function likeGain(work: Artwork): number {
+  return LIKES_BY_GRADE[artGrade(work)]
 }
 
 /** 이미 올린 그림인가. 같은 그림으로 팔로워를 반복해서 벌 수 없다. */
@@ -98,6 +111,7 @@ export function postArtwork(state: GameState, artworkId: string): GameState {
   if (!activity || !canRun(state, activity)) return state
 
   const gain = followerGain(work)
+  const likes = likeGain(work)
   const before = twitterOf(state)
   const next = runActivity(state, activity)
   // 실행이 막혔으면(게임오버 등) 아무것도 얹지 않는다.
@@ -108,6 +122,7 @@ export function postArtwork(state: GameState, artworkId: string): GameState {
     twitter: {
       ...before,
       gained: before.gained + gain,
+      likes: before.likes + likes,
       postedIds: [...before.postedIds, artworkId],
     },
   }

@@ -189,3 +189,36 @@ describe('windowStore 최소화/복원', () => {
     expect(useWindowStore.getState().windows).toHaveLength(0)
   })
 })
+
+/**
+ * 사이트 이동 요청.
+ *
+ * ⚠️ **탭 목록이 `BrowserApp`의 `useState`에 살기 때문에 이 채널이 존재한다.** 창을 여는
+ * 것만으로는 목적지를 못 정하고(`open`은 이미 열린 창이면 앞으로 가져오기만 한다),
+ * 요청을 남겨 두면 창을 새로 열 때마다 그 사이트로 끌려간다. 그래서 **소비하고 비운다**.
+ */
+describe('windowStore 사이트 이동 요청', () => {
+  beforeEach(() => useWindowStore.setState({ windows: [], topZ: LAYERS.WINDOW_BASE, pendingSite: null }))
+
+  it('브라우저 창을 열면서 목적지를 함께 남긴다', () => {
+    useWindowStore.getState().openSite('adobe')
+    expect(win('browser-browser').kind).toBe('browser')
+    expect(useWindowStore.getState().pendingSite).toBe('adobe')
+  })
+
+  it('브라우저가 이미 열려 있어도 창을 늘리지 않고 목적지만 바꾼다', () => {
+    useWindowStore.getState().openSite('adobe')
+    useWindowStore.getState().clearPendingSite()
+    useWindowStore.getState().openSite('gmong')
+    expect(useWindowStore.getState().windows.filter((w) => w.kind === 'browser')).toHaveLength(1)
+    expect(useWindowStore.getState().pendingSite).toBe('gmong')
+  })
+
+  it('같은 사이트를 두 번 눌러도 요청이 다시 선다 — 비운 뒤라야 효과가 다시 난다', () => {
+    useWindowStore.getState().openSite('adobe')
+    useWindowStore.getState().clearPendingSite()
+    expect(useWindowStore.getState().pendingSite).toBeNull()
+    useWindowStore.getState().openSite('adobe')
+    expect(useWindowStore.getState().pendingSite).toBe('adobe')
+  })
+})

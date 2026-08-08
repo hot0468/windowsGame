@@ -8,6 +8,7 @@ import { getLivingCost } from '../../systems/economy'
 import { STAT_NAMES } from '../../types/game'
 import type { Stats } from '../../types/game'
 import { previewActivity } from './activityPreview'
+import { openToolWindow } from './ToolRun'
 import './ExeApp.css'
 
 /** 이 창에서만 쓰는 일회성 경고 글리프. 여러 경고 문구가 공유한다. */
@@ -36,7 +37,14 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
   // 증감 계산은 브라우저 사이트의 확정 패널과 **같은 함수**를 쓴다(activityPreview 주석 참조).
   const { rows, efficiency, mentalPenalty, isBurnedOut } = previewActivity(state, activity)
 
+  /**
+   * ⚠️ **도구 앱은 이 창을 닫고 자기 창을 연다**(설계자 지시). 나머지 활동은 실행이 곧
+   * 끝이지만, 도구는 "프로그램이 돌아가는 것"까지가 실행이다 — 그리고 그 프로그램은
+   * 이 팝업의 일부가 아니라 **단독 창**이어야 한다(`ToolRun` 주석 참조).
+   * ⚠️ 창을 여는 것이 `doActivity`보다 **먼저**다: 결과 화면이 견줄 것은 실행 직전의 상태다.
+   */
   const handleRun = () => {
+    if (activity.toolId) openToolWindow(state, activity)
     doActivity(activity)
     onDone()
   }

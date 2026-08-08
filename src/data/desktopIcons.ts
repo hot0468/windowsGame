@@ -15,9 +15,18 @@ import type { GridCell } from '../types/game'
  * **옮긴 아이콘만** 저장된다 — 그래야 설계자가 나중에 기본 배치를 바꿨을 때
  * 한 번도 안 옮긴 사람에게는 새 기본 배치가 그대로 간다.
  */
+/**
+ * 오른쪽 열에 서는 것 = **모아 두고 넘겨 보는 것**.
+ *
+ * ⚠️ `kind === 'folder'`만으로 가르지 않는다 — 도감(`excel`)은 표라서 kind가 다르지만
+ * 사진첩 옆에 서야 하는 같은 부류다(설계자 지시). 열을 가르는 기준은 창의 생김새가
+ * 아니라 **무엇을 여는가**이므로, 새 도감류가 생기면 여기에 kind를 더한다.
+ */
+export const COLLECTION_KINDS: readonly string[] = ['folder', 'excel']
+
 const DEFAULT_COLUMNS = [
-  DESKTOP_ITEMS.filter((i) => i.kind !== 'folder'),
-  DESKTOP_ITEMS.filter((i) => i.kind === 'folder'),
+  DESKTOP_ITEMS.filter((i) => !COLLECTION_KINDS.includes(i.kind)),
+  DESKTOP_ITEMS.filter((i) => COLLECTION_KINDS.includes(i.kind)),
 ]
 
 export const DEFAULT_ICON_CELLS: Readonly<Record<string, GridCell>> = Object.fromEntries(

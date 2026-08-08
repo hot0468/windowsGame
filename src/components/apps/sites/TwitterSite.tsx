@@ -4,6 +4,7 @@ import { PAYOUT_INTERVAL_DAYS, WON_PER_FOLLOWER, artTitle } from '../../../data/
 import { TRENDING_TERMS } from '../../../data/news'
 import { countLabel, findAccount, tweetAge, TWEETS } from '../../../data/tweets'
 import { artGrade } from '../../../systems/artwork'
+import { streamReviews } from '../../../systems/channel'
 import {
   daysToPayout,
   followerGain,
@@ -23,8 +24,9 @@ import './TwitterSite.css'
  *
  * ## 레퍼런스에서 덜어낸 것 (장식 금지)
  * 이 게임의 확정 규칙은 "가짜 브라우저가 **실제로 들고 있는 값**만 보여 준다"이다.
- * 그래서 X에 있지만 여기서 뺀 것들: **Premium 구독 박스**(구독 개념은 설계자 지시로
- * 이 게임에서 제외됐다) · **팔로우 추천 박스**(누를 데가 없다) · Grok·북마크·채팅 등
+ * 그래서 X에 있지만 여기서 뺀 것들: **Premium 구독 박스**(⚠️ 구독 자체는 2026-08-08
+ * 어도비로 생겼지만 그건 **여는 것이 분명한** 구독이다 — 여기 구독은 게임에서 아무것도
+ * 열지 않아 여전히 장식이다) · **팔로우 추천 박스**(누를 데가 없다) · Grok·북마크·채팅 등
  * **갈 데 없는 네비 항목**. 남긴 것은 전부 실제로 동작한다.
  *
  * ## 남긴 것이 하는 일
@@ -32,7 +34,9 @@ import './TwitterSite.css'
  * - 좌 하단 **계정 카드**: 이름은 `gameStore`의 플레이어 이름, 핸들은 거기서 파생.
  *   **팔로워 수는 `reputation`에서 환산한 읽기 전용 파생값이다** — 새 상태를 만들지 않는다.
  * - 중앙 **추천 / 팔로잉** 탭: `Tweet.following`으로 실제 목록을 가른다.
- * - 우 **검색창**: 본문·계정명·핸들로 타임라인을 거른다.
+ * - 우 **검색창**: 본문·계정명·핸들로 타임라인을 거른다. ⚠️ **너튜브 채널 이름을 검색하면
+ *   내 방송에 대한 시청자 반응이 함께 걸린다**(`systems/channel.ts`의 `streamReviews`) —
+ *   켠 적이 있어야 존재하고, 개수는 켠 횟수·어조는 평판 등급이 정하는 **파생값이다**.
  * - 우 **트렌드**: `data/news.ts`의 `TRENDING_TERMS`를 그대로 쓰고, 누르면 그 단어로 거른다.
  *
  * ⚠️ **탐색은 무료다.** 탭 전환·검색·트렌드 클릭은 `gameStore`를 **읽기만** 한다.
@@ -66,9 +70,13 @@ export function TwitterSite({ site }: { site: Site }) {
   const picked = pickedArt ? postable.find((a) => a.id === pickedArt) : undefined
 
   const q = query.trim()
-  const shown = TWEETS.filter((t) => (tab === 'following' ? t.following : true)).filter((t) =>
-    q ? matches(t, q) : true,
-  )
+  /* ⚠️ **검색할 때만 시청자 반응을 후보에 넣는다**(2026-08-08). 늘 깔면 남의 타임라인이
+     내 방송 이야기로 도배되고, 반응 문장에 채널 이름이 들어 있으므로 걸러 내는 일은
+     기존 `matches` 하나가 그대로 한다 — 두 번째 판정을 만들지 않는다. */
+  const pool = q ? [...streamReviews(state), ...TWEETS] : TWEETS
+  const shown = pool
+    .filter((t) => (tab === 'following' ? t.following : true))
+    .filter((t) => (q ? matches(t, q) : true))
 
   const goHome = () => {
     setTab('recommend')

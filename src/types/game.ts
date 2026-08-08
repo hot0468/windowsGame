@@ -107,6 +107,30 @@ export type Slot = 'morning' | 'afternoon'
 export type IconName = string
 
 /**
+ * 외주 작업 도구. 수치(일감·이름·작업 단계)는 `data/gigs.ts`가 갖고 **여기는 축만 정한다**
+ * — `Activity.toolId`가 이 타입이라야 화면이 `TOOL_NAMES[toolId]`처럼 안전하게 색인한다
+ * (`string`이면 없는 도구 이름이 `undefined`로 조용히 새어 나간다).
+ */
+export type ToolId = 'photoshop' | 'premiere' | 'vscode'
+
+/**
+ * 도구 앱 창(`WindowKind: 'tool'`)이 그릴 것. **실행 직전에 찍어 둔 사실이다.**
+ *
+ * ⚠️ **증감을 창 안에서 다시 계산하지 않는 이유**: 창이 열릴 때는 이미 턴이 지나갔으므로
+ * 그때의 스탯으로 `previewActivity`를 다시 부르면 효율·연속 페널티가 달라져 **화면이
+ * 방금 일어난 일과 다른 숫자를 말한다.**
+ * ⚠️ `contract`·`earned`는 **실행 전**의 일감 상태다 — 창은 지금 상태와 견주어
+ * "업무량이 얼마나 찼는가 / 납품됐는가"를 판정한다.
+ */
+export interface ToolRunPayload {
+  toolId: ToolId
+  rows: { key: keyof Stats; value: number }[]
+  mentalPenalty: number
+  contract?: GigContract
+  earned: number
+}
+
+/**
  * 활동 분류. 스케줄러 고르기 판이 이 값으로 묶는다.
  *
  * 활동이 15종이 되면서 한 줄 목록으로는 고를 수 없게 됐다 — 무엇을 키우는 행동인지가
@@ -187,6 +211,14 @@ export interface Activity {
    * 그리는 활동을 하나 더 만들 때 그쪽만 조용히 그림을 안 남긴다. 실제 생성은
    * `runActivity`가 한다(실행 통로가 넷이라 그 밖에 두면 하나가 반드시 샌다).
    */
+  /**
+   * **이 활동이 켜는 도구**(`data/gigs.ts`의 `ToolId`). 생략 = 도구가 아니다.
+   *
+   * ⚠️ 활동 id로 분기하지 않는 이유는 `producesArt`와 같다 — id를 박으면
+   * 도구를 하나 더 만들 때 그쪽만 조용히 업무량을 안 채운다.
+   * ⚠️ **받아 둔 일이 없어도 켤 수 있다**(스탯만 오른다) — 게이트를 늘리지 않는다.
+   */
+  toolId?: ToolId
   producesArt?: boolean
   /** 바탕화면에 아이콘을 띄울지 여부. 나머지 활동은 정의만 보존된다. */
   onDesktop?: boolean
@@ -210,16 +242,41 @@ export type WindowKind =
   | 'taskmgr'
   | 'cmd'
   | 'solitaire'
+  /** 설정 — 지금은 구독 관리 한 구역뿐이다(`SettingsApp`). */
+  | 'settings'
   /** 아이템 인벤토리·이벤트 도감. 파일 탐색기 UI로 그린다. */
   | 'folder'
   | 'scheduler'
   /** 증기 — 가짜 스팀 클라이언트. 라이브러리에서 게임을 켜 시간을 보낸다. */
   | 'steam'
   /**
+   * 도구 앱이 돌아가는 창(포토샵·프리미어·VS 코드). **활동 창과 별개의 단독 창이다**
+   * (설계자 지시) — 활동 창은 "할까요?"를 묻는 팝업이고, 이쪽은 **그 프로그램 자체**다.
+   * 턴은 이 창이 열리기 전에 이미 지나갔고 여기서 게임 상태는 안 바뀐다.
+   */
+  | 'tool'
+  /**
+   * 콜센터 업무 프로그램. **출근(`commute`)이 여는 창이고 바탕화면 아이콘이 없다** —
+   * 회사 자리에 앉아야 뜨는 사내 프로그램이라 아무 때나 켤 수 있으면 뜻이 무너진다.
+   */
+  | 'callcenter'
+  /**
+   * 클립스튜디오. **활동 창이 아니라 고르는 창이다**(증기·미디북스와 같은 부류) —
+   * 웹툰 원고를 칠지, 개인 작업을 할지, 개인 작업이면 단일이냐 어느 프로젝트냐를
+   * 여기서 고르고 그다음에 확인창이 뜬다.
+   */
+  | 'clipstudio'
+  /**
    * 자동 진행 요약. **며칠이 조용히 사라지지 않게 하는 창구다** —
    * 토스트는 5초 뒤 없어지고 메일은 열어야 보이지만 이 창은 진행이 끝나면 스스로 뜬다.
    */
   | 'autolog'
+  /**
+   * 도감 — 직업·엔딩을 엑셀 판형으로 늘어놓는 창. **읽기 전용이다**(게임 상태를 안 바꾼다).
+   * 사진첩(이벤트 도감)과 나란히 서지만 폴더가 아니라 **표**다 — 셀마다 값이 있는 것을
+   * 파일 격자로 그리면 레벨·조건이 갈 자리가 없다.
+   */
+  | 'excel'
 
 /**
  * 바탕화면에 놓이는 항목. 활동만이 바탕화면 항목인 것은 아니다 —
@@ -347,8 +404,38 @@ export interface Plan {
 export type GameOverReason = 'bankrupt' | 'burnout'
 
 /** 세이브에 포함되는 게임 진행 상태. */
-/** 파일 탐색기로 여는 폴더. 셋뿐이라 유니온으로 둔다 — 더 늘어나면 그때 데이터로 뺀다. */
-export type FolderId = 'inventory' | 'codex' | 'gallery'
+/**
+ * 파일 탐색기로 여는 폴더.
+ *
+ * ⚠️ **고정 셋 + 프로젝트 폴더다.** 프로젝트는 플레이어가 원하는 만큼 만들 수 있으므로
+ * 유니온에 나열할 수 없다 — `project:<id>` 형태로 열고 `projectFolderId`/`folderProjectId`
+ * 한 쌍이 그 문자열을 만들고 되읽는다(문자열을 여러 곳에서 조립하면 한 곳만 낡는다).
+ */
+export type FolderId = 'inventory' | 'codex' | 'gallery' | 'postcard' | `project:${string}`
+
+/**
+ * 시집이 포스트카드 한 장.
+ *
+ * ⚠️ **영화의 사실을 복사하지 않고 id만 가리킨다**(작품집이 그림을 가리키는 것과 같은
+ * 규칙) — 제목·태그라인의 단일 출처는 `data/media.ts`의 `FILMS`다.
+ * ⚠️ **같은 영화는 한 장뿐이다**(규칙은 `systems/cinema.ts`) — 두 번 보면 두 장이 되는
+ * 순간 포스트카드는 모으는 것이 아니라 관람 횟수 표시가 된다.
+ */
+export interface Postcard {
+  filmId: string
+  /** 본 날. 턴이 넘어가기 **전**의 날짜다(그림이 그린 날을 박는 것과 같다). */
+  day: number
+}
+
+/** 프로젝트 폴더의 `FolderId`. */
+export function projectFolderId(projectId: string): FolderId {
+  return `project:${projectId}`
+}
+
+/** 프로젝트 폴더면 그 프로젝트 id, 아니면 undefined. */
+export function folderProjectId(folderId: FolderId): string | undefined {
+  return folderId.startsWith('project:') ? folderId.slice('project:'.length) : undefined
+}
 
 /** 배송 중인 주문. `day`에 도착한다. */
 export interface Delivery {
@@ -407,6 +494,14 @@ export interface Employment {
   checkedDay: number
   /** 경고 메일을 보낸 시점의 결근 수. 같은 경고를 매 턴 반복하지 않기 위함이다. */
   warnedAt?: number
+  /**
+   * 아직 지급되지 않은 업무 보너스(원). 콜센터 미니게임이 쌓고 **급여일에 기본급과 함께**
+   * 빠져나간다(`systems/callcenter.ts`·`payWages`). 옵셔널 = 콜센터가 아닌 회사는 늘 없다.
+   *
+   * ⚠️ **소지금이 아니다.** 여기 있는 동안은 아직 받은 돈이 아니므로 파산 판정도 물가도
+   * 이 값을 보지 않는다 — 급여가 그렇듯 보너스도 급여일에만 현실이 된다.
+   */
+  bonus?: number
 }
 
 /** 정규직 소식의 종류. 문구는 `systems/employment.ts`가 만든다. */
@@ -436,8 +531,13 @@ export interface JobNotice {
   slot: Slot
   /** 탈락·경고의 사유. 무엇이 모자랐는지 그대로 적는다(ux `error-clarity`). */
   reason?: string
-  /** 급여 등 금액. */
+  /** 급여 등 금액. 급여일 소식에서는 **기본급 + 보너스의 합**이다(실제로 들어온 돈). */
   amount?: number
+  /**
+   * `amount` 중 업무 보너스 몫(콜센터). 합계와 따로 남기는 이유는 명세서가
+   * "기본급 얼마 + 보너스 얼마"를 말해야 미니게임이 실제로 값을 했는지 보이기 때문이다.
+   */
+  bonus?: number
 }
 
 /* ── 은행 (2026-08-05 신설) ───────────────────────────────────────────────
@@ -616,6 +716,24 @@ export interface Artwork {
 }
 
 /**
+ * 개인방송 채널. **옵셔널이다** — 방송을 켠 적도, 이름을 지은 적도 없으면 없다
+ * (`steam`·`courses`와 같은 규칙 — 마이그레이션이 필요 없다).
+ *
+ * ⚠️ **구독자 수는 여기 없다.** 그쪽은 여전히 평판 파생(`subscribersFrom`)이고, 여기
+ * 담는 것은 **파생시킬 수 없는 것**뿐이다 — 플레이어가 지은 이름과, 실제로 켠 횟수·주제.
+ * 트위터의 시청자 반응(`streamReviews`)이 그 셋을 근거로 삼는다. 반응까지 저장하면
+ * 평판이 오르내려도 낡은 문장이 그대로 남는다.
+ */
+export interface ChannelState {
+  /** 채널 이름. 없으면 플레이어 이름으로 읽는다(`channelOf`). */
+  name: string
+  /** 방송을 켠 횟수. **켠 적이 있어야 시청자 반응이 존재한다**는 근거다. */
+  streams: number
+  /** 마지막으로 켠 방송 주제 id(`StreamTopic.id`). 반응이 무엇에 대한 것인지 정한다. */
+  topic?: string
+}
+
+/**
  * 트위터 활동 상태. **옵셔널이다** — 그림을 올린 적 없으면 없다
  * (`lottery`·`courses`와 같은 규칙 — 마이그레이션이 필요 없다).
  *
@@ -630,6 +748,14 @@ export interface TwitterState {
   gained: number
   /** 이미 올린 그림 id. 같은 그림을 다시 올려 팔로워를 반복해서 벌 수 없다. */
   postedIds: string[]
+  /**
+   * 올린 그림들이 받은 좋아요 누적.
+   *
+   * ⚠️ **팔로워와 따로 센다.** 팔로워는 상한(`FOLLOWER_CAP`)이 걸린 **수입의 축**이고
+   * 좋아요는 상한이 없는 **평가의 축**이다 — 웹툰 제의가 보는 것이 이쪽이다. 팔로워로
+   * 판정하면 평판만 올려도 제의가 오게 되어 "그림을 그려서 알려졌다"가 거짓이 된다.
+   */
+  likes: number
   /**
    * 마지막으로 수익을 정산한 날. `Employment.checkedDay`·`BankState.accruedDay`와 같은
    * 커서라 같은 주를 두 번 정산하지 않는다.
@@ -700,10 +826,136 @@ export interface StockState {
  * **공짜 구독**이 된다(은행은 반대로 파산이 안 걸렸다).
  */
 export interface SubscriptionState {
-  /** 구독 중인 상품 id → 가입일·마지막 청구일. **해지하면 키가 사라진다**(그것이 곰 판정이다). */
+  /** 구독 중인 상품 id → 가입일·마지막 청구일. **해지하면 키가 사라진다**(그것이 곰장 판정이다). */
   active: Record<string, { startedDay: number; billedDay: number }>
   /** 지금까지 낸 총액. 화면이 "얼마 냈나"를 정직하게 적는 근거다(`LotteryState.spent`와 같다). */
   paid: number
+}
+
+/* ── 그몽 외주 (2026-08-08 재설계) ─────────────────────────────
+ *
+ * 수치는 `data/gigs.ts`에, 규칙은 `systems/gigs.ts`에 있다.
+ * 여기에는 **모양만** 적는다(`Plan`·`Employment`와 같은 이유).
+ */
+
+/**
+ * 진행 중인 외주 한 건. **동시에 하나뿐이다** — 정규직 지원(`Application`)과
+ * 같은 판단이다: 여럿을 받아 두면 "지금 무슨 일을 하고 있나"가 화면에 하나로 안 뜼고,
+ * 도구를 켰을 때 어느 건을 채울지 고르게 하는 판이 하나 더 필요해진다.
+ */
+export interface GigContract {
+  /** `data/gigs.ts`의 일감 id. */
+  gigId: string
+  takenDay: number
+  /** 이 날까지 채워야 한다. 지나면 실패다(`advanceGigs`). */
+  dueDay: number
+  /** 지금까지 채운 업무량. 도구를 한 번 켜면 `WORK_PER_SESSION`만큼 오른다. */
+  progress: number
+}
+
+/**
+ * 그몽 상태. **옵셔널이다** — 받은 적 없으면 없다(`courses`·`exams`와 같은 규칙).
+ *
+ * ⚠️ **납품한 일감 id를 남긴다**(`done`) — 같은 일감을 무한히 되받아
+ * 무한히 벌 수 없게 하는 유일한 장치다(복권의 `serial`·트위터의 `postedIds`와 같은 역할).
+ */
+export interface GigState {
+  /** 지금 받아 둔 일. 없으면 놀고 있는 것이다. */
+  active?: GigContract
+  /** 납품을 마친 일감 id. 다시 받을 수 없다. */
+  done: string[]
+  /** 마감을 놓친 횟수. 화면이 그 사실을 적는 근거다. */
+  missed: number
+  /** 지금까지 받은 보수 총액. */
+  earned: number
+}
+
+/* ── 창작 프로젝트 · 공모전 · 웹툰 (2026-08-08) ──────────────────────────
+ *
+ * 수치는 `data/contests.ts`·`data/webtoon.ts`, 규칙은 `systems/projects.ts`·
+ * `systems/contests.ts`·`systems/webtoon.ts`에 있다. 여기에는 **모양만** 적는다.
+ */
+
+/**
+ * 작품집 한 권. **클립스튜디오로 그린 그림을 묶는 자루다.**
+ *
+ * ⚠️ **그림을 복사해 담지 않고 id만 가리킨다** — 그림의 단일 출처는 `GameState.artworks`이고
+ * (갤러리가 그걸 그린다) 여기 복사본을 두면 등급 기준을 손볼 때 한쪽만 낡는다.
+ * ⚠️ **한 번 쓰면 닫힌다**(`usedFor`). 같은 권을 공모전에도 내고 회지로도 팔면 한 번 그린
+ * 것으로 두 번 벌게 되어, "원하는 만큼 새로 만든다"는 규칙이 뜻을 잃는다.
+ */
+export interface Project {
+  id: string
+  name: string
+  createdDay: number
+  /** 이 권에 들어간 그림 id. **장수는 이 배열의 길이다**(따로 세지 않는다). */
+  pageIds: string[]
+  /** 이미 쓴 권이면 어디에 썼는가. 없으면 아직 작업 중이다. */
+  usedFor?: 'contest' | 'comicon'
+}
+
+/** 프로젝트 목록. **옵셔널이다** — 만든 적 없으면 없다(`courses`와 같은 규칙). */
+export interface ProjectState {
+  projects: Project[]
+  /** 다음 프로젝트 번호. 지운 뒤에도 이름이 겹치지 않게 따로 센다. */
+  nextSerial: number
+  /** 회지로 팔아 번 돈 누적. 화면이 "얼마 벌었나"를 정직하게 적는 근거다. */
+  soldEarned: number
+}
+
+/**
+ * 공모전 출품 한 건.
+ *
+ * ⚠️ **낸 것이 무엇인지(프로젝트냐 그림 한 장이냐)를 여기 박는다** — 심사는 발표일에
+ * 이뤄지는데 그 사이에 프로젝트에 장을 더 넣을 수 있으므로, **낸 시점의 장수·평균 실력**을
+ * 함께 찍어 둔다. 안 찍으면 "내고 나서 계속 그려 점수를 올리는" 자리가 생긴다.
+ */
+export interface ContestEntry {
+  contestId: string
+  projectId?: string
+  artworkId?: string
+  enteredDay: number
+  /** 이 날 밤에 결과가 확정된다(`advanceContests`). */
+  resultDay: number
+  /** 낸 시점의 장수. 단일 출품이면 1이다. */
+  pages: number
+  /** 낸 시점의 평균 완성도(0~1+). 심사는 이 값만 본다 — 무작위 없음. */
+  score: number
+  /** 발표 뒤에만 채워진다. `''`(빈 문자열)이면 낙선이다. */
+  prize?: string
+  money?: number
+}
+
+/** 공모전 상태. **옵셔널이다** — 낸 적 없으면 없다. */
+export interface ContestState {
+  entries: ContestEntry[]
+  /** 입상 횟수. **웹툰 제의가 보는 값이 이것이다.** */
+  wins: number
+  earned: number
+}
+
+/**
+ * 웹툰 연재 상태. **옵셔널이다** — 제의가 온 적 없으면 없다.
+ *
+ * ⚠️ **정규직(`Employment`)과 다른 축이다.** 정규직은 출근·결근·해고이고 여기는
+ * **주간 마감**이다 — 회사에 나가는 것이 아니라 원고를 넘기는 일이라 출근부가 없다.
+ * 그몽 계약과 더 가깝지만 그쪽은 건별이고 이쪽은 **끝나지 않고 매주 돌아온다.**
+ */
+export interface WebtoonState {
+  /** 제의가 온 날. 아직 안 왔으면 없다. */
+  offeredDay?: number
+  /** `'offered'` 수락 대기 · `'serializing'` 연재 중 · `'ended'` 연재 종료. */
+  status: 'offered' | 'serializing' | 'ended'
+  startedDay?: number
+  /** 이번 주에 채운 원고 수. */
+  progress: number
+  /** 이 날까지 채워야 한다. 지나면 정산된다(`advanceWebtoon`). */
+  dueDay: number
+  /** 넘긴 주(=회차) 수. */
+  episodes: number
+  /** 놓친 마감 수. 쌓이면 연재가 끝난다. */
+  missed: number
+  earned: number
 }
 
 export interface GameState {
@@ -748,6 +1000,15 @@ export interface GameState {
   inventory?: EventLog[]
   /** 아직 오지 않은 주문. */
   deliveries?: Delivery[]
+  /**
+   * 중고마켓에 **한 번이라도 팔아 본** 물건 id. **옵셔널이다**(판 적 없으면 없다).
+   *
+   * ⚠️ **이 필드가 막는 것은 되사기 구멍이다**: 물건은 도착할 때 한 번 스탯을 올리는데,
+   * 팔고 다시 사는 것을 그냥 두면 **정가의 절반만 내고 그 상승분을 무한히 반복**한다.
+   * `systems/delivery.ts`의 `collect`가 이 목록에 있는 물건의 효과를 건너뛴다.
+   * 되사는 것 자체는 막지 않는다 — 사라지는 것은 처음 받았을 때의 상승분뿐이다.
+   */
+  sold?: string[]
   /** 이벤트 도감에 실릴 기록. */
   events?: EventLog[]
   /**
@@ -771,6 +1032,14 @@ export interface GameState {
    * 재직 중인 회사로 메워 준다(`adBonusDay`·`plans`와 같은 규칙).
    */
   peakCareerId?: string
+  /**
+   * 직업 이력(`회사 id → 누적 출근 횟수`). **옵셔널이다** — 취직한 적 없으면 없다.
+   *
+   * ⚠️ **`employment`·`peakCareerId`로는 답할 수 없는 것을 든다**: 다녀 본 곳 **전부**와
+   * 각 회사에서의 근무량. 규칙은 `systems/careerLog.ts`에 모여 있고 도감(`ExcelApp`)이
+   * 유일한 독자다. **급여는 여기서 나오지 않는다** — 레벨은 기록이지 보상이 아니다.
+   */
+  careerLog?: Record<string, number>
   /** 도착한 정규직 소식(메일·토스트의 원본). 오래된 것부터 잘라 낸다. */
   jobNotices?: JobNotice[]
   /**
@@ -821,10 +1090,21 @@ export interface GameState {
    */
   steam?: Record<string, number>
   /**
+   * 너튜브 개인방송 채널(이름·켠 횟수·마지막 주제). **옵셔널이다** — 이름을 짓거나
+   * 방송을 켠 적 없으면 없다(`steam`과 같은 규칙 — 마이그레이션 불필요).
+   * ⚠️ 돈·턴을 만들지 않는다 — 돈은 `stream` 활동이, 턴은 `runActivity`가 낸다.
+   */
+  channel?: ChannelState
+  /**
    * 그린 그림. **옵셔널이다** — 그린 적 없으면 없다(`courses`·`exams`와 같은 규칙).
    * 갤러리 폴더가 읽는 목록이고, 트위터 업로드가 고르는 대상이다.
    */
   artworks?: Artwork[]
+  /**
+   * 시집이에서 받은 포스트카드. **옵셔널이다** — 극장에 간 적 없으면 없다.
+   * ⚠️ **돈도 스탯도 만들지 않는다** — 모으는 것 자체가 값어치인 유일한 상태다.
+   */
+  postcards?: Postcard[]
   /**
    * 트위터 활동(업로드·팔로워·주간 정산). **옵셔널이다** — 올린 적 없으면 없다.
    *
@@ -844,6 +1124,18 @@ export interface GameState {
    * (`DesktopItem.requiresSubscription`·`Activity.requiresSubscription`).
    */
   subscriptions?: SubscriptionState
+  /**
+   * 그몽 외주. **옵셔널이다** — 받은 적 없으면 없다.
+   * ⚠️ 도구 활동(`Activity.toolId`)이 `runActivity`에서 진행도를 올리고,
+   * 다 채우면 그 자리에서 보수가 들어온다(밤 정산이 아니라 즉시다).
+   */
+  gigs?: GigState
+  /** 작품집(클립스튜디오 프로젝트). 만든 적 없으면 없다. */
+  projects?: ProjectState
+  /** 공모전 출품·수상. 낸 적 없으면 없다. */
+  contests?: ContestState
+  /** 웹툰 연재. 제의가 온 적 없으면 없다. */
+  webtoon?: WebtoonState
 }
 
 export const INITIAL_STATS: Stats = {

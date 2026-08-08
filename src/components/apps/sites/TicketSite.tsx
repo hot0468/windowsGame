@@ -1,10 +1,21 @@
 import { useState } from 'react'
 import { findActivity } from '../../../data/activities'
-import { HERO_SHOWS, HOT_SHOWS, SHOWS, SHOW_GENRES, findShow, showsOf } from '../../../data/shows'
+import {
+  BOOKING_LEAD_DAYS,
+  HERO_SHOWS,
+  HOT_SHOWS,
+  SHOWS,
+  SHOW_GENRES,
+  findShow,
+  showsOf,
+} from '../../../data/shows'
 import { AppIcon } from '../../../icons/AppIcon'
+import { useGameStore } from '../../../store/gameStore'
+import { firstFreeSlot } from '../../../systems/schedule'
 import type { Show, ShowGenre } from '../../../data/shows'
 import type { Site } from '../../../data/sites'
 import { ActivityConfirm } from '../ActivityConfirm'
+import { SeatPicker } from './SeatPicker'
 import './TicketSite.css'
 
 /**
@@ -29,21 +40,54 @@ import './TicketSite.css'
  *
  * ⚠️ **고르는 것은 무엇을 보러 가는가뿐이고 값은 활동(`concert`)이 갖는다**
  * (`data/shows.ts` 주석) — 그래서 이 화면에는 가격이 한 번도 안 나온다.
+ *
+ * ## ⚠️ 예매는 관람이 아니다 (설계자 지시)
+ * 확인창의 [예매하기]는 **활동을 실행하지 않는다**. 좌석 선택(`SeatPicker`)을 열고,
+ * 거기서 성공해야 `BOOKING_LEAD_DAYS`일 뒤 **빈 슬롯에 예약이 잡힌다**.
+ * 관람료·행동력·멘탈은 그날 `concert`가 정산하므로 **예매 자체는 턴도 돈도 안 쓴다**.
+ * 그래서 확인창의 "1턴을 소모합니다"를 `costNote`로 갈아 끼운다 — 이 화면에서 그 문장은
+ * 거짓이다.
  */
 export function TicketSite({ site }: { site: Site }) {
   const activity = site.activityId ? findActivity(site.activityId) : undefined
+  const state = useGameStore((s) => s.state)
+  const planActivity = useGameStore((s) => s.planActivity)
   /** 고른 분류. null이면 홈 편성(캐러셀 + HOT + 분류 섹션 전부). */
   const [genre, setGenre] = useState<ShowGenre | null>(null)
   /** 캐러셀에서 지금 크게 걸린 공연. */
   const [heroIndex, setHeroIndex] = useState(0)
   const [pickedId, setPickedId] = useState<string | null>(null)
+  /** 좌석 선택 중인 공연. 있으면 목록 대신 좌석 화면을 그린다. */
+  const [seatingId, setSeatingId] = useState<string | null>(null)
   /** 방금 예매한 공연. 목록이 그대로라 결과를 글자로 남긴다. */
   const [booked, setBooked] = useState<string | null>(null)
 
-  if (!activity) return null
+  if (!activity || !state) return null
   const hero = HERO_SHOWS[heroIndex % HERO_SHOWS.length]
   const picked = pickedId ? findShow(pickedId) : undefined
+  const seating = seatingId ? findShow(seatingId) : undefined
   const pick = (id: string) => setPickedId(id)
+
+  /* 관람일. **남의 예약을 덮지 않는 첫 빈자리**를 고른다(`firstFreeSlot` 주석). */
+  const target = firstFreeSlot(state.plans ?? [], state.day + BOOKING_LEAD_DAYS)
+  const planLabel = `${target.day}일차 ${target.slot === 'morning' ? '오전' : '오후'}`
+
+  /* 좌석 선택 화면. ⚠️ 목록 위에 띄우지 않고 **갈아 끼운다**(`SeatPicker` 주석). */
+  if (seating) {
+    return (
+      <div className="tk">
+        <SeatPicker
+          show={seating}
+          planLabel={planLabel}
+          onBook={(seat) => {
+            planActivity(target.day, target.slot, activity.id)
+            setBooked(`「${seating.title}」 ${seat} · ${planLabel} 관람`)
+          }}
+          onClose={() => setSeatingId(null)}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="tk">
@@ -78,7 +122,7 @@ export function TicketSite({ site }: { site: Site }) {
 
       {booked && (
         <p className="tk-receipt" role="status">
-          「{booked}」 예매 완료. 공연 시작 30분 전까지 입장하세요.
+          {booked} 예매 완료. 일정에 잡혔습니다.
         </p>
       )}
 
@@ -206,8 +250,10 @@ export function TicketSite({ site }: { site: Site }) {
             { label: '공연장', value: picked.venue },
             { label: '공연 기간', value: picked.period },
             { label: '잔여 좌석', value: picked.seats },
+            { label: '관람 예정', value: planLabel },
           ]}
-          onCommitted={() => setBooked(picked.title)}
+          costNote={`예매는 턴을 쓰지 않습니다 · 위 증감은 ${planLabel}에 정산됩니다`}
+          onCommit={() => setSeatingId(picked.id)}
           onClose={() => setPickedId(null)}
         />
       )}

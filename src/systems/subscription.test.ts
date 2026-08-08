@@ -11,6 +11,7 @@ import { BILLING_INTERVAL_DAYS, SUBSCRIPTIONS, findSubscription } from '../data/
 import { ACTIVITIES, findActivity } from '../data/activities'
 import { DESKTOP_ITEMS, desktopEntries } from '../data/desktopItems'
 import { SITES } from '../data/sites'
+import { SEARCH_SUGGESTIONS } from '../data/news'
 import type { GameState } from '../types/game'
 
 /**
@@ -101,9 +102,9 @@ describe('월 청구', () => {
 })
 
 describe('구독이 여는 것', () => {
-  const design = findActivity('gig-design')!
+  const design = findActivity('tool-photoshop')!
 
-  it('디자인 일감은 구독 중일 때만 실행된다', () => {
+  it('포토샵 작업은 구독 중일 때만 실행된다', () => {
     const rested = { ...rich(), stats: { ...rich().stats, stamina: 100 } }
     expect(canRun(rested, design)).toBe(false)
     const on = subscribe(rested, ADOBE)
@@ -134,8 +135,12 @@ describe('구독이 여는 것', () => {
     for (const sub of SUBSCRIPTIONS) {
       const site = SITES.find((s) => s.id === sub.siteId)
       expect(site, `${sub.id}의 사이트가 없다`).toBeDefined()
-      // 즐겨찾기든 소개 카드든 **입구가 하나는 있어야** 한다(주소창만으로는 못 찾는다).
-      expect(Boolean(site!.bookmark || site!.promo), `${sub.id}로 가는 입구가 없다`).toBe(true)
+      // 즐겨찾기·소개 카드·**검색어 추천** 중 하나는 있어야 한다(주소창만으로는 못 찾는다).
+      // ⚠️ 어도비는 2026-08-08 설계자 지시로 소개 카드를 뺐고 **검색 추천이 유일한 입구**다.
+      const reachable =
+        Boolean(site!.bookmark || site!.promo) ||
+        SEARCH_SUGGESTIONS.some((t) => t.siteId === site!.id)
+      expect(reachable, `${sub.id}로 가는 입구가 없다`).toBe(true)
     }
   })
 })

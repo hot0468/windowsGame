@@ -34,7 +34,8 @@ import {
   skipSlot,
 } from './turn'
 import { livingCostForDay } from './economy'
-import type { GameState } from '../types/game'
+import { STAT_NAMES } from '../types/game'
+import type { GameState, Stats } from '../types/game'
 
 const entry = CAREERS[0]
 const jobApply = findActivity('job-apply')!
@@ -72,8 +73,11 @@ describe('요건 판정', () => {
     const s = createInitialState('테스터')
     const missing = shortfalls(s, entry.paper)
     expect(missing.length).toBeGreaterThan(0)
-    expect(missing[0]).toContain('지식')
-    expect(missing[0]).toContain('40')
+    // ⚠️ 스탯 이름을 여기 적지 않고 **공고에서 파생**시킨다 — 적어 두면 첫 공고가 바뀔 때마다
+    //    "사유를 말해 준다"가 아니라 "그 회사가 지식을 본다"를 재는 테스트가 된다.
+    const [statKey, min] = Object.entries(entry.paper)[0] as [keyof Stats, number]
+    expect(missing[0]).toContain(STAT_NAMES[statKey])
+    expect(missing[0]).toContain(String(min))
     expect(passes(s, entry.paper)).toBe(false)
   })
 
@@ -123,8 +127,9 @@ describe('채용 절차', () => {
     expect(s.application).toBeUndefined()
     const fail = (s.jobNotices ?? []).find((n) => n.kind === 'screening-fail')
     expect(fail).toBeDefined()
-    expect(fail!.reason).toContain('지식')
-    expect(noticeMail(fail!).text).toContain('지식')
+    const label = STAT_NAMES[Object.keys(entry.paper)[0] as keyof Stats]
+    expect(fail!.reason).toContain(label)
+    expect(noticeMail(fail!).text).toContain(label)
   })
 
   it('서류를 통과하면 면접 안내가 오고 면접일이 잡힌다', () => {

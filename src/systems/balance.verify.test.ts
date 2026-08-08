@@ -213,7 +213,10 @@ describe('정규직 — 살아남을 수 있는가', () => {
   })
 
   it('출근하지 않으면 경고를 거쳐 해고된다 — 예고 없이 잃지 않는다', () => {
-    const run = playEmployed(entry, 200, false)
+    // ⚠️ **첫 해고까지만 돌린다.** 길게 돌리면 해고된 뒤 다시 지원해 취직하는 주기가
+    //    몇 번씩 겹치고, `NOTICE_LIMIT`이 오래된 소식을 버려서 "첫 경고"를 집을 수 없게 된다
+    //    (여기서 재려는 것은 **한 번의 근태 경로**이지 재취업 반복이 아니다).
+    const run = playEmployed(entry, 30, false)
     expect(run.hiredDay, '취직 자체를 못 했다').not.toBeNull()
     expect(run.firedDay, '결근을 계속했는데도 해고되지 않았다').not.toBeNull()
     // 해고보다 경고가 먼저 왔어야 한다.
@@ -407,7 +410,9 @@ describe('직업 엔딩 — 아무도 볼 수 없는 엔딩은 없다', () => {
   it('해고된 뒤 파산해도 다녔던 회사의 엔딩으로 끝난다', () => {
     const run = playEmployed(CAREERS[0], 400, false)
     expect(run.firedDay, '결근했는데도 해고되지 않았다').not.toBeNull()
-    expect(run.state.employment, '해고됐는데 재직 상태가 남아 있다').toBeUndefined()
+    // ⚠️ **"끝날 때 무직이다"는 재지 않는다** — 해고된 뒤 다시 지원해 취직할 수 있으므로
+    //    판이 재직 중에 끝나는 것도 정상이다. 해고가 재직 상태를 지운다는 것 자체는
+    //    `employment.test.ts`의 단위 테스트가 지킨다. 여기서 재는 것은 **기록이 남는가**다.
     expect(run.state.gameOver).toBe('bankrupt')
     expect(run.state.peakCareerId).toBe(CAREERS[0].id)
     expect(getFailureEnding('bankrupt', run.state).id).toBe(careerEnding(CAREERS[0].id)!.id)

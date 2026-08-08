@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { COURSES, CERTIFICATE_SESSIONS, courseForCertificate, findCourse } from '../data/courses'
-import { activitiesUnlockedBy, findActivity } from '../data/activities'
+import { findActivity } from '../data/activities'
+import { gigsRequiring } from '../data/gigs'
+import { canTake as canTakeGig } from './gigs'
 import { SHOP_ITEMS, BUYABLE_ITEMS, findItem } from '../data/items'
 import { blockReason, canTake, isCompleted, sessionsOf, takeCourse } from './courses'
-import { canRun, createInitialState, owns } from './turn'
+import { createInitialState, owns } from './turn'
 import type { GameState, Stats } from '../types/game'
 
 /**
@@ -30,8 +32,9 @@ describe('강의 데이터', () => {
     for (const c of COURSES) {
       if (!c.certificateItemId) continue
       expect(findItem(c.certificateItemId), c.id).toBeTruthy()
-      // ⚠️ 아무 활동도 열지 않는 수료증은 스탯도 없으므로 순수한 낭비가 된다.
-      expect(activitiesUnlockedBy(c.certificateItemId).length, c.id).toBeGreaterThan(0)
+      // ⚠️ 아무것도 열지 않는 수료증은 스탯도 없으므로 순수한 낭비가 된다.
+      //    2026-08-08 그몽 재설계로 **여는 것이 활동에서 일감으로** 옮겨 왔다.
+      expect(gigsRequiring(c.certificateItemId).length, c.id).toBeGreaterThan(0)
     }
   })
 
@@ -144,14 +147,14 @@ describe('수료증', () => {
     expect(done.inventory ?? []).toHaveLength(0)
   })
 
-  it('수료증이 잠긴 활동을 실제로 연다', () => {
+  it('수료증이 잠긴 일감을 실제로 연다', () => {
     const course = findCourse('ai-basic')!
-    const gated = activitiesUnlockedBy(course.certificateItemId!)[0]
+    const gated = gigsRequiring(course.certificateItemId!)[0]
     const before = state({ stats: { money: 500000, stamina: 100 } })
-    // 수료증이 없으면 못 하고, 받은 뒤에는 할 수 있다 — 잠금이 실제로 작동하는지 본다.
-    expect(canRun(before, gated)).toBe(false)
+    // 수료증이 없으면 못 받고, 받은 뒤에는 받을 수 있다 — 잠금이 실제로 작동하는지 본다.
+    expect(canTakeGig(before, gated)).toBe(false)
     const done = takeTimes(course)
     const rested = { ...done, stats: { ...done.stats, stamina: 100, money: 500000 } }
-    expect(canRun(rested, gated)).toBe(true)
+    expect(canTakeGig(rested, gated)).toBe(true)
   })
 })

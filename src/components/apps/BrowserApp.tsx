@@ -3,6 +3,7 @@ import { findSite, HOME_SITE_ID, resolveUrl } from '../../data/sites'
 import { BROWSER_ICONS } from '../../data/icons'
 import { AppIcon } from '../../icons/AppIcon'
 import { useBrowserStore } from '../../store/browserStore'
+import { useWindowStore } from '../../store/windowStore'
 import { useGameStore } from '../../store/gameStore'
 import { canGoBack, canGoForward, currentSiteId, goBack, goForward } from '../../systems/browserHistory'
 import {
@@ -16,6 +17,9 @@ import {
   updateActive,
 } from '../../systems/browserTabs'
 import { AdobeSite } from './sites/AdobeSite'
+import { ContestSite } from './sites/ContestSite'
+import { ExpoSite } from './sites/ExpoSite'
+import { ComiconSite } from './sites/ComiconSite'
 import { AlbamonSite } from './sites/AlbamonSite'
 import { CampusSite } from './sites/CampusSite'
 import { CertSite } from './sites/CertSite'
@@ -32,6 +36,7 @@ import { ShopSite } from './sites/ShopSite'
 import { StockSite } from './sites/StockSite'
 import { TechSite } from './sites/TechSite'
 import { FoodSite } from './sites/FoodSite'
+import { ResaleSite } from './sites/ResaleSite'
 import { TicketSite } from './sites/TicketSite'
 import { TravelSite } from './sites/TravelSite'
 import { WearSite } from './sites/WearSite'
@@ -95,6 +100,19 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
    * 포털 카드·퀵메뉴·쇼핑 띠·즐겨찾기 줄이 전부 이 통로를 쓴다.
    */
   const goToSite = (id: string) => setTabs((s) => openTab(s, id))
+
+  /*
+   * 밖에서 들어온 이동 요청(지금은 설정의 [어도비에서 구독] 하나)을 받아 간다.
+   * ⚠️ **받자마자 비운다** — 안 비우면 창을 새로 열 때마다 그 사이트로 다시 끌려간다.
+   * 링크를 누른 것과 같은 통로(`goToSite` = 탭으로 열기)를 쓰므로 열려 있던 탭은 그대로 남는다.
+   */
+  const pendingSite = useWindowStore((s) => s.pendingSite)
+  const clearPendingSite = useWindowStore((s) => s.clearPendingSite)
+  useEffect(() => {
+    if (!pendingSite) return
+    goToSite(pendingSite)
+    clearPendingSite()
+  }, [pendingSite])
   /**
    * ⚠️ **주소창만 현재 탭을 바꾼다**(새 탭을 열지 않는다). 실제 브라우저의 갈래를
    * 그대로 가져온 것이고, 이 통로가 남아 있어야 **뒤로/앞으로가 죽은 컨트롤이 되지 않는다**
@@ -383,6 +401,8 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         {site?.render === 'wear' && <WearSite site={site} />}
         {/* 티켓·여행. 입구는 포털 가로 띠의 이동용 배너 하나다(즐겨찾기·소개 카드에 없다). */}
         {site?.render === 'food' && <FoodSite site={site} />}
+        {/* 두손마켓 — 쇼핑 띠의 유일한 '파는' 쪽. 턴을 쓰지 않는다. */}
+        {site?.render === 'resale' && <ResaleSite site={site} />}
         {site?.render === 'ticket' && <TicketSite site={site} />}
         {site?.render === 'trip' && <TravelSite site={site} />}
         {site?.render === 'tube' && <TubeSite site={site} />}
@@ -400,6 +420,9 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         {/* ⚠️ 은행·부동산은 활동을 실행하지 않는다 — 거래도 계약도 턴을 쓰지 않으므로
             확정 패널이 없다. 이 둘이 파는 것은 슬롯이 아니라 **며칠**이다. */}
         {/* ⚠️ 은행·부동산과 같은 부류 — 활동을 실행하지 않고 턴도 쓰지 않는다. */}
+        {site?.render === 'expo' && <ExpoSite site={site} />}
+        {site?.render === 'contest' && <ContestSite site={site} />}
+        {site?.render === 'comicon' && <ComiconSite site={site} />}
         {site?.render === 'adobe' && <AdobeSite site={site} />}
         {site?.render === 'bank' && <BankSite site={site} />}
         {site?.render === 'stock' && <StockSite site={site} />}
