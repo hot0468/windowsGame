@@ -457,6 +457,25 @@ export const ACTIVITIES: Activity[] = [
     toolId: 'vscode',
     burnoutKey: 'gig',
   },
+  {
+    /*
+     * 오디션. **어도비 도구 셋째**라 포토샵·프리미어와 완전히 같은 부류다(같은 구독이 열고,
+     * 켜면 1턴, 받아 둔 오디션 일감이 있으면 업무량을 채운다).
+     * ⚠️ **음악을 요구하지 않는다** — 도구는 구독이 열고 스탯은 결과로 돌아온다는 방향이
+     *    셋과 같아야 한다. 요구하면 그몽에 잠금이 두 겹이 되고, 도구가 음악을 올리는
+     *    통로라는 것도 사라진다.
+     */
+    id: 'tool-audition',
+    label: '오디션 작업',
+    icon: 'fluent-color:headphones-24',
+    category: 'living',
+    description: '파형을 확대해 잡음 하나를 지운다. 다시 들으면 다른 게 들린다.',
+    effects: { music: 4, sensitivity: 3, stamina: -20, mental: -7 },
+    requires: { stamina: 20 },
+    requiresSubscription: 'adobe',
+    toolId: 'audition',
+    burnoutKey: 'gig',
+  },
   /*
    * ── 자격시험 (2026-08-05 O넷) ──
    * ⚠️ **`requiresPick`이다**(지원서 제출과 같은 이유). "어느 종목을 보는가"는 활동이
@@ -732,6 +751,9 @@ export const ACTIVITIES: Activity[] = [
      * ⚠️ 번아웃 키를 `social`과 공유하지 않는다 — 사람을 만나는 종류가 다르고,
      * 공유하면 관계 셋을 번갈아 채우는 것이 곧 번아웃이 되어 부가엔딩이 함정이 된다.
      */
+    /* ⚠️ **주말 전용** — 반찬통을 받아 오는 일은 평일 낮에 하지 않는다. 가족 호감도의
+       주 공급원이므로 주말이 "사람을 보는 날"이라는 성격을 여기서 얻는다. */
+    requiresWeek: 'weekend',
     id: 'family-visit',
     label: '본가 방문',
     icon: 'fluent-color:people-home-24',
@@ -741,6 +763,9 @@ export const ACTIVITIES: Activity[] = [
     requires: { stamina: 12, money: 9000 },
   },
   {
+    /* ⚠️ **주말 전용**(2026-08-09) — 설명이 이미 "주말 아침에 몸을 쓴다"였는데 여태
+       아무 때나 됐다. 도덕의 주 공급원이라 요일을 좁히는 대신 값은 그대로 둔다. */
+    requiresWeek: 'weekend',
     id: 'volunteer',
     label: '봉사활동',
     icon: 'fluent-color:person-heart-24',
@@ -874,6 +899,9 @@ export const ACTIVITIES: Activity[] = [
   },
   {
     /* 학원 특강. 과외(지식 60)보다 훨씬 위의 자리라 보수도 위다. */
+    /* ⚠️ **평일 전용** — 학원 특강은 주중 저녁 자리다. 주말에 몰아서 하면 요일이
+       다시 아무 뜻 없는 값이 된다(주말 전용 둘과 짝을 이룬다). */
+    requiresWeek: 'weekday',
     id: 'lecture',
     label: '학원 특강',
     icon: 'fluent-color:board-24',
@@ -912,6 +940,85 @@ export const ACTIVITIES: Activity[] = [
     description: '경제 기사와 공시를 읽는다. 어제 오른 이유는 오늘 내린 이유이기도 하다.',
     effects: { finance: 7, knowledge: 2, vocabulary: 1, stamina: -14, mental: -4 },
     requires: { stamina: 14 },
+  },
+  {
+    /*
+     * 친화력 C가 여는 동네 오픈채팅의 실행부(2026-08-08). ⚠️ **`club`을 재활용하지 않았다** —
+     * 동아리는 회비를 내고 정기적으로 가는 곳이고 이쪽은 부르면 가는 일회성이라, 한 활동에
+     * 묶으면 확인창의 비용 표시가 둘 중 한쪽에 대해 거짓이 된다.
+     * ⚠️ **번아웃 키는 `club`을 함께 쓴다** — 둘 다 가서 사람들과 앉아 있는 일이라,
+     * 키를 가르면 번갈아 가며 연속 노동의 대가를 피해 간다(알바 넷과 같은 규칙).
+     */
+    id: 'housewarming',
+    label: '집들이 가기',
+    icon: 'fluent-color:people-home-24',
+    category: 'relation',
+    description: '손에 뭐라도 들고 간다. 이름을 두 번씩 말하고 나면 다들 웃고 있다.',
+    effects: { sociability: 7, charm: 2, manners: 2, mental: 6, stamina: -14, money: -20000 },
+    requires: { stamina: 14, money: 20000 },
+    burnoutKey: 'club',
+  },
+  {
+    /*
+     * 경제 B가 여는 투자 스터디의 실행부. ⚠️ **소지금을 만들지 않는다**(`finance-study`와
+     * 같은 규칙) — 경제를 올리는 자리가 돈까지 주면 은행·주식과 수입원이 겹친다.
+     * 발표라서 평판·어휘력이 대신 붙는다.
+     */
+    id: 'study-talk',
+    label: '스터디 발표',
+    icon: 'fluent-color:data-trending-24',
+    category: 'study',
+    description: '차트 세 장으로 삼십 분을 말한다. 질문이 제일 어려운 부분이었다.',
+    effects: { finance: 6, vocabulary: 3, reputation: 2, stamina: -16, mental: -6 },
+    requires: { stamina: 16 },
+  },
+  {
+    /*
+     * 밴드 셋(2026-08-08 — 음악 A가 여는 축). **전부 오후 전용이다**: 합주도 공연도 저녁의
+     * 일이고, 무엇보다 **하루에 많아야 하나만** 할 수 있어야 밴드가 판을 연장하지 못한다
+     * (수입 상한의 근거는 `data/band.ts` 주석이고 `band.test.ts`가 지킨다).
+     * ⚠️ **번아웃 키 `band` 하나를 셋이 나눠 쓴다** — 갈라 두면 합주·공연·앨범을 돌려 가며
+     *    연속 노동의 대가를 피해 간다(알바 넷이 `work`를 공유하는 것과 같은 이유).
+     */
+    id: 'band-practice',
+    label: '밴드 합주',
+    icon: 'fluent-color:mic-24',
+    category: 'leisure',
+    description: '넷이 같은 마디에서 어긋난다. 열 번째쯤 우연히 맞고, 그 순간을 다들 안다.',
+    effects: { music: 5, sociability: 4, mental: 4, stamina: -18 },
+    requires: { stamina: 18 },
+    requiresSlot: 'afternoon',
+    buildsBandSkill: true,
+    burnoutKey: 'band',
+  },
+  {
+    /*
+     * ⚠️ **`effects.money`가 없는 것이 규칙이다** — 보수는 숙련도의 함수라 활동 데이터에
+     *    적을 수가 없고, `systems/band.ts`의 `bandPayFor`가 정해 `runActivity`가 얹는다
+     *    (그몽 일감이 보수를 갖고 도구 활동은 안 갖는 것과 같은 방향).
+     */
+    id: 'band-live',
+    label: '밴드 공연',
+    icon: 'fluent-color:mic-24',
+    category: 'leisure',
+    description: '스무 명 앞에서 마흔 분. 두 곡째부터는 손이 알아서 간다.',
+    effects: { music: 6, reputation: 2, sociability: 3, mental: 6, stamina: -26 },
+    requires: { stamina: 26 },
+    requiresSlot: 'afternoon',
+    requiresBandSkill: 8,
+    burnoutKey: 'band',
+  },
+  {
+    id: 'band-album',
+    label: '앨범 발매',
+    icon: 'fluent-color:headphones-24',
+    category: 'leisure',
+    description: '여섯 곡을 묶어 올린다. 첫 정산 메일이 오기까지가 제일 길다.',
+    effects: { music: 8, reputation: 3, creativity: 3, stamina: -30, mental: -4 },
+    requires: { stamina: 30 },
+    requiresSlot: 'afternoon',
+    requiresBandSkill: 20,
+    burnoutKey: 'band',
   },
 ]
 

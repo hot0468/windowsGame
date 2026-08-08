@@ -2,14 +2,16 @@ import { getLivingCost, getWageMultiplier } from './economy'
 import { burnoutKeyOf, getBurnoutPenalty, pushActivity } from './burnout'
 import { markAttended } from './careerLog'
 import { weekendCallOn } from './drive'
+import { bandPayFor, bandSkillOpen, practiceBand } from './band'
 import { wearGear } from './gear'
 import { illnessEfficiency, illnessRecoveryRatio, nextIllness } from './illness'
 import { weatherEfficiency } from './weather'
-import { weekdayOf } from '../data/calendar'
+import { isWeekend, weekdayOf } from '../data/calendar'
+import { WEEKEND_WAGE_BONUS } from '../data/economy'
 import { DEFAULT_HOUSING_ID, findHousing } from '../data/housing'
 import { PAYOUT_INTERVAL_DAYS } from '../data/artworks'
 import { WORK_PER_SESSION, findGig } from '../data/gigs'
-import { OUTFIT_BONUS, outfitsFor, requiredItemIds } from '../data/items'
+import { OUTFIT_BONUS, PHONE_BONUS, PHONE_ID, PHONE_STAT, outfitsFor, requiredItemIds } from '../data/items'
 import { FINAL_DAYS, isWorkWeekday } from '../data/careers'
 import { GROWTH_STAT_KEYS, INITIAL_STATS } from '../types/game'
 import type {
@@ -120,6 +122,18 @@ export function outfitBonusFor(state: GameState, activityId: string): number {
   return outfitFor(state, activityId) ? OUTFIT_BONUS : 0
 }
 
+/**
+ * 그 스탯 상승분에 **물건이** 얹어 주는 비율. 지금은 휴대폰(친화력)뿐이다.
+ *
+ * ⚠️ **옷 보너스와 더해진다** — 옷은 *활동*을 보고 이쪽은 *스탯*을 봐서 겹칠 근거가 없다.
+ * ⚠️ **`systems/phone.ts`를 import하지 않는다** — 그쪽이 `clampStats`·`owns`를 부르고
+ * 있어 순환이 된다(`housingMentalCost`가 데이터 한 줄만 읽는 것과 같은 예외). 여기서
+ * 읽는 것은 상수 둘뿐이고, 요금·정지 규칙은 전부 `phone.ts`가 갖는다.
+ */
+export function itemStatBonusFor(state: GameState, key: keyof Stats): number {
+  return key === PHONE_STAT && owns(state, PHONE_ID) ? PHONE_BONUS : 0
+}
+
 /** 이미 가진 물건인지. 보유 판정이 여러 곳에 흩어지지 않게 여기 하나만 둔다. */
 export function owns(state: GameState, itemId: string): boolean {
   return inventoryOf(state).some((i) => i.id === itemId)
@@ -203,6 +217,13 @@ export function canRun(state: GameState, activity: Activity): boolean {
   /* ⚠️ 슬롯 제약(2026-08-08). 화면에서만 막으면 스케줄러가 반대 슬롯에 걸어 둔 예약이
      그대로 통과한다 — 아이템·구독·정규직 게이트와 같은 자리다. */
   if (activity.requiresSlot && state.slot !== activity.requiresSlot) return false
+  /* ⚠️ 밴드 숙련도 게이트(2026-08-08). 문턱을 화면에서만 보면 스케줄러가 숙련도 0일 때
+     걸어 둔 공연 예약이 그대로 통과한다. */
+  if (!bandSkillOpen(state, activity)) return false
+  /* ⚠️ 요일 잠금(2026-08-09). 슬롯 게이트와 같은 자리다 — 화면에서만 막으면 스케줄러가
+     반대 요일에 걸어 둔 예약이 그대로 통과한다. */
+  if (activity.requiresWeek === 'weekend' && !isWeekend(state.day)) return false
+  if (activity.requiresWeek === 'weekday' && isWeekend(state.day)) return false
   if (!activity.requires) return true
   return Object.entries(activity.requires).every(
     ([key, required]) => state.stats[key as keyof Stats] >= required,
@@ -231,6 +252,7 @@ export function clampStats(stats: Stats): Stats {
  * 알바비(scalesWithWage)에는 물가 배율을 적용한다.
  */
 function applyEffects(
+  state: GameState,
   stats: Stats,
   activity: Activity,
   day: number,
@@ -242,9 +264,12 @@ function applyEffects(
     const statKey = key as keyof Stats
     let value = rawValue
     if (statKey === 'money' && value > 0 && activity.scalesWithWage) {
-      value *= getWageMultiplier(day)
+      /* ⚠️ 주말 할증도 **여기 한 곳에서** 곱한다 — 미리보기(`activityPreview.ts`)가 같은
+         두 배율을 읽으므로, 한쪽에만 넣으면 확인창이 거짓 금액을 적는다. */
+      value *= getWageMultiplier(day) * (isWeekend(day) ? WEEKEND_WAGE_BONUS : 1)
     }
-    next[statKey] += value > 0 ? value * efficiency + outfitBoost(statKey, value, outfitBonus) : value
+    const bonus = outfitBonus + itemStatBonusFor(state, statKey)
+    next[statKey] += value > 0 ? value * efficiency + outfitBoost(statKey, value, bonus) : value
   }
   return next
 }
@@ -547,6 +572,7 @@ export function runActivity(state: GameState, activity: Activity): GameState {
      붙고 소모량은 안 건드린다. 새 계수를 여기 말고 `applyEffects` 안에 넣지 말 것:
      그러면 활동 미리보기(`activityPreview.ts`)가 못 보는 두 번째 출처가 생긴다. */
   const withEffects = applyEffects(
+    state,
     state.stats,
     activity,
     state.day,
@@ -554,6 +580,10 @@ export function runActivity(state: GameState, activity: Activity): GameState {
     outfitBonusFor(state, activity.id),
   )
   withEffects.mental -= mentalPenalty
+  /* ⚠️ **밴드 보수는 숙련도의 함수라 활동 데이터에 없다**(`data/band.ts`) — 활동 효과가
+     끝난 자리에서 얹는다. 물가 배율을 타지 않는 것은 그몽 보수·월급과 같은 규칙이다:
+     타면 후반에 밴드만으로 버틸 수 있게 되어 "판은 반드시 끝난다"가 무너진다. */
+  withEffects.money += bandPayFor(state, activity)
 
   // ⚠️ 기록은 **턴을 넘기기 전**에 뽑는다 — 오후 행동은 날짜를 바꾸므로
   //    넘긴 뒤에 찍으면 "다음 날 출근한 것"이 된다.
@@ -561,6 +591,9 @@ export function runActivity(state: GameState, activity: Activity): GameState {
      넷이라 그 밖에 두면 하나가 반드시 샌다. 고장 나면 그 장비를 요구하던 활동이
      다음부터 `canRun`에서 막힌다. */
   const worn = wearGear(state, activity)
+  /* ⚠️ **합주도 턴을 넘기기 전에 새긴다**(장비 마모와 같은 자리) — 넘긴 뒤에 올리면
+     그날 오른 숙련도가 다음 날의 것이 된다. 합주가 아니면 `undefined`라 밴드가 안 생긴다. */
+  const banded = practiceBand(worn.state, activity)
   const stamped = stampJob(worn.state, activity)
   const artworks = stampArtwork(state, activity)
   const advanced = advance(state, withEffects)
@@ -570,6 +603,7 @@ export function runActivity(state: GameState, activity: Activity): GameState {
     /* ⚠️ **`worn.state`를 펼친다**(원본 `state`가 아니다) — 원본을 펼치면 방금 새긴
        장비 마모·고장이 통째로 버려진다. 실제로 그렇게 짰다가 잡았다. */
     ...worn.state,
+    ...banded,
     ...stamped,
     artworks,
     day: advanced.day,

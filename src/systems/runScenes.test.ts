@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { ACTIVITIES, WORK_ACTIVITIES, findActivity } from '../data/activities'
 import { SCENE_ACTIVITY_IDS, runSceneOf } from '../data/runScenes'
 import { TOOL_STEPS } from '../data/gigs'
+import { windowChrome } from '../components/window/appForWindow'
 
 /**
  * ⚠️ **연출이 깨뜨릴 수 있는 것만 덮는다.** 이 축은 턴·스탯·돈을 하나도 안 만들므로
@@ -43,5 +44,28 @@ describe('실행 연출 장면', () => {
     const plain = ACTIVITIES.filter((a) => !a.toolId && !SCENE_ACTIVITY_IDS.includes(a.id))
     expect(plain.length).toBeGreaterThan(0)
     for (const a of plain) expect(runSceneOf(a)).toBeUndefined()
+  })
+})
+
+describe('종이 판 (공부)', () => {
+  /*
+   * ⚠️ **셋이 한 몸이다**: 밝은 판 · 책장 그림 · 닫기 버튼 없는 시스템 팝업.
+   * `look` 하나가 셋을 함께 정하므로, 창 크롬이 그 값을 안 보면 어두운 타이틀 바 아래
+   * 흰 종이가 붙어 창이 위아래로 갈린다(2026-08-09 설계자 지시로 만든 규칙).
+   */
+  it('공부 둘만 종이 판이고 나머지는 기본 판이다', () => {
+    for (const a of ACTIVITIES) {
+      const scene = runSceneOf(a)
+      if (!scene) continue
+      const paper = a.id === 'study' || a.id === 'writing'
+      expect(scene.look === 'paper', `${a.id}`).toBe(paper)
+    }
+  })
+
+  it('종이 판이면 창 프레임도 밝다 — 한쪽만 바꾸면 창이 갈린다', () => {
+    const paper = runSceneOf(findActivity('study')!)!
+    const dark = runSceneOf(findActivity('tool-photoshop')!)!
+    expect(windowChrome({ kind: 'tool', toolRun: { look: paper.look } as never }).dark).toBe(false)
+    expect(windowChrome({ kind: 'tool', toolRun: { look: dark.look } as never }).dark).toBe(true)
   })
 })

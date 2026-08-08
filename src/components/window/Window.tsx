@@ -30,6 +30,15 @@ interface WindowProps {
    * 위치가 정해진 패널용. 최대화 창과 마찬가지로 잡을 수 있다는 신호(grab 커서)도 주지 않는다.
    */
   fixed?: boolean
+  /**
+   * 시스템 팝업으로 그린다 — **타이틀 바를 통째로 안 그리고 화면 가운데 고정한다.**
+   *
+   * ⚠️ 캡션 버튼만 빼는 것과 다르다: 버튼 없는 타이틀 바는 "닫을 수 없는 창"으로 읽히지만
+   * 팝업은 **창이 아니라 게임이 잠깐 말을 거는 자리**다. 제목은 팝업 안의 글이 진다
+   * (접근성 이름은 `title` prop이 작업 표시줄·aria로 계속 나른다).
+   * ⚠️ 끌 수 없으므로 **빠져나갈 길은 팝업 안에 있어야 한다**(ux `escape-routes`).
+   */
+  popup?: boolean
   /** 없으면 닫기 버튼을 숨긴다 (스탯창처럼 상시 표시되는 창). */
   onClose?: () => void
   /**
@@ -85,6 +94,7 @@ export function Window({
   zIndex,
   maximized = false,
   fixed = false,
+  popup = false,
   onClose,
   onMinimize,
   onToggleMaximize,
@@ -184,7 +194,7 @@ export function Window({
   }
 
   /** 전체 화면 창과 고정 패널은 위치가 정해져 있어 드래그하지 않는다. */
-  const immovable = maximized || fixed
+  const immovable = maximized || fixed || popup
 
   /** 전체 화면이면 x/y/width 대신 뷰포트를 채우고, 작업 표시줄 높이만 아래로 비워 둔다. */
   const style: CSSProperties = maximized
@@ -195,17 +205,24 @@ export function Window({
         height: viewport.h - SHELL.TASKBAR_HEIGHT,
         zIndex,
       }
-    : { left: x, top: y, width, zIndex }
+    : popup
+      ? /* 팝업은 x/y를 안 쓴다 — 위치는 CSS가 화면 가운데로 잡는다(인라인 left/top을
+           주면 CSS가 못 이긴다). 폭만 넘긴다. */
+        { width, zIndex }
+      : { left: x, top: y, width, zIndex }
 
   return (
     <div
       ref={ref}
       className={`win${maximized ? ' win-max' : ''}${fixed ? ' win-fixed' : ''}${
         bareTitle ? ' win-bare' : ''
-      }${dark ? ' win-dark' : ''}`}
+      }${dark ? ' win-dark' : ''}${popup ? ' win-popup' : ''}`}
       style={style}
       onPointerDown={activate}
     >
+      {/* ⚠️ 팝업에는 타이틀 바가 없다 — 캡션 버튼 셋도 함께 사라진다(핸들러를 안 넘기는
+          것과 결과는 같지만, 여기서 끊어야 빈 띠가 남지 않는다). */}
+      {!popup && (
       <div
         className={`win-title${bareTitle ? ' win-title-bare' : ''}`}
         // 전체 화면 창과 고정 패널은 끌 수 없다 — 핸들러를 아예 붙이지 않아 포인터 캡처도 걸리지 않는다.
@@ -272,6 +289,7 @@ export function Window({
           )}
         </div>
       </div>
+      )}
       {/* 장식은 타이틀 바를 비켜 본문만 감싼다 — 위치 규칙은 Window.css의 .win > .panel-ornament 참조. */}
       {ornament && <PanelOrnament />}
       <div className="win-body">{children}</div>

@@ -53,6 +53,9 @@ import {
 import { abandonGig as abandonGigOf, advanceGigs, takeGig as takeGigOf } from '../systems/gigs'
 import { findGig } from '../data/gigs'
 import { takeCourse as takeCourseOf } from '../systems/courses'
+import { reviveBand } from '../systems/band'
+import { advancePhoneBill } from '../systems/phone'
+import { advanceBills, revivePaidBills } from '../systems/bills'
 import { reviveGear } from '../systems/gear'
 import { playGame as playGameOf } from '../systems/steam'
 import { renameChannel as renameChannelOf, startStream as startStreamOf } from '../systems/channel'
@@ -497,6 +500,13 @@ function reviveState(raw: unknown): GameState | null {
     sold: Array.isArray(saved.sold) ? saved.sold.filter((id): id is string => typeof id === 'string') : undefined,
     // 장비 마모·고장. 고장은 활동을 잠그므로 모르는 id는 버린다(`reviveGear`).
     gear: reviveGear(saved.gear),
+    // 밴드 숙련도. 값이 이상하면 밴드가 없던 것으로 친다(공연·앨범이 잠긴다).
+    band: reviveBand(saved.band),
+    // 휴대폰 청구 커서. 없으면 산 날부터 다시 센다(`systems/phone.ts`).
+    phoneBilledDay: typeof saved.phoneBilledDay === 'number' ? saved.phoneBilledDay : undefined,
+    suspendedPhone: saved.suspendedPhone === true ? true : undefined,
+    // 지나간 목돈 청구. 모르는 id는 버린다 — 남으면 청구를 지운 뒤에도 계속 낸 것이 된다.
+    paidBills: revivePaidBills(saved.paidBills),
     broken: Array.isArray(saved.broken)
       ? saved.broken.filter((id): id is string => typeof id === 'string')
       : undefined,
@@ -608,7 +618,13 @@ function afterTurn(next: GameState, chain?: number) {
   //    (자격시험 발표와 같은 부류). 구독료보다 먼저인 것은 둘이 서로 무관하기 때문이다.
   const gigged = advanceGigs(exams.state)
   const billed = advanceSubscriptions(gigged)
-  const drawn = advanceLottery(billed)
+  // ⚠️ **휴대폰 요금도 나가는 돈이라 구독료와 같은 자리다** — 못 내면 회선이 정지되고
+  //    기기가 인벤토리에서 빠진다(외상을 만들지 않는다는 구독의 규칙 그대로).
+  const phoned = advancePhoneBill(billed)
+  // ⚠️ **목돈 청구도 나가는 돈이라 구독료 옆자리다.** 못 낸 몫은 평판으로 치르므로
+  //    소지금이 음수가 되지 않는다(`systems/bills.ts` 주석 — 파산은 물가의 몫이다).
+  const charged = advanceBills(phoned)
+  const drawn = advanceLottery(charged)
   // ⚠️ **트위터 주간 정산도 밤에 돈을 넣는다**(`nightPayoutPending`의 네 번째 원천).
   //    은행·복권과 같은 자리·같은 이유이고, 셋 다 마지막 줄에서 `settleGameOver`를 부르므로
   //    순서 자체가 판정을 바꾸지는 않는다(확정된 사유는 되살아나지 않는다).

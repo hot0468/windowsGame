@@ -62,6 +62,16 @@
 .tr-vscode {
   --tr-accent: #4ade80;
 }
+.tr-audition {
+  --tr-accent: #22d3ee;
+}
+/* 공부 둘. 알바와 갈려야 "다른 종류의 일"로 읽힌다. */
+.tr-study {
+  --tr-accent: #93c5fd;
+}
+.tr-write {
+  --tr-accent: #fda4af;
+}
 /* 알바 넷. 서로 달라야 "다른 일"로 읽힌다(문구만으로는 훑을 때 안 갈린다). */
 .tr-store {
   --tr-accent: #7dd3fc;
@@ -187,10 +197,14 @@
 }
 
 .tr-result-head {
-  margin: 0;
-  font-size: var(--fs-lg);
-  font-weight: 600;
-  /* 도구를 가리키는 유일한 색 신호. 글자라 대비가 4.5:1을 넘어야 한다. */
+  /* ⚠️ **결과 알림의 머리글이자 이 창의 유일한 제목이다** — 팝업에는 타이틀 바가 없으므로
+     (`Window`의 `popup`) 여기가 작아지면 무엇이 끝났는지 말하는 자리가 사라진다.
+     그래서 목록보다 한 단이 아니라 두 단 크고, 가운데에 놓아 목록과 축을 가른다. */
+  margin: 0 0 var(--sp-2);
+  text-align: center;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  /* 장면을 가리키는 유일한 색 신호. 글자라 대비가 4.5:1을 넘어야 한다. */
   color: var(--tr-accent);
 }
 
@@ -201,6 +215,13 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* 한 줄 = [이름 · 증감] + 게이지. 세로로 쌓이므로 목록의 간격은 `.tr-effects`가 준다. */
+.tr-effect-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .tr-effect {
@@ -227,6 +248,35 @@
 .tr-minus {
   color: #fca5a5;
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * 성장 게이지. **오른 만큼이 아니라 "지금 어디까지 찼는가"를 보여 준다** — 증감 숫자는
+ * 바로 위 줄이 이미 말하고 있고, 막대까지 같은 말을 하면 두 벌이 된다(설계자 지시:
+ * "올라간 스탯을 게이지바로").
+ *
+ * ⚠️ **상한이 있는 스탯에만 그린다**(소지금에는 없다) — 기준이 없는 막대는 뜻이 없다.
+ * ⚠️ 이번에 오른 몫은 액센트로 **이어 붙인다**: 색만으로 전하지 않도록 위 줄의 `+N`이
+ * 같은 사실을 글자로 지고 있다(ux `color-not-only`).
+ */
+.tr-gauge {
+  display: flex;
+  height: 6px;
+  margin-top: -2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.tr-gauge-had {
+  background: var(--tr-dim);
+}
+
+.tr-gauge-gain {
+  background: var(--tr-accent);
+  /* ⚠️ **최소 폭을 준다.** 상한 999짜리 스탯에서 +6은 0.6%라 비율만으로는 한 픽셀도
+     안 그려져 "올랐는데 막대는 그대로"가 된다(옷 보너스의 "최소 +1"과 같은 규칙). */
+  min-width: 3px;
 }
 
 .tr-gig {
@@ -267,7 +317,126 @@
     transform: scaleX(1);
     opacity: 1;
   }
+  /* 책장은 **덮인 채로** 멈춘다 — 반쯤 넘어간 장에서 얼면 고장으로 읽힌다. */
+  .tr-book-leaf {
+    animation: none;
+    transform: rotateY(0deg);
+  }
   .tr-fill {
     transition: none;
+  }
+}
+
+/* ── 종이 판 (공부) ──────────────────────────────────────────
+ *
+ * ⚠️ **어두운 판을 그대로 밝게 뒤집을 수 없다.** 밝은 액센트(#93C5FD·#FDA4AF)는 흰
+ * 종이 위에서 2:1 안팎이고, 증감 색(#4ADE80·#FCA5A5)도 마찬가지다 — 전부 다시 골랐다.
+ * 아래 값은 판 #FAF7F2 기준 실측이다(ux `color-dark-mode`의 반대 방향, 같은 규칙).
+ *
+ * ⚠️ **창 프레임도 함께 밝아야 한다** — `windowChrome`이 `look === 'paper'`면 `dark`를
+ * 안 준다. 한쪽만 바꾸면 어두운 타이틀 바 아래 흰 종이가 붙어 창이 위아래로 갈린다.
+ */
+.tr-paper {
+  --tr-bg: #faf7f2; /* 종이 */
+  --tr-card: #ece5d8; /* 책배·결과 판 */
+  --tr-line: rgba(60, 50, 35, 0.16);
+  --tr-fg: #2a2622; /* 14.1:1 */
+  --tr-dim: #6b6459; /* 5.5:1 */
+}
+
+/* ⚠️ 액센트는 **판 뒤에** 다시 적는다(같은 요소에 두 클래스가 붙으므로 순서가 아니라
+   명시도로 이겨야 한다). 흰 글자를 얹는 [확인] 버튼 바닥이기도 하다. */
+.tr-paper.tr-study {
+  --tr-accent: #1d4ed8; /* 종이 6.3:1 · 흰 글자 6.7:1 */
+}
+.tr-paper.tr-write {
+  --tr-accent: #be123c; /* 종이 5.9:1 · 흰 글자 6.3:1 */
+}
+
+.tr-paper .tr-minus {
+  color: #b91c1c; /* 종이 6.1:1 */
+}
+
+/* 어두운 판을 전제로 한 값 둘을 뒤집는다. */
+/*
+ * ⚠️ **종이 팝업 안에는 판이 하나뿐이다**(설계자 지시로 안쪽 상자를 뺐다) — 결과 알림이
+ * 자기 배경·테두리를 안 그리는 대신, 가림막이 **불투명한 종이**가 되어 책장을 완전히
+ * 덮는다. 반투명으로 두면 상자를 뺀 자리로 책이 비쳐 글자 뒤가 지저분해진다.
+ */
+.tr-paper .tr-scrim {
+  background: var(--tr-bg);
+  backdrop-filter: none;
+}
+
+.tr-paper .tr-result {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* ⚠️ 상자가 사라졌으니 증감 글자의 **기준 판도 종이(#FAF7F2)로 돌아온다** — 결과 판
+   (#ECE5D8)을 기준으로 잡았던 값을 그대로 두면 필요 이상으로 어둡다. */
+.tr-paper .tr-plus {
+  color: #15803d; /* 종이 4.7:1 */
+}
+.tr-paper .tr-close {
+  color: #ffffff;
+}
+.tr-paper .tr-gauge {
+  background: rgba(60, 50, 35, 0.12);
+}
+
+/* ── 책장 넘기기 ─────────────────────────────────────────────
+ * ⚠️ **회전만 움직인다**(ux `transform-performance`) — 폭·높이를 애니메이션하면 상태 줄이
+ * 매 프레임 밀린다. 뒷면은 감춰 종이가 비쳐 보이지 않게 한다.
+ */
+.tr-book {
+  display: grid;
+  place-items: center;
+  perspective: 800px;
+}
+
+.tr-book-spread {
+  position: relative;
+  display: flex;
+  width: 168px;
+  height: 116px;
+  filter: drop-shadow(0 6px 14px rgba(60, 50, 35, 0.18));
+}
+
+.tr-book-side {
+  width: 84px;
+  height: 100%;
+  border: 1px solid var(--tr-line);
+  background: var(--tr-card);
+}
+
+.tr-book-side:first-child {
+  border-radius: var(--r-sm) 0 0 var(--r-sm);
+}
+.tr-book-side:nth-child(2) {
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+
+.tr-book-leaf {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 84px;
+  height: 100%;
+  border: 1px solid var(--tr-line);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  background: var(--tr-bg);
+  transform-origin: left center;
+  backface-visibility: hidden;
+  animation: tr-flip 1.6s ease-in-out infinite;
+}
+
+@keyframes tr-flip {
+  0% {
+    transform: rotateY(0deg);
+  }
+  55%,
+  100% {
+    transform: rotateY(-172deg);
   }
 }

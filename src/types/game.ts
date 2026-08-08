@@ -138,7 +138,7 @@ export type IconName = string
  * — `Activity.toolId`가 이 타입이라야 화면이 `TOOL_NAMES[toolId]`처럼 안전하게 색인한다
  * (`string`이면 없는 도구 이름이 `undefined`로 조용히 새어 나간다).
  */
-export type ToolId = 'photoshop' | 'premiere' | 'vscode'
+export type ToolId = 'photoshop' | 'premiere' | 'vscode' | 'audition'
 
 /**
  * 도구 앱 창(`WindowKind: 'tool'`)이 그릴 것. **실행 직전에 찍어 둔 사실이다.**
@@ -161,6 +161,8 @@ export interface ToolRunPayload {
   steps: string[]
   /** CSS 액센트 갈래(`.tr-<accent>`). */
   accent: string
+  /** 판의 생김새(`RunScene.look`). `'paper'`면 밝은 판 + 책장 + 닫기 버튼 없는 팝업. */
+  look?: 'paper'
   rows: { key: keyof Stats; value: number }[]
   mentalPenalty: number
   contract?: GigContract
@@ -223,6 +225,22 @@ export interface Activity {
    * 전제로 짜여 있어, 슬롯을 좁히면 그 계산이 통째로 흔들린다.
    */
   requiresSlot?: Slot
+  /**
+   * 밴드 숙련도 게이트(`GameState.band.skill` 이상이어야 한다). 판정은 `canRun` 하나가 한다.
+   * ⚠️ **문턱 값이 곧 "무엇을 하는 활동인가"의 열쇠다** — `systems/band.ts`의 `bandPayFor`가
+   * 이 값으로 공연과 앨범을 가른다(활동 id로 분기하면 활동을 하나 더 만들 때 샌다).
+   */
+  /**
+   * 요일 잠금. `'weekday'` = 평일에만, `'weekend'` = 주말에만.
+   *
+   * ⚠️ 판정은 `canRun` 하나가 한다(슬롯·아이템 게이트와 같은 자리).
+   * ⚠️ **오후에는 걸지 않는 것이 규칙이다** — 주간 예약이 월~금 오후를 쓰고 있어
+   * (독서모임·레이드·러닝·헬스·밴드) 오후를 좁히면 그 예약들이 조용히 실행되지 않는다.
+   */
+  requiresWeek?: 'weekday' | 'weekend'
+  requiresBandSkill?: number
+  /** 이 활동이 밴드 숙련도를 올리는가(합주). 올리는 폭은 `data/band.ts`가 정한다. */
+  buildsBandSkill?: boolean
   /**
    * 정규직 상태 게이트. `requiresItem`과 같은 규칙이다 — 판정은 `canRun` 하나가 한다.
    *
@@ -807,6 +825,18 @@ export interface ChannelState {
 }
 
 /**
+ * 밴드 상태. **옵셔널이다** — 합주를 한 번도 안 했으면 없다.
+ *
+ * ⚠️ **필드가 숙련도 하나뿐인 것이 규칙이다.** 멤버 이름·곡 목록·다음 공연 날짜를 여기
+ * 넣고 싶어지는데, 전부 화면에만 필요한 장식이고 저장하면 세이브가 낡는다 — 지어낸
+ * 이름은 `data/messages.ts`의 대화방이 갖고, 일정은 주간 예약이 이미 갖고 있다.
+ */
+export interface BandState {
+  /** 합주로 쌓인 팀의 숙련도. 상한·문턱·보수는 전부 `data/band.ts`가 정한다. */
+  skill: number
+}
+
+/**
  * 트위터 활동 상태. **옵셔널이다** — 그림을 올린 적 없으면 없다
  * (`lottery`·`courses`와 같은 규칙 — 마이그레이션이 필요 없다).
  *
@@ -1093,6 +1123,23 @@ export interface GameState {
    * 근거이고 `delivery.ts`의 `collect`가 둘을 함께 본다.
    */
   broken?: string[]
+  /**
+   * 밴드. **없으면 안 들어간 것이다**(합주를 한 번이라도 하면 생긴다) — 빈 객체를 미리
+   * 만들어 두면 "숙련도 0인 밴드에 소속됨"이라는 없는 상태가 화면에 뜬다.
+   */
+  band?: BandState
+  /**
+   * 휴대폰 요금을 마지막으로 낸 날. **없으면 산 날부터 센다**(인벤토리가 이미 갖고 있다) —
+   * 규칙은 `systems/phone.ts`에 있다.
+   */
+  phoneBilledDay?: number
+  /** 요금 미납으로 정지된 적이 있는가. 아웃룩 안내문의 근거다. */
+  suspendedPhone?: boolean
+  /**
+   * 이미 지나간 목돈 청구 id(`data/bills.ts`). **못 냈어도 적힌다** — 못 낸 몫은 평판으로
+   * 이미 치렀고, 안 적으면 매 밤 다시 문다.
+   */
+  paidBills?: string[]
   /** 이벤트 도감에 실릴 기록. */
   events?: EventLog[]
   /**

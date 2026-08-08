@@ -22,6 +22,18 @@ export function weekdayOf(day: number): number {
   return dateOf(day).getDay()
 }
 
+/**
+ * 주말(토·일)인가.
+ *
+ * ⚠️ **`data/careers.ts`의 `isWorkWeekday`와 다른 물음이다.** 그쪽은 "이 직장의 근무일인가"라
+ * 회사 규칙(`WORKDAYS`)을 보고, 이쪽은 달력이 주말인가를 본다 — 지금은 같은 답이 나오지만
+ * 근무일이 다른 직장이 생기는 순간 갈린다. 요일 규칙은 달력이 갖는 것이 맞다.
+ */
+export function isWeekend(day: number): boolean {
+  const w = weekdayOf(day)
+  return w === 0 || w === 6
+}
+
 /** 게임 내 날짜를 "3월 5일 (목)" 형태의 한국어 표기로 환산한다. */
 export function formatGameDate(day: number): string {
   const base = new Date(GAME_START_DATE.year, GAME_START_DATE.month - 1, GAME_START_DATE.day)

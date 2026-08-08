@@ -162,6 +162,21 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
   },
   {
     /*
+     * 오디션. 포토샵·프리미어와 같은 구독·같은 폭이다.
+     * ⚠️ **devicon에 오디션 로고가 없다** — 도구는 devicon으로 통일해 왔지만 지어낼 수는
+     *    없으므로 다색 헤드폰을 쓴다(`fluent-color:headphones-24`). 다색 아이콘이라 CSS
+     *    `color`를 입히지 않는다.
+     */
+    id: 'audition',
+    label: '오디션',
+    icon: 'fluent-color:headphones-24',
+    kind: 'exe',
+    activityId: 'tool-audition',
+    width: 420,
+    requiresSubscription: 'adobe',
+  },
+  {
+    /*
      * 클립스튜디오. ⚠️ **타블렛을 사야 나타나는 조건부 항목이다**(`requiresItem`) —
      * 이 게임에서 프로그램이 나중에 설치되는 유일한 자리다.
      *

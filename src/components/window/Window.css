@@ -46,6 +46,42 @@
    높이·좌표는 Window.tsx가 인라인 style로 지정한다(뷰포트 리사이즈를 따라가야 하므로).
    여기서는 전체 화면일 때만 달라지는 외형만 다룬다.
    ⚠️ 작업 표시줄 높이 44px의 단일 출처는 src/data/shell.ts의 SHELL.TASKBAR_HEIGHT다. */
+/*
+ * 시스템 팝업. **타이틀 바가 없고 화면 가운데 고정된다.**
+ *
+ * ⚠️ `position: fixed`다(다른 창은 absolute) — 바탕화면이 스크롤되거나 확대돼도 팝업은
+ * 화면 한가운데 있어야 "지금 이것부터 보라"가 성립한다.
+ * ⚠️ **모서리를 더 깎고 그림자를 한 단 올린다** — 딤 위에 떠 있는 것이라 창과 같은
+ * 고도면 딤이 왜 깔렸는지가 안 읽힌다(style `elevation-consistent`의 3단을 쓴다).
+ */
+.win-popup {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: var(--r-xl);
+  box-shadow: var(--el-3);
+}
+
+/*
+ * 팝업 뒤에 까는 딤. **팝업 바로 아래 층에만** 깔린다(`zIndex`는 인라인).
+ * ⚠️ **누르면 닫히지 않는다**(`pointer-events`를 살려 두되 핸들러가 없다) — 결과를
+ * 확인했다는 신호는 [확인]뿐이어야, 실수로 눌러 스탯 변화를 못 보는 일이 없다.
+ * 대신 [건너뛰기]·Esc가 빠져나갈 길을 진다(ux `escape-routes`).
+ */
+.win-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .win-scrim {
+    backdrop-filter: none;
+  }
+}
+
 .win-max {
   /* 최대화 시에는 윈도우 11도 모서리를 각지게 만든다. */
   border-radius: 0;

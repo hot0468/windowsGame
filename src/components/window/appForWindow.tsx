@@ -18,7 +18,7 @@ import { ToolRun } from '../apps/ToolRun'
 import { ClipStudioApp } from '../apps/ClipStudioApp'
 import { StubApp } from '../apps/StubApp'
 import type { OpenWindow } from '../../store/windowStore'
-import type { WindowKind } from '../../types/game'
+import type { ToolRunPayload, WindowKind } from '../../types/game'
 
 /**
  * `WindowKind` → 앱 컴포넌트. **셸이 둘이므로 분기는 하나여야 한다.**
@@ -159,7 +159,8 @@ export interface WindowChrome {
  * 게임이 말을 거는 창에만 테두리 장식을 붙인다. 브라우저처럼 "설치된 프로그램"으로
  * 읽혀야 하는 창은 빼야 가짜 OS 컨셉이 유지된다(Window의 ornament 주석 참조).
  */
-export function windowChrome(kind: WindowKind): WindowChrome {
+export function windowChrome(w: { kind: WindowKind; toolRun?: ToolRunPayload }): WindowChrome {
+  const kind = w.kind
   return {
     ornament: kind === 'exe' || kind === 'stub',
     /* 메신저·증기는 앱이 창 꼭대기까지 자기 색을 칠한다 — 레퍼런스와 같은 형태다.
@@ -171,6 +172,8 @@ export function windowChrome(kind: WindowKind): WindowChrome {
     /* ⚠️ 도구 앱도 어둡다 — 창이 곧 그 프로그램이라 **실제 타이틀 바가 프로그램 이름표**를
        진다(그래서 가짜 프로그램 띠를 따로 그리지 않는다). `bareTitle`은 안 준다:
        제목과 로고가 보여야 작업 표시줄에서 무엇이 도는지 알 수 있다. */
-    dark: kind === 'cmd' || kind === 'steam' || kind === 'tool',
+    /* ⚠️ **도구 창이라고 다 어두운 것은 아니다**(2026-08-09) — 공부 장면은 종이 판이라
+       프레임까지 어두우면 창이 위아래로 갈린다. 판단은 `look` 하나가 한다. */
+    dark: kind === 'cmd' || kind === 'steam' || (kind === 'tool' && w.toolRun?.look !== 'paper'),
   }
 }

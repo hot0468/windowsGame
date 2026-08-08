@@ -6,7 +6,8 @@ import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
 import { activeContract, gigsOf } from '../../systems/gigs'
-import { STAT_NAMES } from '../../types/game'
+import { MENTAL_CAP, STAMINA_CAP, growthCap } from '../../systems/turn'
+import { GROWTH_STAT_KEYS, STAT_NAMES } from '../../types/game'
 import { previewActivity } from './activityPreview'
 import type {
   Activity,
@@ -51,11 +52,59 @@ const STEP_MS = 620
 /** 창 폭. 활동 창(420)보다 넓다 — 이쪽은 미리보기가 아니라 작업 화면이다. */
 const TOOL_WINDOW_WIDTH = 460
 
+/**
+ * 성장 게이지 한 줄. **오른 뒤의 값이 상한의 어디쯤인지**를 보여 준다.
+ *
+ * ⚠️ **상한을 여기서 적지 않는다** — `growthCap`·`STAMINA_CAP`·`MENTAL_CAP`에 물어본다
+ * (적는 순간 평판·도덕처럼 상한이 다른 스탯이 거짓 비율로 그려진다).
+ * ⚠️ **상한이 없는 스탯(소지금)에는 아무것도 안 그린다.** 기준 없는 막대는 뜻이 없다.
+ * ⚠️ **깎인 경우도 안 그린다** — 설계자가 요청한 것은 "올라간 스탯"이고, 줄어드는 막대는
+ * 결과 알림이 할 말이 아니다(체력·멘탈 소모는 위 줄의 숫자가 이미 말한다).
+ */
+function capOf(stat: keyof typeof STAT_NAMES): number | undefined {
+  if ((GROWTH_STAT_KEYS as readonly string[]).includes(stat)) {
+    return growthCap(stat as (typeof GROWTH_STAT_KEYS)[number])
+  }
+  if (stat === 'stamina') return STAMINA_CAP
+  if (stat === 'mental') return MENTAL_CAP
+  return undefined
+}
+
+function Gauge({
+  stat,
+  gained,
+  now,
+}: {
+  stat: keyof typeof STAT_NAMES
+  gained: number
+  now: number
+}) {
+  const cap = capOf(stat)
+  if (cap === undefined || gained <= 0) return null
+  const pct = (v: number) => Math.max(0, Math.min(100, (v / cap) * 100))
+  const had = pct(now - gained)
+  return (
+    <span
+      className="tr-gauge"
+      role="progressbar"
+      aria-valuenow={Math.round(now)}
+      aria-valuemin={0}
+      aria-valuemax={cap}
+      aria-label={`${STAT_NAMES[stat]} ${Math.round(now)} / ${cap}`}
+    >
+      <span className="tr-gauge-had" style={{ width: `${had}%` }} />
+      <span className="tr-gauge-gain" style={{ width: `${pct(now) - had}%` }} />
+    </span>
+  )
+}
+
 /** 도구별 로고. ⚠️ 바탕화면 항목·그몽 카드와 **같은 그림**이어야 한다. */
 const TOOL_ICONS: Record<ToolId, IconName> = {
   photoshop: 'devicon:photoshop',
   premiere: 'devicon:premierepro',
   vscode: 'devicon:vscode',
+  // ⚠️ devicon에 오디션 로고가 없다 — 바탕화면 항목과 같은 헤드폰을 쓴다.
+  audition: 'fluent-color:headphones-24',
 }
 
 /**
@@ -86,11 +135,16 @@ export function openToolWindow(state: GameState, activity: Activity): void {
     y: 96,
     width: TOOL_WINDOW_WIDTH,
     kind: 'tool',
+    /* ⚠️ 종이 판 장면은 **닫기 버튼 없는 시스템 팝업**이다(설계자 지시) — 공부는 프로그램을
+       켜는 일이 아니라 게임이 잠깐 말을 거는 자리라, 창처럼 X로 치울 수 있으면 안 된다.
+       빠져나갈 길은 [건너뛰기]·[확인]·Esc 셋이 진다. */
+    popup: scene.look === 'paper',
     toolRun: {
       toolId: activity.toolId,
       title: scene.title,
       steps: scene.steps,
       accent: scene.accent,
+      look: scene.look,
       rows,
       mentalPenalty,
       contract: activeContract(state),
@@ -117,19 +171,44 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
 
   const percent = Math.round((Math.min(step, steps.length) / steps.length) * 100)
 
+  const paper = payload.look === 'paper'
+
   return (
-    <div className={`tr tr-${accent}`} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+    <div
+      className={`tr tr-${accent}${paper ? ' tr-paper' : ''}`}
+      onKeyDown={(e) => e.key === 'Escape' && onClose()}
+    >
       <div className="tr-stage">
         {/*
          * 가짜 작업 영역. ⚠️ **이미지가 아니라 막대 몇 개다**(배너·엔딩과 같은 오프라인
          * 규칙). 화면 낭독기에는 아무 뜻도 없으므로 통째로 숨긴다 — 진행 상황은 아래
          * 상태 줄과 진행 막대가 말한다.
          */}
-        <div className="tr-canvas" aria-hidden="true">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <span key={i} className="tr-row" style={{ animationDelay: `${i * 90}ms` }} />
-          ))}
-        </div>
+        {paper ? (
+          /*
+           * 책장 넘기는 그림. ⚠️ **이미지가 아니라 상자 몇 개다**(막대와 같은 오프라인 규칙).
+           * 코드 줄이 흐르는 기본 판은 공부에 어울리지 않았다(설계자 지시).
+           */
+          <div className="tr-canvas tr-book" aria-hidden="true">
+            <span className="tr-book-spread">
+              <span className="tr-book-side" />
+              <span className="tr-book-side" />
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="tr-book-leaf"
+                  style={{ animationDelay: `${i * 520}ms` }}
+                />
+              ))}
+            </span>
+          </div>
+        ) : (
+          <div className="tr-canvas" aria-hidden="true">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <span key={i} className="tr-row" style={{ animationDelay: `${i * 90}ms` }} />
+            ))}
+          </div>
+        )}
 
         {/*
           ux `loading-states`: 무엇을 하는 중인지 글자로 말한다(막대만으로는 모른다).
@@ -173,21 +252,27 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
           <div className="tr-scrim" />
           <div className="tr-result" role="alertdialog" aria-labelledby={titleId}>
             <h2 className="tr-result-head" id={titleId}>
-              {title} 작업 완료
+              {/* ⚠️ **"작업 완료"라고 쓰지 않는다** — 도구에는 맞지만 공부·알바가 붙으면서
+                  "공부 작업 완료"가 됐다(2026-08-08 실측에서 눈에 띄었다). 장면이 무엇이든
+                  참인 말은 "끝났다" 하나뿐이다. */}
+              {title} 완료
             </h2>
 
             <ul className="tr-effects">
               {payload.rows.map(({ key, value }) => (
-                <li key={key} className="tr-effect">
-                  <span className="tr-effect-label">
-                    <AppIcon name={STAT_META[key].icon} size={15} />
-                    {STAT_NAMES[key]}
+                <li key={key} className="tr-effect-group">
+                  <span className="tr-effect">
+                    <span className="tr-effect-label">
+                      <AppIcon name={STAT_META[key].icon} size={15} />
+                      {STAT_NAMES[key]}
+                    </span>
+                    {/* 부호를 항상 적는다 — 색만으로 증감을 전하지 않는다. */}
+                    <span className={value >= 0 ? 'tr-plus' : 'tr-minus'}>
+                      {value >= 0 ? '+' : ''}
+                      {value.toLocaleString('ko-KR')}
+                    </span>
                   </span>
-                  {/* 부호를 항상 적는다 — 색만으로 증감을 전하지 않는다. */}
-                  <span className={value >= 0 ? 'tr-plus' : 'tr-minus'}>
-                    {value >= 0 ? '+' : ''}
-                    {value.toLocaleString('ko-KR')}
-                  </span>
+                  <Gauge stat={key} gained={value} now={state?.stats[key] ?? 0} />
                 </li>
               ))}
               {payload.mentalPenalty > 0 && (
@@ -210,7 +295,7 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
             )}
 
             <button type="button" className="tr-close" autoFocus onClick={onClose}>
-              닫기
+              확인
             </button>
           </div>
         </>

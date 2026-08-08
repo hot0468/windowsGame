@@ -131,6 +131,74 @@ export const EVENTS: GameEvent[] = [
    * ⚠️ `hint`는 **무엇을 하면 되는지**를 적되 수치는 안 적는다 — 등급 문턱을 두 곳에
    * 쓰면 한쪽이 낡는다.
    */
+  /* ── 낮은 스탯의 대가 4종 (2026-08-09) ──────────────────────────────
+   * ⚠️ **겪은 것을 나무라지 않는다.** 도감에 남는 글은 "네가 잘못했다"가 아니라 그날
+   * 무슨 일이 있었는지다 — 벌점 통지서가 되면 도감을 열어 볼 이유가 사라진다.
+   */
+  {
+    id: 'lost-wallet',
+    name: '돌아오지 않은 지갑',
+    hint: '지킬 것을 오래 안 지킨다.',
+    desc: '카페 의자에 두고 온 지갑이 그대로 없어졌다. 누가 가져갔는지는 중요하지 않았다.',
+    icon: 'fluent-color:contact-card-24',
+    ext: '.evt',
+  },
+  {
+    id: 'bad-word',
+    name: '건너 들은 말',
+    hint: '이름이 오래 알려지지 않는다.',
+    desc: '나에 대한 이야기가 한 다리 건너 돌아왔다. 절반은 사실이 아니었고 절반은 사실이었다.',
+    icon: 'fluent-color:chat-bubbles-question-24',
+    ext: '.evt',
+  },
+  {
+    id: 'cold-shoulder',
+    name: '비워 둔 자리',
+    hint: '몸에 밴 말씨가 오래 쌓이지 않는다.',
+    desc: '늘 앉던 자리에 다른 사람이 앉아 있었다. 아무도 비켜 달라고 하지 않았다.',
+    icon: 'fluent-color:person-warning-24',
+    ext: '.evt',
+  },
+  {
+    id: 'empty-table',
+    name: '혼자 앉은 식탁',
+    hint: '사람을 오래 만나지 않는다.',
+    desc: '넷이 앉는 자리에 혼자 앉았다. 밥이 식는 속도가 유난히 빨랐다.',
+    icon: 'fluent-color:people-community-24',
+    ext: '.evt',
+  },
+  {
+    id: 'wedding-mc',
+    name: '사회를 봐 달라는 부탁',
+    hint: '말과 몸가짐이 오래 쌓인다.',
+    desc: '식장 앞에서 대본을 세 번 읽었다. 이름을 하나도 안 틀린 것이 제일 잘한 일이었다.',
+    icon: 'fluent-color:ribbon-24',
+    ext: '.evt',
+  },
+  {
+    id: 'pace-maker',
+    name: '페이스메이커 제안',
+    hint: '몸이 남들보다 앞서 나간다.',
+    desc: '대회 측에서 연락이 왔다. 앞서 달리되 이기면 안 되는 자리라고 했다.',
+    icon: 'fluent-color:flag-24',
+    ext: '.evt',
+  },
+  {
+    id: 'cited-paper',
+    name: '각주에 실린 이름',
+    hint: '읽고 정리하기를 오래 한다.',
+    desc: '누가 쓴 글의 각주에 내 정리가 인용돼 있었다. 오타까지 그대로였다.',
+    icon: 'fluent-color:book-star-24',
+    ext: '.evt',
+  },
+  {
+    id: 'borrowed-idea',
+    name: '어디서 본 아이디어',
+    hint: '떠올린 것을 오래 내놓는다.',
+    desc: '광고 하나가 작년에 적어 둔 것과 똑같았다. 증명할 방법은 없고 기분만 남았다.',
+    icon: 'fluent-color:star-24',
+    ext: '.evt',
+  },
   {
     id: 'verified-badge',
     name: '파란 딱지',

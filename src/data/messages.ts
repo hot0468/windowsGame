@@ -255,6 +255,74 @@ export const THREADS: Thread[] = [
   },
   {
     /*
+     * 친화력 C(=100)가 여는 방. **오픈카톡이다** — 아는 사람이 아니라 같은 골목에 사는
+     * 사람들이다. ⚠️ **주간 예약이 없다** — 집들이는 부를 때 가는 일이고, 주간 예약 요일은
+     * 월·화·수·목·금·토가 이미 찼다(일요일 하나를 여기서 태우면 다음 축이 쓸 자리가 없다).
+     */
+    id: 'neighbors',
+    app: 'kakao',
+    name: '늘봄빌라 이웃 오픈채팅',
+    members: 17,
+    open: true,
+    offer: {
+      question: '이번 주말에 3층에서 집들이 하는데 오실래요?',
+      options: [
+        {
+          id: 'neighbors-visit',
+          label: '갈게요',
+          desc: '손 선물 20,000원 · 1턴 소모',
+          activityId: 'housewarming',
+        },
+      ],
+    },
+  },
+  {
+    /*
+     * 경제 B(=300)가 여는 방. ⚠️ **주간 예약이 없다**(위와 같은 이유). 발표를 맡는 것이
+     * 곧 실행이라 남길 상태도 없다.
+     */
+    id: 'invest-club',
+    app: 'kakao',
+    name: '월요일 투자 스터디',
+    members: 9,
+    open: true,
+    offer: {
+      question: '다음 주 발표 한 번 맡아 주실 수 있어요?',
+      options: [
+        {
+          id: 'invest-talk',
+          label: '해 볼게요',
+          desc: '회비 없음 · 1턴 소모',
+          activityId: 'study-talk',
+        },
+      ],
+    },
+  },
+  {
+    /*
+     * 음악 A(=500)가 여는 방(`data/rankEvents.ts`의 `band-recruit`). **1:1 영입 제안이다** —
+     * 그만큼 갔으면 모르는 사람이 아니라 들어 본 사람이 부른다.
+     * ⚠️ 예약 요일은 **금요일**(월·화·수·목·토가 이미 찼다 — 겹치면 두 예약이 같은 슬롯에서
+     *    부딪혀 하나가 조용히 실행되지 않는다).
+     */
+    id: 'band-recruit',
+    app: 'kakao',
+    name: '건반 치는 재훈',
+    members: 1,
+    offer: {
+      question: '합주실 잡아 뒀는데, 우리 밴드 들어올래?',
+      options: [
+        {
+          id: 'band-join',
+          label: '들어갈게',
+          desc: '회비 없음 · 매주 금요일 오후에 합주가 자동 예약됩니다 (4주)',
+          weekly: { weekday: 5, weeks: 4, activityId: 'band-practice' },
+        },
+      ],
+    },
+  },
+  {
+    /*
      * 어휘력 C가 여는 방. **오픈카톡이다**(설계자 지시) — 모르는 사람들의 방이다.
      * ⚠️ 예약 요일은 **월요일**(다른 넷과 안 겹친다).
      */
@@ -342,6 +410,18 @@ export interface Message {
  * 같은 턴에는 늘 같은 메시지가 온다(뉴스와 같은 규칙, `Math.random` 금지).
  *
  * 빈 배열인 턴이 있는 게 중요하다 — 매 턴 알림이 뜨면 알림이 소음이 된다.
+ *
+ * ## ⚠️ **편성표는 플레이어가 한 일을 단정하지 않는다**
+ * 여기 있는 메시지는 **누구에게나 같은 턴에 도착한다.** 그래서 "지원해 주신 공고"처럼
+ * 플레이어의 선택에 달린 사실을 말하면, 아무 데도 지원하지 않은 사람에게 거짓말이 된다
+ * (2026-08-08 설계자 신고 — 실제로 1일차 오후에 그 메일이 왔다).
+ *
+ * 상태에 달린 소식은 **전부 파생 메시지의 몫이다**: 정규직 절차는 `systems/employment.ts`,
+ * 주말 호출은 `drive.ts`, 연재 평가는 `webtoon.ts`, 랭크 권유는 `rankEvents.ts`가 만든다.
+ * ⚠️ **채팅방은 방 자체에 조건을 걸 수 있지만**(`requiresEmployment` — 팀장님·개발 2팀이
+ * 그래서 안전하다) **사서함('outlook')에는 그런 게이트가 없다**(`channelVisible`이 방이
+ * 아닌 채널은 늘 통과시킨다). 편성표 메일은 그래서 **언제나 참인 것만** 적는다.
+ * `messages.test.ts`가 정규직 절차 어휘로 이 규칙을 지킨다.
  */
 export const MESSAGE_SCHEDULE: Message[][] = [
   // 턴 0 — 1일차 오전
@@ -360,8 +440,8 @@ export const MESSAGE_SCHEDULE: Message[][] = [
       id: 'o1',
       channel: 'outlook',
       from: '알바몬',
-      subject: '지원하신 공고의 서류 결과 안내',
-      text: '안녕하세요. 지원해 주신 편의점 야간 근무 건, 면접 일정을 조율하고자 연락드립니다.',
+      subject: '오늘 올라온 동네 알바 12건',
+      text: '설정하신 지역의 새 공고를 모아 보내 드립니다. 편의점·카페 야간 시급이 지난주보다 올랐습니다. 지원은 알바몬에서 바로 하실 수 있습니다.',
     },
     { id: 'f1', channel: 'family', from: '엄마', text: '밥은 먹고 다니냐' },
   ],

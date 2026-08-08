@@ -6,6 +6,12 @@ CLAUDE.md의 변경 이력 표에서 밀려난 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-08 | 포털 가로 띠를 슬라이드로 — 배너 4장(코미콘·콘테스트하다 추가), 하단 소개 카드에서 행사·공모전·코미콘 제거 | banners(+2, `WIDE_ROTATE_MS`)+test, NeverPortal(`WideStrip` 캐러셀)+css, sites(promo 셋 제거)+test |
+| 2026-08-08 | 랭크 이벤트 9종 추가(게임/어휘력 C 주간모임 · 매력/지식 A 제안 · 단발 5종) + 예의범절 상한 999 | rankEvents(data `kind: offer\|event` 확장, systems `offerUnlockedByRank`·메시지 표)+test, messages(방 3 + 미용실 옵션), activities(활동 4), events(도감 5), turn(예의범절 상한), ChatApp·TwitterSite(인증 뱃지) |
+| 2026-08-08 | **행동력과 체력을 `stamina` 하나로 합쳤다** — 행동이 체력을 쓰고, 몸을 키운 결과는 운동 스탯으로 간다 | types(`maxStamina` 삭제), turn(`STAMINA_CAP` 고정·`SLEEP_RECOVERY` 고정값), activities·items(효과 → `athletics`), endings(철인 → `athletics: 200`), statMeta·StatPanel·MobileStatSheet·EndingModal·autoAdvance, gameStore(구세이브 → 운동 스탯 이관), balance.verify(철인 도달 시뮬)+test 12파일 |
+| 2026-08-08 | 연재 중이면 월요일마다 담당 편집자가 카톡으로 지난 회차 조회수와 세간의 평가를 알린다 | webtoon(data 리뷰 풀·조회수 상수, systems `weeklyViews`·`reviewTier`·`webtoonReviewMessages` + test 8건), messages(`requiresWebtoon` + 카톡 방), ChatApp(파생 메시지 합류) |
+| 2026-08-08 | 호감도(민지·가족·동아리, 만남 +8 / 문턱 60)와 **관계 부가엔딩** — 본엔딩 문단 아래 한 문단, 도감에 관계 시트 | relations(data 신규), affection(systems+test 14건 신규), types(`affection`), activities(`family-visit`), ChatApp(하드코딩 제거), gameStore, metaStore(`unlockedRelations`), EndingModal(+css), ExcelApp |
+| 2026-08-08 | 랭크 이벤트 축 신설 — 운동 C면 러닝크루 권유(주간 예약), 감수성 A면 별똥별로 스탯 하나 +100 | rankEvents(data+systems+test 17건 신규), WishApp(tsx+css 신규), types(`rankEvents`·kind `wish`), messages(러닝크루 방·랭크 게이트)+test, ChatApp(`derivedMessages`), gameStore, appForWindow(+test) |
 | 2026-08-08 | 행사에 보디빌딩·마라톤 대회 추가 + 수상 판정(`ExpoJoin.award`, 평판만·무작위 없음) | expos(data+systems+test 7건), activities(`expo-compete`), ExpoSite(tsx+css) |
 | 2026-08-08 | 시집이 편성이 이레마다 바뀌고, 영화를 보면 **포스트카드**가 탐색기 포스트카드 폴더에 쌓인다 | cinema(systems+test 신규), types(`Postcard`·`FolderId: 'postcard'`), media(`SHOWN_PER_SECTION`), gameStore(`watchFilm`+복원), CinemaSite, ExplorerApp |
 | 2026-08-08 | 중고마켓(두손마켓) 신설 — 산 물건·포스트카드를 반값에 판다, 도감에 업적 시트 추가 | resale·achievements(data+systems+test 신규), ResaleSite(tsx+css 신규), types(`sold`), delivery(되사기 효과 차단), sites(+`resale`, +STORE_SITES)+test, BrowserApp, gameStore, ExcelApp |

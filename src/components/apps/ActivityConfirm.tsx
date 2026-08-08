@@ -184,14 +184,18 @@ export function ActivityConfirm({
               type="button"
               className="acd-run"
               onClick={() => {
+                /* ⚠️ 실행 연출은 활동 창과 **같은 규칙**을 탄다 — 여기서 빠뜨리면
+                   바로 가기·사이트로 실행할 때만 장면이 안 뜬다(실행 통로가 갈리는 자리다).
+                   창을 여는 것이 실행보다 먼저인 이유도 그쪽과 같다: 미리보기가 **효과가
+                   붙기 전** 스탯을 읽어야 결과 알림의 증감이 맞는다.
+                   ⚠️ **`onCommit` 갈래에서도 연다**(2026-08-08) — 여기 else 안에만 있어서
+                   슬로우캠퍼스 수강처럼 사이트가 직접 확정하는 경로는 장면이 통째로
+                   빠졌다. `runSceneOf`가 없는 활동은 알아서 아무것도 안 열므로, 턴을 안
+                   쓰는 확정(노24 좌석 선택·정규직 지원)은 지금도 앞으로도 조용하다 —
+                   **그런 활동에 장면을 붙이지 않는 것이 그 조건이다.** */
+                openToolWindow(state, activity)
                 if (onCommit) onCommit()
-                else {
-                  /* ⚠️ 실행 연출은 활동 창과 **같은 규칙**을 탄다 — 여기서 빠뜨리면
-                     바로 가기·사이트로 실행할 때만 장면이 안 뜬다(실행 통로가 갈리는 자리다).
-                     창을 여는 것이 `doActivity`보다 먼저인 이유도 그쪽과 같다. */
-                  openToolWindow(state, activity)
-                  doActivity(activity)
-                }
+                else doActivity(activity)
                 onCommitted?.()
                 onClose()
               }}

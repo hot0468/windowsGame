@@ -6,6 +6,7 @@ import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
 import { STAMINA_CAP, growthCap } from '../../systems/turn'
 import { rankOf, toNextRank } from '../../systems/rank'
 import { isIll } from '../../systems/illness'
+import { skillLabel } from '../../data/band'
 import { ILL_EFFICIENCY } from '../../data/illness'
 import type { StatRank } from '../../systems/rank'
 import { CALENDAR_PANEL_LAYOUT } from '../../data/calendar'
@@ -243,6 +244,19 @@ export function StatPanel() {
           </span>
         </span>
       </div>
+      {/* ⚠️ **밴드에 들어간 사람에게만 보인다** — 없는 사람에게 "숙련도 0"을 띄우면
+          아무도 안 여는 축이 상시 자리를 차지한다(조건부 바탕화면 항목과 같은 규칙).
+          공연·앨범 문턱을 여기서 다시 적지 않고 사람이 읽는 말(`skillLabel`)로 대신한다. */}
+      {state.band && (
+        <div className="stat-note">
+          <span className="stat-note-row">
+            <span>밴드 숙련도</span>
+            <span className="stat-note-num">
+              {state.band.skill} · {skillLabel(state.band.skill)}
+            </span>
+          </span>
+        </div>
+      )}
     </HudPanel>
   )
 }

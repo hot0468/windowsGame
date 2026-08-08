@@ -10,6 +10,15 @@ export interface RestoreBounds {
   width: number
 }
 
+/**
+ * 창 하나가 차지하는 z 층수. **2다.**
+ *
+ * ⚠️ 1이면 **팝업 딤이 낄 자리가 없다** — 딤은 팝업 바로 아래(`zIndex - 1`)에 깔려야
+ * 하는데 그 값이 직전 창의 z와 같아지고, 같으면 DOM 순서가 이겨서 딤이 안 보인다
+ * (실측으로 잡았다). 창 사이에 한 칸씩 비워 두는 것이 그 자리다.
+ */
+export const Z_STEP = 2
+
 /** 열려 있는 창 하나. kind는 창 종류를 식별하는 키다. */
 export interface OpenWindow {
   id: string
@@ -38,6 +47,14 @@ export interface OpenWindow {
   restore: RestoreBounds
   /** 렌더링할 앱 종류. 'exe'는 activityId를, 'stub'은 message를 함께 쓴다. */
   kind: WindowKind
+  /**
+   * 시스템 팝업으로 그린다 — **타이틀 바의 최소화·최대화·닫기를 전부 뺀다.**
+   *
+   * ⚠️ 셋 중 닫기만 빼면 최소화로 치워 놓고 잊어버릴 수 있어 "치울 수 없는 창"이라는
+   * 뜻이 반만 지켜진다. ⚠️ **빠져나갈 길은 창 안에 있어야 한다**(ux `escape-routes`) —
+   * 공부 팝업은 [건너뛰기]·[확인]·Esc 셋이 그 일을 한다.
+   */
+  popup?: boolean
   activityId?: string
   /** kind가 'stub'일 때 보여줄 안내 문구. */
   message?: string
@@ -136,7 +153,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       get().activate(win.id)
       return
     }
-    const zIndex = get().topZ + 1
+    const zIndex = get().topZ + Z_STEP
     const opened: OpenWindow = {
       ...win,
       maximized: win.maximized ?? false,
@@ -151,7 +168,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
   close: (id) => set({ windows: get().windows.filter((w) => w.id !== id) }),
 
   focus: (id) => {
-    const zIndex = get().topZ + 1
+    const zIndex = get().topZ + Z_STEP
     set({
       windows: get().windows.map((w) => (w.id === id ? { ...w, zIndex } : w)),
       topZ: zIndex,
@@ -180,7 +197,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
     }),
 
   activate: (id) => {
-    const zIndex = get().topZ + 1
+    const zIndex = get().topZ + Z_STEP
     set({
       windows: get().windows.map((w) =>
         w.id === id ? { ...w, minimized: false, zIndex } : w,

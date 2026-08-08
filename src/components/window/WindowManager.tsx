@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { useWindowStore } from '../../store/windowStore'
 import { Window } from './Window'
 import { appForWindow, windowChrome } from './appForWindow'
@@ -20,10 +21,13 @@ export function WindowManager() {
       {/* 최소화된 창은 그리지 않는다. 목록에서 지우지는 않으므로
           작업 표시줄 항목은 남고 거기서 복원할 수 있다. */}
       {windows.filter((w) => !w.minimized).map((w) => {
-        const chrome = windowChrome(w.kind)
+        const chrome = windowChrome(w)
         return (
+          <Fragment key={w.id}>
+          {/* ⚠️ **딤은 팝업 바로 아래 층에 깐다**(`zIndex - 1`) — 화면 맨 위에 고정하면
+              팝업보다 나중에 열린 창까지 가리고, 팝업 자신도 흐려진다. */}
+          {w.popup && <div className="win-scrim" style={{ zIndex: w.zIndex - 1 }} />}
           <Window
-            key={w.id}
             id={w.id}
             title={w.title}
             icon={w.icon}
@@ -35,12 +39,18 @@ export function WindowManager() {
             ornament={chrome.ornament}
             bareTitle={chrome.bareTitle}
             dark={chrome.dark}
-            onClose={() => close(w.id)}
-            onMinimize={() => minimize(w.id)}
-            onToggleMaximize={() => toggleMaximize(w.id)}
+            popup={w.popup}
+            /* ⚠️ 팝업은 타이틀 바 자체가 없어 캡션 버튼도 안 그려지지만, 핸들러까지 끊어
+               둔다 — 나중에 팝업에 타이틀 바를 되살리더라도 "치울 수 없다"가 유지된다.
+               아래 `appForWindow`에는 `onClose`를 그대로 넘기므로 팝업 안의
+               [확인]·[건너뛰기]·Esc는 여전히 닫는다. */
+            onClose={w.popup ? undefined : () => close(w.id)}
+            onMinimize={w.popup ? undefined : () => minimize(w.id)}
+            onToggleMaximize={w.popup ? undefined : () => toggleMaximize(w.id)}
           >
             {appForWindow(w, { onClose: () => close(w.id) })}
           </Window>
+          </Fragment>
         )
       })}
     </>

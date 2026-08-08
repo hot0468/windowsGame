@@ -18,6 +18,7 @@ import { rankOf } from './rank'
 import { ACTIVITIES } from '../data/activities'
 import { THREADS } from '../data/messages'
 import { EVENTS } from '../data/events'
+import { GROWTH_STAT_KEYS } from '../types/game'
 import type { GameState, GrowthStatKey } from '../types/game'
 
 /**
@@ -198,5 +199,80 @@ describe('세이브 보정', () => {
     expect(reviveRankEvents(['running-crew', 'running-crew', '없는것'])).toEqual(['running-crew'])
     expect(reviveRankEvents('문자열')).toBeUndefined()
     expect(reviveRankEvents([])).toBeUndefined()
+  })
+})
+
+describe('랭크 이벤트가 스탯을 고르게 덮는다', () => {
+  /*
+   * ⚠️ **이 축의 값은 "올릴 이유"다.** 어느 스탯에도 이벤트가 없으면 그 스탯은 올려도
+   * 아무 일이 안 일어나고, 그런 스탯이 하나라도 있으면 플레이어는 그것을 버린다
+   * (음악이 실제로 그랬다 — 2026-08-08 설계자 지적).
+   */
+  it('성장 스탯마다 랭크 이벤트가 최소 하나 있다', () => {
+    const covered = new Set(RANK_EVENTS.map((e) => e.key))
+    const missing = GROWTH_STAT_KEYS.filter((k) => !covered.has(k))
+    expect(missing, `이벤트가 없는 스탯: ${missing.join(', ')}`).toHaveLength(0)
+  })
+
+  it('문턱은 전부 도달 가능한 값이다 — 아무도 못 보는 이벤트는 버그다', () => {
+    for (const e of RANK_EVENTS) {
+      // 그 등급에 딱 닿는 판을 만들어, 상한 안의 값인지 확인한다.
+      const need = Math.ceil(RANK_THRESHOLDS.find((t) => t.rank === e.rank)!.min * growthCap(e.key))
+      expect(need, `${e.id}(${e.key} ${e.rank})`).toBeLessThanOrEqual(growthCap(e.key))
+      // 그 스탯을 올리는 활동이 실제로 있어야 도달할 방법이 있다.
+      expect(
+        ACTIVITIES.some((a) => (a.effects[e.key] ?? 0) > 0),
+        `${e.key}를 올리는 활동이 없다`,
+      ).toBe(true)
+    }
+  })
+})
+
+describe('⚠️ 낮은 스탯의 대가', () => {
+  const penalties = RANK_EVENTS.filter((e) => e.below)
+
+  it('대가는 전부 날짜 문턱을 갖는다 — 없으면 1일차 밤에 통째로 터진다', () => {
+    for (const e of penalties) {
+      expect(e.afterDay, `${e.id}에 afterDay가 없다`).toBeGreaterThan(0)
+    }
+  })
+
+  it('규칙을 뒤집으면 실패한다 — 날짜 문턱을 지우면 첫날에 전부 발동한다', () => {
+    // 이 줄이 통과해야 위 규칙이 "우연히 맞는 값"이 아님이 증명된다.
+    const fresh = createInitialState('맨몸')
+    const naked = penalties.map((e) => ({ ...e, afterDay: undefined }))
+    expect(naked.every((e) => rankReached(fresh, e))).toBe(true)
+    // 날짜 문턱이 있으면 첫날에는 하나도 안 뜬다.
+    expect(dueRankEvents(fresh).some((e) => e.below)).toBe(false)
+  })
+
+  it('문턱 날짜를 넘기면 대가를 한 번만 치른다', () => {
+    const e = penalties[0]
+    const before: GameState = { ...createInitialState('맨몸'), day: e.afterDay! }
+    const after = settleRankEvents(before)
+    const key = Object.keys(e.effects!)[0] as keyof GameState['stats']
+    expect(after.stats[key]).toBeLessThan(before.stats[key])
+    // 같은 판을 다시 정산해도 두 번 물리지 않는다.
+    expect(settleRankEvents(after).stats[key]).toBe(after.stats[key])
+  })
+
+  it('스탯을 올려 두면 대가가 오지 않는다', () => {
+    const e = penalties[0]
+    const rich: GameState = {
+      ...createInitialState('노력'),
+      day: e.afterDay! + 10,
+      stats: { ...createInitialState('노력').stats, [e.key]: growthCap(e.key) },
+    }
+    expect(dueRankEvents(rich).some((x) => x.id === e.id)).toBe(false)
+  })
+
+  it('대가로 소지금이 음수가 되지 않는다 — 파산 판정이 흐려진다', () => {
+    const e = RANK_EVENTS.find((x) => x.below && x.effects?.money)!
+    const broke: GameState = {
+      ...createInitialState('빈손'),
+      day: e.afterDay!,
+      stats: { ...createInitialState('빈손').stats, money: 1000 },
+    }
+    expect(settleRankEvents(broke).stats.money).toBeGreaterThanOrEqual(0)
   })
 })

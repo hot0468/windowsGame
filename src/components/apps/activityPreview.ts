@@ -3,10 +3,13 @@ import { illnessEfficiency, isIll } from '../../systems/illness'
 import { ILLNESS_DAYS, ILL_EFFICIENCY, ILL_STAMINA_FLOOR } from '../../data/illness'
 import { weatherEfficiency } from '../../systems/weather'
 import { getLivingCost, getWageMultiplier } from '../../systems/economy'
-import { canRun, jobStageOpen, outfitFor, ownsRequired, subscribed } from '../../systems/turn'
+import { canRun, itemStatBonusFor, jobStageOpen, outfitFor, ownsRequired, subscribed } from '../../systems/turn'
 import { findSubscription } from '../../data/subscriptions'
 import { applyBlockers, attendedToday, isWorkday } from '../../systems/employment'
 import { OUTFIT_BONUS, requiredItemLabel, requiredItemStores } from '../../data/items'
+import { skillOf } from '../../systems/band'
+import { isWeekend } from '../../data/calendar'
+import { WEEKEND_WAGE_BONUS } from '../../data/economy'
 import { GROWTH_STAT_KEYS, STAT_NAMES, SLOT_NAMES } from '../../types/game'
 import type { Activity, GameState, JobStageGate, Stats } from '../../types/game'
 
@@ -84,13 +87,17 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
     let value = raw
     // 알바비는 물가와 함께 오른다. 정의된 값만 보여 주면 실제 입금액과 어긋난다.
     if (statKey === 'money' && value > 0 && activity.scalesWithWage) {
-      value *= getWageMultiplier(state.day)
+      // ⚠️ 주말 할증도 실행(`applyEffects`)과 **같은 두 배율**을 곱한다.
+      value *= getWageMultiplier(state.day) * (isWeekend(state.day) ? WEEKEND_WAGE_BONUS : 1)
     }
     // 효율은 **이득에만** 곱한다(손해까지 줄여 주면 번아웃이 이득이 된다).
     if (value <= 0) return { key: statKey, value: Math.round(value) }
+    /* ⚠️ 휴대폰 보너스도 **실행과 같은 함수**로 더한다(`applyEffects`가 둘을 더한 하나의
+       비율을 쓴다) — 여기서 빠뜨리면 확인창이 실제보다 적게 적는다. */
+    const total = bonus + itemStatBonusFor(state, statKey)
     const boost =
-      bonus > 0 && (GROWTH_STAT_KEYS as readonly string[]).concat('maxStamina').includes(statKey)
-        ? Math.max(1, Math.round(value * bonus))
+      total > 0 && (GROWTH_STAT_KEYS as readonly string[]).concat('maxStamina').includes(statKey)
+        ? Math.max(1, Math.round(value * total))
         : 0
     return { key: statKey, value: Math.round(value * applied + boost) }
   })
@@ -197,6 +204,20 @@ export function blockReasons(state: GameState, activity: Activity): string[] {
      와야 하는지 내일 와야 하는지 알 수 없다. */
   if (activity.requiresSlot && state.slot !== activity.requiresSlot) {
     reasons.push(`${SLOT_NAMES[activity.requiresSlot]}에만 할 수 있습니다`)
+  }
+
+  /* ⚠️ 밴드 사유는 **지금 숙련도까지 적는다** — 문턱만 적으면 얼마나 더 합주해야 하는지
+     알 수 없어 주간 예약을 걸어 둘 이유가 안 생긴다. */
+  /* ⚠️ 요일 사유도 **언제 되는지**를 적는다(슬롯 사유와 같은 규칙). */
+  if (activity.requiresWeek === 'weekend' && !isWeekend(state.day)) {
+    reasons.push('주말에만 할 수 있습니다')
+  }
+  if (activity.requiresWeek === 'weekday' && isWeekend(state.day)) {
+    reasons.push('평일에만 할 수 있습니다')
+  }
+
+  if (activity.requiresBandSkill !== undefined && skillOf(state) < activity.requiresBandSkill) {
+    reasons.push(`밴드 숙련도 ${activity.requiresBandSkill} 필요 (지금 ${skillOf(state)})`)
   }
 
   if (activity.requiresItem && !ownsRequired(state, activity.requiresItem)) {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatGameDate, weekdayOf } from '../../data/calendar'
 import { useGameStore } from '../../store/gameStore'
+import { useWindowStore } from '../../store/windowStore'
 import './Daybreak.css'
 
 /** 화면이 스스로 사라지기까지. 애니메이션(해가 다 뜨는 데 1.6초)보다 넉넉히 잡는다. */
@@ -28,6 +29,11 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
  * ⚠️ **아무것도 막지 않는다.** 스스로 사라지고, 누르면 즉시 닫히며, 뒤의 게임 상태는
  * 손대지 않는다(ux `escape-routes`·`no-blocking-animation`).
  *
+ * ⚠️ **실행 연출이 끝날 때까지 기다린다.** 오후 행동은 날짜를 넘기는데, 그 행동이
+ * 도구·알바·공부처럼 결과 창(`WindowKind: 'tool'`)을 여는 것이면 **결과를 읽기도 전에
+ * 해가 떠 화면을 덮었다**(2026-08-09 설계자 신고). 날짜 변화는 `pending`에 적어 두고
+ * 그 창이 닫힌 뒤에 띄운다 — 알림을 없애는 것이 아니라 **순서를 주는 것**이다.
+ *
  * ⚠️ **`prefers-reduced-motion`을 존중한다** — 모션을 줄인 환경에서는 해가 움직이지 않고
  * 밝아진 화면만 뜬다(CSS가 처리한다).
  */
@@ -35,6 +41,9 @@ export function Daybreak() {
   const day = useGameStore((s) => s.state?.day)
   const gameOver = useGameStore((s) => s.state?.gameOver)
   const autoRunning = useGameStore((s) => s.autoRunning)
+  /* ⚠️ **창 종류로 본다**(창 id가 아니라) — 실행 연출은 활동마다 id가 다르고, 앞으로
+     장면이 붙는 활동이 늘어도 이 줄은 그대로여야 한다. */
+  const runOpen = useWindowStore((s) => s.windows.some((w) => w.kind === 'tool' && !w.minimized))
 
   /**
    * 마지막으로 알린 날. **ref인 이유는 ToastHost와 같다** — 이 값이 바뀐다고 다시 그릴
@@ -43,19 +52,30 @@ export function Daybreak() {
    * "날이 밝았다"가 뜨면 거짓말이다(그 날은 이미 밝아 있었다).
    */
   const shown = useRef<number | undefined>(undefined)
+  /** 날은 밝았는데 아직 못 띄운 상태. 결과 창이 닫히면 그때 뜬다. */
+  const pending = useRef(false)
   const [visible, setVisible] = useState(false)
 
+  /*
+   * ⚠️ **효과를 둘로 쪼개지 않는다.** "날짜가 바뀌었다"와 "창이 닫혔다"는 서로 다른 시점에
+   * 오지만, 뜨는 조건은 둘을 함께 봐야 한다 — 나누면 창이 처음부터 안 열린 경우
+   * (잠자기·이동)에 두 번째 효과의 의존값이 안 바뀌어 알림이 영영 안 뜬다.
+   */
   useEffect(() => {
     if (day === undefined) return
-    const first = shown.current === undefined
-    const changed = shown.current !== day
-    shown.current = day
-    // 첫 렌더·자동 진행·게임오버는 건너뛴다(위 주석의 세 규칙).
-    if (first || !changed || autoRunning || gameOver) return
+    if (shown.current !== day) {
+      const first = shown.current === undefined
+      shown.current = day
+      // 첫 렌더·자동 진행·게임오버는 건너뛴다(위 주석의 세 규칙).
+      if (!first && !autoRunning && !gameOver) pending.current = true
+    }
+    // 결과 창이 떠 있으면 그것부터 읽게 두고 기다린다.
+    if (!pending.current || runOpen) return
+    pending.current = false
     setVisible(true)
     const timer = setTimeout(() => setVisible(false), SHOW_MS)
     return () => clearTimeout(timer)
-  }, [day, autoRunning, gameOver])
+  }, [day, autoRunning, gameOver, runOpen])
 
   if (!visible || day === undefined) return null
 

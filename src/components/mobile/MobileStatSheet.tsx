@@ -5,6 +5,7 @@ import { GROWTH_STAT_ORDER, STAT_META } from '../../data/statMeta'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
+import { skillLabel } from '../../data/band'
 import { rankOf, toNextRank } from '../../systems/rank'
 import { growthCap, STAMINA_CAP } from '../../systems/turn'
 import { STAT_NAMES } from '../../types/game'
@@ -111,6 +112,15 @@ export function MobileStatSheet({ onClose }: { onClose: () => void }) {
               <dt>{nextTier.day - day}일 후 인상</dt>
               <dd>{tierCostFor(state, nextTier).toLocaleString('ko-KR')}원</dd>
             </div>
+            {/* ⚠️ 데스크톱 HUD와 **같은 조건·같은 문구**다(밴드에 들어간 사람에게만). */}
+            {state.band && (
+              <div className="mo-note-row">
+                <dt>밴드 숙련도</dt>
+                <dd>
+                  {state.band.skill} · {skillLabel(state.band.skill)}
+                </dd>
+              </div>
+            )}
           </dl>
 
           {/* 4구역: 시간을 미는 버튼. 데스크톱에서 날짜칸이 지던 역할이다.

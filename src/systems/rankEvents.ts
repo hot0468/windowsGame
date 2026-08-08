@@ -19,15 +19,41 @@ import type { GameState, GrowthStatKey } from '../types/game'
  * 중간 등급이 통째로 사라져 이벤트가 조용히 누락된다(급여·연재 커서와 같은 함정).
  */
 
+/**
+ * 대가를 스탯에 얹는다.
+ *
+ * ⚠️ **소지금은 가진 것 안에서만 빠진다**(최소 1원은 남는다). `clampStats`가 돈은 안
+ * 자르므로 그냥 빼면 잔액이 음수가 되고, 파산 판정이 `money <= 0`이라 **단발 이벤트가
+ * 파산을 직접 만든다** — 이 게임은 물가로 끝나기로 돼 있어서 종결 사유가 흐려진다
+ * (생활비는 음수를 허용하는데, 그쪽은 판을 끝내는 것이 제 일이라 규칙이 다르다).
+ * "지갑을 잃었다"는 있던 만큼만 잃는 것이 어차피 참이기도 하다.
+ */
+function applyDelta(stats: GameState['stats'], delta: Partial<GameState['stats']>) {
+  const next = { ...stats }
+  for (const [key, value] of Object.entries(delta)) {
+    const k = key as keyof typeof next
+    next[k] += k === 'money' ? Math.max(value as number, -(next.money - 1)) : (value as number)
+  }
+  return next
+}
+
 /** 이미 겪은 이벤트인가. */
 export function seenRankEvent(state: GameState, id: string): boolean {
   return (state.rankEvents ?? []).includes(id)
 }
 
-/** 지금 그 이벤트의 등급 문턱을 넘었는가. */
+/**
+ * 지금 그 이벤트의 문턱을 넘었는가.
+ *
+ * ⚠️ **`below`면 부등호가 뒤집힌다**(그 등급 **이하**). 낮은 스탯의 대가가 그쪽이고,
+ * 그때는 **날짜 문턱(`afterDay`)이 실질 조건이다** — 시작값이 0이라 판이 열리는 순간
+ * 모든 스탯이 F이기 때문이다.
+ */
 export function rankReached(state: GameState, event: RankEvent): boolean {
-  const now = rankOf(event.key, state.stats[event.key])
-  return RANK_ORDER.indexOf(now) >= RANK_ORDER.indexOf(event.rank)
+  if (event.afterDay !== undefined && state.day < event.afterDay) return false
+  const now = RANK_ORDER.indexOf(rankOf(event.key, state.stats[event.key]))
+  const need = RANK_ORDER.indexOf(event.rank)
+  return event.below ? now <= need : now >= need
 }
 
 /**
@@ -72,6 +98,12 @@ export function settleRankEvents(state: GameState): GameState {
     /* ⚠️ 단발은 **이벤트 도감에도** 남긴다(`recordEvent`) — 랭크 기록은 "다시 안 뜬다"의
        근거일 뿐이고, 플레이어가 되돌아볼 자리는 사진첩 하나다(새 창구를 만들지 않는다). */
     if (event.kind === 'event') next = recordEvent(next, event.target)
+    /* ⚠️ **대가는 여기서 한 번만 치른다.** 기록(`markRankEvent`)이 곧 사용권이라 등급이
+       나중에 올라도 되돌려 주지 않고, 내려가도 두 번 물리지 않는다(소원과 같은 규칙).
+       상한·하한은 `clampStats`가 자른다 — 돈이 음수가 되지 않는 것도 그쪽이다. */
+    if (event.effects) {
+      next = { ...next, stats: clampStats(applyDelta(next.stats, event.effects)) }
+    }
   }
   return next
 }
@@ -154,6 +186,18 @@ export function rankEventMessages(
     'book-club': {
       from: '모임지기',
       text: '독서모임 오픈카톡입니다. 매주 한 권 읽고 한 시간 이야기해요. 발제는 돌아가면서 하는데 처음 오시면 안 시킵니다.',
+    },
+    neighbors: {
+      from: '3층 은재',
+      text: '늘봄빌라 이웃 오픈채팅이에요. 재활용 요일이랑 택배 얘기가 대부분인데, 가끔 이렇게 밥도 먹습니다. 부담 갖지 마시고 오세요.',
+    },
+    'invest-club': {
+      from: '스터디장 상혁',
+      text: '월요일마다 각자 본 것 하나씩 발표하는 모임입니다. 종목 추천은 안 하고 왜 그렇게 봤는지만 이야기해요. 회비는 없습니다.',
+    },
+    'band-recruit': {
+      from: '건반 치는 재훈',
+      text: '올려 두신 곡 잘 들었어요. 저희 셋인데 한 자리가 비어서요. 금요일 저녁마다 합주실 잡아 두는데 한번 와 보실래요? 맞춰 보면 아실 거예요.',
     },
     academy: {
       from: '한빛학원 실장',

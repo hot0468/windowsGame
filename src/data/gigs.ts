@@ -135,6 +135,44 @@ export const GIGS: Gig[] = [
     tags: ['수료증 필요', '포토샵', '평판에 남음'],
     requiresItem: 'cert-brand',
   },
+  {
+    /*
+     * 오디션 일감 셋. **음악 스탯이 돈으로 바뀌는 첫 자리다**(2026-08-08 — 그전까지 음악은
+     * 음원 공모전 하나뿐인 막다른 스탯이었다). 다른 도구와 같은 판이므로 여기서 갈리는 것은
+     * 보수·업무량·기한뿐이고, 스탯을 요구하지 않는 것도 같다 — **일감은 도구가 열고
+     * 스탯은 활동 효과로 돌아온다**는 방향을 어기면 그몽에 잠금이 두 겹이 된다.
+     */
+    id: 'podcast-neulbom',
+    client: '늘봄FM',
+    title: '팟캐스트 3화 잡음 정리',
+    tool: 'audition',
+    workload: 2,
+    days: 4,
+    pay: 150000,
+    tags: ['오디션', '납품 wav', '재택'],
+  },
+  {
+    id: 'jingle-mulbit',
+    client: '물빛공방',
+    title: '매장 로고송 15초',
+    tool: 'audition',
+    workload: 3,
+    days: 6,
+    pay: 240000,
+    tags: ['오디션', '작곡 포함', '수정 2회'],
+    badge: '인기',
+  },
+  {
+    id: 'mixing-sizib',
+    client: '시집이엔터',
+    title: '단편 영화 사운드 믹싱',
+    tool: 'audition',
+    workload: 4,
+    days: 8,
+    pay: 395000,
+    tags: ['수료증 필요', '오디션', '평판에 남음'],
+    requiresItem: 'cert-brand',
+  },
 ]
 
 /**
@@ -160,6 +198,7 @@ export const TOOL_NAMES: Record<ToolId, string> = {
   photoshop: '포토샵',
   premiere: '프리미어',
   vscode: 'VS 코드',
+  audition: '오디션',
 }
 
 /**
@@ -189,5 +228,11 @@ export const TOOL_STEPS: Record<ToolId, string[]> = {
     '코드를 고치는 중',
     '테스트를 돌리는 중',
     '변경 사항을 커밋하는 중',
+  ],
+  audition: [
+    '멀티트랙을 여는 중',
+    '잡음을 걷어 내는 중',
+    '레벨을 맞추는 중',
+    '음원을 내보내는 중',
   ],
 }
