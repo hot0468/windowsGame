@@ -67,12 +67,14 @@ describe('사이트 목록', () => {
     for (const s of PROMO_SITES) expect(s.bookmark).toBeUndefined()
   })
 
-  it('가게는 상단 쇼핑 섹션에만 뜬다 (하단 소개와 겹치지 않는다)', () => {
-    // 물건을 파는 곳은 뉴스 위 상단 섹션이 그린다 — 하단에도 있으면 같은 카드가 둘이 된다.
-    expect(STORE_SITES.map((s) => s.id)).toEqual(['shopping', 'himaru', 'mujinjang'])
-    for (const s of STORE_SITES) {
-      expect(s.promo).toBeDefined() // 카드 부품이 같으므로 소개 문구가 없으면 빈 카드가 뜬다
-      expect(PROMO_SITES).not.toContain(s)
+  it('쇼핑 띠에 걸리는 사이트는 하단 소개와 겹치지 않는다', () => {
+    // 돈 쓰러 가는 곳은 뉴스 위 상단 띠가 그린다 — 하단에도 있으면 같은 것이 두 번 뜬다.
+    // ⚠️ 배달의정석은 물건을 팔지 않지만 같은 줄에 선다(설계자 지시: 쇼핑에 배달 탭).
+    expect(STORE_SITES.map((s) => s.id)).toEqual(['shopping', 'himaru', 'mujinjang', 'baedal'])
+    for (const s of STORE_SITES) expect(PROMO_SITES).not.toContain(s)
+    // 카드로도 뜨는 가게 셋은 소개 문구가 있어야 한다(없으면 빈 카드가 뜬다).
+    for (const s of STORE_SITES.filter((x) => x.render !== 'food')) {
+      expect(s.promo, `${s.id}의 소개 문구`).toBeDefined()
     }
   })
 
@@ -119,7 +121,7 @@ describe('활동을 실행하는 사이트', () => {
 
   it('활동을 실행하는 render 종류는 activityId를 반드시 갖는다', () => {
     for (const site of SITES.filter((s) =>
-      ['library', 'cinema', 'publish', 'jobs', 'career', 'campus', 'cert', 'twitter'].includes(
+      ['library', 'cinema', 'publish', 'jobs', 'career', 'campus', 'cert', 'twitter', 'tube'].includes(
         s.render,
       ),
     )) {
@@ -141,9 +143,13 @@ describe('활동을 실행하는 사이트', () => {
       'work',
       'job-apply',
       'exam',
+      'meal-junk',
       'concert',
       'travel',
       'study',
+      // ⚠️ 너튜브의 'stream'은 기본값이 아니라 **유일한 실행 활동이다**(트위터와 같다) —
+      //    [내 채널]의 방송 주제는 "무엇을 하며 두 시간을 보내는가"만 정하고 수치는 활동이 진다.
+      'stream',
       'sns',
       'reading',
       'movie',

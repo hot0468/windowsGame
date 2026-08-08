@@ -1,5 +1,5 @@
 // 이 파일은 `npm run icons`(scripts/build-icon-subset.mjs)가 생성한다. 직접 수정하지 말 것.
-// src/에서 실제로 쓰는 아이콘 178개만 담은 축소 세트다 —
+// src/에서 실제로 쓰는 아이콘 179개만 담은 축소 세트다 —
 // 전체 세트(8천여 개)를 번들에 넣지 않기 위한 것이다.
 import type { IconifyJSON } from '@iconify/react/offline'
 
@@ -64,7 +64,7 @@ export const mdiLight: IconifyJSON = {
   "height": 24
 }
 
-/** mdi — 사용 중인 82개 */
+/** mdi — 사용 중인 83개 */
 export const mdi: IconifyJSON = {
   "prefix": "mdi",
   "icons": {
@@ -289,6 +289,9 @@ export const mdi: IconifyJSON = {
     },
     "tune-variant": {
       "body": "<path fill=\"currentColor\" d=\"M8 13c-1.86 0-3.41 1.28-3.86 3H2v2h2.14c.45 1.72 2 3 3.86 3s3.41-1.28 3.86-3H22v-2H11.86c-.45-1.72-2-3-3.86-3m0 6c-1.1 0-2-.9-2-2s.9-2 2-2s2 .9 2 2s-.9 2-2 2M19.86 6c-.45-1.72-2-3-3.86-3s-3.41 1.28-3.86 3H2v2h10.14c.45 1.72 2 3 3.86 3s3.41-1.28 3.86-3H22V6zM16 9c-1.1 0-2-.9-2-2s.9-2 2-2s2 .9 2 2s-.9 2-2 2\"/>"
+    },
+    "video-account": {
+      "body": "<path fill=\"currentColor\" d=\"m17 10.5l4-4v11l-4-4V17a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1zM14 16v-1c0-1.33-2.67-2-4-2s-4 .67-4 2v1zm-4-8a2 2 0 0 0-2 2a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2\"/>"
     },
     "video-outline": {
       "body": "<path fill=\"currentColor\" d=\"M15 8v8H5V8zm1-2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4V7a1 1 0 0 0-1-1\"/>"

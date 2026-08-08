@@ -1,0 +1,258 @@
+/*
+ * 배달의정석 — 배달 음식. 토큰은 `.fd` 안에 `--fd-*`로 가둔다(사이트마다 같은 규칙).
+ *
+ * 색 근거: color DB **`Restaurant/Food Service`**(primary #DC2626 · accent #A16207 ·
+ * bg #FEF2F2 · border #FECACA — "Appetizing red + warm gold").
+ * ⚠️ **같은 DB의 `Food Delivery / On-Demand`(주황 #EA580C)를 안 쓴 이유는 구분이다** —
+ * 하이마루가 이미 주황(#C2410C)이라 두 사이트가 같은 인상이 된다. 빨강은 이 게임에서
+ * 아직 비어 있던 축이고, 실제 배달 앱의 정체성과도 맞는다.
+ * ⚠️ 액센트 금색(#A16207)은 **별점에만** 쓴다 — 흰 배경 4.8:1이라 작은 글자에는 서지만
+ * 면으로 넓게 깔면 음식 사진(그라데이션)과 부딪힌다.
+ *
+ * 판형은 무진장·먼바다투어와 같은 **가로 카드 목록**이다 — 사진 왼쪽, 조건 오른쪽.
+ * 같은 "고르고 확인창"인 화면끼리 판형을 맞춰 두면 사이트마다 다시 배우지 않는다.
+ */
+.fd {
+  --fd-primary: #c81e1e; /* #fff 위 5.9:1 — 가격·브랜드 */
+  --fd-primary-hi: #991b1b;
+  --fd-bg: #fef4f4;
+  --fd-surface: #ffffff;
+  --fd-line: #f6dcdc;
+  --fd-line-strong: #edbcbc;
+  --fd-text: #2b1414; /* 15.1:1 */
+  --fd-text-2: #5a3a3a; /* 8.3:1 */
+  --fd-text-3: #6e4b4b; /* 6.1:1 — 최소 보조 */
+  --fd-gold: #8a5a06; /* 별점. 흰 배경 6.5:1 */
+  --fd-warn: #9a1c1c; /* 깎이는 스탯. 7.2:1 */
+  --fd-warn-bg: #fdeaea;
+
+  min-height: 100%;
+  padding-bottom: var(--sp-8);
+  background: var(--fd-bg);
+  color: var(--fd-text);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  /* 사이트는 창 **안**이라 뷰포트가 아니라 컨테이너로 반응한다. */
+  container-type: inline-size;
+}
+
+.fd-strip {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-5);
+  background: var(--fd-primary);
+  font-size: var(--fs-sm);
+  color: #fff;
+}
+
+.fd-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  border-bottom: 1px solid var(--fd-line-strong);
+  background: var(--fd-surface);
+}
+
+.fd-head-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fd-logo {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  color: var(--fd-primary);
+  letter-spacing: 0.02em;
+}
+
+.fd-sub {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--fd-text-3);
+}
+
+.fd-money {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--fd-text-2);
+}
+
+.fd-money strong {
+  display: block;
+  font-size: var(--fs-lg);
+  font-variant-numeric: tabular-nums;
+  color: var(--fd-text);
+}
+
+/* ── 분류 탭 ─────────────────────────────────────────────── */
+.fd-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-5) 0;
+}
+
+.fd-tab {
+  min-height: 34px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--fd-line-strong);
+  border-radius: 999px;
+  background: var(--fd-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--fd-text-2);
+  cursor: pointer;
+}
+
+.fd-tab:hover {
+  border-color: var(--fd-primary);
+  color: var(--fd-primary);
+}
+
+/* 고른 탭은 색만이 아니라 면·굵기·`aria-pressed`가 함께 알린다(ux `color-not-only`). */
+.fd-tab-on {
+  border-color: transparent;
+  background: var(--fd-primary);
+  font-weight: 700;
+  color: #fff;
+}
+
+.fd-receipt {
+  margin: var(--sp-4) var(--sp-5) 0;
+  padding: var(--sp-3) var(--sp-4);
+  border-left: 3px solid var(--fd-primary);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: var(--fd-surface);
+  font-size: var(--fs-sm);
+  color: var(--fd-primary-hi);
+}
+
+/* ── 메뉴 목록 ───────────────────────────────────────────── */
+.fd-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: var(--sp-4) 0 0;
+  padding: 0 var(--sp-5);
+  list-style: none;
+}
+
+.fd-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  width: 100%;
+  padding: var(--sp-4);
+  border: 1px solid var(--fd-line);
+  border-radius: var(--r-lg);
+  background: var(--fd-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 150ms ease-out;
+}
+
+.fd-card:hover {
+  box-shadow: var(--el-2);
+}
+
+/* 음식 사진 자리. 그라데이션 판이다(외부 이미지 금지) — 글자를 얹지 않는다:
+   메뉴 이름이 바로 옆에 있어 판 위에 또 쓰면 같은 말이 두 번이다. */
+.fd-photo {
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--r-md);
+}
+
+.fd-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fd-shop {
+  font-size: var(--fs-xs);
+  color: var(--fd-text-3);
+}
+
+.fd-name {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--fd-text);
+}
+
+.fd-desc {
+  font-size: var(--fs-sm);
+  color: var(--fd-text-2);
+}
+
+.fd-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-1);
+  font-size: var(--fs-xs);
+  color: var(--fd-text-3);
+}
+
+.fd-rating {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fd-gold);
+}
+
+/* 깎이는 스탯(정크푸드의 매력). 카드에서 미리 읽혀야 한다 — 확인창까지 숨기지 않는다. */
+.fd-warn {
+  align-self: flex-start;
+  margin-top: var(--sp-2);
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--fd-warn-bg);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fd-warn);
+}
+
+.fd-price {
+  flex: 0 0 auto;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fd-primary);
+}
+
+/* 좁아지면 사진이 위로 빠진다(컨테이너 기준 — 창 크기 ≠ 뷰포트 크기). */
+@container (max-width: 520px) {
+  .fd-card {
+    flex-wrap: wrap;
+  }
+
+  .fd-price {
+    width: 100%;
+  }
+}
+
+/* ── 푸터 ────────────────────────────────────────────────── */
+.fd-foot {
+  margin: var(--sp-8) var(--sp-5) 0;
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--fd-line-strong);
+  font-size: var(--fs-xs);
+  color: var(--fd-text-3);
+}
+
+.fd-foot p {
+  margin: 0 0 2px;
+}
+
+.fd-foot-logo {
+  font-weight: 700;
+  color: var(--fd-primary);
+}

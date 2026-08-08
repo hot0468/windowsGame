@@ -1,7 +1,18 @@
 import { useMemo, useState } from 'react'
-import { SHORTS, VIDEOS, VIDEO_CATEGORIES, findChannel } from '../../../data/videos'
+import { findActivity } from '../../../data/activities'
+import {
+  SHORTS,
+  STREAM_TOPICS,
+  VIDEOS,
+  VIDEO_CATEGORIES,
+  findChannel,
+  subscribersFrom,
+} from '../../../data/videos'
 import { AppIcon } from '../../../icons/AppIcon'
-import type { Video } from '../../../data/videos'
+import { useGameStore } from '../../../store/gameStore'
+import type { Site } from '../../../data/sites'
+import type { StreamTopic, Video } from '../../../data/videos'
+import { ActivityConfirm } from '../ActivityConfirm'
 import './TubeSite.css'
 
 /**
@@ -12,24 +23,41 @@ import './TubeSite.css'
  * 영상을 누르면 시청 화면으로 간다. 마이크·만들기·알림처럼 이 게임에 뜻이 없는 것은
  * 헤더에 **표시만** 한다 — 눌러도 아무 일 없는 버튼은 진짜 유튜브다움을 깎는다.
  *
- * ⚠️ **탐색은 무료다.** 이 사이트는 `gameStore`를 아예 읽지 않는다 — 영상을 본다고
- * 턴이 가거나 스탯이 오르지 않는다. 시청 활동이 필요해지면 활동으로 따로 만들 일이다.
+ * ⚠️ **탐색은 무료다.** 영상을 아무리 봐도 턴이 가거나 스탯이 오르지 않는다.
+ * 상태를 바꾸는 자리는 **[내 채널]의 방송 시작 하나**이고, 그것도 확인창을 거쳐 1턴을 쓴다
+ * (미디북스·시집이와 같은 통로 — 브라우저가 활동을 실행하는 세 번째 경로다).
+ *
+ * ⚠️ **구독자 수는 `reputation`에서 뽑은 읽기 전용 파생값이다**(`subscribersFrom`).
+ * 트위터 팔로워처럼 저장된 상태로 만들지 않았고 **정산도 붙이지 않았다** —
+ * 방송은 `stream` 활동이 회당 돈을 직접 주므로, 구독자에까지 수익을 붙이면
+ * 한 행동이 두 번 벌게 된다.
  */
 
 const RAIL = [
   { id: 'home', label: '홈', icon: 'mdi:home' },
   { id: 'shorts', label: 'Shorts', icon: 'mdi:play-box-outline' },
   { id: 'subs', label: '구독', icon: 'mdi:youtube-subscription' },
+  /* ⚠️ 이 항목이 `stream` 활동의 실행 통로다 — 예전에는 정의만 있고 브라우저에서
+     갈 데가 없었다(스케줄러 예약·바탕화면 바로 가기로만 닿았다). */
+  { id: 'studio', label: '내 채널', icon: 'mdi:video-account' },
 ] as const
 
 type RailId = (typeof RAIL)[number]['id']
 
-export function TubeSite() {
+export function TubeSite({ site }: { site: Site }) {
   const [rail, setRail] = useState<RailId>('home')
   const [category, setCategory] = useState('전체')
   const [query, setQuery] = useState('')
   /** 보고 있는 영상. null이면 목록 화면이다. */
   const [playing, setPlaying] = useState<Video | null>(null)
+  /** 켜려고 고른 방송 주제. 누르면 확인창이 뜼다(수치는 활동 하나가 갖는다). */
+  const [topic, setTopic] = useState<StreamTopic | null>(null)
+  /** 방금 방송을 켰는가. 화면이 그대로라 무슨 일이 있었는지 글자로 남긴다. */
+  const [streamed, setStreamed] = useState<string | null>(null)
+
+  const playerName = useGameStore((s) => s.state?.playerName ?? '나')
+  const reputation = useGameStore((s) => s.state?.stats.reputation ?? 0)
+  const streamActivity = findActivity(site.activityId ?? '')
 
   const q = query.trim().toLowerCase()
   const matches = (v: Video) =>
@@ -89,13 +117,24 @@ export function TubeSite() {
           </span>
         </form>
 
-        <div className="tube-actions" aria-hidden="true">
-          <span className="tube-create">
+        <div className="tube-actions">
+          {/* ⚠️ 예전에는 표시 전용이었다 — 이제 방송을 켜는 자리가 생겼으므로 진짜
+              버튼으로 승격시킨다("동작하는 것만 컨트롤로 만든다"는 이 파일의 규칙). */}
+          <button
+            type="button"
+            className="tube-create"
+            onClick={() => {
+              setRail('studio')
+              setPlaying(null)
+            }}
+          >
             <AppIcon name="mdi:plus" size={18} />
             만들기
+          </button>
+          <AppIcon name="mdi:bell-outline" size={22} className="tube-bell" aria-hidden="true" />
+          <span className="tube-avatar tube-avatar-me" aria-hidden="true">
+            {playerName.slice(0, 2)}
           </span>
-          <AppIcon name="mdi:bell-outline" size={22} className="tube-bell" />
-          <span className="tube-avatar tube-avatar-me">서희</span>
         </div>
       </header>
 
@@ -119,7 +158,14 @@ export function TubeSite() {
         </nav>
 
         <main className="tube-main">
-          {playing ? (
+          {rail === 'studio' ? (
+            <Studio
+              playerName={playerName}
+              reputation={reputation}
+              streamed={streamed}
+              onPick={setTopic}
+            />
+          ) : playing ? (
             <Watch video={playing} onPick={setPlaying} onBack={() => setPlaying(null)} />
           ) : (
             <>
@@ -161,7 +207,84 @@ export function TubeSite() {
           )}
         </main>
       </div>
+
+      {/*
+        ⚠️ **수치는 활동 하나가 갖는다.** 주제는 "무엇을 하며 두 시간을 보내는가"만
+        정하고 증감·조건은 `stream`이 전부 진다(증기의 게임 목록과 같은 규칙).
+        장비(방송용 마이크 세트)가 없으면 `canRun`이 막고 확인창이 사유를 적는다 —
+        이 화면이 두 번째 판정을 만들지 않는다.
+      */}
+      {streamActivity && topic && (
+        <ActivityConfirm
+          activity={streamActivity}
+          kicker="너튜브"
+          title={`「${topic.label}」으로 방송을 켜시겠습니까?`}
+          actionLabel="방송 시작"
+          notes={[{ label: '방송 주제', value: topic.desc }]}
+          onCommitted={() => setStreamed(topic.label)}
+          onClose={() => setTopic(null)}
+        />
+      )}
     </div>
+  )
+}
+
+/**
+ * 내 채널. 채널 머리 + 방송 주제 고르기.
+ *
+ * ⚠️ **구독자 수는 평판 파생이다**(읽기 전용) — 무엇에서 나온 숫자인지 함께 적는다.
+ * 저장된 상태로 만들지 않은 이유는 이 파일 상단 주석에 있다.
+ */
+function Studio({
+  playerName,
+  reputation,
+  streamed,
+  onPick,
+}: {
+  playerName: string
+  reputation: number
+  streamed: string | null
+  onPick: (t: StreamTopic) => void
+}) {
+  const subs = subscribersFrom(reputation)
+  return (
+    <section className="tube-studio" aria-label="내 채널">
+      <header className="tube-studio-head">
+        <span className="tube-avatar tube-avatar-studio" aria-hidden="true">
+          {playerName.slice(0, 2)}
+        </span>
+        <span className="tube-studio-id">
+          <h2 className="tube-studio-name">{playerName}</h2>
+          <p className="tube-studio-meta">
+            구독자 {subs.toLocaleString('ko-KR')}명
+            <span className="tube-studio-note">평판 {reputation}에서 환산</span>
+          </p>
+        </span>
+      </header>
+
+      {streamed && (
+        <p className="tube-studio-receipt" role="status">
+          「{streamed}」 방송을 마쿤습니다. 후원금이 소지금에 들어왔습니다.
+        </p>
+      )}
+
+      <h3 className="tube-studio-title">무엇을 방송할까요</h3>
+      <ul className="tube-topics">
+        {STREAM_TOPICS.map((t) => (
+          <li key={t.id}>
+            <button type="button" className="tube-topic" onClick={() => onPick(t)}>
+              <span className="tube-topic-art" style={{ background: t.gradient }}>
+                LIVE
+              </span>
+              <span className="tube-topic-text">
+                <span className="tube-topic-label">{t.label}</span>
+                <span className="tube-topic-desc">{t.desc}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

@@ -74,6 +74,14 @@ export type SiteRender =
    * ⚠️ 둘 다 **포털 가로 띠의 이동용 배너**가 목적지다 — 배너와 사이트의 색을 맞춰 둔다.
    */
   | 'trip'
+  /**
+   * 배달의정석 — **배달 음식 주문**. 알바몬('jobs')과 같은 구조다: 고른 메뉴가
+   * **어느 활동을 실행할지 정하고**(정크푸드 / 건강식) 값은 활동이 갖는다.
+   *
+   * ⚠️ **`systems/delivery.ts`(택배)와 다른 것이다.** 이름이 겹치지 않도록 render는
+   * `'food'`이고, 음식은 인벤토리에 쌓이지도 다음 날 도착하지도 않는다 — 1턴을 쓰고 끝난다.
+   */
+  | 'food'
 
 /** 가짜 브라우저가 이동할 수 있는 사이트 하나. */
 export interface Site {
@@ -259,6 +267,24 @@ export const SITES: Site[] = [
   },
   {
     /*
+     * 배달의정석 — **배달 음식**. 가게 셋(쇼핑·하이마루·무진장) 뒤에 두는 것이 자리의
+     * 뜻이다: 포털 상단 쇼핑 띠에 **배달 탭**으로 함께 걸린다(설계자 지시).
+     *
+     * ⚠️ 물건을 파는 가게들과 달리 **`activityId`가 있다** — 음식은 배송되는 물건이 아니라
+     * 그 자리에서 먹는 것이라 1턴을 쓴다(`ShopItem`을 만들지 않는다).
+     * 여기의 id는 **아무것도 안 고른 상태의 기본값**이고 실제 실행은 고른 메뉴가 정한다
+     * (알바몬과 같은 규칙 — `data/dishes.ts`).
+     * 이름은 배달 앱 상호의 호의적 패러디이고 실존 상호가 아니다.
+     */
+    id: 'baedal',
+    url: 'https://www.baedal-jeongseok.com',
+    title: '배달의정석',
+    icon: 'fluent-color:food-24',
+    render: 'food',
+    activityId: 'meal-junk',
+  },
+  {
+    /*
      * 노24 — **공연 예매**. 시집이(영화) 옆에 서는 자리이고 구조도 같다.
      * ⚠️ 즐겨찾기·소개 카드에 올리지 않는다 — **포털 가로 띠의 이동용 배너**가 이 사이트의
      * 입구다(설계자 지시). 입구를 셋으로 늘리면 배너가 "그냥 광고"로 읽힌다.
@@ -312,6 +338,9 @@ export const SITES: Site[] = [
     // 세 자리에 흐르는 **정체성**이라 두 사이트가 같은 아이콘을 쓰면 구분이 사라진다.
     icon: 'fluent-color:content-view-24',
     render: 'tube',
+    // ⚠️ [내 채널]의 방송 시작이 실행하는 활동. 예전에는 `stream`이 정의만 있고
+    // 브라우저에서 갈 데가 없었다(스케줄러·바로 가기로만 닿았다).
+    activityId: 'stream',
     notice: '보고 싶은 영상을 고르세요.',
     bookmark: true,
   },
@@ -438,8 +467,16 @@ export const BOOKMARK_SITES: Site[] = SITES.filter((s) => s.bookmark)
  * (`'shop'`=네이놈쇼핑 / `'tech'`=하이마루), 플래그를 더하면 같은 사실이 두 곳에 적혀
  * 한쪽만 고치는 사고가 난다. 새 가게가 생기면 `render` 값 하나가 여기에 늘어난다.
  */
+/**
+ * 포털 **상단 쇼핑 띠**의 링크 줄에 걸리는 사이트.
+ *
+ * ⚠️ **"물건을 파는 곳"이 아니라 "쇼핑 띠에 거는 곳"이다**(2026-08-08 배달 탭 신설).
+ * 배달의정석은 `ShopItem`을 팔지 않지만 같은 줄에 선다 — 플레이어에게는 둘 다
+ * "돈 쓰러 가는 곳"이기 때문이다. 물건 → 가게를 찾는 쪽은 여전히 `ShopItem.store`와
+ * `render`가 같은 글자라는 사실로 파생된다(`storeSiteIdOf`).
+ */
 export const STORE_SITES: Site[] = SITES.filter(
-  (s) => s.render === 'shop' || s.render === 'tech' || s.render === 'wear',
+  (s) => s.render === 'shop' || s.render === 'tech' || s.render === 'wear' || s.render === 'food',
 )
 
 /**

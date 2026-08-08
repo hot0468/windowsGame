@@ -29,6 +29,7 @@ import { RealtySite } from './sites/RealtySite'
 import { ShopSite } from './sites/ShopSite'
 import { StockSite } from './sites/StockSite'
 import { TechSite } from './sites/TechSite'
+import { FoodSite } from './sites/FoodSite'
 import { TicketSite } from './sites/TicketSite'
 import { TravelSite } from './sites/TravelSite'
 import { WearSite } from './sites/WearSite'
@@ -379,9 +380,10 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         {site?.render === 'tech' && <TechSite site={site} />}
         {site?.render === 'wear' && <WearSite site={site} />}
         {/* 티켓·여행. 입구는 포털 가로 띠의 이동용 배너 하나다(즐겨찾기·소개 카드에 없다). */}
+        {site?.render === 'food' && <FoodSite site={site} />}
         {site?.render === 'ticket' && <TicketSite site={site} />}
         {site?.render === 'trip' && <TravelSite site={site} />}
-        {site?.render === 'tube' && <TubeSite />}
+        {site?.render === 'tube' && <TubeSite site={site} />}
         {/* 활동을 실행하는 사이트들. 둘러보기는 여전히 무료이고,
             항목을 눌러 뜬 확인창(ActivityConfirm)의 실행 버튼만 1턴을 쓴다. */}
         {site?.render === 'library' && <LibrarySite site={site} />}

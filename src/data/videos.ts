@@ -406,3 +406,66 @@ export const SHORTS: Video[] = [
     caption: 'LAST-ONE',
   },
 ]
+
+/* ── 개인방송 (2026-08-08) ────────────────────────────────────────────────
+ *
+ * ⚠️ **주제는 수치를 갖지 않는다.** 켜는 활동은 `stream` 하나이고 여기서 정하는 것은
+ * **"무엇을 하며 두 시간을 보내는가"**뿐이다 — 증기의 게임 목록·미디북스의 책·시집이의
+ * 영화와 완전히 같은 규칙이다. 주제마다 효과를 주면 "번아웃 키는 넷"·"멘탈 회복처는 넷"
+ * 같은 불변식이 주제 수만큼 갈라진다.
+ */
+
+/** 방송 주제 하나. 썸네일은 이미지가 아니라 그라데이션 + 글자다(오프라인 규칙). */
+export interface StreamTopic {
+  id: string
+  label: string
+  /** 확인창에 적히는 한 줄. 고를 근거가 이름뿐이면 고르는 게임이 아니다. */
+  desc: string
+  gradient: string
+}
+
+export const STREAM_TOPICS: StreamTopic[] = [
+  {
+    id: 'game',
+    label: '게임 방송',
+    desc: '하던 게임을 켜 두고 떠든다. 아는 사람이 들어오면 반갑다.',
+    gradient: 'linear-gradient(160deg, #7c3aed 0%, #3b1d78 100%)',
+  },
+  {
+    id: 'mukbang',
+    label: '먹방',
+    desc: '오늘 저녁을 카메라 앞에서 먹는다. 식비가 방송비가 된다.',
+    gradient: 'linear-gradient(160deg, #d97706 0%, #7c3f06 100%)',
+  },
+  {
+    id: 'study',
+    label: '공부 방송',
+    desc: '말없이 두 시간을 앉아 있는다. 그게 콘텐츠가 되는 게 신기하다.',
+    gradient: 'linear-gradient(160deg, #0f766e 0%, #08403c 100%)',
+  },
+  {
+    id: 'draw',
+    label: '그림 방송',
+    desc: '한 장을 처음부터 끝까지 그린다. 채팅이 선 하나마다 참견한다.',
+    gradient: 'linear-gradient(160deg, #be185d 0%, #6b0d35 100%)',
+  },
+  {
+    id: 'talk',
+    label: '수다 방송',
+    desc: '아무 준비 없이 켠다. 준비가 없다는 걸 시청자도 안다.',
+    gradient: 'linear-gradient(160deg, #1d4ed8 0%, #10286e 100%)',
+  },
+]
+
+/**
+ * 평판에서 구독자 수를 뽑는다. **읽기 전용 파생값이고 새 상태를 만들지 않는다.**
+ *
+ * ⚠️ **트위터 팔로워(`followersFrom`)와 다른 것이다.** 그쪽은 그림을 올려 실제로 늘어나는
+ * **저장된 상태**이고 주간 정산까지 붙지만, 여기는 파생값이고 **정산이 없다** —
+ * 방송은 `stream` 활동이 회당 돈을 직접 주므로 구독자에까지 수익을 붙이면 한 행동이
+ * 두 번 벌게 된다(트위터는 반대로 게시 자체가 돈을 주지 않는다).
+ * 계수가 트위터보다 작은 것도 의도다: 영상은 글보다 품이 든다.
+ */
+export function subscribersFrom(reputation: number): number {
+  return 42 + Math.max(0, reputation) * 89
+}
