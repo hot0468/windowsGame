@@ -4,7 +4,8 @@ import { MIN_BOOK_PAGES } from '../data/contests'
 import { sellableProjects } from './projects'
 import { canRun, clampStats, runActivity } from './turn'
 import type { Expo } from '../data/expos'
-import type { GameState } from '../types/game'
+import { STAT_NAMES } from '../types/game'
+import type { GameState, Stats } from '../types/game'
 
 /**
  * 행사 — 참관과 참여.
@@ -93,6 +94,26 @@ export function visitExpo(state: GameState, expoId: string): GameState {
 }
 
 /**
+ * **수상에 모자란 것.** 빈 배열이면 상을 받는다. 상이 없는 참여는 늘 빈 배열이다.
+ *
+ * ⚠️ **판정의 단일 출처다** — 화면은 이 목록을 글자로 옮기기만 한다(두 번째 판정 금지).
+ * ⚠️ **무작위가 없다**(공모전과 같은 규칙): 못 받았으면 무엇이 모자랐는지 말해야 하고,
+ * 주사위가 섞이면 그 설명이 거짓이 된다.
+ */
+export function awardShortfalls(state: GameState, expo: Expo): string[] {
+  const award = expo.join?.award
+  if (!award) return []
+  return Object.entries(award.requires)
+    .filter(([key, min]) => state.stats[key as keyof Stats] < (min ?? 0))
+    .map(([key, min]) => `${STAT_NAMES[key as keyof typeof STAT_NAMES]} ${min}`)
+}
+
+/** 지금 참여하면 상을 받는가. 화면이 **누르기 전에** 이 값을 적는다. */
+export function willAward(state: GameState, expo: Expo): boolean {
+  return !!expo.join?.award && awardShortfalls(state, expo).length === 0
+}
+
+/**
  * 부스를 열어 참여한다. **1턴 + 참가비.**
  *
  * ⚠️ **`siteId`로 가는 참여는 여기 오지 않는다**(코미콘) — 그 경우 화면이 사이트를 열고
@@ -106,12 +127,25 @@ export function joinExpo(state: GameState, expoId: string): GameState {
   if (!activity || !canRun(state, activity)) return state
 
   const fee = expo.join.fee ?? 0
+  /* ⚠️ **수상 판정은 참가비를 내기 전, 활동을 실행하기 전 상태로 한다.** 실행 뒤 상태로
+     재면 활동이 올려 준 운동(+3)이 판정에 섞여 "확인창에서는 미달이라 했는데 받았다"가
+     된다 — 화면이 미리 적은 문장과 결과가 갈리지 않아야 한다. */
+  const won = willAward(state, expo)
   const paid: GameState = {
     ...state,
     stats: clampStats({ ...state.stats, money: state.stats.money - fee }),
   }
   const next = runActivity(paid, activity)
-  return next === paid ? state : next
+  if (next === paid) return state
+  if (!won) return next
+  /* 상은 평판만 준다(돈 없음 — `ExpoJoin.award` 주석). 상한 100은 `clampStats`가 잡는다. */
+  return {
+    ...next,
+    stats: clampStats({
+      ...next.stats,
+      reputation: next.stats.reputation + expo.join.award!.reputation,
+    }),
+  }
 }
 
 export { EXPOS, findExpo, isOpen, daysUntilOpen, openDayOf, openExpos } from '../data/expos'

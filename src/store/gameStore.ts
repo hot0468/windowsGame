@@ -18,6 +18,12 @@ import { creditCall, reviveBonus, worksAtCallCenter } from '../systems/callcente
 import { creditPerformance, revivePerformance, worksAtOffice } from '../systems/drive'
 import { healIllness, reviveIllness } from '../systems/illness'
 import { creditAffection, reviveAffection } from '../systems/affection'
+import {
+  dueRankEvents,
+  grantWish,
+  reviveRankEvents,
+  settleRankEvents,
+} from '../systems/rankEvents'
 import { useWindowStore } from './windowStore'
 import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../systems/bank'
 import { moveTo } from '../systems/housing'
@@ -73,6 +79,7 @@ import type { OfferOption } from '../data/messages'
 import type { ShopItem } from '../data/items'
 import type { SkippedPlan } from '../systems/schedule'
 import type {
+  GrowthStatKey,
   Activity,
   Application,
   Artwork,
@@ -527,6 +534,7 @@ function reviveState(raw: unknown): GameState | null {
     /* ⚠️ 날씨는 여기 없다 — 저장하지 않는 파생값이다(`systems/weather.ts`). */
     illness: reviveIllness(saved.illness),
     affection: reviveAffection(saved.affection),
+    rankEvents: reviveRankEvents(saved.rankEvents),
     // ⚠️ 응시 기록은 **돈을 만들지 않으므로** 검증이 은행·정규직만큼 빡빡할 필요가 없다
     //    (합격해도 나오는 것은 아이템 하나다). 날짜만 유한하면 통과시키고, 없는 종목을
     //    가리키는 기록은 `advanceCertification`이 조용히 닫는다.
@@ -615,8 +623,17 @@ function afterTurn(next: GameState, chain?: number) {
   //    생활비는 `turn.ts`의 취침 정산이 먼저 빼고 급여는 여기서 들어오므로, 이 호출을
   //    위로 올리면 **월급을 손에 쥔 채 파산하는** 버그가 되돌아온다.
   const job = advanceEmployment(banked)
+  /* ⚠️ **랭크 이벤트 창을 여는 자리가 여기다.** 이 함수의 첫 주석이 그 근거다 —
+     턴을 넘기는 통로가 넷이라 호출부마다 적으면 새 통로가 생길 때 하나씩 빠뜨린다.
+     스케줄러 예약·자동 진행으로 등급이 오른 판에서도 이벤트가 뜨는 것이 그 값이다.
+     ⚠️ **마지막 상태로 판정한다** — 급여·정산이 스탯을 건드린 뒤라야 "지금 등급"이 맞다. */
+  /* ⚠️ **대화방 이벤트를 먼저 기록하고, 그 상태로 창을 연다.** 순서가 뒤바뀌면 같은 밤에
+     둘이 함께 문턱을 넘었을 때 창 판정이 기록 전 상태를 보는데, 지금은 서로 독립이라
+     결과가 같다 — 그래도 "기록 → 파생" 방향을 지켜 둔다(나중에 얽히면 이 순서가 답이다). */
+  const evented = settleRankEvents(job.state)
+  openRankEventWindows(evented)
   return {
-    state: job.state,
+    state: evented,
     skippedPlans: ran.skipped,
     arrivals: [...got.arrived, ...exams.arrived],
     jobNotices: job.notices,
@@ -667,6 +684,33 @@ function openDriveIfWorking(before: GameState, activityId: string) {
   })
 }
 
+/**
+ * 랭크 이벤트로 열려야 하는 창을 띄우고, **그 사실을 기록하지는 않는다.**
+ *
+ * ⚠️ **기록은 창 안에서 실제로 무언가를 했을 때만 찍힌다**(`grantWish`) — 여기서 찍으면
+ * 창을 닫기만 한 사람이 기회를 잃는다. 그래서 안 빌고 닫으면 다음 밤에 다시 뜬다.
+ * ⚠️ **`kind: 'thread'` 이벤트는 여기서 아무것도 안 한다** — 대화방은 목록에 나타나는
+ * 것으로 충분하고(`threadVisible`), 그 판정은 기록이 아니라 등급을 본다.
+ *
+ * ⚠️ **모든 턴 통로가 지나는 `afterTurn` 뒤에 붙는다**(콜센터·드라이브가 `doActivity`에만
+ * 붙는 것과 반대다) — 랭크는 스케줄러 예약·자동 진행으로 오른 경우에도 닿으므로,
+ * 손으로 누른 자리에만 붙이면 자동으로 넘긴 판에서 이벤트가 통째로 사라진다.
+ */
+function openRankEventWindows(next: GameState) {
+  for (const event of dueRankEvents(next)) {
+    if (event.kind !== 'window') continue
+    useWindowStore.getState().open({
+      id: `rank-${event.id}`,
+      kind: event.target as 'wish',
+      title: '별똥별',
+      icon: 'fluent-color:star-24',
+      x: 180,
+      y: 96,
+      width: 460,
+    })
+  }
+}
+
 interface GameStore {
   state: GameState | null
   /** 잠금화면을 통과했는지. 저장하지 않아 새로고침 시 잠금화면부터 시작한다. */
@@ -675,6 +719,8 @@ interface GameStore {
   continueGame: () => void
   logout: () => void
   doActivity: (activity: Activity) => void
+  /** 별똥별 소원 — 고른 성장 스탯을 올린다. 한 번만 된다. */
+  makeWish: (key: GrowthStatKey) => void
   doSkip: () => void
   /** 콜센터 미니게임에서 콜 한 건을 마쳤다. 인자는 그 콜의 보너스(원). */
   finishCall: (won: number) => void
@@ -1109,6 +1155,19 @@ export const useGameStore = create<GameStore>()(
           if (!current) return
           const next = joinExpoOf(current, expoId)
           if (next !== current) set(afterTurn(next))
+        },
+
+        /**
+         * 소원을 빈다. **턴도 돈도 쓰지 않는다** — 판정과 기록은 `grantWish` 하나가 한다
+         * (안 아프면 그대로 돌려주는 `healIllness`와 같은 모양).
+         * ⚠️ `afterTurn`을 부르지 않는다: 턴이 안 넘어갔으므로 밤 정산을 돌릴 이유가 없고,
+         * 돌리면 별똥별을 본 밤이 두 번 정산된다.
+         */
+        makeWish: (key) => {
+          const current = get().state
+          if (!current) return
+          const next = grantWish(current, key)
+          if (next !== current) set({ state: next })
         },
 
         postArtwork: (artworkId) => {

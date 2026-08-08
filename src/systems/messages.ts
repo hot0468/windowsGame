@@ -1,5 +1,6 @@
 import { MESSAGE_SCHEDULE, THREAD_LIMIT, THREADS, threadsOf } from '../data/messages'
 import type { ChatAppId, Message, Thread } from '../data/messages'
+import { threadUnlockedByRank } from './rankEvents'
 import type { GameState, Slot, Stats } from '../types/game'
 
 /**
@@ -56,6 +57,11 @@ export interface TimedMessage extends Message {
 export function threadVisible(thread: Thread, state: GameState): boolean {
   if (thread.requiresEmployment && !state.employment) return false
   if (thread.requiresWebtoon && state.webtoon?.status !== 'serializing') return false
+  /* ⚠️ **랭크 이벤트로 열리는 방은 그 이벤트를 겪은 뒤에만 보인다.** 조건이 `Thread`에
+     없는 것이 규칙이다(문턱은 `data/rankEvents.ts` 한 곳) — `undefined`는 "그런 방이
+     아니다"이므로 그때만 통과시킨다. */
+  const byRank = threadUnlockedByRank(state, thread.id)
+  if (byRank === false) return false
   for (const [key, need] of Object.entries(thread.requires ?? {})) {
     if (state.stats[key as keyof Stats] < need) return false
   }

@@ -17,9 +17,10 @@ import {
   visibleThreadsOf,
 } from '../../systems/messages'
 import { weekendCallMessages } from '../../systems/drive'
+import { rankEventMessages } from '../../systems/rankEvents'
 import { webtoonReviewMessages } from '../../systems/webtoon'
 import { STAT_NAMES } from '../../types/game'
-import type { Stats } from '../../types/game'
+import type { GameState, Stats } from '../../types/game'
 import './ChatApp.css'
 
 /**
@@ -65,6 +66,19 @@ const RAIL_ICONS = {
  *
  * ⚠️ **읽는 것은 무료다.** 목록도 대화도 턴을 쓰지 않는다.
  */
+
+/**
+ * **편성표에 없는 메시지 전부.** 상태에서 파생되는 사실이라 (day, slot)만으로는 만들 수
+ * 없는 말들이다(주말 호출 · 웹툰 회차 반응 · 랭크 이벤트 권유).
+ *
+ * ⚠️ **목록 미리보기와 대화창 두 곳이 같은 함수를 본다.** 예전에는 같은 배열을 두 번 적어
+ * 두었는데, 원천이 셋으로 늘면서 한쪽만 고치면 **목록에는 안 뜨는데 방에 들어가면 있는**
+ * 말이 생긴다. 원천을 늘릴 자리는 여기 하나다.
+ */
+function derivedMessages(state: GameState) {
+  return [...weekendCallMessages(state), ...webtoonReviewMessages(state), ...rankEventMessages(state)]
+}
+
 export function ChatListApp({ appId }: { appId: string }) {
   const state = useGameStore((s) => s.state)
   const open = useWindowStore((s) => s.open)
@@ -250,9 +264,7 @@ export function ChatListApp({ appId }: { appId: string }) {
             </li>
           )}
           {shown.map((t) => {
-            const derived = [...weekendCallMessages(state), ...webtoonReviewMessages(state)].find(
-              (m) => m.channel === t.id,
-            )
+            const derived = derivedMessages(state).find((m) => m.channel === t.id)
             const last = derived
               ? { ...derived, time: '방금', turn: Number.MAX_SAFE_INTEGER }
               : lastMessage(t.id, state.day, state.slot)
@@ -316,7 +328,7 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
      만들 수 없다(`MailApp`이 `examMessages`를 합치는 것과 같은 자리). */
   const messages = [
     ...selectChannel(thread.id, state.day, state.slot),
-    ...[...weekendCallMessages(state), ...webtoonReviewMessages(state)]
+    ...derivedMessages(state)
       .filter((m) => m.channel === thread.id)
       .map((m) => ({ ...m, time: '방금', turn: Number.MAX_SAFE_INTEGER })),
   ]

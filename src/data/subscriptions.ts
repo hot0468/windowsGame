@@ -48,6 +48,23 @@ export const SUBSCRIPTIONS: Subscription[] = [
     desc: '포토샵을 포함한 크리에이티브 도구 전체. 해지하면 다음 날부터 못 연다.',
     perks: ['바탕화면에 포토샵이 설치된다', '그몽의 디자인 일감을 받을 수 있다'],
   },
+  {
+    /*
+     * ⚠️ **이 구독은 잠금을 열지 않는다.** 어도비는 활동·아이콘을 여는 열쇠지만
+     * 이쪽이 파는 것은 **배율 하나**다(`PLUS_MULTIPLIER`) — 그래서
+     * `Activity.requiresSubscription`을 아무것도 안 쓰고, 판정은 정산 함수
+     * (`systems/twitter.ts`의 `weeklyIncome`)가 직접 본다.
+     *
+     * ⚠️ **정산 천장(`WEEKLY_INCOME_CAP`)은 이 구독으로 올라가지 않는다.** 올리면
+     * 팔로워 수입이 물가를 이겨 판이 끝나지 않는다 — 사유는 그 상수 주석에 있다.
+     */
+    id: 'twitter-plus',
+    name: '트위터 플러스',
+    siteId: 'twitter',
+    monthlyFee: 10000,
+    desc: '팔로워로 들어오는 주간 정산금을 두 배로 받습니다. 해지하면 다음 정산부터 원래대로입니다.',
+    perks: ['팔로워 정산금 2배', '해지는 언제든 가능'],
+  },
 ]
 
 export function findSubscription(id: string): Subscription | undefined {

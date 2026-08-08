@@ -4,7 +4,14 @@ import { EXPOS, daysUntilOpen, findExpo, isOpen, openDayOf } from '../../../data
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
 import { useWindowStore } from '../../../store/windowStore'
-import { canJoin, canVisit, joinBlockers, visitBlockers } from '../../../systems/expos'
+import {
+  awardShortfalls,
+  canJoin,
+  canVisit,
+  joinBlockers,
+  visitBlockers,
+  willAward,
+} from '../../../systems/expos'
 import type { Expo } from '../../../data/expos'
 import type { Site } from '../../../data/sites'
 import type { GameState } from '../../../types/game'
@@ -230,6 +237,25 @@ function ExpoCard({
               <p className="ep-desc">참가비 {feeText(expo.join.fee)}</p>
             )}
             {expo.join.requires && <p className="ep-desc">조건 · {expo.join.requires}</p>}
+            {/*
+             * 수상 예고. **누르기 전에 받을지 못 받을지를 말한다** — 이 대회에는 무작위가
+             * 없으므로(`awardShortfalls`) 미리 말할 수 있고, 말할 수 있으면 말해야 한다.
+             *
+             * ⚠️ **판정을 여기서 다시 하지 않는다**: 받는지는 `willAward`, 무엇이 모자란지는
+             * `awardShortfalls`가 정하고 화면은 글자로 옮기기만 한다.
+             * ⚠️ 상금이 아니라 평판이라고 적는다 — 돈을 기대하게 만들면 화면이 거짓을 말한다.
+             */}
+            {expo.join.award && (
+              <p className={`ep-award${willAward(state, expo) ? ' ep-award-on' : ''}`}>
+                <AppIcon
+                  name={willAward(state, expo) ? 'mdi:trophy-outline' : 'mdi:lock-outline'}
+                  size={13}
+                />
+                {willAward(state, expo)
+                  ? `지금 나가면 ${expo.join.award.title} — 평판 +${expo.join.award.reputation}`
+                  : `수상까지 ${awardShortfalls(state, expo).join(' · ')} 필요`}
+              </p>
+            )}
             {!goes &&
               joinWhy.map((r) => (
                 <p key={r} className="ep-lock">

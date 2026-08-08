@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { findActivity } from '../../../data/activities'
-import { PAYOUT_INTERVAL_DAYS, WON_PER_FOLLOWER, artTitle } from '../../../data/artworks'
+import {
+  PAYOUT_INTERVAL_DAYS,
+  PLUS_MULTIPLIER,
+  WEEKLY_INCOME_CAP,
+  WON_PER_FOLLOWER,
+  artTitle,
+} from '../../../data/artworks'
 import { TRENDING_TERMS } from '../../../data/news'
+import { findSubscription } from '../../../data/subscriptions'
 import { countLabel, findAccount, tweetAge, TWEETS } from '../../../data/tweets'
 import { artGrade } from '../../../systems/artwork'
 import { streamReviews } from '../../../systems/channel'
@@ -11,6 +18,8 @@ import {
   postableArtworks,
   totalFollowers,
   weeklyIncome,
+  hasPlus,
+  PLUS_SUBSCRIPTION_ID,
 } from '../../../systems/twitter'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
@@ -58,6 +67,8 @@ export function TwitterSite({ site }: { site: Site }) {
   /** 올리려고 고른 그림 id. 그림 업로드는 **고를 것이 있는** 유일한 경로다. */
   const [pickedArt, setPickedArt] = useState<string | null>(null)
   const postArtwork = useGameStore((s) => s.postArtwork)
+  const subscribeTo = useGameStore((s) => s.subscribeTo)
+  const unsubscribeFrom = useGameStore((s) => s.unsubscribeFrom)
 
   if (!state) return null
 
@@ -82,6 +93,13 @@ export function TwitterSite({ site }: { site: Site }) {
     setTab('recommend')
     setQuery('')
   }
+
+  /* ⚠️ 구독 항목·요금은 데이터가 갖는다(`data/subscriptions.ts`) — 화면에 금액을 적으면
+     청구와 표시가 갈린다. `!`를 쓰는 것은 이 사이트가 그 id를 전제로 만들어졌기 때문이고,
+     id가 사라지면 테스트가 먼저 터진다(`subscription.test.ts`). */
+  const plus = findSubscription(PLUS_SUBSCRIPTION_ID)!
+  const onPlus = hasPlus(state)
+  const canAffordPlus = state.stats.money - plus.monthlyFee > 0
 
   return (
     <div className="twt">
@@ -125,6 +143,43 @@ export function TwitterSite({ site }: { site: Site }) {
               <span className="tw-me-note">{daysToPayout(state)}일 뒤 정산</span>
             </p>
           )}
+
+          {/*
+           * 유료 구독. **왼쪽 열의 수익 줄 바로 아래인 것이 규칙이다** — 이 구독이 파는
+           * 것은 잠금이 아니라 그 숫자의 배율이라, 바뀌는 값 옆에 있어야 무엇을 사는지
+           * 읽힌다(어도비는 여는 것이 있어 자기 사이트에 카드로 서지만 이쪽은 아니다).
+           *
+           * ⚠️ **판정은 스토어가 하고 화면은 사유만 파생한다**(`AdobeSite`와 같은 규칙).
+           * ⚠️ **천장을 함께 적는다.** 2배라고만 적으면 상한에 닿은 뒤 "구독했는데 안 늘었다"가
+           * 되고, 그것은 화면이 거짓을 말한 것이 된다(`WEEKLY_INCOME_CAP`).
+           */}
+          <div className="tw-plus">
+            <p className="tw-plus-head">
+              {plus.name}
+              <span className="tw-plus-fee">
+                월 {plus.monthlyFee.toLocaleString('ko-KR')}원
+              </span>
+            </p>
+            <p className="tw-plus-desc">
+              주간 정산금 {PLUS_MULTIPLIER}배. 주당{' '}
+              {WEEKLY_INCOME_CAP.toLocaleString('ko-KR')}원까지입니다.
+            </p>
+            <button
+              type="button"
+              className={`tw-plus-btn${onPlus ? ' tw-plus-btn-on' : ''}`}
+              onClick={() => (onPlus ? unsubscribeFrom(plus.id) : subscribeTo(plus.id))}
+              disabled={!onPlus && !canAffordPlus}
+              title={
+                onPlus
+                  ? '다음 정산부터 원래 금액으로 돌아갑니다'
+                  : canAffordPlus
+                    ? `가입하는 순간 첫 달치 ${plus.monthlyFee.toLocaleString('ko-KR')}원이 결제됩니다`
+                    : `소지금이 ${plus.monthlyFee.toLocaleString('ko-KR')}원보다 많이 남아 있어야 합니다`
+              }
+            >
+              {onPlus ? '구독 중 · 해지' : '구독하기'}
+            </button>
+          </div>
         </nav>
 
         {/* ── 중앙: 탭 + 작성(확정) + 타임라인 ───────────────── */}

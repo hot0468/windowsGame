@@ -7,6 +7,8 @@ import {
   postableArtworks,
   totalFollowers,
   weeklyIncome,
+  hasPlus,
+  PLUS_SUBSCRIPTION_ID,
 } from './twitter'
 import { artworksOf } from './artwork'
 import { createInitialState, nightPayoutPending, runActivity } from './turn'
@@ -16,6 +18,8 @@ import {
   FOLLOWER_CAP,
   PAYOUT_INTERVAL_DAYS,
   WON_PER_FOLLOWER,
+  PLUS_MULTIPLIER,
+  WEEKLY_INCOME_CAP,
 } from '../data/artworks'
 import { ECONOMY_TIERS } from '../data/economy'
 import { HOUSINGS } from '../data/housing'
@@ -168,5 +172,63 @@ describe('주간 정산', () => {
     expect(after.gameOver).toBe('bankrupt')
     // 생활비가 실제로 계속 나가는 판이라는 것도 함께 확인한다.
     expect(getLivingCost(broke)).toBeGreaterThan(0)
+  })
+})
+
+/** 유료 구독 중인 판. `subscribed`가 보는 것은 세이브의 키 유무뿐이다. */
+function withPlus(state: GameState): GameState {
+  return {
+    ...state,
+    subscriptions: {
+      active: { [PLUS_SUBSCRIPTION_ID]: { startedDay: 1, billedDay: 1 } },
+      paid: 0,
+    },
+  }
+}
+
+describe('⚠️ 불변식 — 유료 구독도 물가를 이기지 못한다', () => {
+  const lastTier = ECONOMY_TIERS[ECONOMY_TIERS.length - 1]
+  const cheapestLiving = lastTier.living * Math.min(...HOUSINGS.map((h) => h.rate))
+
+  it('구독하면 상한 아래에서는 정말 두 배로 들어온다', () => {
+    // 팔로워를 상한의 10% 수준으로 두어 천장에 닿지 않게 한다.
+    const s = withArtworks(0)
+    const few: GameState = {
+      ...s,
+      twitter: { gained: FOLLOWER_CAP / 10, postedIds: [], likes: 0, paidDay: 1 },
+    }
+    expect(hasPlus(few)).toBe(false)
+    expect(weeklyIncome(withPlus(few))).toBe(weeklyIncome(few) * PLUS_MULTIPLIER)
+  })
+
+  it('⚠️ 천장에 닿으면 구독 여부가 같아진다 — 배율이 천장을 올리지 않는다', () => {
+    const s = withArtworks(0)
+    const maxed: GameState = {
+      ...s,
+      stats: { ...s.stats, reputation: 100 },
+      twitter: { gained: 10_000_000, postedIds: [], likes: 0, paidDay: 1 },
+    }
+    expect(totalFollowers(maxed)).toBe(FOLLOWER_CAP)
+    expect(weeklyIncome(maxed)).toBe(WEEKLY_INCOME_CAP)
+    expect(weeklyIncome(withPlus(maxed))).toBe(weeklyIncome(maxed))
+  })
+
+  it('구독해도 상한 일수입이 가장 싼 집의 마지막 물가 생활비를 못 넘는다', () => {
+    expect(WEEKLY_INCOME_CAP / PAYOUT_INTERVAL_DAYS).toBeLessThan(cheapestLiving)
+  })
+
+  it('⚠️ 규칙을 뒤집으면 실패한다 — 천장까지 배율을 태우면 생활비를 넘긴다', () => {
+    // 이 줄이 통과해야 "천장을 배율 뒤에 두는 것"이 우연이 아님이 증명된다.
+    const uncapped = (WEEKLY_INCOME_CAP * PLUS_MULTIPLIER) / PAYOUT_INTERVAL_DAYS
+    expect(uncapped).toBeGreaterThan(cheapestLiving)
+  })
+
+  it('구독하지 않은 판의 정산금은 예전과 같다 — 기존 밸런스를 건드리지 않았다', () => {
+    const s = withArtworks(0)
+    const some: GameState = {
+      ...s,
+      twitter: { gained: 5_000, postedIds: [], likes: 0, paidDay: 1 },
+    }
+    expect(weeklyIncome(some)).toBe(Math.round(totalFollowers(some) * WON_PER_FOLLOWER))
   })
 })

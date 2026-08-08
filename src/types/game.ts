@@ -262,6 +262,11 @@ export type WindowKind =
    */
   | 'callcenter'
   /**
+   * 별똥별(소원) 창. **랭크 이벤트가 여는 유일한 창이다**(`data/rankEvents.ts`) —
+   * 바탕화면 아이콘도 시작 메뉴 항목도 없다: 아무 때나 켤 수 있으면 "일어난 일"이 아니다.
+   */
+  | 'wish'
+  /**
    * 사내 드라이브(너드라이브). **사무직 출근(`commute`)이 여는 창이고 바탕화면 아이콘이
    * 없다** — 콜센터와 같은 규칙이다(회사 자리에 앉아야 뜨는 사내 프로그램).
    */
@@ -1172,6 +1177,13 @@ export interface GameState {
    * 된다(규칙은 `systems/affection.ts`).
    */
   affection?: Record<string, number>
+  /**
+   * 이미 겪은 **랭크 이벤트** id(`data/rankEvents.ts`). 겪은 적 없으면 필드가 없다.
+   *
+   * ⚠️ **등급이 내려가도 지우지 않는다** — 지우면 오르내리기로 같은 이벤트를 무한히 다시
+   * 받을 수 있고, 그중 하나가 스탯 +100(소원)이다. 규칙은 `systems/rankEvents.ts`.
+   */
+  rankEvents?: string[]
 }
 
 /**

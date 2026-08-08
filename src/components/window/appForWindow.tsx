@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { BrowserApp } from '../apps/BrowserApp'
 import { CallCenterApp } from '../apps/CallCenterApp'
+import { WishApp } from '../apps/WishApp'
 import { DriveApp } from '../apps/DriveApp'
 import { ChatListApp, ChatThreadApp } from '../apps/ChatApp'
 import { MailApp } from '../apps/MailApp'
@@ -57,6 +58,7 @@ export const WINDOW_APP_KINDS = [
   'steam',
   'settings',
   'callcenter',
+  'wish',
   'drive',
   'tool',
   'clipstudio',
@@ -121,6 +123,9 @@ export function appForWindow(w: OpenWindow, { onClose }: AppSlots): ReactNode {
     /* 라이브러리 한 화면. 게임을 켜는 것은 활동 `game` 1턴이다. */
     case 'steam':
       return <SteamApp />
+    /* 랭크 이벤트(감수성 A)가 여는 창. 턴을 쓰지 않고 소원 하나를 고른다. */
+    case 'wish':
+      return <WishApp onClose={onClose} />
     /* 출근이 여는 사내 프로그램. 턴은 이미 지나갔고 여기서 버는 것은 보너스뿐이다. */
     case 'callcenter':
       return <CallCenterApp onClose={onClose} />

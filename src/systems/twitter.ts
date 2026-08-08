@@ -4,11 +4,16 @@ import {
   LIKES_BY_GRADE,
   PAYOUT_INTERVAL_DAYS,
   WON_PER_FOLLOWER,
+  PLUS_MULTIPLIER,
+  WEEKLY_INCOME_CAP,
 } from '../data/artworks'
 import { followersFrom } from '../data/tweets'
 import { artGrade, findArtwork } from './artwork'
-import { canRun, clampStats, runActivity, settleGameOver } from './turn'
+import { canRun, clampStats, runActivity, settleGameOver, subscribed } from './turn'
 import { findActivity } from '../data/activities'
+
+/** 유료 구독 id(`data/subscriptions.ts`). ⚠️ **관계는 정산 → 구독 한 방향으로만 적는다.** */
+export const PLUS_SUBSCRIPTION_ID = 'twitter-plus'
 import type { Artwork, GameState, TwitterState } from '../types/game'
 
 /**
@@ -78,9 +83,21 @@ export function postableArtworks(state: GameState): Artwork[] {
   return (state.artworks ?? []).filter((a) => !isPosted(state, a.id)).reverse()
 }
 
-/** 이번 주에 들어올 정산금. 화면이 "얼마가 들어오나"를 미리 적을 수 있게 밖으로 뺀다. */
+/** 지금 유료 구독 중인가. 화면과 정산이 같은 술어를 본다. */
+export function hasPlus(state: GameState): boolean {
+  return subscribed(state, PLUS_SUBSCRIPTION_ID)
+}
+
+/**
+ * 이번 주에 들어올 정산금. 화면이 "얼마가 들어오나"를 미리 적을 수 있게 밖으로 뺀다.
+ *
+ * ⚠️ **천장(`WEEKLY_INCOME_CAP`)이 배율보다 뒤에 온다.** 순서를 뒤집어 천장을 먼저
+ * 재고 곱하면 상한 일수입이 두 배가 되어 **생활비를 넘고 판이 끝나지 않는다**
+ * (`data/artworks.ts`의 상수 주석 · `twitter.test.ts`의 부등식).
+ */
 export function weeklyIncome(state: GameState): number {
-  return Math.round(totalFollowers(state) * WON_PER_FOLLOWER)
+  const base = totalFollowers(state) * WON_PER_FOLLOWER * (hasPlus(state) ? PLUS_MULTIPLIER : 1)
+  return Math.round(Math.min(base, WEEKLY_INCOME_CAP))
 }
 
 /** 다음 정산까지 남은 날. 아직 트위터를 시작하지 않았으면 undefined. */

@@ -567,3 +567,66 @@
     transition: none;
   }
 }
+
+/*
+ * 유료 구독 블록(왼쪽 열). **카드가 아니라 구획이다** — 트위터 사이드바에는 카드가
+ * 하나도 없고(트렌드도 선으로만 갈린다) 여기만 판을 깔면 광고처럼 읽힌다.
+ * 위쪽 헤어라인 하나로 수익 줄과 갈라 둔다.
+ */
+.tw-plus {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--tw-line-strong);
+}
+
+.tw-plus-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--tw-text);
+}
+
+.tw-plus-fee {
+  flex: none;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--tw-text-2);
+}
+
+.tw-plus-desc {
+  margin: 4px 0 var(--sp-2);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--tw-text-2);
+}
+
+/* 구독 버튼. 트위터의 액센트는 검정이라 채운 검정 알약이 이 사이트의 주 버튼 모양이다. */
+.tw-plus-btn {
+  width: 100%;
+  padding: 7px var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--tw-accent);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tw-plus-btn:disabled {
+  /* 0.2 아래로 내리지 않는다(ux `opacity-threshold`). 사유는 title이 글자로 말한다. */
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* 구독 중에는 해지 버튼이다 — 파괴적 행동이 아니므로 경고색을 쓰지 않고,
+   채움을 걷어 테두리만 남겨 "지금 켜져 있음 + 끌 수 있음"을 함께 알린다. */
+.tw-plus-btn-on {
+  background: transparent;
+  border-color: var(--tw-line-strong);
+  color: var(--tw-text);
+}

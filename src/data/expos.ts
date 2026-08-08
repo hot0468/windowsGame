@@ -15,6 +15,8 @@
  * 글자로 적는다.
  */
 
+import type { Stats } from '../types/game'
+
 /** 참여(부스·무대에 서는 것). 없으면 그 행사는 참관만 받는다. */
 export interface ExpoJoin {
   label: string
@@ -34,6 +36,25 @@ export interface ExpoJoin {
   fee?: number
   /** 참여에 필요한 것을 글자로 적는다. 판정은 화면이 시스템에 물어본다. */
   requires?: string
+  /**
+   * **수상.** 있으면 참여한 그 자리에서 스탯을 보고 상을 준다.
+   *
+   * ⚠️ **무작위가 없다**(공모전과 같은 규칙) — 못 받았을 때 **무엇이 모자랐는지** 말해
+   * 줘야 하고, 주사위가 섞이면 그 설명이 거짓이 된다. 판정은
+   * `systems/expos.ts`의 `awardShortfalls` 하나가 한다.
+   *
+   * ⚠️ **상금이 없다. 주는 것은 평판뿐이다.** "행사는 수입원이 아니다"가 이 시스템의
+   * 확정 규칙이고(활동 전부가 돈을 한 푼도 안 준다), 대회만 예외로 두면 회지 판매와 같은
+   * 수입 상한이 두 곳으로 갈린다. 평판 상한 100이 반복 수상도 저절로 막는다.
+   */
+  award?: {
+    /** 수상에 필요한 최소 스탯. **둘 이상이면 전부 충족해야 한다.** */
+    requires: Partial<Record<keyof Stats, number>>
+    /** 상의 이름. 화면이 "무엇을 받았나"를 적는다. */
+    title: string
+    /** 수상 시 오르는 평판. */
+    reputation: number
+  }
 }
 
 export interface Expo {
@@ -59,6 +80,57 @@ export interface Expo {
 }
 
 export const EXPOS: Expo[] = [
+  {
+    /*
+     * ⚠️ **수상 조건이 둘인 유일한 행사다**(설계자 지시: "운동+매력까지 높아야 수상 가능").
+     * 무대에서 몸을 보여 주는 대회라 운동만으로는 상을 못 받는다 — 그 둘째 조건이
+     * 이 대회의 성격 전부이고, 운동 특화 플레이가 마라톤으로는 상을 받지만 여기서는
+     * 못 받는 갈림이 그래서 생긴다(`expos.test.ts`가 그 갈림을 지킨다).
+     */
+    id: 'bodybuilding',
+    title: '보디빌딩 선수권',
+    host: '대한피지크연맹',
+    place: '늘봄체육관 대경기장',
+    tags: ['체육', '대회'],
+    visitActivityId: 'expo-visit',
+    fee: 18_000,
+    join: {
+      label: '참가 신청 (무대)',
+      desc: '무대에 올라 규정 포즈를 잡습니다. 몸만 만들면 되는 대회가 아닙니다.',
+      activityId: 'expo-compete',
+      fee: 40_000,
+      requires: '운동과 매력이 모두 높아야 수상합니다',
+      award: { requires: { athletics: 300, charm: 200 }, title: '피지크 부문 입상', reputation: 12 },
+    },
+    cycle: 24,
+    openDays: 2,
+    offset: 13,
+    badge: '수상 가능',
+  },
+  {
+    /*
+     * 마라톤. **수상 조건이 운동 하나뿐이라 보디빌딩보다 문턱이 낮다** — 대신 참가비도
+     * 상금(평판)도 작다. 몸만 만들면 되는 대회가 하나는 있어야 운동 특화가 보상을 받는다.
+     */
+    id: 'marathon',
+    title: '늘봄강 마라톤',
+    host: '늘봄시체육회',
+    place: '늘봄강 시민공원',
+    tags: ['체육', '대회'],
+    visitActivityId: 'expo-visit',
+    fee: 0,
+    join: {
+      label: '참가 신청 (10km)',
+      desc: '번호표를 달고 강변을 달립니다. 완주만으로도 다리는 며칠 아픕니다.',
+      activityId: 'expo-compete',
+      fee: 20_000,
+      requires: '운동이 높아야 입상합니다',
+      award: { requires: { athletics: 200 }, title: '10km 부문 입상', reputation: 8 },
+    },
+    cycle: 18,
+    openDays: 1,
+    offset: 7,
+  },
   {
     id: 'comicon',
     title: '코미콘',

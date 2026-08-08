@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import {
+  awardShortfalls,
   canJoin,
   canVisit,
   joinBlockers,
   joinExpo,
   visitBlockers,
   visitExpo,
+  willAward,
 } from './expos'
 import { EXPOS, daysUntilOpen, findExpo, isOpen, openDayOf, openExpos } from '../data/expos'
 import { createProject, drawIntoProject, openProjects } from './projects'
@@ -43,7 +45,10 @@ function ready(day = 1): GameState {
   }
 }
 
-const BOOTH = EXPOS.find((e) => e.join?.activityId)!
+/* ⚠️ **부스를 콕 집어 고른다.** 예전에는 "참여 활동이 있는 첫 행사"였는데, 대회
+   (`expo-compete`)가 목록 앞에 들어오면서 그 선택자가 대회를 집었다 — 대회는 참가만으로는
+   평판을 안 주므로(수상이 준다) 아래 단언의 뜻이 조용히 뒤집혔다. */
+const BOOTH = EXPOS.find((e) => e.join?.activityId === 'expo-booth')!
 const SITE_JOIN = EXPOS.find((e) => e.join?.siteId)!
 const VISIT_ONLY = EXPOS.find((e) => !e.join)!
 
@@ -197,5 +202,77 @@ describe('⚠️ 불변식 — 행사는 수입원이 아니다', () => {
 
   it('무료로 갈 수 있는 행사가 하나는 있다 — 목록이 통째로 닫힌 문이 아니다', () => {
     expect(EXPOS.filter((e) => e.fee === 0).length).toBeGreaterThan(0)
+  })
+})
+
+/* ── 대회 수상 ─────────────────────────────────────────────────────────── */
+
+const BODY = findExpo('bodybuilding')!
+const MARATHON = findExpo('marathon')!
+
+/** 그 스탯들을 요건 이상으로 채운 판. */
+function strong(day: number, stats: Partial<GameState['stats']>): GameState {
+  const base = ready(day)
+  return { ...base, stats: { ...base.stats, ...stats } }
+}
+
+describe('대회 수상', () => {
+  it('요건을 다 채우면 상을 받고 평판이 오른다', () => {
+    const s = strong(openDayFor(MARATHON), { athletics: 200 })
+    expect(willAward(s, MARATHON)).toBe(true)
+    const after = joinExpo(s, MARATHON.id)
+    expect(after.stats.reputation).toBe(s.stats.reputation + MARATHON.join!.award!.reputation)
+  })
+
+  it('미달이면 참가만 하고 상은 없다 — 턴과 참가비는 그대로 나간다', () => {
+    const s = strong(openDayFor(MARATHON), { athletics: 10 })
+    expect(willAward(s, MARATHON)).toBe(false)
+    const after = joinExpo(s, MARATHON.id)
+    expect(after).not.toBe(s)
+    expect(after.slot).not.toBe(s.slot)
+    expect(after.stats.reputation).toBe(s.stats.reputation)
+    expect(s.stats.money - after.stats.money).toBe(MARATHON.join!.fee ?? 0)
+  })
+
+  it('⚠️ 보디빌딩은 운동만 높아서는 못 받는다 — 매력까지 봐야 한다(설계자 지시)', () => {
+    const onlyBody = strong(openDayFor(BODY), { athletics: 999, charm: 0 })
+    expect(willAward(onlyBody, BODY)).toBe(false)
+    // 모자란 것을 **글자로** 말한다(무작위가 없는 이유가 이것이다).
+    expect(awardShortfalls(onlyBody, BODY).join(' ')).toContain('매력')
+    const both = strong(openDayFor(BODY), { athletics: 999, charm: 999 })
+    expect(willAward(both, BODY)).toBe(true)
+  })
+
+  it('⚠️ 마라톤과 갈린다 — 같은 몸으로 한쪽은 받고 한쪽은 못 받는다', () => {
+    const runner = { athletics: 400, charm: 0 }
+    expect(willAward(strong(openDayFor(MARATHON), runner), MARATHON)).toBe(true)
+    expect(willAward(strong(openDayFor(BODY), runner), BODY)).toBe(false)
+  })
+
+  it('⚠️ 판정은 참가 전 스탯으로 한다 — 활동이 올려 주는 운동이 섞이면 안 된다', () => {
+    const compete = findActivity('expo-compete')!
+    const gain = compete.effects.athletics ?? 0
+    expect(gain).toBeGreaterThan(0)
+    // 요건보다 딱 `gain`만큼 모자란 판: 실행 뒤 스탯으로 재면 통과해 버린다.
+    const just = strong(openDayFor(MARATHON), {
+      athletics: MARATHON.join!.award!.requires.athletics! - gain,
+    })
+    expect(willAward(just, MARATHON)).toBe(false)
+    expect(joinExpo(just, MARATHON.id).stats.reputation).toBe(just.stats.reputation)
+  })
+
+  it('⚠️ 상은 돈을 한 푼도 주지 않는다 — 행사는 수입원이 아니다', () => {
+    for (const e of EXPOS) {
+      if (!e.join?.award) continue
+      const s = strong(openDayFor(e), { athletics: 999, charm: 999 })
+      const after = joinExpo(s, e.id)
+      // 나간 돈은 참가비뿐이다(들어온 돈이 있으면 차액이 참가비보다 작아진다).
+      expect(s.stats.money - after.stats.money, e.id).toBe(e.join.fee ?? 0)
+    }
+  })
+
+  it('상이 없는 참여는 수상 판정이 늘 빈 목록이다', () => {
+    expect(awardShortfalls(ready(1), BOOTH)).toEqual([])
+    expect(willAward(ready(1), BOOTH)).toBe(false)
   })
 })

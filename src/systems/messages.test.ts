@@ -7,6 +7,7 @@ import {
   turnIndex,
   visibleThreadsOf,
 } from './messages'
+import { markRankEvent, threadUnlockedByRank } from './rankEvents'
 import { MESSAGE_SCHEDULE, THREADS, findThread } from '../data/messages'
 import { createInitialState } from './turn'
 import type { GameState, Stats } from '../types/game'
@@ -111,12 +112,27 @@ describe('방이 나타나는 조건', () => {
   })
 
   it('조건이 없는 방은 언제나 보인다', () => {
-    // ⚠️ 조건 축이 늘면 여기도 늘어야 한다(`requiresWebtoon` 2026-08-08).
+    /* ⚠️ 조건 축이 늘면 여기도 늘어야 한다(`requiresWebtoon` 2026-08-08).
+       ⚠️ **랭크 이벤트로 열리는 방은 `Thread`에 조건 필드가 아예 없다**(문턱이
+       `data/rankEvents.ts` 한 곳에 있다) — 그래서 필드만 세면 "조건 없음"으로 잘못
+       분류된다. 시스템에 물어봐서 걸러낸다(`undefined` = 랭크로 열리는 방이 아니다). */
     for (const t of THREADS.filter(
-      (x) => !x.requires && !x.requiresEmployment && !x.requiresWebtoon,
+      (x) =>
+        !x.requires &&
+        !x.requiresEmployment &&
+        !x.requiresWebtoon &&
+        threadUnlockedByRank(state(), x.id) === undefined,
     )) {
       expect(threadVisible(t, state()), t.id).toBe(true)
     }
+  })
+
+  it('⚠️ 랭크 이벤트로 열리는 방은 그 이벤트를 겪기 전에는 안 보인다', () => {
+    const crew = THREADS.find((t) => t.id === 'running-crew')!
+    expect(threadVisible(crew, state())).toBe(false)
+    // 겪은 뒤에는 보인다 — 등급이 나중에 내려가도 기록이 남아 계속 보인다.
+    const after = markRankEvent(state(), 'running-crew')
+    expect(threadVisible(crew, after)).toBe(true)
   })
 
   it('편성표가 가리키는 채널은 실제로 있는 방이거나 사서함이다 (죽은 알림 방지)', () => {

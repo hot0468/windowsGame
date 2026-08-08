@@ -37,6 +37,7 @@ const ALL_KINDS = [
   'steam',
   'settings',
   'callcenter',
+  'wish',
   'drive',
   'folder',
   'scheduler',

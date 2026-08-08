@@ -300,6 +300,24 @@ export const ACTIVITIES: Activity[] = [
      * 이 활동이 아니라 **코미콘 사이트**를 지난다.
      * ⚠️ 번아웃 키는 참관과 같다 — 참관·참여를 번갈아 하며 대가를 피해 갈 수 없게.
      */
+    /*
+     * 대회 참가(보디빌딩·마라톤). **부스(`expo-booth`)와 다른 활동인 이유는 성격이다** —
+     * 부스는 앉아서 이름을 알리는 일이고 이쪽은 몸을 쓰는 일이라 비용이 다르다.
+     *
+     * ⚠️ **평판을 주지 않는다.** 참가만으로 평판이 오르면 수상이 뜻을 잃는다 —
+     * 평판은 **수상이** 준다(`ExpoJoin.award`). 여기서 얻는 것은 운동 몫뿐이다.
+     * ⚠️ 돈도 한 푼 안 준다("행사는 수입원이 아니다"). 번아웃 키는 행사 셋과 같은 `'expo'`.
+     */
+    id: 'expo-compete',
+    label: '행사 참여 (대회)',
+    icon: 'fluent-color:trophy-24',
+    category: 'body',
+    description: '번호표를 달고 몸으로 겨룬다. 끝나면 며칠 다리가 아프다.',
+    effects: { athletics: 3, stamina: -30, mental: -6 },
+    requires: { stamina: 30 },
+    burnoutKey: 'expo',
+  },
+  {
     id: 'expo-booth',
     label: '행사 참여 (부스)',
     icon: 'fluent-color:megaphone-loud-24',
