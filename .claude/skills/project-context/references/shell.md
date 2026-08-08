@@ -1,0 +1,83 @@
+# 셸 · 창 · 바탕화면 · HUD · 디자인 토큰
+
+> **언제 읽나:** 바탕화면/창/셸/HUD/모바일/디자인 토큰·폰트를 만질 때 읽는다.
+> 규칙만 적는다. 사연·실측 과정은 소스 파일 주석과 `docs/HISTORY.md`가 진다.
+
+## 상태·저장
+- 로그인 상태(`loggedIn`)는 세이브 존재 여부와 분리한다. `partialize`로 저장에서 제외 → 새로고침 시 항상 잠금화면부터. (세이브만으로 분기하면 "이어하기"에 도달할 수 없다)
+- 상한은 `systems/turn.ts`의 명명 상수: `MAX_STAMINA_CAP`(200)/`MENTAL_CAP`(100)/`GROWTH_STAT_CAP`(999). `clampStats`는 `GROWTH_STAT_KEYS`를 순회하므로 성장 스탯 추가 시 `types/game.ts`만 고치면 된다. 엔딩 조건 수치는 `balance.verify.test.ts`가 지킨다. 스탯 상한이 올라도 도달 기준은 그대로 둔다. ⚠️ **직업 엔딩은 조건이 아니라 도달 가능성을 시뮬레이션으로 지킨다**(아래 "직업 엔딩")
+
+## 바탕화면 아이콘 (격자 + 드래그)
+- ⚠️ **아이콘은 격자에 절대 배치되고 끌어서 옮길 수 있다.** 모델은 실제 윈도우의 "아이콘 자동 정렬 끔 + 격자에 맞춤 켬"이다. **구 `ICON_COLUMNS`·`.desktop-column` flex 열은 사라졌다.**
+- 기본 배치는 `src/data/desktopIcons.ts`의 **`DEFAULT_ICON_CELLS`**(+`DESKTOP_ICON_ORDER`)가 갖는다(배치는 콘텐츠이므로 `src/data/`). 규칙: **왼쪽 열 프로그램 / 오른쪽 열 폴더**
+- 계산은 순수 함수 `src/systems/desktopGrid.ts`: `gridSize`·`cellOrigin`·`snapToCell`·`clampCell`·`nearestFreeCell`·`resolveLayout`. ⚠️ **`resolveLayout`이 "저장된 칸이 지금 화면에 없다"를 흡수한다**(클램프 → 겹침 해소). 없으면 좁은 화면에서 아이콘이 화면 밖에 그려져 다시 잡을 수도 열 수도 없다. **사용자가 옮긴 칸이 남의 기본 칸을 이긴다**(2단계 배치)
+- 위치는 **`src/store/desktopIconStore.ts`**(persist, 키 `windows-game-desktop-icons`)에 남는다. ⚠️ **`gameStore`에 넣지 않는다** — `reset()`이 비워 새 판마다 제자리로 튄다. 아이콘 위치는 판이 아니라 사람의 취향이다(`browserStore`와 같은 판단). **옮긴 아이콘만** 저장한다(전부 저장하면 기본 배치 변경이 아무에게도 반영되지 않는다)
+
+## 활동 바로 가기 · 오른쪽 클릭 메뉴
+- ⚠️ **확인창 안의 [바탕화면에 바로 가기 등록] → 더블클릭하면 다시 확인창을 거쳐 그 활동이 실행된다.**
+- **화면이 순회하는 목록은 하나다:** `data/desktopItems.ts`의 **`desktopEntries(shortcutActivityIds)`** = 내장 항목 + 바로 가기. 타입은 판별 합집합 `DesktopEntry`(`shortcut: false`→`item`, `true`→`activityId`). 격자·드래그·저장이 둘에게 같아야 하므로 목록을 나누지 않는다. **더블클릭 동작만** 갈린다. **id는 `shortcut:<활동id>`**(`systems/shortcuts.ts`의 `shortcutIdOf`) — 중복 등록 판정이 그냥 되고 새로고침해도 칸이 어긋나지 않는다. 콜론이 내장 id와의 충돌을 막고 `shortcuts.test.ts`가 순회로 지킨다
+- **목록은 `store/shortcutStore.ts`**(persist, 키 `windows-game-shortcuts`, `activityIds`만). ⚠️ **`gameStore`에 넣지 않는다**(`desktopIconStore`·`browserStore`와 같은 판단). **새 판을 시작해도 남는다** — 바로 가기는 활동을 가리키기만 하고 실행 때마다 그 판의 `canRun`을 다시 묻는다
+- ⚠️ **위치는 `desktopIconStore`가 그대로 담는다**(위치 규칙을 두 벌로 만들면 "바로 가기만 격자에 안 붙는" 버그가 난다). 배치는 **2단계**: `resolveLayout`으로 내장 아이콘을 먼저 다 놓고 **`placeShortcuts`**가 그 위에 얹는다(옮긴 칸이 있으면 그 칸, 없으면 **`firstFreeCell`** = 열 우선 첫 빈 칸). **섞어 돌리면 기본 배치가 통째로 밀린다**
+- ⚠️ **확인창 `components/apps/ActivityConfirm.tsx` 하나가 실행 통로 둘을 함께 진다**(바로 가기 더블클릭 + 사이트 항목 클릭). `role="alertdialog"`, `LAYERS.DIALOG`. 사이트마다 만들면 이 창이 지는 약속 넷(①증감 미리보기 ②번아웃 경고 ③조건 미달 경고 ④**오후 슬롯 생활비 차감 경고**) 중 하나를 반드시 빠뜨린다. 사이트가 덧붙이는 것은 **`kicker`·`title`·`actionLabel`·`notes`·`blocked`·`onCommit` 여섯 프롭뿐**이고 판정과 숫자는 손대지 못한다. ⚠️ **활동 비용이 아닌 돈(수강료·응시료)은 `notes`로 넘긴다** — 미리보기에 안 잡히므로 사이트가 따로 그리면 그 창만 거짓을 말한다. ⚠️ **`window.confirm` 금지.** 기본 포커스는 덜 위험한 [취소]. **`canRun`이 false면 실행 버튼을 아예 안 그리고 사유를 적는다** — 지름길이 정상 경로의 제약(행동력·소지금·`requires`·`requiresItem`·게임오버)을 하나도 건너뛰지 않는다
+- ⚠️ **경고 문구의 단일 출처는 `apps/activityPreview.ts`의 `previewWarnings`**(번아웃·조건 미달·오후 생활비)와 **`blockReasons`**(왜 못 하는가). 확정 화면이 둘(활동 창·확인창)이라 각자 적으면 반드시 하나를 빠뜨린다. 판정은 `canRun`/`getBurnoutPenalty`/`getLivingCost`가 하고 여기서는 **문장으로 옮기기만** 한다
+- ⚠️ **오른쪽 클릭 메뉴는 공용 부품 `src/components/ContextMenu.tsx`다**(휴지통·폴더·빈 자리도 앞으로 이걸 쓴다). 인라인으로 만들면 열기·닫기·바깥 클릭·Esc·키보드 이동·화면 밖 클램프 여섯 가지를 매번 다시 만들게 된다
+  - ⚠️ **바로 가기 등록 버튼은 `canRun`이 false여도 살아 있다** — 만들고 싶은 순간은 오히려 "지금은 못 하지만 자주 할 것 같다"일 때다. `requiresPick` 활동만 뺀다
+
+## 창 · 셸
+- ⚠️ **셸이 둘이다: 데스크톱(가짜 윈도우) / 모바일(가짜 스마트폰).** `App.tsx`가 **`useShell()`** 하나로 분기한다. 판정 `systems/shell.ts`(순수) + `hooks/useShell.ts`(resize 구독), 상태 `store/shellStore.ts`(persist `windows-game-shell`, `override: 'desktop'|'mobile'|null`, **`gameStore`에 넣지 않는다** — `desktopIconStore`와 같은 판단), 임계값 `data/shell.ts`의 **`MOBILE_SHELL`**(`MOBILE_MAX_WIDTH` 720 **이하가 모바일**·상태바 52·앱바 60·하단바 60·`TOUCH_TARGET` 44). 수동 토글은 **시작 메뉴**와 **폰 하단바** 양쪽에 있다(한쪽만 두면 override가 persist라 되돌아올 길이 막힌다)
+- ⚠️ **kind→컴포넌트 분기는 `components/window/appForWindow.tsx` 하나다** — `WindowManager`(데스크톱)와 `MobileAppView`(모바일)가 같이 부르고, 셸마다 다른 것은 크롬뿐이라 그 판단만 `windowChrome(kind)`가 갖는다. **새 `WindowKind`를 추가하면 `switch` case + `WINDOW_APP_KINDS` + 테스트의 `ALL_KINDS` 셋을 함께 고친다**(창이 아니면 `EXCLUDED_KINDS`에 사유와 함께). `appForWindow.test.ts`의 `Uncovered extends never` 가드가 **컴파일 타임에** 누락을 잡는다 — 느슨하게 고쳐 통과시키지 말 것
+- ⚠️ **모바일 셸은 `Window`·`Desktop`·`Taskbar`·`CalendarPanel`·`StatPanel`을 마운트하지 않는다**(전부 `window.innerWidth` 좌표 기반). 스탯·날짜는 `MobileStatSheet`(상태바 탭 → 바텀 시트)가 대신하고 **`HudPanel`을 재사용하지 않는다** — 데이터(`STAT_META`·`STAT_NAMES`·`rankOf`·`growthCap`·`getLivingCost`)만 재사용해 숫자가 어긋날 수 없게 한다
+- ⚠️ **앱 목록의 단일 출처는 여전히 `desktopEntries`다**(모바일 전용 목록 금지). 격자 좌표(`DEFAULT_ICON_CELLS`)만 모바일에서 무시한다. 데스크톱은 더블클릭, **모바일은 한 번 탭**
+- ⚠️ **모바일 앱 본문 `.mo-app-body`는 데스크톱 `.win-body`와 같은 계약을 진다**(패딩 `--sp-5`). 가장자리에 붙어야 하는 앱만 `:has(> .browser|.mail|.chat-app|.chat|.cmd-app)`로 패딩을 0으로 만든다(데스크톱 `.win-body:has(> .browser)`와 같은 방식) — ⚠️ **탐색기(`.ex`)를 그 목록에 넣지 말 것**(음수 마진이 상쇄할 것을 잃어 415px로 삐져나간다). 앱 몇몇이 이 패딩을 음수 마진으로 상쇄하므로 빼면 상자 밖으로 20px씩 삐져나간다. 앱들의 `calc(100vh - N)`은 **데스크톱 크롬 기준**이라 모바일에선 `.mo-app-view`가 **`--vh`**로 기준을 바꾸고 앱별로 N을 되돌린다(`MobileShell.css`) — 앱 CSS는 `var(--vh, 100vh)`로 읽어 **폴백이 데스크톱을 그대로 살린다**. 같은 이유로 `bareTitle` 앱의 캡션 회피 여백은 **`--chat-caption-gap`** 하나가 쥔다(모바일에서 0으로 되돌린다)
+- **바탕화면 항목 ≠ 활동.** `src/data/desktopItems.ts`의 `DESKTOP_ITEMS`(타입 `DesktopItem`)가 단일 출처다. 활동 기반 항목은 `Activity.onDesktop`에서 자동 파생되고(**id 하드코딩 필터 금지**), **스탯도 턴도 건드리지 않는 항목은 활동으로 위장시키지 않는다**(가짜 활동은 번아웃 이력·엔딩 판정·밸런스 테스트에 없는 id를 섞는다). 폴더·휴지통도 여기에 추가한다
+- `'stub'`은 미구현 앱의 "준비 중" 안내 창(`StubApp`)이며 `OpenWindow.message`를 함께 쓴다. **새 앱은 stub으로 먼저 올리고 구현되면 kind만 바꾼다**
+- **z-order는 `src/data/layers.ts`의 `LAYERS`가 단일 출처다.** `DESKTOP_ICON`(10) < `DESKTOP_PANEL`(100) < `WINDOW_BASE`(1000, `windowStore.topZ` 시작값) < `DESKTOP_PANEL_RAISED`(8000) < `TASKBAR`(9000) < `ENDING`(9500). CSS는 상수를 못 읽어 Desktop.css/EndingModal.css에 같은 값이 주석과 함께 중복돼 있다 — **바꿀 때 양쪽을 함께 고친다**. 같은 이유로 **셸 골격 치수는 `src/data/shell.ts`의 `SHELL`이 단일 출처다**(`TASKBAR_HEIGHT` 44, `TITLE_BAR_HEIGHT` 40)이고 `Desktop.css`의 44px 중복도 **함께 고친다**
+- **스탯창·날짜칸은 바탕화면 요소다 → 일반 창에 가려지는 것이 정상이다**(설계자 요구). 되찾는 수단은 작업 표시줄 시계 왼쪽의 패널 버튼이고, `src/store/desktopPanelStore.ts`가 패널별 z를 들고 `raise(id)`로 `DESKTOP_PANEL_RAISED` 위로 올린다
+  - ⚠️ **작업 표시줄 패널 버튼은 토글이다**(`toggle(id)`) — **숨김 ↔ 표시**를 오가고 켤 때 `raise`를 겸한다. 숨김 상태는 `visible` 레코드가 들고 패널 컴포넌트가 `!visible`이면 렌더하지 않는다. 상태는 `aria-pressed` + `.taskbar-panel-on` + 툴팁 문구로 알린다(**색만으로 알리지 않는다**). ⚠️ **[아이콘 위치 초기화]는 작업 표시줄 왼쪽 끝**(`.taskbar-spacer` 안, 설계자 지시)이고 **토글이 아니다**(옮긴 아이콘이 있을 때만 나타난다). 그 칸은 트레이와 **같은 `flex: 1 1 0`**이라 버튼이 있든 없든 가운데 묶음이 안 흔들린다. **바탕화면 위로 되돌리지 말 것** — 아이콘은 위에서부터 채워지고 바로 가기까지 아래로 자라므로 아이콘 판 안의 고정 자리는 언젠가 마지막 라벨을 덮는다
+- **창 상태(최소화·최대화)는 `windowStore`의 런타임 상태다.** `maximized`/`minimized`는 필수 불리언, `restore: {x, y, width}`가 최대화 직전 좌표를 든다. 액션은 `minimize(id)`/`toggleMaximize(id)`/`activate(id)`
+- **`DesktopItem.openMaximized`는 "열릴 때의 초기 상태"일 뿐이다**(정적 플래그로 오해하면 복원이 막힌다). 컴포넌트에서 id로 분기하지 않고 데이터에서 켠다(현재 `browser`만 true). 이 항목의 `width`는 **복원 시 폭**이므로 의미 있는 값을 둔다. 최대화로 열리는 창에도 일반 좌표(`120+i*28`)를 넘긴다 — **0,0 금지**
+- ⚠️ **캡션 버튼 포인터 캡처 회귀 (두 번 터진 버그).** 타이틀 바 `pointerdown`이 `setPointerCapture`를 걸면 `pointerup`이 자식 버튼에 닿지 않아 **클릭이 성립하지 않는다**. `Window.tsx`의 `handlePointerDown`은 **`.win-caption-btn`(세 버튼 공통 클래스) 하나로** 걸러낸다 — **개별 클래스(`.win-close` 등)를 나열하지 말 것.** 캡션 버튼을 새로 추가하면 반드시 `win-caption-btn` 클래스를 함께 붙인다
+- **윈도우 11 시각 언어(맥스러움 제거):** 타이틀 바는 그라데이션 없는 플랫 단색(`#f3f3f3`) `font-weight: 400`, 높이 `SHELL.TITLE_BAR_HEIGHT`(40px) 고정. 캡션 버튼은 `radius 0` · 폭 46px · 우상단 모서리 밀착(타이틀 바 오른쪽 패딩 0). hover는 최소화·최대화 `#e5e5e5`, **닫기만 `#e81123` + 흰 글리프**. 창 배경 `#f9f9f9`, 테두리 `#e5e5e5`, 그림자 2단(`0 2px 4px/.1` + `0 8px 20px/.14`). 작업 표시줄은 밝은 아크릴(`rgba(243,243,243,.85)` + blur)
+- **바탕화면 배경은 슬롯을 따라간다.** `Desktop`이 `.desktop-day`(오전) / `.desktop-dusk`(오후, 광원 at 82% 62%)를 붙이고 색은 CSS가 정한다. **이미지 파일을 쓰지 않는다**(아이콘과 같은 이유). 전환은 `transition: background 600ms`. **작업 표시줄 창 목록은 아이콘만이다**(40×36 정사각). ⚠️ 글자가 없으므로 **`aria-label`이 필수**다. **정렬:** 시작 버튼+창 목록만 가운데, 패널 버튼·시계는 우측 트레이 고정. 좌측 `.taskbar-spacer`가 `.taskbar-tray`와 같은 `flex: 1 1 0`을 차지한다 — **지우면 가운데 묶음이 왼쪽으로 밀린다**
+
+## HUD (스탯창 · 날짜칸)
+- ⚠️ **HUD 패널은 `Window` 크롬 예외다.** 공용 `Window` 대신 `src/components/desktop/HudPanel.tsx`(+`.css`)를 쓴다 — 설계자 요구가 "OS 창이 아니라 게임 오버레이로 읽혀야 한다"이기 때문
+- ⚠️ **HUD 시각 언어 = 밝은 모던 시스템 카드**(윈도우 11 위젯 / SaaS 대시보드). **다크 판타지 방향(근검정 + 샴페인 골드 + 금테 + 세리프 영문 부제 + ✳ 오너먼트)은 설계자에게 기각되어 폐기됐다 — 되살리지 말 것.**
+  - **액센트는 시스템 블루(`--hud-accent`) 하나뿐이다.** 스탯별 색·글로우·네온 전부 금지. `STAT_META.accent`는 제거됐고 게이지는 전부 한 색이다(구분은 글리프 + 한국어 라벨 → ux `color-not-only`). **테마 장식 금지**(세리프 영문 부제·✳ 글리프·금테) — 구역은 헤어라인 + 작고 흐린 한국어 라벨로만 가른다.
+  - ⚠️ **스탯창에 세로 스크롤바가 뜨면 안 된다**(설계자 요구). 높이 상한은 `.hud-body`의 `70vh`가 아니라 **`.hud`의 `max-height: calc(100vh - 68px)`**가 쥔다(상단 여백 16 + 작업 표시줄 44 + 바닥 숨 8). `overflow-y: auto`는 극단적으로 짧은 화면에서만 살아난다. **줄을 추가하면 이 여유가 줄어든다** ⚠️ **평판·도덕·예의범절의 상한은 100이다**(나머지 999). 단일 출처는 `systems/turn.ts`의 **`growthCap(key)`** — `clampStats`·게이지·**랭크**가 같은 함수를 본다. 어떤 엔딩 조건도 이 셋을 쓰지 않는다. **이 셋을 쓰는 엔딩을 추가하면 조건을 100 이하로 잡을 것**
+  - ⚠️ **등급 뱃지(`.stat-rank`)는 자원 줄(평판·도덕)과 성장 그리드 전 칸에 붙는다. 행동력·멘탈·체력에는 안 붙는다** — 매 턴 오르내리는 **잔량**이지 쌓아 올린 것이 아니라 "등급"이 성립하지 않는다. **등급별 색은 없다**(액센트 하나 규칙) — 상위 두 등급(S·SS)만 같은 액센트를 **채워** 구분한다 ⚠️ **예의범절은 상한이 100인데도 자원 줄이 아니라 그리드에 있다** — 자원 줄 한 칸(약 46px)은 그리드 칸의 두 배이고 **스탯창은 세로 스크롤바가 뜨면 안 된다**(현재 패널 544px / 720px 화면 상한 557px). **자원 줄로 되돌리려면 먼저 다른 줄을 빼라.** `.stat-cell`의 `min-height: 22px`+`padding: 1px`과 `.stat-rank`의 `line-height: 1`도 같은 이유로 **키우면 안 된다**(11줄에 곱해진다). ⚠️ **가로는 반대로 실측으로 320px까지 넓혔다**(`StatPanel`의 `width`, `CALENDAR_PANEL_LAYOUT.statPanelReserve` = 이 값 + 16). 성장 스탯 칸에서 `flex: 1`인 것은 이름뿐이라 **값이 세 자리가 되면 라벨을 잘라먹는다** — `.stat-cell-value`의 **`min-width: 3ch`**가 값 자리를 미리 잡아 라벨 폭을 값과 무관하게 고정한다. 둘 중 하나만 되돌리지 말 것
+  - **DOM 셀렉터:** `.win`은 **열린 일반 창만** 고른다. HUD 패널은 `.hud`, 제목은 `.hud-head-title`. `Window`의 `fixed` prop과 `.win-fixed`는 남아 있으나 현재 사용처가 없다
+- ⚠️ **테두리 장식은 `src/components/PanelOrnament.tsx` 하나가 그린다.** 옅은 액자선 + 네 모서리 갈고리. **좌상단 도형 하나만 그려 두고 나머지 셋은 CSS `transform`으로 뒤집는다.** 색은 `--ornament-color`/`--ornament-frame`으로 받는다(기본 `--os-accent-line`). `pointer-events: none` + `aria-hidden`. **이미지가 아니라 인라인 SVG다**(크기·문맥별 색 + 오프라인 규칙) — 외부 이미지 금지
+  - **붙는 곳: 활동창(`exe`) · 안내창(`stub`) · 엔딩 모달뿐이다.** **브라우저 제외**("설치된 프로그램"으로 읽혀야 하는 창에 장식이 붙으면 가짜 OS 컨셉이 깨진다). ⚠️ **HUD 패널에서는 설계자 지시로 걷어냈다 — 되살리지 말 것.** `Window`의 `ornament` prop은 **기본 꺼짐**이고 `WindowManager`가 kind별로 명시적으로 켠다
+
+## 디자인 토큰 · 폰트
+- ⚠️ **간격 척도에 `--sp-7`은 없다**(4/8 리듬: 1·2·3·4·5·6·8 = 4/8/12/16/20/24/32). CSS는 **정의되지 않은 var를 만나면 그 선언 전체를 무효로 만든다** — 없는 토큰을 쓰면 빌드도 테스트도 통과하고 **화면에서만** 조용히 깨진다(시집이·아점에서 실제로 터졌다)
+- **디자인 토큰은 `src/index.css`의 `:root`가 단일 출처다.** 간격 `--sp-1..8`, 타입 `--fs-xs..3xl`(11/12/13/14/16/18/24/32), 모서리 `--r-sm..xl`, 고도 `--el-1/2/3`(3단만), OS 색 `--os-*`, HUD 색 `--hud-*`, 폰트 `--font-base`/`--font-point`. **컴포넌트 CSS에 생 hex나 임의 px을 새로 적지 않는다**(ui-ux-pro-max `elevation-consistent`)
+  - ⚠️ **네 번째 시각 언어 `--mo-*`**(모바일 셸 = 어두운 유리. style `Glassmorphism` + color `Gaming`). **`--mo-accent`(#7c3aed)를 글자에 쓰지 말 것** — 유리 위 합성 대비 2.6:1이다(글자는 `--mo-nav-on`/`--mo-nav-off`). **비활성 표시에 `opacity`를 쓰지 말 것** — 색으로 낮춘다
+- `LAYERS`에 `MOBILE_CHROME`(9000)·`MOBILE_SHEET`(9300). ⚠️ **`ToastHost.css`는 셸별로 바닥 기준이 둘이다**(데스크톱 44 / 모바일 60) — `SHELL`·`MOBILE_SHELL`을 바꿀 때 함께 고친다
+- ⚠️ **모바일에서 브라우저 크롬은 세 층이 아니라 주소창 한 줄이다** — `MobileShell.css`가 `.browser-tabs`·`.browser-bookmarks`·`.browser-btn-forward`를 감춘다(130px → 61px). **규칙을 `BrowserApp.css`가 아니라 셸 쪽에 둔다**(데스크톱은 세 층 그대로). ⚠️ **[앞으로]만 접는다** — [뒤로]는 사이트 안 이동에 필요하고 **앱 바의 뒤로와 다른 동작이다**(그쪽은 앱을 닫는다). 집는 표식은 **`browser-btn-forward` 클래스**이지 순서 셀렉터가 아니다
+- ⚠️ **아웃룩은 폰에서 3단이 아니라 목록 ↔ 본문 전환이다**(375px에 3단이 안 들어간다 — 실측 61px 넘침). `MailApp`이 `useShell()`로 갈라 `.mail-mobile`/`.mail-reading`을 붙인다. ⚠️ **모바일에서는 첫 메일 자동 선택을 하지 않는다**(열자마자 본문이 뜨면 목록을 볼 수 없다 — 데스크톱은 3단이라 늘 채운다). 본문에 **[목록으로]**가 있다(ux `back-behavior`)
+- 두 시각 언어를 **섞지 않는 것**이 "게임이 OS 위에 얹혀 있다"는 인상의 근거다: OS 크롬(창·작업표시줄·바탕화면·잠금화면·엔딩 모달)은 `--os-*`, HUD 패널 내부는 `--hud-*`만. (`index.css`의 `.hud :focus-visible` 오버라이드는 HUD가 자기 액센트를 명시적으로 소유하도록 남겨 뒀다 — 값은 `--os-accent`와 같다)
+  - ⚠️ **반투명 표면의 색은 토큰이 아니라 합성 결과가 정한다.** HUD는 `rgba(252,252,253,0.9)` 아크릴이라 벽지가 비친다. **색을 눈이나 계산으로 판단하지 말고 스크린샷 픽셀을 읽어라**(아래 "검증 도구")
+- ⚠️ **폰트 변수는 셋이고 경계가 곧 OS/게임의 경계다.** `--font-base` = **Pretendard**(npm 패키지 `pretendard`, `@import`로 번들) → Segoe UI·Malgun Gothic 폴백. `--font-point` = **Cafe24 Ohsquare**(`@font-face`, family 이름은 지시대로 `Cafe24Anemone`, `font-display: swap`). `--font-date` = **SF 함박눈**(`SfHambakneun`) — **`.cal-date` 한 줄 전용**(다른 포인트 자리와 성격이 달라 따로 둔다)
+  - **포인트/날짜 폰트는 게임이 자기 목소리를 내는 자리에만** 쓴다: `.cal-date`·`.hud-head-title`·`.ending-title`. **OS 크롬(잠금화면 시계·작업 표시줄·창 타이틀 바)에는 절대 쓰지 않는다** 한 벌짜리 서체라 적용 자리는 **반드시 `font-weight: 400`**으로 못 박는다(600/700은 합성 볼드가 획을 뭉갠다). `font-variant-numeric: tabular-nums`도 걷어낸다 ⚠️ **폰트도 아이콘과 같은 오프라인 규칙이다.** Pretendard는 npm 패키지, 디스플레이 서체 4종(Cafe24 Ohsquare·SB 어그로 L/M/B·SF 함박눈)은 `src/assets/fonts/*.woff`에 넣고 상대 경로로 참조한다. **새 폰트를 CDN `<link>`나 `url(https://...)`로 추가하지 말 것** ⚠️ Pretendard는 Segoe UI보다 획이 얇아 **같은 색이 더 낮은 대비로 합성된다. 폰트를 바꾸면 색도 다시 재야 한다**
+
+## 창 종류
+`WindowKind`: `exe` · `stub` · `browser` · `chat`(메신저 목록) · `thread`(대화) · `mail` · `save` · `taskmgr` · `cmd` · `scheduler` · `folder`(파일 탐색기) · **`settings`**(설정 — 구독 관리) · `autolog`(자동 진행 요약) · `solitaire` · **`steam`(증기)** · `ending`. `WindowManager`가 kind로 분기해 그린다.
+
+## `Window`의 옵션 셋
+- 창은 `windowStore.open()`으로 열고 종류는 `OpenWindow.kind`로 구분한다. ⚠️ **스토어에 등록하지 않는 창은 `Window`에 `onMove` 콜백을 넘겨 위치를 직접 관리한다** — 스토어의 `move`는 등록된 창만 갱신하므로, 안 넘기면 드래그가 먹통이 된다
+- `ornament` — 테두리 장식. **기본 꺼짐.** 활동창·안내창·엔딩 모달만 켠다. ⚠️ HUD 패널·브라우저는 끈다(되살리지 말 것)
+- `bareTitle` — 타이틀 바를 **투명하게** 만들고 제목·아이콘을 감춘다. 바는 본문 **위에 겹쳐** 뜨므로 앱이 스스로 위쪽 48px을 비운다(메신저·명령 프롬프트). 흐름에 그대로 두면 빈 띠가 생겨 "타이틀 바를 지운" 인상이 안 난다
+- `dark` — 크롬을 어둡게 + 캡션 글리프를 밝게 뒤집는다(명령 프롬프트). ⚠️ **창은 열릴 때 실제 높이를 재서 작업 표시줄 위로 끌어올린다**(마운트 effect). 여는 쪽에서 y를 고르는 걸로는 못 막는다 — 높이는 내용이 정한다
+
+## 창 높이 규약
+- 메신저 목록·대화창·아웃룩·파일 탐색기는 **560px**, 스케줄러는 **화면 높이 - 140px**(설계자 지시)
+- ⚠️ 전부 `min-height: min(N, calc(100vh - 여백))` 형태다 — 고정값을 박으면 짧은 화면에서 **창 안에 세로 스크롤바**가 생긴다. 음수 마진으로 `.win-body` 패딩을 상쇄하는 방식도 금지(높이 계산이 40px 어긋난다)
+- ⚠️ **`.win-body`에는 `max-height: 60vh` 상한이 따로 있다.** 안 풀면 480px에서 잘린다 — 큰 창은 `Window.css`의 `:has(> .sch), :has(> .ex)` 목록에 셀렉터를 추가한다(높이 자체는 앱 CSS가 정한다). ⚠️ 창은 열릴 때 화면 가장자리에서 **8px 띄운다**(`Window.tsx`의 `GAP`)
+- ⚠️ **화면을 꽉 채우는 창은 `min-height`가 아니라 `height`를 쓴다**(min-height는 내용이 더 크면 무력하다). 넘치는 부분은 **안쪽 목록만** 스크롤시킨다(`min-height: 0` + `overflow-y: auto`)
+
+## 시작 메뉴 · 솔리테어
+바탕화면 = **게임 세계의 앱**(메신저·브라우저·메일·일정), 시작 메뉴 = **게임 바깥의 도구**(세이브·작업 관리자·명령 프롬프트·솔리테어). 합치면 "게임하는 곳"과 "관리하는 곳"이 섞인다. ⚠️ **시작 메뉴는 데스크톱 셸에만 있다** — 그래서 이 도구 넷은 모바일에서 열리지 않는다.
+- ⚠️ **솔리테어(`systems/solitaire.ts` + `SolitaireApp`, `--sol-*` 펠트 초록)는 육성 게임의 상태를 한 톨도 건드리지 않는다** — 스탯·턴·돈이 안 움직이므로 밸런스·번아웃·엔딩과 무관하다. **판은 컴포넌트의 `useState`에만 산다**(store도 세이브도 아니다 — 창을 닫으면 끝난다). 섞기는 **시드를 받는 순수 함수**이고 시드는 화면이 정한다(`Math.random` 금지 규칙, 복권과 같은 방식)
+- ⚠️ **옮기는 길이 둘이고 둘 다 남긴다**: 끌어다 놓기(HTML5 drag) + "집고 → 놓기"(누르기). **누르기를 지우지 말 것** — 드래그는 터치에서 안 되고 키보드로는 불가능한데 카드가 전부 `<button>`이라 누르기만으로 끝까지 둘 수 있다. 둘은 `applyMove` 하나를 지난다. 끌기 시작할 때만 받아 줄 더미를 밝힌다(`.sol-drop`, 상시 표시는 소음이다). 놓을 수 없는 자리를 누르면 **그 카드를 새로 집는다**(아무 일도 안 일어나는 클릭을 만들지 않는다). 더블클릭은 기초 더미로 보내기이고 **작업 더미로는 자동으로 안 보낸다**(갈 곳이 하나로 정해지지 않는다). 되돌리기·점수·시간은 없다. ⚠️ **카드 뒷면을 펠트 계열로 칠하지 말 것** — 초록 빗금으로 만들었더니 초록 테이블 위에서 카드가 아니라 빈 자리로 보였다("남은 카드가 아예 안 보임"). 실제 카드처럼 **흰 테두리(펠트 위 7:1)를 남기고 안쪽만 파랑 무늬**를 채운다. ⚠️ **카드 폭을 px로 박지 말 것**(88px로 박았다가 창 720px 안에서 2px이 모자라 가로 스크롤이 났다) — 윗줄과 작업 더미가 **같은 격자**(`repeat(7, minmax(64px, 1fr))`)를 쓰고 가로 스크롤은 `.sol` 하나가 진다(각자 지면 좁은 폭에서 위아래 칸이 어긋나고 셸이 밀린다)
