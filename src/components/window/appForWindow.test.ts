@@ -45,6 +45,7 @@ const ALL_KINDS = [
   'tool',
   'clipstudio',
   'excel',
+  'vscode',
 ] as const satisfies readonly WindowKind[]
 
 /*

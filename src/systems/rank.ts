@@ -84,3 +84,4 @@ export function toNextRank(key: GrowthStatKey, value: number): number | undefine
   const min = RANK_THRESHOLDS.find((t) => t.rank === next)!.min
   return Math.max(1, Math.ceil(min * cap - value))
 }
+

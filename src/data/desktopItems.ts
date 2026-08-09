@@ -89,10 +89,15 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
     id: 'vscode',
     label: 'VS 코드',
     icon: 'devicon:vscode',
-    kind: 'exe',
+    /* ⚠️ **도구 셋과 갈라졌다**(2026-08-09, 레퍼런스=실제 VS 코드): 다른 둘은 활동 창을
+       띄우고 곧바로 `ToolRun`으로 넘어가지만, 이쪽은 **프로그램 창**이 먼저 뜨고 그 안의
+       ▶가 활동을 실행한다(클립스튜디오와 같은 부류).
+       ⚠️ **`activityId`는 그대로 둔다** — `kind: 'exe'`가 아니라 화면이 읽지는 않지만,
+       "이 프로그램이 실행하는 활동"이라는 관계는 여전히 참이고 `desktopItems.test.ts`가
+       "도구 활동에는 실행 통로가 있다"를 그 한 줄로 지킨다. */
+    kind: 'vscode',
     activityId: 'tool-vscode',
-    /* ⚠️ 도구 셋은 같은 폭이다 — 켠 때 같은 작업 화면(`ToolRun`)이 뜼므로 폭이 갈리면 그 화면만 좀아진다. */
-    width: 420,
+    width: 900,
   },
   {
     /*

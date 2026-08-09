@@ -1,0 +1,144 @@
+/*
+ * UI 견본 화면. **개발용이라 자기 색을 만들지 않는다** — OS 크롬 토큰(`--os-*`)과 공용
+ * 간격·타입 척도만 쓴다. 견본이 자기 시각 언어를 가지면 그 안에 놓인 진짜 컴포넌트가
+ * 실제와 다른 판 위에 서게 되어, 보러 온 것을 잘못 보게 된다.
+ */
+
+.ug {
+  min-height: 100vh;
+  padding: var(--sp-6);
+  /* ⚠️ `--os-bg`라는 토큰은 없다 — 창 배경용 `--os-surface-alt`를 쓴다. */
+  background: var(--os-surface-alt);
+  color: var(--os-text);
+  font-family: var(--font-base);
+}
+
+.ug-head {
+  max-width: 900px;
+  margin-bottom: var(--sp-6);
+}
+
+.ug-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+}
+
+.ug-lede {
+  margin: 0;
+  font-size: var(--fs-base);
+  color: var(--os-text-2);
+  line-height: 1.6;
+}
+
+.ug code {
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.06);
+  font-size: var(--fs-sm);
+}
+
+.ug-section {
+  max-width: 900px;
+  margin-bottom: var(--sp-6);
+  padding: var(--sp-5);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-lg);
+  background: var(--os-surface);
+}
+
+.ug-h2 {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-xl);
+  font-weight: 600;
+}
+
+.ug-note {
+  margin: 0 0 var(--sp-4);
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+  line-height: 1.6;
+}
+
+.ug-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.ug-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+}
+
+.ug-field select {
+  min-height: 34px;
+  min-width: 220px;
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-sm);
+  background: var(--os-surface);
+  color: var(--os-text);
+  font: inherit;
+  font-size: var(--fs-base);
+}
+
+.ug-btn {
+  min-height: 34px;
+  padding: 0 var(--sp-4);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: var(--hud-accent);
+  color: #fff;
+  font: inherit;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ug-btn:hover:not(:disabled) {
+  background: var(--hud-accent-strong);
+}
+
+.ug-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ug-btn-ghost {
+  border-color: var(--os-border);
+  background: transparent;
+  color: var(--os-text);
+}
+
+.ug-btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/*
+ * 무대. ⚠️ **`position: relative`가 규칙이다** — 일반 창(`position: absolute`)이 이 상자를
+ * 기준으로 앉는다. 시스템 팝업은 `fixed`라 여기를 벗어나 화면 가운데로 떠오르는데,
+ * 그것이 게임에서의 실제 동작이므로 고치지 않는다.
+ */
+.ug-stage {
+  position: relative;
+  min-height: 420px;
+  border: 1px dashed var(--os-border);
+  border-radius: var(--r-md);
+  /* 창이 놓이는 바탕이 흰색이면 밝은 창의 테두리가 안 보인다. 바탕화면처럼 살짝 어둡게. */
+  background: repeating-conic-gradient(rgba(0, 0, 0, 0.04) 0% 25%, transparent 0% 50%) 0 0 / 20px
+    20px;
+}
+
+.ug-empty {
+  margin: 0;
+  padding: var(--sp-6);
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+}

@@ -16,6 +16,7 @@ import { SolitaireApp } from '../apps/SolitaireApp'
 import { SteamApp } from '../apps/SteamApp'
 import { ToolRun } from '../apps/ToolRun'
 import { ClipStudioApp } from '../apps/ClipStudioApp'
+import { VsCodeApp } from '../apps/VsCodeApp'
 import { StubApp } from '../apps/StubApp'
 import type { OpenWindow } from '../../store/windowStore'
 import type { ToolRunPayload, WindowKind } from '../../types/game'
@@ -63,6 +64,7 @@ export const WINDOW_APP_KINDS = [
   'tool',
   'clipstudio',
   'excel',
+  'vscode',
 ] as const satisfies readonly WindowKind[]
 
 /**
@@ -138,6 +140,9 @@ export function appForWindow(w: OpenWindow, { onClose }: AppSlots): ReactNode {
     /* 클립스튜디오. **고르는 창**이라 활동 창이 아니다 — 고른 뒤에 확인창이 뜬다. */
     case 'clipstudio':
       return <ClipStudioApp />
+    /* VS 코드. 받아 둔 일감을 파일·배지·상태 표시줄로 옮겨 보여 준다. */
+    case 'vscode':
+      return <VsCodeApp />
     /* 도감(직업·엔딩). 표를 읽기만 하고 게임 상태를 바꾸지 않는다. */
     case 'excel':
       return <ExcelApp />
@@ -167,13 +172,20 @@ export function windowChrome(w: { kind: WindowKind; toolRun?: ToolRunPayload }):
        ⚠️ `dark`와 **짝으로 간다**: 캡션 글리프를 밝게 뒤집으면 밝은 OS 타이틀 바
        위에서는 보이지 않는다(증기에서 실제로 그랬다). 어두운 앱은 자기 색이
        창 꼭대기까지 올라와야 뒤집힌 글리프가 얹힐 바닥이 생긴다. */
-    bareTitle: kind === 'chat' || kind === 'thread' || kind === 'cmd' || kind === 'steam',
+    /* ⚠️ VS 코드는 **자기 메뉴 줄이 창 꼭대기까지 올라온다**(레퍼런스=실제 VS 코드).
+       그래서 `bareTitle`이고, 아래 `dark`와 짝으로 간다. */
+    bareTitle:
+      kind === 'chat' || kind === 'thread' || kind === 'cmd' || kind === 'steam' || kind === 'vscode',
     /* 어두운 프로그램. 캡션 글리프까지 밝게 뒤집어야 타이틀 바에서 안 보이지 않는다. */
     /* ⚠️ 도구 앱도 어둡다 — 창이 곧 그 프로그램이라 **실제 타이틀 바가 프로그램 이름표**를
        진다(그래서 가짜 프로그램 띠를 따로 그리지 않는다). `bareTitle`은 안 준다:
        제목과 로고가 보여야 작업 표시줄에서 무엇이 도는지 알 수 있다. */
     /* ⚠️ **도구 창이라고 다 어두운 것은 아니다**(2026-08-09) — 공부 장면은 종이 판이라
        프레임까지 어두우면 창이 위아래로 갈린다. 판단은 `look` 하나가 한다. */
-    dark: kind === 'cmd' || kind === 'steam' || (kind === 'tool' && w.toolRun?.look !== 'paper'),
+    dark:
+      kind === 'cmd' ||
+      kind === 'steam' ||
+      kind === 'vscode' ||
+      (kind === 'tool' && w.toolRun?.look !== 'paper'),
   }
 }

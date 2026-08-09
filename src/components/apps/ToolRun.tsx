@@ -8,6 +8,7 @@ import { useWindowStore } from '../../store/windowStore'
 import { activeContract, gigsOf } from '../../systems/gigs'
 import { MENTAL_CAP, STAMINA_CAP, growthCap } from '../../systems/turn'
 import { GROWTH_STAT_KEYS, STAT_NAMES } from '../../types/game'
+import { rankOf } from '../../systems/rank'
 import { previewActivity } from './activityPreview'
 import type {
   Activity,
@@ -79,22 +80,56 @@ function Gauge({
   gained: number
   now: number
 }) {
+  /*
+   * ⚠️ **막대는 0에서 자라난다.** 결과 판이 뜨자마자 다 찬 막대를 보여 주면 "여기까지
+   * 찼다"는 사실만 남고 **올랐다는 사건**이 안 보인다 — 이 창이 존재하는 이유가 그쪽이다
+   * (2026-08-09 설계자 지시: "게이지바에 등급 올라가는 애니메이팅을 추가해").
+   * 첫 프레임을 0으로 두고 다음 틱에 목표 폭을 넣어야 전환이 걸린다.
+   */
+  const [grown, setGrown] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setGrown(true), 60)
+    return () => clearTimeout(timer)
+  }, [])
+
   const cap = capOf(stat)
   if (cap === undefined || gained <= 0) return null
   const pct = (v: number) => Math.max(0, Math.min(100, (v / cap) * 100))
-  const had = pct(now - gained)
+  const before = now - gained
+  const had = pct(before)
+
+  /* ⚠️ **등급은 성장 스탯만 갖는다** — 체력·멘탈에는 `rankOf`를 물어볼 수 없다
+     (`growthCap`이 그 키를 모른다). 그래서 상한이 있어도 등급 표시는 갈린다. */
+  const growth = (GROWTH_STAT_KEYS as readonly string[]).includes(stat)
+  const key = stat as (typeof GROWTH_STAT_KEYS)[number]
+  const was = growth ? rankOf(key, before) : undefined
+  const nowRank = growth ? rankOf(key, now) : undefined
+  const up = was !== undefined && was !== nowRank
+
   return (
-    <span
-      className="tr-gauge"
-      role="progressbar"
-      aria-valuenow={Math.round(now)}
-      aria-valuemin={0}
-      aria-valuemax={cap}
-      aria-label={`${STAT_NAMES[stat]} ${Math.round(now)} / ${cap}`}
-    >
-      <span className="tr-gauge-had" style={{ width: `${had}%` }} />
-      <span className="tr-gauge-gain" style={{ width: `${pct(now) - had}%` }} />
-    </span>
+    <>
+      {/* ⚠️ 등급 상승은 **글자로도 말한다**(ux `color-not-only`) — 막대 색이 바뀌는 것만으로
+          전하면 색을 못 보는 사람에게는 아무 일도 안 일어난 것이 된다. */}
+      {up && (
+        <span className="tr-rankup" role="status">
+          <span className="tr-rank-was">{was}</span>
+          <span className="tr-rank-arrow" aria-hidden="true" />
+          <span className="tr-rank-now">{nowRank}</span>
+          <span className="tr-rank-label">등급</span>
+        </span>
+      )}
+      <span
+        className={`tr-gauge${up ? ' tr-gauge-up' : ''}`}
+        role="progressbar"
+        aria-valuenow={Math.round(now)}
+        aria-valuemin={0}
+        aria-valuemax={cap}
+        aria-label={`${STAT_NAMES[stat]} ${Math.round(now)} / ${cap}${up ? ` — ${nowRank} 등급` : ''}`}
+      >
+        <span className="tr-gauge-had" style={{ width: `${had}%` }} />
+        <span className="tr-gauge-gain" style={{ width: grown ? `${pct(now) - had}%` : 0 }} />
+      </span>
+    </>
   )
 }
 

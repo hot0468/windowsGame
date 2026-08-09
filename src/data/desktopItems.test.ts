@@ -23,10 +23,14 @@ describe('바탕화면 항목', () => {
      * VS 코드가 **조건 없이 항상 실행 가능한** 도구가 되면서 더 이상 참이 아니다
      * (그때의 근거였던 "죽은 아이콘"은 조건이 아니라 **실행 가능성**의 문제였다).
      */
+    /* ⚠️ **`kind`를 보지 않는다**(2026-08-09) — VS 코드가 활동 창(`exe`)이 아니라
+       **프로그램 창**으로 갈리면서 `kind === 'exe'`로 거르면 통로가 있는데도 없다고 나온다.
+       지켜야 하는 것은 창의 종류가 아니라 **그 도구를 켤 아이콘이 있는가**이고,
+       그 관계는 `activityId` 한 줄이 진다. */
     const toolActivities = ACTIVITIES.filter((a) => a.toolId)
     expect(toolActivities.length).toBeGreaterThan(0)
     for (const a of toolActivities) {
-      const item = DESKTOP_ITEMS.find((i) => i.kind === 'exe' && i.activityId === a.id)
+      const item = DESKTOP_ITEMS.find((i) => i.activityId === a.id)
       expect(item, `${a.id}을 켤 바탕화면 항목이 없다`).toBeDefined()
     }
   })

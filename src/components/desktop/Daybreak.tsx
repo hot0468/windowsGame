@@ -43,7 +43,12 @@ export function Daybreak() {
   const autoRunning = useGameStore((s) => s.autoRunning)
   /* ⚠️ **창 종류로 본다**(창 id가 아니라) — 실행 연출은 활동마다 id가 다르고, 앞으로
      장면이 붙는 활동이 늘어도 이 줄은 그대로여야 한다. */
-  const runOpen = useWindowStore((s) => s.windows.some((w) => w.kind === 'tool' && !w.minimized))
+  /* ⚠️ **기다리는 대상이 둘이다**: 실행 연출(`kind: 'tool'`)과 **시스템 팝업 전부**
+     (`popup` — 등급 상승 알림이 그쪽이다). 팝업은 [확인]을 눌러야 넘어가는 창이라
+     그 위를 해가 덮으면 두 알림이 한 화면에서 다툰다. */
+  const runOpen = useWindowStore((s) =>
+    s.windows.some((w) => !w.minimized && (w.kind === 'tool' || w.popup)),
+  )
 
   /**
    * 마지막으로 알린 날. **ref인 이유는 ToastHost와 같다** — 이 값이 바뀐다고 다시 그릴
