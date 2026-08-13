@@ -4,8 +4,14 @@ export const BURNOUT_WINDOW = 8
 /** 연속 1회마다 떨어지는 효율. */
 const EFFICIENCY_STEP = 0.18
 
-/** 효율 하한. 이 아래로는 떨어지지 않는다. */
-const EFFICIENCY_FLOOR = 0.3
+/**
+ * 효율 하한. 이 아래로는 떨어지지 않는다.
+ *
+ * ⚠️ **내보내는 이유는 화면 하나가 "바닥에 닿았는가"를 물어야 해서다**(`BlueScreen`).
+ * 연속 횟수를 그쪽에 다시 적으면 `EFFICIENCY_STEP`을 손볼 때 한쪽만 낡는다 —
+ * 임계는 언제나 `efficiency <= EFFICIENCY_FLOOR` 한 줄로 판정한다.
+ */
+export const EFFICIENCY_FLOOR = 0.3
 
 /** 연속 1회마다 추가로 소모되는 멘탈. */
 const MENTAL_PENALTY_STEP = 4

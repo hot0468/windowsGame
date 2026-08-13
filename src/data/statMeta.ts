@@ -55,6 +55,9 @@ export const STAT_META: Record<keyof Stats, StatMeta> = {
   /* ⚠️ 소지금(`money`, 지갑)과 **다른 그림**이어야 한다 — 가진 돈이 아니라 읽는 눈이다.
      그래서 지갑이 아니라 **차트**를 쓴다(증권 사이트 아이콘과 같은 계열). */
   finance: { icon: 'fluent-color:data-trending-24', hudIcon: 'mdi:chart-line' },
+  /* ⚠️ 지식(전구·뇌)과 **다른 계열이어야 한다** — 배운 것이 아니라 다루는 손이다.
+     그래서 둘 다 코드 글리프다(다색은 `code-24`, HUD 단색은 중괄호). */
+  tech: { icon: 'fluent-color:code-24', hudIcon: 'mdi:code-braces' },
 }
 
 /**

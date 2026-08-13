@@ -13,6 +13,7 @@ import { artFileName, artGrade, artworksOf } from '../../systems/artwork'
 import { postcardsOf } from '../../systems/cinema'
 import { findProject, openProjects, pagesOf } from '../../systems/projects'
 import { RANK_ORDER } from '../../systems/rank'
+import { TRASH_FILES } from '../../data/trash'
 import { folderProjectId, projectFolderId } from '../../types/game'
 import type { Artwork, FolderId, GameState, IconName } from '../../types/game'
 import { ContextMenu } from '../ContextMenu'
@@ -49,7 +50,7 @@ interface FolderMeta {
 }
 
 /** 고정 폴더 셋. ⚠️ **프로젝트 폴더는 여기 없다** — 개수가 정해져 있지 않아 데이터가 된다. */
-const FIXED_FOLDERS = ['inventory', 'codex', 'gallery', 'postcard'] as const
+const FIXED_FOLDERS = ['inventory', 'codex', 'gallery', 'postcard', 'trash'] as const
 type FixedFolderId = (typeof FIXED_FOLDERS)[number]
 
 const FOLDERS: Record<FixedFolderId, FolderMeta> = {
@@ -72,6 +73,19 @@ const FOLDERS: Record<FixedFolderId, FolderMeta> = {
     label: '포스트카드',
     icon: 'fluent-color:mail-multiple-24',
     empty: '아직 받은 포스트카드가 없습니다. 인터넷 → 시집이에서 영화를 보면 한 장씩 쌓입니다.',
+  },
+  /*
+   * 휴지통. ⚠️ **아이콘만 단색(`mdi`)이다** — `fluent-color`에 휴지통 글리프가 없고,
+   * 휴지통은 설치된 앱이 아니라 **셸 가구**라 시스템 글리프로 읽히는 것이 오히려 맞다
+   * (단색이라 놓인 자리의 글자색을 그대로 물려받는다: 바탕화면에서는 흰색, 탐색기
+   * 안에서는 `--os-text`. 새 색을 만들지 않는다).
+   * ⚠️ **비우기 버튼이 없다** — 비우려면 `broken`을 지워야 하는데 그 목록이 "다시 사도
+   * 효과 없음"의 근거라(`systems/delivery.ts`), 지우는 순간 되사기 구멍이 열린다.
+   */
+  trash: {
+    label: '휴지통',
+    icon: 'mdi:trash-can',
+    empty: '휴지통이 비어 있습니다.',
   },
 }
 
@@ -151,8 +165,53 @@ function artworkRow(work: Artwork): Entry {
   }
 }
 
-function entriesOf(folder: FolderId, state: ReturnType<typeof useGameStore.getState>['state']): Entry[] {
+export function entriesOf(
+  folder: FolderId,
+  state: ReturnType<typeof useGameStore.getState>['state'],
+): Entry[] {
   if (!state) return []
+
+  /*
+   * 휴지통. ⚠️ **새 상태를 만들지 않는다** — 다 쓰고 고장 난 장비(`broken`)가 지금까지
+   * 아무 데도 안 남았는데, 그 잔해가 놓일 자리가 여기다.
+   * ⚠️ **`sold`(중고마켓에 판 물건)는 넣지 않는다** — 판 것은 버린 것이 아니고, 둘을
+   * 한 목록에 섞으면 나중에 왜 거기 있는지 아무도 답할 수 없다(`systems/gear.ts`가
+   * 두 배열을 갈라 둔 것과 같은 판단). 고정 파일은 `data/trash.ts`가 진다.
+   */
+  if (folder === 'trash') {
+    const junk: Entry[] = (state.broken ?? []).flatMap((id) => {
+      const item = findItem(id)
+      if (!item) return []
+      const size = fakeSize(item)
+      return [
+        {
+          id,
+          name: item.name,
+          ext: item.ext,
+          icon: item.icon,
+          size,
+          bytes: bytesOf(size),
+          /* ⚠️ 날짜 칸은 비운다 — 고장 난 날은 어디에도 기록돼 있지 않고,
+             화면을 채우려고 지어내면 그 순간 거짓말하는 열이 된다. */
+          desc: `다 써서 고장 났다. ${item.desc}`,
+          owned: true,
+        },
+      ]
+    })
+    return [
+      ...junk,
+      ...TRASH_FILES.map((f) => ({
+        id: f.id,
+        name: f.name,
+        ext: f.ext,
+        icon: f.icon,
+        size: f.size,
+        bytes: bytesOf(f.size),
+        desc: f.desc,
+        owned: true,
+      })),
+    ]
+  }
 
   if (folder === 'inventory') {
     // 인벤토리는 **가진 것만** 보여 준다. 안 산 물건까지 흐리게 늘어놓으면

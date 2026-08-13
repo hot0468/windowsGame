@@ -1,7 +1,7 @@
 /**
  * 스탯.
  * - 소모 자원: stamina(=**체력**, 일일 소모/취침 회복), mental(0~100), money
- * - 성장 스탯: GROWTH_STAT_KEYS 12종 (상한은 `growthCap`이 정한다 —
+ * - 성장 스탯: GROWTH_STAT_KEYS 15종 (상한은 `growthCap`이 정한다 —
  *   평판·도덕·예의범절만 100, 나머지 999)
  *
  * ⚠️ **행동력과 체력은 2026-08-08에 하나로 합쳤다**(설계자 지시: "스탯이 너무 헷갈려").
@@ -49,6 +49,13 @@ export interface Stats {
    */
   music: number
   /**
+   * IT. **지식·창의력과 다른 것이다** — 지식은 배운 것이고 창의력은 떠올리는 힘이며
+   * IT는 **기계를 실제로 다뤄 동작하게 만드는 숙련**이다(예술이 `draw` 하나만 올리는 것과
+   * 같은 부류: `tool-vscode`가 주 공급원이다).
+   * ⚠️ 키가 `it`이 아닌 이유: 테스트 파일에서 vitest의 `it`과 눈으로 부딪힌다.
+   */
+  tech: number
+  /**
    * 예술. **창의력과 다른 것이다** — 창의력이 "떠올리는 힘"이라면 예술은
    * **손으로 끝까지 그려 내는 숙련**이다. 그래서 창의력은 여러 활동이 조금씩 올리지만
    * 예술은 실제로 그리는 활동(`draw`)만 올린다.
@@ -76,6 +83,7 @@ export const GROWTH_STAT_KEYS = [
   'art',
   'music',
   'finance',
+  'tech',
 ] as const
 
 export type GrowthStatKey = (typeof GROWTH_STAT_KEYS)[number]
@@ -106,6 +114,7 @@ export const STAT_NAMES: Record<keyof Stats, string> = {
   art: '예술',
   music: '음악',
   finance: '경제',
+  tech: 'IT',
 }
 
 /** 활동이 스탯에 주는 변화량. 없는 키는 변화 없음. */
@@ -309,6 +318,12 @@ export type WindowKind =
   | 'taskmgr'
   | 'cmd'
   | 'solitaire'
+  /**
+   * 그림판 — 솔리테어와 **같은 부류의 장난감**이다. 육성 게임의 상태를 한 톨도
+   * 건드리지 않고(스탯·턴·돈), 그린 것은 컴포넌트 안에만 살아 창을 닫으면 사라진다.
+   * ⚠️ 활동 `draw`(클립스튜디오)와 무관하다 — 그림을 갤러리에 남기지 않는다.
+   */
+  | 'paint'
   /** 설정 — 지금은 구독 관리 한 구역뿐이다(`SettingsApp`). */
   | 'settings'
   /** 아이템 인벤토리·이벤트 도감. 파일 탐색기 UI로 그린다. */
@@ -359,6 +374,15 @@ export type WindowKind =
    * 파일 격자로 그리면 레벨·조건이 갈 자리가 없다.
    */
   | 'excel'
+  /**
+   * 악성코드가 띄우는 광고 팝업. **바탕화면 아이콘도 시작 메뉴 항목도 없다** — 켜는 것이
+   * 아니라 **감염되면 매 턴 저절로 뜨는** 창이다(`wish`와 같은 부류).
+   *
+   * ⚠️ **`OpenWindow.popup`으로 열지 않는다.** 시스템 팝업은 닫기 버튼이 없는 창인데,
+   * 이건 성가심이 대가의 절반이라 **반드시 닫을 수 있어야** 한다(ux `escape-routes`) —
+   * 못 닫는 창이 매 턴 쌓이면 대가가 아니라 고장이다.
+   */
+  | 'adware'
 
 /**
  * 바탕화면에 놓이는 항목. 활동만이 바탕화면 항목인 것은 아니다 —
@@ -493,7 +517,18 @@ export type GameOverReason = 'bankrupt' | 'burnout'
  * 유니온에 나열할 수 없다 — `project:<id>` 형태로 열고 `projectFolderId`/`folderProjectId`
  * 한 쌍이 그 문자열을 만들고 되읽는다(문자열을 여러 곳에서 조립하면 한 곳만 낡는다).
  */
-export type FolderId = 'inventory' | 'codex' | 'gallery' | 'postcard' | `project:${string}`
+export type FolderId =
+  | 'inventory'
+  | 'codex'
+  | 'gallery'
+  | 'postcard'
+  /**
+   * 휴지통. ⚠️ **새 상태를 만들지 않는다** — 내용은 `broken`(다 쓰고 고장 난 장비)에서
+   * 파생한다. `sold`(중고마켓에 판 물건)는 **넣지 않는다**: 판 것은 버린 것이 아니고,
+   * 둘을 한 목록에 섞으면 왜 거기 있는지 아무도 답할 수 없다(`gear.ts`와 같은 판단).
+   */
+  | 'trash'
+  | `project:${string}`
 
 /**
  * 시집이 포스트카드 한 장.
@@ -1089,6 +1124,14 @@ export interface GameState {
    */
   adBonusDay?: number
   /**
+   * 악성코드 감염 상태. **없으면 감염되지 않은 것**이라 마이그레이션이 필요 없다
+   * (`adBonusDay`·`plans`와 같은 규칙).
+   *
+   * ⚠️ 들고 있는 것은 **감염된 날 하나**다 — 증상(밤마다 새는 돈·매 턴 뜨는 팝업)은
+   * 전부 "지금 감염 중인가"만 보므로 더 저장할 사실이 없다. 규칙은 `systems/malware.ts`.
+   */
+  malware?: { day: number }
+  /**
    * 앞으로의 계획. 스케줄러가 넣고, 턴이 그 슬롯에 닿으면 자동 실행된다.
    *
    * ⚠️ 옵셔널이다 — 이 필드가 없던 세이브도 그대로 동작한다(빈 배열로 읽는다).
@@ -1328,4 +1371,5 @@ export const INITIAL_STATS: Stats = {
   art: 0,
   music: 0,
   finance: 0,
+  tech: 0,
 }

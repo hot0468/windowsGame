@@ -1,0 +1,131 @@
+/*
+ * 그림판. 실제 그림판처럼 **회색 작업 영역 위에 흰 종이**가 놓인다.
+ *
+ * ⚠️ 색은 **전부 기존 OS 토큰(`--os-*`)이다** — 이 창은 사이트나 사내 프로그램이 아니라
+ * 시작 메뉴의 시스템 도구라 자기 팔레트를 가질 근거가 없다(솔리테어와 다른 점이다:
+ * 그쪽은 초록 펠트 테이블이라는 정체성이 있다). 캔버스에 칠하는 물감만 `data/paint.ts`.
+ */
+
+/* 작업 영역이 창 가장자리까지 닿아야 "판 위에 종이"로 읽힌다(솔리테어와 같은 판단). */
+.win-body:has(> .pt) {
+  padding: 0;
+}
+
+.pt {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 도구 모음 ── */
+.pt-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--os-border);
+  background: var(--os-surface);
+}
+
+.pt-group {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.pt-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 0 var(--sp-1);
+  background: var(--os-border-strong);
+}
+
+/* 색 견본. ⚠️ 고른 칸은 **테두리로** 알린다 — 색만으로 알리면 색맹에게 아무 표시가 없고,
+   체크 글리프는 여덟 물감 중 절반 위에서 대비가 무너진다. 흰 안쪽 링 + 진한 바깥 링은
+   밝은 물감·어두운 물감 어느 쪽에서도 보인다. */
+.pt-swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.pt-swatch-on {
+  box-shadow:
+    inset 0 0 0 2px #fff,
+    0 0 0 2px var(--os-text);
+}
+
+/* 붓 굵기. 점 크기가 곧 값이고 뜻은 aria-label이 진다. */
+.pt-width {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--os-surface);
+  cursor: pointer;
+}
+
+.pt-width:hover {
+  background: var(--os-fill);
+}
+
+.pt-width-on {
+  border-color: var(--os-accent);
+  background: var(--os-accent-wash);
+}
+
+.pt-dot {
+  display: block;
+  border-radius: 999px;
+  background: var(--os-text);
+}
+
+.pt-btn {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--os-surface);
+  color: var(--os-text);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.pt-btn:hover {
+  background: var(--os-fill);
+}
+
+.pt-btn-on {
+  border-color: var(--os-accent);
+  background: var(--os-accent-wash);
+  color: var(--os-accent-press);
+}
+
+/* ── 작업 영역 ── */
+.pt-desk {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--sp-4);
+  /* 흰 종이와 갈리는 회색. `--os-fill`(#f0f0f0)은 흰색과 너무 가까워 종이가 안 보인다. */
+  background: var(--os-chrome-alt);
+  overflow: auto;
+}
+
+/* ⚠️ **여기에 width/height를 적지 않는다** — 캔버스의 기본 크기가 곧 픽셀 버퍼이고,
+   CSS로 늘리면 그린 선이 커서와 어긋난다(`data/paint.ts`). */
+.pt-canvas {
+  flex: none;
+  border: 1px solid var(--os-border-strong);
+  background: #fff;
+  box-shadow: var(--el-1);
+  /* 십자 커서. 붓 끝이 어디인지 화살표로는 알 수 없다. */
+  cursor: crosshair;
+  touch-action: none;
+}

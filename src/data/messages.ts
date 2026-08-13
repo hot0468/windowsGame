@@ -364,6 +364,27 @@ export const THREADS: Thread[] = [
       ],
     },
   },
+  {
+    /*
+     * IT B가 여는 방. ⚠️ **주간 예약이 없다**(학원과 같은 이유) — 유지보수는 정기권이
+     * 아니라 부를 때 가는 일이고, 매주 자동으로 잡히면 요일이 동난다.
+     */
+    id: 'devcrew',
+    app: 'kakao',
+    name: '해온소프트 김실장',
+    members: 1,
+    offer: {
+      question: '이번 건도 좀 봐 주실 수 있을까요?',
+      options: [
+        {
+          id: 'devcrew-maint',
+          label: '보내 주세요',
+          desc: '90,000원 · 1턴 소모',
+          activityId: 'maintenance',
+        },
+      ],
+    },
+  },
   /* ⚠️ **카톡이지 너아무튼온이 아니다**(설계자 지시). 연재처는 다니는 회사가 아니라
      외부 거래처라 사내 메신저에 자리가 없다 — 담당자는 개인 메신저로 연락한다. */
   { id: 'webtoon-editor', app: 'kakao', name: EDITOR_NAME, members: 1, requiresWebtoon: true },

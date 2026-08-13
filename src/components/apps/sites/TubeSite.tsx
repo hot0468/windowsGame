@@ -7,6 +7,7 @@ import {
   VIDEO_CATEGORIES,
   findChannel,
   subscribersFrom,
+  watchActivityFor,
 } from '../../../data/videos'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
@@ -25,9 +26,11 @@ import './TubeSite.css'
  * 영상을 누르면 시청 화면으로 간다. 마이크·만들기·알림처럼 이 게임에 뜻이 없는 것은
  * 헤더에 **표시만** 한다 — 눌러도 아무 일 없는 버튼은 진짜 유튜브다움을 깎는다.
  *
- * ⚠️ **탐색은 무료다.** 영상을 아무리 봐도 턴이 가거나 스탯이 오르지 않는다.
- * 상태를 바꾸는 자리는 **[내 채널]의 방송 시작 하나**이고, 그것도 확인창을 거쳐 1턴을 쓴다
- * (미디북스·시집이와 같은 통로 — 브라우저가 활동을 실행하는 세 번째 경로다).
+ * ⚠️ **넘겨보는 것은 무료다.** 목록을 훑고 영상을 열어 보는 동안에는 턴도 스탯도 움직이지
+ * 않는다. 상태를 바꾸는 자리는 **둘뿐이고 둘 다 확인창을 거쳐 1턴을 쓴다**:
+ * 시청 화면의 [끝까지 보기](`watch-video`)와 [내 채널]의 방송 시작(`stream`).
+ * ⚠️ **무엇을 보느냐가 무엇이 오르느냐다** — 갈래(게임·음악·뉴스)가 활동을 고르고
+ * 증감은 그 활동이 진다(`data/videos.ts`의 `CATEGORY_ACTIVITY`). 화면은 고르기만 한다.
  *
  * ⚠️ **구독자 수는 `reputation`에서 뽑은 읽기 전용 파생값이다**(`subscribersFrom`).
  * 트위터 팔로워처럼 저장된 상태로 만들지 않았고 **정산도 붙이지 않았다** —
@@ -61,6 +64,8 @@ export function TubeSite({ site }: { site: Site }) {
   const [topic, setTopic] = useState<StreamTopic | null>(null)
   /** 방금 방송을 켰는가. 화면이 그대로라 무슨 일이 있었는지 글자로 남긴다. */
   const [streamed, setStreamed] = useState<string | null>(null)
+  /** 끝까지 보려고 고른 영상. 누르면 확인창이 뜬다(넘겨보기는 그대로 무료다). */
+  const [watching, setWatching] = useState<Video | null>(null)
 
   /* ⚠️ 상태 하나만 고른다 — `channelOf`는 매번 새 객체를 만들므로 셀렉터 안에서 부르면
      zustand가 매 렌더 다른 값으로 보고 다시 그린다(파생은 셀렉터 밖에서 한다). */
@@ -71,6 +76,11 @@ export function TubeSite({ site }: { site: Site }) {
   const reputation = state?.stats.reputation ?? 0
   const channel = state ? channelOf(state) : { name: playerName, streams: 0 }
   const streamActivity = findActivity(site.activityId ?? '')
+  /* ⚠️ 사이트의 `activityId`(=방송)와 **별개다** — 이 화면에는 상태를 바꾸는 자리가 둘이고
+     (켜기·보기) `Site`는 대표 하나만 가리킨다. 미디북스가 책마다 다른 활동을 부르는 것과 같다.
+     ⚠️ **어느 활동인지는 고른 영상의 갈래가 정한다**(`watchActivityFor`) — 게임·음악·뉴스는
+     각자의 활동이 있고 나머지는 기본값으로 온다. 수치를 여기서 손보지 않는다. */
+  const watchActivity = watching ? findActivity(watchActivityFor(watching)) : undefined
 
   const q = query.trim().toLowerCase()
   const matches = (v: Video) =>
@@ -180,7 +190,12 @@ export function TubeSite({ site }: { site: Site }) {
               onRename={renameChannel}
             />
           ) : playing ? (
-            <Watch video={playing} onPick={setPlaying} onBack={() => setPlaying(null)} />
+            <Watch
+              video={playing}
+              onPick={setPlaying}
+              onBack={() => setPlaying(null)}
+              onWatch={() => setWatching(playing)}
+            />
           ) : (
             <>
               <div className="tube-chips">
@@ -245,6 +260,18 @@ export function TubeSite({ site }: { site: Site }) {
           onCommit={() => startStream(topic)}
           onCommitted={() => setStreamed(topic.label)}
           onClose={() => setTopic(null)}
+        />
+      )}
+
+      {/* 넘겨보는 것은 여전히 무료다 — **끝까지 보겠다고 누른 것만** 1턴을 쓴다. */}
+      {watchActivity && watching && (
+        <ActivityConfirm
+          activity={watchActivity}
+          kicker="너튜브"
+          title={`「${watching.title}」을 끝까지 보시겠습니까?`}
+          actionLabel="영상 보기"
+          notes={[{ label: '채널', value: watching.channel }]}
+          onClose={() => setWatching(null)}
         />
       )}
     </div>
@@ -445,10 +472,12 @@ function Watch({
   video,
   onPick,
   onBack,
+  onWatch,
 }: {
   video: Video
   onPick: (v: Video) => void
   onBack: () => void
+  onWatch: () => void
 }) {
   const ch = findChannel(video.channel)
   const next = [...VIDEOS, ...SHORTS].filter((v) => v.id !== video.id).slice(0, 8)
@@ -466,6 +495,11 @@ function Watch({
         </div>
 
         <h1 className="tube-watch-title">{video.title}</h1>
+        {/* 유일한 1턴짜리 자리. 플레이어 화면이라 재생 막대 아래, 제목 옆에 둔다. */}
+        <button type="button" className="tube-watch-btn" onClick={onWatch}>
+          <AppIcon name="mdi:play-circle-outline" size={18} />
+          끝까지 보기
+        </button>
         <div className="tube-watch-row">
           <Avatar name={video.channel} />
           <span className="tube-watch-channel">

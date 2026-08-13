@@ -1,10 +1,11 @@
+import { useEffect, useRef, useState } from 'react'
 import { HudPanel, HudSection } from './HudPanel'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
 import { STAMINA_CAP, growthCap } from '../../systems/turn'
-import { rankOf, toNextRank } from '../../systems/rank'
+import { rankOf, rankRose, toNextRank } from '../../systems/rank'
 import { isIll } from '../../systems/illness'
 import { skillLabel } from '../../data/band'
 import { ILL_EFFICIENCY } from '../../data/illness'
@@ -12,7 +13,7 @@ import type { StatRank } from '../../systems/rank'
 import { CALENDAR_PANEL_LAYOUT } from '../../data/calendar'
 import { STAT_META, GROWTH_STAT_ORDER } from '../../data/statMeta'
 import { HUD_ICONS } from '../../data/icons'
-import { STAT_NAMES } from '../../types/game'
+import { GROWTH_STAT_KEYS, STAT_NAMES } from '../../types/game'
 import type { GrowthStatKey, Stats } from '../../types/game'
 
 /**
@@ -23,13 +24,58 @@ import type { GrowthStatKey, Stats } from '../../types/game'
  * 걷어낸 이유가 그대로 되돌아온다. 상위 두 등급(S·SS)만 **같은 액센트를 진하게** 채워
  * "여기까지 왔다"를 표시한다 — 다른 색이 아니라 같은 색의 강도다.
  */
-function RankBadge({ rank, title }: { rank: StatRank; title: string }) {
+function RankBadge({ rank, title, fresh = false }: { rank: StatRank; title: string; fresh?: boolean }) {
   const top = rank === 'S' || rank === 'SS'
   return (
-    <span className={`stat-rank${top ? ' stat-rank-top' : ''}`} title={title}>
+    <span
+      className={`stat-rank${top ? ' stat-rank-top' : ''}${fresh ? ' stat-rank-fresh' : ''}`}
+      title={title}
+      /* 방금 오른 뱃지만 낭독기에 알린다 — 늘 걸어 두면 스탯이 1 오를 때마다 읽는다. */
+      role={fresh ? 'status' : undefined}
+    >
       {rank}
     </span>
   )
+}
+
+/** 등급 상승 표시가 남아 있는 시간. 다음 턴을 누를 때까지는 보여야 한다. */
+const RANKUP_MS = 8000
+
+/**
+ * 방금 등급이 오른 스탯들.
+ *
+ * ## 왜 여기인가
+ * 결과 판의 게이지는 **장면이 붙은 활동**(도구·알바·공부)에만 뜬다. 그래서 운동·독서처럼
+ * 장면이 없는 활동으로 등급이 오르면 **화면 어디에도 그 사실이 없었다**(2026-08-13).
+ * 스탯창은 등급이 사는 자리이므로 그 뱃지가 직접 말하는 것이 새 알림 창구를 만드는 것보다
+ * 정직하다 — 토스트로 빼면 "누르면 어디로 가나"까지 정해야 하는데 갈 곳이 없다.
+ *
+ * ⚠️ **화면이 기억하고 세이브에는 안 넣는다.** 지나가는 사실이라 저장하면 새로고침한 판에서
+ * 옛 상승이 다시 빛난다(토스트가 휘발 상태인 것과 같은 규칙).
+ * ⚠️ 첫 렌더에는 아무것도 안 밝힌다 — 이어하기로 들어온 판의 모든 등급이 "방금 올랐다"가 된다.
+ */
+function useRankUps(stats: Stats | undefined): Set<GrowthStatKey> {
+  const seen = useRef<Partial<Record<GrowthStatKey, StatRank>>>({})
+  const [fresh, setFresh] = useState<Set<GrowthStatKey>>(new Set())
+
+  useEffect(() => {
+    if (!stats) return
+    const risen: GrowthStatKey[] = []
+    /* ⚠️ **`GROWTH_STAT_ORDER`가 아니라 전체 키다** — 그 목록은 그리드에 그릴 것만 담아
+       평판·도덕이 빠져 있는데, 둘 다 상한 100이라 **등급이 가장 자주 움직이는 스탯**이다. */
+    for (const key of GROWTH_STAT_KEYS) {
+      const now = rankOf(key, stats[key])
+      const before = seen.current[key]
+      seen.current[key] = now
+      if (before && rankRose(before, now)) risen.push(key)
+    }
+    if (!risen.length) return
+    setFresh(new Set(risen))
+    const timer = setTimeout(() => setFresh(new Set()), RANKUP_MS)
+    return () => clearTimeout(timer)
+  }, [stats])
+
+  return fresh
 }
 
 /** 뱃지 툴팁 문구. "다음까지 얼마"를 함께 적어야 등급이 장식이 아니라 목표가 된다. */
@@ -54,6 +100,7 @@ function ResourceRow({
   suffix = '',
   warn = false,
   rankKey,
+  fresh = false,
 }: {
   statKey: keyof Stats
   value: number
@@ -66,6 +113,8 @@ function ResourceRow({
    * (오늘 일했다고 행동력 F가 되는 것이 아니다). 등급은 **쌓아 올린 것**의 척도다.
    */
   rankKey?: GrowthStatKey
+  /** 방금 등급이 올랐는가(`useRankUps`). 평판·도덕도 성장 스탯이라 그리드 칸과 같이 밝힌다. */
+  fresh?: boolean
 }) {
   const { hudIcon } = STAT_META[statKey]
   return (
@@ -75,7 +124,11 @@ function ResourceRow({
         <AppIcon name={hudIcon} size={15} className="stat-icon" />
         <span className="stat-label">{STAT_NAMES[statKey]}</span>
         {rankKey && (
-          <RankBadge rank={rankOf(rankKey, value)} title={rankTitle(rankKey, value)} />
+          <RankBadge
+            rank={rankOf(rankKey, value)}
+            title={rankTitle(rankKey, value)}
+            fresh={fresh}
+          />
         )}
         <span className={`stat-value${warn ? ' stat-warn' : ''}`}>
           {value.toLocaleString('ko-KR')}
@@ -110,7 +163,15 @@ function ResourceRow({
  * ⚠️ 칸에 **옅은 배경**이 깔린다(설계자 지시. 예전의 "배경도 테두리도 없다" 규칙은 뒤집혔다).
  * 색은 전부 같다 — 스탯별 9색을 시험했다가 한 색으로 되돌렸다(Desktop.css의 .stat-cell 주석).
  */
-function GrowthCell({ statKey, value }: { statKey: GrowthStatKey; value: number }) {
+function GrowthCell({
+  statKey,
+  value,
+  fresh = false,
+}: {
+  statKey: GrowthStatKey
+  value: number
+  fresh?: boolean
+}) {
   const { hudIcon } = STAT_META[statKey]
   return (
     <div className="stat-cell" title={rankTitle(statKey, value)}>
@@ -118,7 +179,7 @@ function GrowthCell({ statKey, value }: { statKey: GrowthStatKey; value: number 
       <span className="stat-cell-name">{STAT_NAMES[statKey]}</span>
       {/* 게이지가 없는 칸이라 **등급이 곧 게이지다** — 999 상한에서 숫자 137이 어디쯤인지
           말해 주는 것이 여기서는 이 한 글자뿐이다. */}
-      <RankBadge rank={rankOf(statKey, value)} title={rankTitle(statKey, value)} />
+      <RankBadge rank={rankOf(statKey, value)} title={rankTitle(statKey, value)} fresh={fresh} />
       <span className="stat-cell-value">{value}</span>
     </div>
   )
@@ -138,6 +199,8 @@ export function StatPanel() {
   const raise = useDesktopPanelStore((s) => s.raise)
   /* 작업 표시줄 버튼이 끄면 아예 그리지 않는다. 되돌리는 수단은 같은 버튼이다. */
   const visible = useDesktopPanelStore((s) => s.visible.stats)
+  /* ⚠️ 훅이라 이른 반환보다 **위**에 있어야 한다(판이 없을 때도 호출은 돈다). */
+  const rankUps = useRankUps(state?.stats)
   if (!state || !visible) return null
 
   const { stats, day } = state
@@ -198,12 +261,14 @@ export function StatPanel() {
         value={stats.reputation}
         max={growthCap('reputation')}
         rankKey="reputation"
+        fresh={rankUps.has('reputation')}
       />
       <ResourceRow
         statKey="morality"
         value={stats.morality}
         max={growthCap('morality')}
         rankKey="morality"
+        fresh={rankUps.has('morality')}
       />
       {/* ⚠️ 예의범절은 상한이 100이라 여기가 어울려 보이지만 **그리드에 있다** —
           자원 줄 한 칸은 게이지까지 약 46px이라 720px 화면에서 스탯창에 세로 스크롤바가
@@ -215,7 +280,7 @@ export function StatPanel() {
       <HudSection />
       <div className="stat-grid">
         {GROWTH_STAT_ORDER.map((key) => (
-          <GrowthCell key={key} statKey={key} value={stats[key]} />
+          <GrowthCell key={key} statKey={key} value={stats[key]} fresh={rankUps.has(key)} />
         ))}
       </div>
 

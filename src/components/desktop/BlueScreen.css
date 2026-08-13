@@ -1,0 +1,88 @@
+/*
+ * 블루스크린. **레퍼런스는 윈도우 10/11의 실제 정지 화면**이다(VS 코드 창이 Dark Modern을
+ * 그대로 베낀 것과 같은 부류) — 새 팔레트를 창작한 것이 아니라 있는 화면을 옮겨 왔다.
+ *
+ * ⚠️ **색을 `--os-*`에서 가져오지 않고 `.bs` 안에 가둔다**(`Daybreak`·사이트들과 같은 규칙).
+ * 이 파랑은 다른 어디에도 쓰이지 않는다.
+ *
+ * ⚠️ **판 색이 #0078D4가 아니라 #2067B2인 것이 이 파일의 유일한 색 판단이다.**
+ * 흰 글자는 #0078D4 위에서 4.53:1이라 AA를 간신히 넘어 **보조 글자를 쓸 여유가 없고**,
+ * 조금이라도 흐린 흰색을 얹는 순간 미달한다. #2067B2는 흰 글자 5.70:1 · 보조 글자
+ * (#E8F1FA) 4.99:1이라 둘 다 여유가 있다. ⚠️ **밝은 파랑으로 되돌리지 말 것.**
+ *
+ * ⚠️ **이 화면만은 CDP 실측이 아니라 계산으로 판정했다.** 실측 규칙의 근거는 "반투명·
+ * 그라데이션 위의 색은 합성 결과가 정한다"인데, 여기는 **불투명 단색 위의 단색 글자**라
+ * 합성이 없어 계산이 곧 픽셀 값이다. (게다가 이 화면은 같은 활동을 넷 이어서 해야
+ * 뜨므로 헤드리스로 데려가는 값이 재는 값보다 크다.)
+ * ⚠️ **반투명 면이나 그라데이션을 여기 들이면 그때는 실측해야 한다.**
+ *
+ * ⚠️ **애니메이션이 없다.** 진짜 정지 화면은 움직이지 않는다 — 깜빡이거나 차오르게 만들면
+ * 사고가 아니라 로딩으로 읽힌다. 그래서 `prefers-reduced-motion` 분기도 필요 없다.
+ */
+.bs {
+  --bs-face: #2067b2;
+  --bs-ink: #ffffff;
+  --bs-ink-dim: #e8f1fa;
+
+  position: fixed;
+  inset: 0;
+  z-index: 9460; /* LAYERS.BLUESCREEN (src/data/layers.ts) — 바꿀 때 함께 고친다 */
+  background: var(--bs-face);
+  color: var(--bs-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  /* 실제 정지 화면은 시스템 기본 서체다 — 게임의 포인트 폰트를 쓰면 연출로 읽힌다. */
+  font-family: var(--font-base);
+}
+
+.bs-body {
+  /* 실제 화면과 같이 가운데 정렬이 아니라 **왼쪽 정렬 덩어리**다. */
+  width: min(560px, 78vw);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.bs-face {
+  /* ⚠️ 척도(`--fs-*`) 밖의 값이다 — 이 크기는 글이 아니라 **표정**이고, 상한 32px로는
+     표정이 안 난다(잠금화면 시계 72px·시집이 표제와 같은 부류의 예외다). */
+  font-size: clamp(48px, 8vw, 88px);
+  font-weight: 400;
+  line-height: 1;
+  margin: 0;
+}
+
+.bs-lead {
+  font-size: var(--fs-lg);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.bs-progress {
+  font-size: var(--fs-md);
+  color: var(--bs-ink-dim);
+  margin: 0;
+}
+
+.bs-codes {
+  display: grid;
+  /* 라벨 열은 내용이 정하고 값이 남은 폭을 갖는다. */
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-1) var(--sp-3);
+  font-size: var(--fs-sm);
+  margin: 0;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--bs-ink-dim);
+}
+
+.bs-codes dt {
+  color: var(--bs-ink-dim);
+}
+
+.bs-codes dd {
+  margin: 0;
+  /* 중지 코드는 실제 화면과 같이 고정폭으로 읽힌다. */
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}

@@ -5,6 +5,7 @@ import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
 import { getBurnoutPenalty } from '../../systems/burnout'
 import { getLivingCost, getWageMultiplier } from '../../systems/economy'
+import { cleanBlocker } from '../../systems/malware'
 import { GROWTH_STAT_KEYS, STAT_NAMES } from '../../types/game'
 import './SystemApps.css'
 
@@ -147,20 +148,32 @@ export function TaskManagerApp() {
  * 게임 상태를 바꾸는 명령은 넣지 않는다: 여기서 스탯을 고칠 수 있으면 게임이 아니게 된다.
  */
 const COMMANDS: Record<string, (ctx: { day: number; slot: string }) => string[]> = {
-  help: () => ['사용할 수 있는 명령: help, date, stats, activities, cls'],
+  help: () => ['사용할 수 있는 명령: help, date, stats, activities, scan, clean, ver, cls'],
   date: (c) => [`${c.day}일차 ${c.slot === 'afternoon' ? '오후' : '오전'}`],
   activities: () => ACTIVITIES.map((a) => `${a.id.padEnd(10)} ${a.label} — ${a.description}`),
+  /* ⚠️ 배너와 **같은 한 줄**을 쓴다 — 버전을 두 곳에 적으면 반드시 어긋난다. */
+  ver: () => [OS_VERSION],
 }
 
 /**
- * 배너. 실제 cmd의 첫 두 줄 자리다.
+ * 가짜 OS의 버전 한 줄. 배너 첫 줄이자 `ver` 명령의 출력이다.
  * ⚠️ "Microsoft Windows …"를 그대로 쓰지 않는다 — 우리 프로그램이 마이크로소프트의
  * 제품인 척하게 된다. 형태만 빌리고 이름은 이 게임의 가짜 OS 것을 쓴다.
  */
-const CMD_BANNER = ['네이놈 OS [버전 10.0.26200.8875]', '(c) 네이놈. All rights reserved.', '']
+const OS_VERSION = '네이놈 OS [버전 10.0.26200.8875]'
+
+/** 배너. 실제 cmd의 첫 두 줄 자리다. */
+const CMD_BANNER = [OS_VERSION, '(c) 네이놈. All rights reserved.', '']
 
 export function CommandPromptApp() {
   const state = useGameStore((s) => s.state)
+  /*
+   * ⚠️ **이 창이 게임 상태를 바꾸는 자리는 `clean` 하나다.** 파일 첫 주석의 규칙
+   * ("스탯을 고치는 명령은 넣지 않는다")은 그대로다 — 여기서 바뀌는 것은 스탯이 아니라
+   * **악성코드 감염 여부**이고, 그 판정·결과는 전부 `systems/malware.ts`가 갖는다.
+   * IT 랭크 B가 백신 값을 아끼게 해 주는 것이 `tech` 스탯의 실질 보상이다.
+   */
+  const cleanMalware = useGameStore((s) => s.cleanMalware)
   const [lines, setLines] = useState<string[]>(CMD_BANNER)
   const [input, setInput] = useState('')
   if (!state) return null
@@ -181,6 +194,31 @@ export function CommandPromptApp() {
         ...l,
         echo,
         ...GROWTH_STAT_KEYS.map((k) => `${STAT_NAMES[k].padEnd(6)} ${state.stats[k]}`),
+      ])
+      return
+    }
+    /* 진단은 공짜다 — 아무나 실행할 수 있어야 "무엇이 문제인지"를 먼저 알 수 있다. */
+    if (cmd === 'scan') {
+      setLines((l) => [
+        ...l,
+        echo,
+        ...(state.malware
+          ? [
+              `위협 1건: Adware.NeverPortal (감염 ${state.malware.day}일차)`,
+              '제거하려면 clean 을 입력하십시오.',
+            ]
+          : ['검사를 마쳤습니다. 위협이 없습니다.']),
+      ])
+      return
+    }
+    if (cmd === 'clean') {
+      const why = cleanBlocker(state)
+      if (!why) cleanMalware()
+      setLines((l) => [
+        ...l,
+        echo,
+        // ⚠️ 실패하면 **무엇이 모자란지** 적는다(사유 없는 거절은 이 리포의 금지 사항이다).
+        why ?? 'Adware.NeverPortal 을(를) 제거했습니다.',
       ])
       return
     }

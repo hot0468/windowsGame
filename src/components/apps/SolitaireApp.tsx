@@ -7,7 +7,6 @@ import {
   isRed,
   isWon,
   move,
-  pileOf,
   rankLabel,
   sendToFoundation,
   SUIT_NAMES,
@@ -60,6 +59,59 @@ function CardFace({ card }: { card: Card }) {
 /** 카드 한 장의 접근성 이름. 기호(♠)는 스크린 리더가 제대로 읽지 못한다. */
 const cardName = (card: Card) =>
   card.faceUp ? `${SUIT_NAMES[card.suit]} ${rankLabel(card.rank)}` : '뒤집힌 카드'
+
+/**
+ * 산·뽑은 자리·기초 더미의 한 칸. 작업 더미는 쌓임이 달라 따로 그린다.
+ *
+ * ⚠️ **`SolitaireApp` 안에 정의하지 말 것**(2026-08-13 버그). 안에 두면 렌더마다 **새
+ * 컴포넌트 타입**이 되어 React가 이 버튼의 DOM 노드를 통째로 갈아 끼운다. 그런데 창은
+ * `pointerdown`에 `focus`로 z를 올리므로 **누르는 순간 리렌더가 난다** — mousedown과
+ * mouseup이 서로 다른 노드에 떨어져 브라우저가 **click을 아예 만들지 않는다**.
+ * 그래서 손으로는 패산이 죽어 있는데 `el.click()`으로는 멀쩡해 보였다(작업 더미 카드는
+ * JSX에 직접 있어 살아 있었던 것이 단서였다). 재현은 `measure.mjs --mouse`.
+ */
+function Slot({
+  cards,
+  label,
+  held = false,
+  /** 지금 끌고 있는 묶음을 받아 줄 수 있는 자리인가(테두리로 알린다). */
+  highlight = false,
+  onClick,
+  onDoubleClick,
+  /** 끌기·놓기 핸들러. 자리마다 달라서 부르는 쪽이 만들어 넘긴다. */
+  handlers,
+}: {
+  cards: Card[]
+  label: string
+  held?: boolean
+  highlight?: boolean
+  onClick: () => void
+  onDoubleClick?: () => void
+  handlers?: Record<string, unknown>
+}) {
+  const top = cards[cards.length - 1]
+  return (
+    <button
+      type="button"
+      className={`sol-slot${top ? '' : ' sol-slot-empty'}${highlight ? ' sol-drop' : ''}`}
+      onClick={onClick}
+      onDoubleClick={onDoubleClick}
+      {...handlers}
+      aria-pressed={top ? held : undefined}
+      aria-label={top ? `${label}, ${cardName(top)}` : `${label}, 비어 있음`}
+    >
+      {top ? (
+        top.faceUp ? (
+          <span className={`sol-card${held ? ' sol-card-held' : ''}`}>
+            <CardFace card={top} />
+          </span>
+        ) : (
+          <span className="sol-card sol-card-back" />
+        )
+      ) : null}
+    </button>
+  )
+}
 
 /** 지금 이 카드 묶음을 받아 줄 수 있는 더미 전부. 끌기 시작할 때 한 번만 센다. */
 function dropTargetsFor(state: SolitaireState, from: Held): Set<string> {
@@ -156,54 +208,6 @@ export function SolitaireApp() {
   const isHeld = (pile: PileId, index: number) =>
     [held, drag].some((h) => !!h && h.pile === pile && h.index === index)
 
-  /** 산·뽑은 자리·기초 더미의 한 칸. 작업 더미는 쌓임이 달라 따로 그린다. */
-  const Slot = ({
-    pile,
-    label,
-    onClick,
-    onDoubleClick,
-    /** 뽑은 카드처럼 맨 위 한 장을 끌 수 있는 자리인가(산·기초 더미는 아니다). */
-    dragTop = false,
-    /** 기초 더미처럼 카드를 받는 자리인가. */
-    droppable = false,
-  }: {
-    pile: PileId
-    label: string
-    onClick: () => void
-    onDoubleClick?: () => void
-    dragTop?: boolean
-    droppable?: boolean
-  }) => {
-    const cards = pileOf(state, pile)
-    const top = cards[cards.length - 1]
-    return (
-      <button
-        type="button"
-        className={`sol-slot${top ? '' : ' sol-slot-empty'}${
-          droppable && targets?.has(pile) ? ' sol-drop' : ''
-        }`}
-        onClick={onClick}
-        onDoubleClick={onDoubleClick}
-        {...(dragTop && top?.faceUp ? dragProps(pile, cards.length - 1) : {})}
-        {...(droppable ? dropProps(pile) : {})}
-        aria-pressed={top ? isHeld(pile, cards.length - 1) : undefined}
-        aria-label={top ? `${label}, ${cardName(top)}` : `${label}, 비어 있음`}
-      >
-        {top ? (
-          top.faceUp ? (
-            <span
-              className={`sol-card${isHeld(pile, cards.length - 1) ? ' sol-card-held' : ''}`}
-            >
-              <CardFace card={top} />
-            </span>
-          ) : (
-            <span className="sol-card sol-card-back" />
-          )
-        ) : null}
-      </button>
-    )
-  }
-
   return (
     <div className="sol">
       <div className="sol-bar">
@@ -218,16 +222,21 @@ export function SolitaireApp() {
       </div>
 
       <div className="sol-top">
-        <Slot pile="stock" label="산" onClick={() => setState(draw(state))} />
+        <Slot cards={state.stock} label="산" onClick={() => setState(draw(state))} />
         <Slot
-          pile="waste"
+          cards={state.waste}
           label="뽑은 카드"
+          held={isHeld('waste', state.waste.length - 1)}
           onClick={() => {
-            const cards = pileOf(state, 'waste')
-            if (cards.length) clickCard('waste', cards.length - 1, cards[cards.length - 1])
+            const top = state.waste.length - 1
+            if (top >= 0) clickCard('waste', top, state.waste[top])
           }}
           onDoubleClick={() => autoSend('waste')}
-          dragTop
+          handlers={
+            state.waste[state.waste.length - 1]?.faceUp
+              ? dragProps('waste', state.waste.length - 1)
+              : undefined
+          }
         />
         {/* ⚠️ 기초 더미는 3열이 아니라 **4열부터** 시작한다(CSS가 격자 칸을 건너뛴다) —
             산 묶음과 갈라 놓는 빈 칸이 실제 솔리테어의 배치다. 빈 span으로 자리를
@@ -235,10 +244,11 @@ export function SolitaireApp() {
         {SUITS.map((suit, i) => (
           <Slot
             key={suit}
-            pile={`f${i}`}
+            cards={state.foundations[i]}
             label={`${SUIT_NAMES[suit]} 기초 더미`}
+            highlight={!!targets?.has(`f${i}`)}
             onClick={() => dropOn(`f${i}`)}
-            droppable
+            handlers={dropProps(`f${i}`)}
           />
         ))}
       </div>

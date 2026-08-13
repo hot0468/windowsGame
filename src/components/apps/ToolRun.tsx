@@ -210,7 +210,7 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
 
   return (
     <div
-      className={`tr tr-${accent}${paper ? ' tr-paper' : ''}`}
+      className={`tr tr-${accent}${paper ? ' tr-paper' : ''}${finished ? ' tr-done' : ''}`}
       onKeyDown={(e) => e.key === 'Escape' && onClose()}
     >
       <div className="tr-stage">

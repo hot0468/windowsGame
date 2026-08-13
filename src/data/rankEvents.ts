@@ -310,6 +310,28 @@ export const RANK_EVENTS: RankEvent[] = [
   },
   {
     /* 지식 A(=500). 학원 강사 제안(같은 문턱)과 짝이다 — 하나는 일이고 하나는 흔적이다. */
+    /*
+     * IT B(=300). 부업 5/턴 · 코딩 공부 6/턴이라 50번쯤 — 판 중후반이고, 그때 **쌓은
+     * IT가 일이 되어 돌아온다**(지식 A의 학원 특강과 같은 자리).
+     * ⚠️ **A가 아니라 B다**: 지식·음악과 달리 IT는 주 공급원이 부업이라 곁가지로도 오르는데,
+     *    A(=500)에 두면 IT에 특화한 판에서만 열려 "부업만 한 사람"이 못 본다.
+     */
+    id: 'devcrew',
+    key: 'tech',
+    rank: 'B',
+    kind: 'thread',
+    target: 'devcrew',
+  },
+  {
+    /* IT C(=100). VS 코드 작업이 5/턴이라 20번쯤 — 부업으로 몇 번 켜 본 사람에게 닿는
+       첫 칸이다(지식 A처럼 특화를 요구하면 부업의 곁가지 스탯이 아무것도 안 여는 값이 된다). */
+    id: 'merged-pr',
+    key: 'tech',
+    rank: 'C',
+    kind: 'event',
+    target: 'merged-pr',
+  },
+  {
     id: 'cited-paper',
     key: 'knowledge',
     rank: 'A',
@@ -323,6 +345,69 @@ export const RANK_EVENTS: RankEvent[] = [
     rank: 'A',
     kind: 'event',
     target: 'borrowed-idea',
+  },
+
+  /* ── 첫 칸 7종 (2026-08-14) ──────────────────────────────────────────
+   * ⚠️ **첫 보상이 B·A뿐이던 스탯에 C 칸을 깐다**(설계자 지적: "육성하는 재미가 없다").
+   * 문턱이 A(=500)뿐이면 그 스탯은 수십 턴을 올려도 아무 일이 없다 — 단발은 여는 것이
+   * 없어 밸런스를 안 건드리면서 첫 보상만 앞당긴다. ⚠️ **기존 B·A 문턱은 안 내렸다**:
+   * thread·offer는 여는 것(일·수입)이 있어 문턱이 곧 밸런스다.
+   */
+  {
+    /* 지식 C(=100). 공부가 6/턴이라 17번쯤 — 학원 제안(A)까지 400이 남은 자리의 첫 칸이다. */
+    id: 'study-question',
+    key: 'knowledge',
+    rank: 'C',
+    kind: 'event',
+    target: 'study-question',
+  },
+  {
+    /* 매력 C(=100). 미용실이 6/턴이라 17번쯤 — 모델 제안(A)의 먼 길에 첫 칸을 깐다. */
+    id: 'street-scout',
+    key: 'charm',
+    rank: 'C',
+    kind: 'event',
+    target: 'street-scout',
+  },
+  {
+    /* 감수성 C(=100). 주 공급원이 6~12/턴이라 초반 — 별똥별(A)은 판 후반에야 온다. */
+    id: 'second-watch',
+    key: 'sensitivity',
+    rank: 'C',
+    kind: 'event',
+    target: 'second-watch',
+  },
+  {
+    /* 음악 C(=100). 작곡이 4/턴이라 25번쯤 — 밴드 영입(A=500)까지 유일한 중간 칸이다. */
+    id: 'first-track',
+    key: 'music',
+    rank: 'C',
+    kind: 'event',
+    target: 'first-track',
+  },
+  {
+    /* 예술 C(=100). 그리기가 12/턴이라 9번쯤 — 그리는 판의 가장 이른 보상이 된다. */
+    id: 'first-fan',
+    key: 'art',
+    rank: 'C',
+    kind: 'event',
+    target: 'first-fan',
+  },
+  {
+    /* 경제 C(=100). 경제 공부가 7/턴이라 15번쯤 — 투자 스터디(B)의 앞 칸이다. */
+    id: 'market-eye',
+    key: 'finance',
+    rank: 'C',
+    kind: 'event',
+    target: 'market-eye',
+  },
+  {
+    /* 창의력 C(=100). 여러 활동이 조금씩 올려 특화 없이도 초중반에 닿는다. */
+    id: 'napkin-sketch',
+    key: 'creativity',
+    rank: 'C',
+    kind: 'event',
+    target: 'napkin-sketch',
   },
 ]
 

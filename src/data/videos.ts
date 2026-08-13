@@ -62,6 +62,26 @@ export function findChannel(name: string): Channel | undefined {
   return CHANNELS.find((c) => c.name === name)
 }
 
+/**
+ * 갈래가 정하는 활동 — **무엇을 보느냐가 무엇이 오르느냐다**(2026-08-13).
+ * 배달 메뉴가 `meal-junk`/`meal-healthy`를, 여행 상품이 `travel`/`travel-near`를 고르는 것과
+ * 같은 규칙이다: 화면은 고르기만 하고 **수치는 활동이 진다**.
+ *
+ * ⚠️ **여기 없는 갈래는 기본값(`watch-video`)으로 온다.** 갈래마다 활동을 하나씩 만들면
+ * 일곱 개가 되는데 브이로그·코미디·요리·여행은 "쉬었다"는 점에서 서로 다르지 않다 —
+ * 갈라야 할 이유가 생기면 그때 이 표에 한 줄을 더한다.
+ */
+export const CATEGORY_ACTIVITY: Record<string, string> = {
+  게임: 'watch-video-game',
+  음악: 'watch-video-music',
+  뉴스: 'watch-video-news',
+}
+
+/** 이 영상을 끝까지 볼 때 실행되는 활동 id. */
+export function watchActivityFor(video: Video): string {
+  return CATEGORY_ACTIVITY[video.category] ?? 'watch-video'
+}
+
 /** 칩 줄. 첫 항목 '전체'는 필터를 걸지 않는다. */
 export const VIDEO_CATEGORIES = [
   '전체',

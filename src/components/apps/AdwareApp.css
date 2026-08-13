@@ -1,0 +1,107 @@
+/*
+ * 악성코드 광고 팝업.
+ *
+ * ⚠️ **자기 팔레트를 이 파일 안에 가둔다**(`--adw-*`) — 사이트·사내 프로그램과 같은 예외다.
+ * 이 창은 OS의 앱이 아니라 **OS 위에 얹힌 남의 프로그램**이라, 셸의 시각 언어를 그대로
+ * 입으면 "우리 창"으로 읽혀 정체가 사라진다. 간격·타입·모서리는 전역 토큰이다.
+ *
+ * ⚠️ 색은 촌스럽되 **대비는 전부 AA(4.5:1) 이상**이다: 흰 글자/#2B0A3D 17:1,
+ * 노란 제목/#2B0A3D 12:1, 본문/#FFF8E1 12:1, 흰 글자/#D92D20 4.8:1.
+ * "싸구려 광고"는 색의 **조합**이 만드는 것이지 안 읽히는 글자가 만드는 게 아니다.
+ */
+.adw {
+  --adw-bg: #fff8e1;
+  --adw-text: #3b2f00;
+  --adw-line: #e0c98a;
+  --adw-panel: #2b0a3d;
+  --adw-panel-ink: #ffffff;
+  --adw-panel-ink-2: #e9d5ff;
+  --adw-panel-head: #ffd54a;
+  --adw-cta: #d92d20;
+  --adw-cta-hover: #b42318;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--adw-bg);
+  color: var(--adw-text);
+}
+
+/* 가짜 광고 판. 그림 파일을 쓰지 않고 그라데이션 + 글자로만 그린다(배너와 같은 규칙). */
+.adw-ad {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, var(--adw-panel) 0%, #5b1275 100%);
+  color: var(--adw-panel-ink);
+}
+
+.adw-brand {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+  color: var(--adw-panel-ink-2);
+}
+
+.adw-head {
+  font-size: var(--fs-lg);
+  line-height: 1.4;
+  color: var(--adw-panel-head);
+}
+
+.adw-sub {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--adw-panel-ink-2);
+}
+
+/* 이 창이 무엇인지 밝히는 줄. 광고는 거짓말을 하지만 **게임은 하지 않는다**. */
+.adw-warn {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.adw-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.adw-btn {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--adw-line);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--adw-text);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.adw-btn-primary {
+  border-color: transparent;
+  background: var(--adw-cta);
+  color: #fff;
+  font-weight: 600;
+}
+
+.adw-btn-primary:hover {
+  background: var(--adw-cta-hover);
+}
+
+.adw-btn-primary:disabled {
+  /* 0.2 아래로 내리지 않는다(ux `opacity-threshold`). 왜 못 누르는지는 아래 줄이 말한다. */
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.adw-note {
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}

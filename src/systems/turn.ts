@@ -5,6 +5,10 @@ import { weekendCallOn } from './drive'
 import { bandPayFor, bandSkillOpen, practiceBand } from './band'
 import { wearGear } from './gear'
 import { illnessEfficiency, illnessRecoveryRatio, nextIllness } from './illness'
+import { malwareLoss } from './malware'
+/* ⚠️ `rank.ts`가 아니라 `rankScale.ts`다 — rank.ts는 `growthCap` 때문에 이 파일을
+   부르고 있어 그쪽을 import하면 순환이 된다. 눈금만 leaf 모듈에서 직접 읽는다. */
+import { RANK_ORDER, rankOfRatio } from './rankScale'
 import { weatherEfficiency } from './weather'
 import { isWeekend, weekdayOf } from '../data/calendar'
 import { WEEKEND_WAGE_BONUS } from '../data/economy'
@@ -132,6 +136,36 @@ export function outfitBonusFor(state: GameState, activityId: string): number {
  */
 export function itemStatBonusFor(state: GameState, key: keyof Stats): number {
   return key === PHONE_STAT && owns(state, PHONE_ID) ? PHONE_BONUS : 0
+}
+
+/**
+ * 랭크 숙련 보너스 — 그 스탯의 지금 등급 한 단계당 상승분이 15%씩 커진다(C +15% … SS +75%).
+ *
+ * 이 게임의 유일한 복리다(2026-08-14 설계자 지적: "육성하는 재미가 없다"). 그전까지 상승분
+ * 배율은 전부 외부 요인(옷·휴대폰·날씨)이라 지식 500인 사람과 50인 사람이 같은 공부에서
+ * 같은 +6을 받았다 — 키운 결과가 키우는 속도로 돌아와야 상위 랭크가 한 판 안의 거리가 된다.
+ * ⚠️ **연속값(비율)이 아니라 등급 단위인 이유**: 플레이어가 읽는 단위가 랭크다.
+ *   "C가 되니 +6이 +7이 됐다"는 읽히지만, 매 턴 0.1%씩 커지는 것은 아무도 알아채지 못한다.
+ * ⚠️ **돈·체력·멘탈은 안 탄다**(성장 스탯의 상승분만, 손해도 그대로) — 수입에 붙이면
+ *   밸런스 시뮬레이션이 보는 축이 흔들리고, 소모에 붙이면 다른 규칙("덜 지친다")이 된다.
+ */
+export const MASTERY_BONUS_PER_RANK = 0.15
+
+/** 그 스탯의 지금 등급이 상승분에 얹어 주는 비율. F거나 성장 스탯이 아니면 0이다. */
+export function masteryBonusFor(state: GameState, key: keyof Stats): number {
+  if (!(GROWTH_STAT_KEYS as readonly string[]).includes(key)) return 0
+  const k = key as GrowthStatKey
+  return RANK_ORDER.indexOf(rankOfRatio(state.stats[k] / growthCap(k))) * MASTERY_BONUS_PER_RANK
+}
+
+/**
+ * 그 스탯 상승분에 붙는 비율 전부(물건 + 숙련).
+ *
+ * ⚠️ 실행(`applyEffects`)과 미리보기(`activityPreview.ts`)가 **이 함수 하나**를 나눠 쓴다 —
+ * 보너스를 새로 만들면 여기에 더해야 두 화면이 같은 숫자를 말한다.
+ */
+export function statBonusFor(state: GameState, key: keyof Stats): number {
+  return itemStatBonusFor(state, key) + masteryBonusFor(state, key)
 }
 
 /** 이미 가진 물건인지. 보유 판정이 여러 곳에 흩어지지 않게 여기 하나만 둔다. */
@@ -268,7 +302,7 @@ function applyEffects(
          두 배율을 읽으므로, 한쪽에만 넣으면 확인창이 거짓 금액을 적는다. */
       value *= getWageMultiplier(day) * (isWeekend(day) ? WEEKEND_WAGE_BONUS : 1)
     }
-    const bonus = outfitBonus + itemStatBonusFor(state, statKey)
+    const bonus = outfitBonus + statBonusFor(state, statKey)
     next[statKey] += value > 0 ? value * efficiency + outfitBoost(statKey, value, bonus) : value
   }
   return next
@@ -322,11 +356,15 @@ function sleep(stats: Stats, state: GameState, ill: Illness | undefined): Stats 
      활동을 막지 않는 이유이기도 하다(`data/illness.ts`). 집이 갉는 멘탈에는 곱하지 않는다:
      그 방에서 자는 대가는 병과 아무 상관이 없다. */
   const recovery = illnessRecoveryRatio(ill)
+  /* ⚠️ **악성코드는 생활비를 뺀 뒤의 잔액에서만 샌다**(`systems/malware.ts`의 최소 1원 규칙).
+     감염이 파산을 직접 만들면 "판은 물가로 끝난다"가 흐려진다 — 랭크 이벤트 `below`와
+     같은 판단이고, 그 규칙은 `malware.ts` 하나가 갖는다(여기서 다시 자르지 않는다). */
+  const afterLiving = stats.money - getLivingCost(state)
   return {
     ...stats,
     stamina: stats.stamina + SLEEP_RECOVERY * recovery,
     mental: stats.mental + SLEEP_MENTAL_RECOVERY * recovery - housingMentalCost(state),
-    money: stats.money - getLivingCost(state),
+    money: afterLiving - malwareLoss(state, afterLiving),
   }
 }
 

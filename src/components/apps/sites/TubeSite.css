@@ -477,6 +477,24 @@
   line-height: 1.35;
 }
 
+/* 이 사이트에서 턴을 쓰는 유일한 버튼(방송 시작은 [내 채널] 쪽이다).
+   구독 버튼과 같은 검정 알약이다 — 사이트의 "확정" 모양이 하나여야 한다.
+   ⚠️ 색은 이미 있는 `--tb-chip-on`(#0f0f0f) 위 흰 글자 = 19.6:1. 새 색을 만들지 않는다. */
+.tube-watch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  border: none;
+  border-radius: 999px;
+  background: var(--tb-chip-on);
+  color: #ffffff;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .tube-watch-row {
   display: flex;
   align-items: center;

@@ -452,7 +452,9 @@ export const ACTIVITIES: Activity[] = [
     icon: 'devicon:vscode',
     category: 'living',
     description: '동작하는 데까지 두 시간, 이해하는 데까지는 아직이다.',
-    effects: { knowledge: 4, creativity: 3, stamina: -20, mental: -6 },
+    /* ⚠️ **IT의 주 공급원이다**(예술을 `draw` 하나가 올리는 것과 같은 부류). 지식은
+       배운 것이라 여기서는 곁가지로만 오른다 — 둘을 같은 몫으로 주면 스탯을 가른 이유가 없다. */
+    effects: { tech: 5, knowledge: 2, creativity: 2, stamina: -20, mental: -6 },
     requires: { stamina: 20 },
     toolId: 'vscode',
     burnoutKey: 'gig',
@@ -578,6 +580,21 @@ export const ACTIVITIES: Activity[] = [
     onDesktop: false,
   },
   {
+    /*
+     * IT의 **둘째 공급원**(2026-08-13). 그전까지 IT를 올리는 길은 `tool-vscode` 하나뿐이라
+     * "부업을 하는 사람만 오르는 스탯"이었다 — 음악이 2026-08-08에 겪은 것과 같은 모양이다.
+     * ⚠️ **공부(`study`)와 갈라 둔다**: 공부는 배운 것(지식)이고 이쪽은 **직접 쳐 보는 것**이라
+     *    지식은 곁가지로만 붙는다. 슬로우캠퍼스의 코드 강의가 이 활동을 가리킨다.
+     */
+    id: 'coding-study',
+    label: '코딩 공부',
+    icon: 'fluent-color:code-24',
+    category: 'study',
+    description: '예제를 그대로 쳤는데 안 된다. 오타 하나를 찾는 데 사십 분이 갔다.',
+    effects: { tech: 6, knowledge: 2, stamina: -12, mental: -5 },
+    requires: { stamina: 12 },
+  },
+  {
     /* 어휘력의 주 공급원. 공부보다 싸고 지식도 조금 붙지만, 대신 지식 자체는 느리다. */
     id: 'reading',
     label: '독서',
@@ -607,6 +624,56 @@ export const ACTIVITIES: Activity[] = [
     requiresSlot: 'morning',
     effects: { sensitivity: 6, creativity: 3, mental: 8, stamina: -15, money: -15000 },
     requires: { stamina: 15, money: 15000 },
+  },
+  {
+    /*
+     * 영상 감상(너튜브). **극장(`movie`)의 작은 판이다** — 같은 것을 보되 공짜이고
+     * 집이라 오가는 값이 없다. ⚠️ **보상도 그만큼 작아야 한다**: 여기가 영화만큼 주면
+     * 표값 15,000원을 낼 이유가 사라져 극장 사이트(시집이)가 통째로 죽는다.
+     * ⚠️ **고른 영상의 갈래가 활동을 정한다**(2026-08-13, 배달 메뉴·여행 상품과 같은 규칙 —
+     *    `data/videos.ts`의 `CATEGORY_ACTIVITY`가 그 표다). 아래 셋에 안 걸리는 갈래
+     *    (브이로그·코미디·요리·여행)는 전부 이 기본값으로 온다: 남는 것이 기분과 잔상뿐인 쪽.
+     */
+    id: 'watch-video',
+    label: '영상 감상',
+    icon: 'fluent-color:content-view-24',
+    category: 'leisure',
+    description: '하나만 보려다 자동재생을 세 번 넘긴다. 남는 것은 잔상과 조금의 기분.',
+    effects: { sensitivity: 2, creativity: 1, mental: 6, stamina: -5 },
+    requires: { stamina: 5 },
+  },
+  {
+    /* 게임 영상. ⚠️ 게임 활동(`game`, 멘탈 +18)의 자리를 뺏지 않는다 — 보는 것은 하는 것이
+       아니라서 멘탈 몫이 작고, 대신 남의 판을 보는 만큼 게임 스탯이 붙는다. */
+    id: 'watch-video-game',
+    label: '게임 영상 감상',
+    icon: 'fluent-color:content-view-24',
+    category: 'leisure',
+    description: '남이 하는 걸 보다 보면 나도 할 수 있을 것 같아진다. 대체로 착각이다.',
+    effects: { gaming: 3, mental: 6, stamina: -5 },
+    requires: { stamina: 5 },
+  },
+  {
+    /* 음악 영상. ⚠️ **작곡(`compose`, 7/턴)의 자리를 뺏지 않는다** — 듣는 것으로 오르는
+       몫은 작아야 음악이 "만드는 스탯"으로 남는다(감수성이 함께 붙는 것도 그래서다). */
+    id: 'watch-video-music',
+    label: '음악 영상 감상',
+    icon: 'fluent-color:content-view-24',
+    category: 'leisure',
+    description: '한 곡을 다섯 번 돌린다. 세 번째부터는 베이스만 들린다.',
+    effects: { music: 3, sensitivity: 1, mental: 5, stamina: -5 },
+    requires: { stamina: 5 },
+  },
+  {
+    /* 뉴스. ⚠️ **멘탈 몫이 셋 중 가장 작다** — 쉬려고 켠 것이 아니라서다. 그 대신
+       유일하게 지식이 붙는다(공부만큼은 아니고, 공짜인 값이 여기서 갈린다). */
+    id: 'watch-video-news',
+    label: '뉴스 시청',
+    icon: 'fluent-color:content-view-24',
+    category: 'leisure',
+    description: '세상이 어떻게 돌아가는지 십 분이면 안다. 알고 나면 기분이 반쯤 상한다.',
+    effects: { knowledge: 2, vocabulary: 1, mental: 2, stamina: -5 },
+    requires: { stamina: 5 },
   },
   /*
    * ── 배달 음식 2종 (2026-08-08 배달의정석) ──
@@ -910,6 +977,24 @@ export const ACTIVITIES: Activity[] = [
     effects: { money: 130000, knowledge: 3, vocabulary: 3, manners: 1, stamina: -24, mental: -8 },
     requires: { stamina: 24 },
     burnoutKey: 'lecture',
+  },
+  {
+    /*
+     * 정기 유지보수. **IT B가 여는 방(`devcrew`)의 제안이 실행하는 활동**이고, 학원 특강이
+     * 지식 A에 붙은 것과 같은 자리다 — 쌓은 스탯이 일이 되어 돌아오는 통로.
+     * ⚠️ **그몽 일감이 아니다.** 그쪽은 "도구가 열고 스탯은 결과로 돌아온다"가 규칙이라
+     *    일감에 스탯 잠금을 걸지 않는다(`data/gigs.ts` 머리말). 스탯이 여는 일은 이렇게
+     *    **대화방 제안**으로 온다 — 그몽에 잠금이 두 겹이 되지 않는 것이 그 규칙의 값이다.
+     * ⚠️ 보수는 특강(130,000)보다 아래다: 남의 코드를 봐 주는 자리이고 준비가 필요 없다.
+     */
+    id: 'maintenance',
+    label: '유지보수 의뢰',
+    icon: 'fluent-color:code-24',
+    category: 'living',
+    description: '남이 짠 코드를 연다. 고칠 곳은 세 줄인데 이해하는 데 두 시간이 걸린다.',
+    effects: { money: 90000, tech: 4, knowledge: 1, stamina: -20, mental: -7 },
+    requires: { stamina: 20 },
+    burnoutKey: 'gig',
   },
   {
     /*

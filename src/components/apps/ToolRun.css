@@ -36,9 +36,9 @@
   display: flex;
   flex-direction: column;
   /*
-   * ⚠️ **높이를 고정한다.** 결과 알림이 `position: absolute`로 이 상자를 덮는데, 작업이
-   * 끝나면 [건너뛰기]가 사라져 상자가 줄어든다 — 그러면 결과가 나타나는 바로 그 순간
-   * 자리가 좁아져 목록이 안쪽 스크롤로 잘린다. 여기서 채우는 것이 곧 알림의 판이다.
+   * ⚠️ **바닥 높이를 준다.** 작업이 끝나면 [건너뛰기]와 진행 막대가 사라져 상자가 줄어드는데,
+   * 그러면 결과가 나타나는 바로 그 순간 판이 쪼그라들어 보인다. **상한이 아니라 하한이다** —
+   * 내용이 이보다 길면 판이 늘어난다(아래 `.tr-done` 규칙).
    */
   min-height: 340px;
   /* 창 본문이 패딩 0이라(Window.css) 모서리는 창이 이미 깎는다. */
@@ -183,6 +183,17 @@
   backdrop-filter: blur(2px);
 }
 
+/*
+ * 결과 알림.
+ *
+ * ⚠️ **안쪽 스크롤을 만들지 않는다**(2026-08-13 설계자 지시). 예전에는 이 판이
+ * `position: absolute`로 장면을 덮어 **높이가 장면(340px)에 묶여 있었고**, 스탯 줄이
+ * 하나 늘자(IT 신설) 목록이 자기 상자 안에서 굴렀다 — 결과는 한눈에 다 보여야 하는
+ * 화면이라 그 스크롤은 정보를 숨긴다.
+ * 지금은 **끝나면 판이 흐름으로 돌아오고 장면이 절대 위치로 물러난다**(`.tr-done`) —
+ * 높이는 내용이 정하고, 창 본문은 이미 상한이 없다(`Window.css`의 `:has(> .tr)`).
+ * `flex: 1`은 짧은 결과가 340px 판 안에서 쪼그라들지 않게 하는 쪽이다(옛 모습 유지).
+ */
 .tr-result {
   position: absolute;
   inset: var(--sp-3);
@@ -193,7 +204,22 @@
   border: 1px solid var(--tr-line);
   border-radius: var(--r-md);
   background: var(--tr-card);
-  overflow-y: auto;
+}
+
+.tr-done .tr-stage {
+  position: absolute;
+  inset: 0;
+}
+
+/* ⚠️ **`position: static`으로 두지 말 것**(2026-08-13 회귀). 딤(`.tr-scrim`)은 절대 위치라
+   정적 형제보다 위에 그려진다 — 판이 흐려 보이고 [확인]은 딤이 먹어 안 눌린다.
+   흐름에는 남되(높이를 내용이 정해야 한다) 위치는 지정해 딤 위로 올린다. */
+.tr-done .tr-result {
+  position: relative;
+  z-index: 1;
+  inset: auto;
+  flex: 1;
+  margin: var(--sp-3);
 }
 
 .tr-result-head {

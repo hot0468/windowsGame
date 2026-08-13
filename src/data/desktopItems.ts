@@ -8,7 +8,7 @@ import type { DesktopEntry, DesktopItem } from '../types/game'
  * 브라우저는 스탯을 올리지도 턴을 소모하지도 않으므로 Activity가 아니다.
  * 가짜 활동으로 만들면 번아웃 이력·엔딩 판정·밸런스 테스트에 없는 id가 섞인다.
  *
- * 추후 폴더·휴지통도 여기에 추가한다.
+ * 폴더·휴지통도 여기에 있다.
  */
 const NON_ACTIVITY_ITEMS: DesktopItem[] = [
   {
@@ -236,6 +236,20 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
     kind: 'excel',
     // 5열(회사·직함·급여·레벨·상태) + 수식 입력줄. 좁으면 급여와 레벨이 붙어 읽힌다.
     width: 760,
+  },
+  {
+    /*
+     * 휴지통. **새 상태를 만들지 않는 폴더다** — 내용은 다 쓰고 고장 난 장비(`broken`)와
+     * 고정 파일 몇 개뿐이고, 비우기 버튼도 없다(사유는 `ExplorerApp`의 `FOLDERS.trash`).
+     * ⚠️ **조건이 없으므로 조건부 항목(갤러리)보다 앞**이어야 한다 — 뒤에 두면 타블렛을
+     * 사기 전까지 그 사이가 빈 칸으로 남는다(클립스튜디오와 같은 규칙).
+     */
+    id: 'trash',
+    label: '휴지통',
+    icon: 'mdi:trash-can',
+    kind: 'folder',
+    folderId: 'trash',
+    width: 720,
   },
   {
     /*

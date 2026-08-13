@@ -34,6 +34,7 @@ const ALL_KINDS = [
   'taskmgr',
   'cmd',
   'solitaire',
+  'paint',
   'steam',
   'settings',
   'callcenter',
@@ -46,6 +47,7 @@ const ALL_KINDS = [
   'clipstudio',
   'excel',
   'vscode',
+  'adware',
 ] as const satisfies readonly WindowKind[]
 
 /*

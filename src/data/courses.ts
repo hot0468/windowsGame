@@ -74,7 +74,9 @@ export const COURSES: Course[] = [
     id: 'ai-automation',
     title: '업무 자동화로 시작하는 왕초보 코드',
     creator: '윤자동',
-    activityId: 'study',
+    /* ⚠️ **`study`가 아니라 `coding-study`다**(2026-08-13) — 코드를 치는 강의가 지식만
+       올리면 IT를 올릴 길이 부업(`tool-vscode`) 하나로 남는다. 제목이 곧 이 갈림의 근거다. */
+    activityId: 'coding-study',
     price: 62000,
     category: 'AI 스킬업',
     level: '초급',

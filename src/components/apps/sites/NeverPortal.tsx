@@ -124,6 +124,10 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
   /* 배너 보상 외에는 여전히 읽기만 한다. 판정은 systems의 순수 함수가 한다. */
   const canClaim = useGameStore((s) => (s.state ? canClaimAdBonus(s.state) : false))
   const claimAd = useGameStore((s) => s.claimAdBonus)
+  /* ⚠️ **이미 감염 중이면 스캠 배너를 그리지 않는다** — 두 번 걸릴 것이 없고, 눌러도
+     아무 일이 안 일어나는 배너는 죽은 컨트롤이다. */
+  const infected = useGameStore((s) => s.state?.malware !== undefined)
+  const infect = useGameStore((s) => s.infectMalware)
 
   const [query, setQuery] = useState('')
   /**
@@ -455,15 +459,18 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
           지켜진다 — 턴을 쓰지 않기 때문이다. 제한과 금액은 systems/turn.ts가 정한다.
         */}
         <section className="nv-banners nv-col-side" aria-label="배너">
-          {bannersFor('side').map((banner) => (
-            <BannerButton
-              key={banner.id}
-              banner={banner}
-              canClaim={canClaim}
-              onClaim={claimAd}
-              onNavigate={onNavigate}
-            />
-          ))}
+          {bannersFor('side')
+            .filter((banner) => !banner.scam || !infected)
+            .map((banner) => (
+              <BannerButton
+                key={banner.id}
+                banner={banner}
+                canClaim={canClaim}
+                onClaim={claimAd}
+                onScam={infect}
+                onNavigate={onNavigate}
+              />
+            ))}
         </section>
       </div>
 
@@ -614,21 +621,26 @@ function BannerButton({
   wide = false,
   canClaim,
   onClaim,
+  onScam,
   onNavigate,
 }: {
   banner: Banner
   wide?: boolean
   canClaim: boolean
   onClaim: () => void
+  /** 스캠 배너를 눌렀다. 가로 띠에는 스캠이 없어 **옵셔널이다**(없으면 그리지도 않는다). */
+  onScam?: () => void
   onNavigate: (siteId: string) => void
 }) {
   /*
-   * 배너는 셋 중 하나다: **광고**(누르면 보상) / **이동용**(누르면 그 사이트로) / **공지**.
-   * ⚠️ 광고와 이동을 겸하지 않는다(`Banner.siteId` 주석) — 뱃지 글자가 그 셋을 구분한다.
+   * 배너는 넷 중 하나다: **광고**(누르면 보상) / **이동용**(누르면 그 사이트로) /
+   * **스캠**(누르면 감염) / **공지**.
+   * ⚠️ 둘을 겸하지 않는다(`Banner.siteId`·`Banner.scam` 주석) — 뱃지 글자가 넷을 구분한다.
    */
   const rewardable = banner.reward === true
   const done = rewardable && !canClaim
   const link = banner.siteId
+  const scam = banner.scam === true
   return (
     <button
       type="button"
@@ -636,10 +648,13 @@ function BannerButton({
       style={{ background: banner.gradient }}
       onClick={() => {
         if (link) onNavigate(link)
+        else if (scam) onScam?.()
         else if (rewardable) onClaim()
       }}
       disabled={done}
-      /* 무슨 일이 일어나는지 문구로 알린다 — 배너 그림만 보고는 알 수 없다. */
+      /* 무슨 일이 일어나는지 문구로 알린다 — 배너 그림만 보고는 알 수 없다.
+         ⚠️ **스캠은 광고 문구를 그대로 둔다**: 여기서 "감염됩니다"라고 적으면 함정이
+         아니라 안내가 된다. 대신 뱃지 글자가 보상 배너와 달라 읽으면 알아볼 수 있다. */
       title={
         link
           ? `${banner.brand}(으)로 이동합니다`
@@ -654,7 +669,15 @@ function BannerButton({
       <span className="nv-banner-head">{banner.headline}</span>
       {banner.sub && <span className="nv-banner-sub">{banner.sub}</span>}
       <span className="nv-banner-badge">
-        {link ? '바로가기' : rewardable ? (done ? '오늘 받음' : `AD +${AD_BONUS_MONEY}원`) : '공지'}
+        {link
+          ? '바로가기'
+          : scam
+            ? 'AD 경품'
+            : rewardable
+              ? done
+                ? '오늘 받음'
+                : `AD +${AD_BONUS_MONEY}원`
+              : '공지'}
       </span>
     </button>
   )

@@ -6,6 +6,17 @@ CLAUDE.md의 변경 이력 표에서 밀려난 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-13 | IT 스탯 신설(`tech`, VS 코드 작업이 주 공급원 · 랭크 이벤트 1) + 스탯창 이름 아래 선·여백 제거 | types(`Stats.tech`·키 4곳), statMeta, activities(`tool-vscode`), rankEvents·events(`merged-pr`), HudPanel.css |
+| 2026-08-09 | VS 코드 창 — 받아 둔 일감이 파일·배지·상태 표시줄이 되고 ▶가 활동을 실행한다 | vscode(data+test 5 신규), VsCodeApp(tsx+css 신규), types(`WindowKind: vscode`), appForWindow(+test, `dark`·`bareTitle`), Window.css(`:has(> .vs)`), desktopItems(+test 불변식 확장) |
+| 2026-08-09 | 개발용 UI 견본 화면(`?ui`) — 장면 10종 × 등급 상승 5단을 골라 재생, 세이브는 안 건드린다 | dev/UiGallery(tsx+css 신규), App(`import.meta.env.DEV` 분기) |
+| 2026-08-09 | 등급 상승을 결과 판 게이지가 말한다(0에서 자라남 · 막대 발광 · `F → C` 표시) — 팝업은 만들었다 되돌렸다 | ToolRun(tsx+css), rank(원상복구), types·windowStore·appForWindow(+test)·App(`rankup` 되돌림), Daybreak(팝업 대기는 유지) |
+| 2026-08-09 | 낮은 스탯의 대가(`below`+`afterDay`) · 요일의 질감(주말 알바 할증·`requiresWeek`) · 목돈 청구 4건 | rankEvents(data+systems+test 5), events(단발 4), calendar(`isWeekend`), economy(`WEEKEND_WAGE_BONUS`), types(`requiresWeek`·`paidBills`), turn·activityPreview, activities(3), bills(data+systems+test 10 신규), weekGate.test 신규, gameStore·MailApp |
+| 2026-08-09 | 공부 팝업 — 종이 판 · 책장 그림 · 헤더 없는 시스템 팝업 + 전체 화면 딤, 날 밝음은 [확인] 뒤로 밀린다 | runScenes(`look`), types, windowStore(`popup`·`Z_STEP`), Window(tsx+css `win-popup`/`win-scrim`), WindowManager, appForWindow, ToolRun(tsx+css), Daybreak(`pending`), runScenes.test(+2) |
+| 2026-08-09 | 알바몬 편성표 메일이 지원을 단정하던 버그 + 공부에도 실행 연출·성장 게이지·[확인] | messages(문구·규칙 주석)+test(불변식), ActivityConfirm(`onCommit` 갈래도 창을 연다), runScenes(`study`·`writing`), ToolRun(게이지+제목), ToolRun.css, CampusSite.css(실측 AA 3건) |
+| 2026-08-08 | 하이마루 최신형 휴대폰 — 가지고 있으면 친화력 상승분 +25%, 대신 30일마다 3,000원 | items(`PHONE_*` + 물건), phone(systems+test 9건 신규), turn(`itemStatBonusFor`·applyEffects 합산), types(`phoneBilledDay`·`suspendedPhone`), gameStore(밤 정산·복원), MailApp, activityPreview |
+| 2026-08-08 | 랭크 이벤트 6종 추가 — 친화력 C·경제 B가 방을 열고(집들이·투자 스터디), 예의범절 A·운동 S·지식 A·창의력 A는 단발 | rankEvents(data+systems 첫 마디), events(단발 4), messages(방 2), activities(`housewarming`·`study-talk`), rankEvents.test(스탯 전수 커버 불변식 2건) |
+| 2026-08-08 | 음악 스탯에 쓸 곳 셋 — 오디션 도구·그몽 음악 일감 3종 + 음악 A가 여는 밴드(숙련도로 공연·앨범 해제) | types(`ToolId: audition`·`BandState`·`requiresBandSkill`/`buildsBandSkill`), band(data+systems+test 12건), turn(게이트·숙련·보수), gigs·activities·desktopItems·messages·rankEvents, StatPanel·MobileStatSheet·ToolRun |
+| 2026-08-08 | 슬롯 제약(오전/오후 전용 활동 5종) · 장비 고장(사용 횟수, 무작위 없음) · 경제 스탯이 여는 주식 변동성 예보 | types(`requiresSlot`·`SLOT_NAMES`·`gear`/`broken`), turn(`canRun`·`wearGear`), gear(data+systems+test), delivery(되사기 자물쇠), stocks(예보)·StockSite, activityPreview, ExplorerApp, slotGate.test |
 | 2026-08-08 | 경제 스탯 신설 + 모바일 도감의 사방 여백·높이 상한 제거 | types·statMeta·activities(`finance-study`), contests(모의주식 심사 `knowledge`→`finance`), MobileShell.css, measure.mjs(모바일 셸 셀렉터 오타) |
 | 2026-08-08 | 알바도 일하는 장면을 한 번 보여 주고 결과를 띄운다 — 도구 전용이던 실행 연출을 일반화 | runScenes(data 신규 + test 5건), types(`ToolRunPayload` 일반화), ToolRun(장면 주입·일감 줄 조건부·끝나면 상태 줄 제거), ToolRun.css(액센트 4), ExeApp·ActivityConfirm(통로 둘) |
 | 2026-08-08 | 음악 스탯 신설 + 공모전에 그림 아닌 대회 4종(백일장·데이터시각화·모의주식·음원), 콘테스트하다를 레퍼런스 판형으로 | types·statMeta·activities(`compose`), contests(`kind: 'stat'`·`judgedBy`·`category`·`CONTEST_POSTER`)+systems `statScore`, ContestSite(tsx+css 개편), 상금 하향(불변식), turn.test |

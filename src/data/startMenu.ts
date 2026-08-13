@@ -43,6 +43,18 @@ export const START_MENU_ITEMS: StartMenuItem[] = [
     separatorBefore: true,
   },
   {
+    /*
+     * 그림판 — 솔리테어와 **같은 부류라 그 옆자리다**: 게임 상태를 안 건드리는 장난감이고
+     * 그린 것은 창을 닫으면 사라진다. 바탕화면이 아니라 여기 있는 이유가 그것이다
+     * (바탕화면 = 게임 세계의 앱). 폭은 캔버스(660) + 여백이 들어가는 값이다.
+     */
+    id: 'paint',
+    label: '그림판',
+    icon: 'mdi-light:pencil',
+    kind: 'paint',
+    width: 720,
+  },
+  {
     id: 'taskmgr',
     label: '작업 관리자',
     icon: 'mdi-light:chart-line',

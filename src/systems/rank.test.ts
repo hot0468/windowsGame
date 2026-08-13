@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { RANK_ORDER, RANK_THRESHOLDS, rankOf, rankOfRatio, toNextRank } from './rank'
+import { RANK_ORDER, RANK_THRESHOLDS, rankOf, rankOfRatio, rankRose, toNextRank } from './rank'
 import { growthCap } from './turn'
 import { GROWTH_STAT_KEYS } from '../types/game'
 
@@ -97,3 +97,13 @@ describe('다음 등급까지', () => {
   })
 })
 
+
+describe('rankRose', () => {
+  it('오른 것만 상승이다 — 제자리·하락은 아니다', () => {
+    expect(rankRose('F', 'C')).toBe(true)
+    expect(rankRose('B', 'SS')).toBe(true)
+    expect(rankRose('C', 'C')).toBe(false)
+    // ⚠️ 이 줄이 이 함수의 존재 이유다: 평판은 마감을 놓치면 깎여 실제로 내려간다.
+    expect(rankRose('A', 'B')).toBe(false)
+  })
+})

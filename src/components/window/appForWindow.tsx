@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { AdwareApp } from '../apps/AdwareApp'
 import { BrowserApp } from '../apps/BrowserApp'
 import { CallCenterApp } from '../apps/CallCenterApp'
 import { WishApp } from '../apps/WishApp'
@@ -12,6 +13,7 @@ import { AutoLogApp } from '../apps/AutoLogApp'
 import { ExcelApp } from '../apps/ExcelApp'
 import { ExeApp } from '../apps/ExeApp'
 import { SettingsApp } from '../apps/SettingsApp'
+import { PaintApp } from '../apps/PaintApp'
 import { SolitaireApp } from '../apps/SolitaireApp'
 import { SteamApp } from '../apps/SteamApp'
 import { ToolRun } from '../apps/ToolRun'
@@ -56,6 +58,7 @@ export const WINDOW_APP_KINDS = [
   'autolog',
   'browser',
   'solitaire',
+  'paint',
   'steam',
   'settings',
   'callcenter',
@@ -65,6 +68,7 @@ export const WINDOW_APP_KINDS = [
   'clipstudio',
   'excel',
   'vscode',
+  'adware',
 ] as const satisfies readonly WindowKind[]
 
 /**
@@ -122,6 +126,9 @@ export function appForWindow(w: OpenWindow, { onClose }: AppSlots): ReactNode {
     /* 판이 컴포넌트 안에서만 산다 — 창을 닫으면 끝난다(실제 윈도우 솔리테어와 같다). */
     case 'solitaire':
       return <SolitaireApp />
+    /* 그림판도 같다 — 그린 것은 캔버스에만 살고 창을 닫으면 사라진다(저장할 곳이 없다). */
+    case 'paint':
+      return <PaintApp />
     /* 라이브러리 한 화면. 게임을 켜는 것은 활동 `game` 1턴이다. */
     case 'steam':
       return <SteamApp />
@@ -143,6 +150,10 @@ export function appForWindow(w: OpenWindow, { onClose }: AppSlots): ReactNode {
     /* VS 코드. 받아 둔 일감을 파일·배지·상태 표시줄로 옮겨 보여 준다. */
     case 'vscode':
       return <VsCodeApp />
+    /* 악성코드 광고 팝업. 감염 중이면 매 턴 저절로 뜬다 — 창 id를 넘겨 광고를 고른다
+       (쌓인 창이 전부 같은 광고가 되지 않게. 사유는 `AdwareApp`). */
+    case 'adware':
+      return <AdwareApp seed={w.id} onClose={onClose} />
     /* 도감(직업·엔딩). 표를 읽기만 하고 게임 상태를 바꾸지 않는다. */
     case 'excel':
       return <ExcelApp />

@@ -29,6 +29,7 @@ import { CalendarPanel } from './CalendarPanel'
 import { StatPanel } from './StatPanel'
 import { Taskbar } from './Taskbar'
 import { Daybreak } from './Daybreak'
+import { BlueScreen } from './BlueScreen'
 import { ToastHost } from './ToastHost'
 import './Desktop.css'
 
@@ -360,6 +361,9 @@ export function Desktop() {
       <ToastHost />
       {/* 날이 바뀌면 해가 뜨는 화면이 잠깐 덮는다(설계자 지시). 두 셸이 같이 쓴다. */}
       <Daybreak />
+      {/* 번아웃이 바닥에 닿으면 화면이 뻗는다. **데스크톱 셸에만 있다** — 폰이 블루스크린을
+          띄우면 그 자체가 말이 안 되고, 모바일 셸은 이 컴포넌트를 마운트하지 않는다. */}
+      <BlueScreen />
 
       {/* 아이콘 오른쪽 클릭 메뉴. 공용 부품이라 열고 닫는 것만 여기서 관리한다. */}
       {menu && (

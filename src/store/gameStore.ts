@@ -17,6 +17,12 @@ import { advanceEmployment, applyTo, canApply } from '../systems/employment'
 import { creditCall, reviveBonus, worksAtCallCenter } from '../systems/callcenter'
 import { creditPerformance, revivePerformance, worksAtOffice } from '../systems/drive'
 import { healIllness, reviveIllness } from '../systems/illness'
+import {
+  buyVaccine as buyVaccineOf,
+  clean as cleanOf,
+  infect as infectOf,
+  isInfected,
+} from '../systems/malware'
 import { creditAffection, reviveAffection } from '../systems/affection'
 import {
   dueRankEvents,
@@ -485,6 +491,11 @@ function reviveState(raw: unknown): GameState | null {
     // 옵셔널 필드는 형태만 확인하고 통과시킨다. 여기서 빠뜨리면 세이브를 되돌릴 때마다
     // 예약·배송·도감이 조용히 사라진다(값 검증은 각 시스템이 이미 하고 있다).
     adBonusDay: Number.isFinite(saved.adBonusDay) ? Number(saved.adBonusDay) : undefined,
+    // 감염 상태. 없으면 안 걸린 것이므로 형태만 본다(`adBonusDay`와 같은 수준).
+    malware:
+      saved.malware && Number.isFinite(saved.malware.day)
+        ? { day: Number(saved.malware.day) }
+        : undefined,
     plans: Array.isArray(saved.plans) ? saved.plans : undefined,
     inventory: Array.isArray(saved.inventory) ? saved.inventory : undefined,
     deliveries: Array.isArray(saved.deliveries) ? saved.deliveries : undefined,
@@ -654,6 +665,10 @@ function afterTurn(next: GameState, chain?: number) {
      결과가 같다 — 그래도 "기록 → 파생" 방향을 지켜 둔다(나중에 얽히면 이 순서가 답이다). */
   const evented = settleRankEvents(job.state)
   openRankEventWindows(evented)
+  /* ⚠️ **광고 팝업도 `afterTurn`에 붙는다**(랭크 이벤트 창과 같은 자리·같은 이유) —
+     감염의 대가 절반이 성가심인데, 손으로 누른 자리에만 붙이면 자동 진행으로 넘긴 판에서
+     통째로 사라진다. */
+  openAdwareWindow(evented)
   return {
     state: evented,
     skippedPlans: ran.skipped,
@@ -733,6 +748,34 @@ function openRankEventWindows(next: GameState) {
   }
 }
 
+/**
+ * 감염 중이면 광고 팝업을 하나 띄운다.
+ *
+ * ⚠️ **id에 날짜·슬롯을 섞는다** — `windowStore.open`은 id가 같으면 새로 열지 않고 앞으로
+ * 가져오기만 하므로, 고정 id면 두 번째 턴부터 창이 안 늘어난다(쌓이는 것이 대가다).
+ * ⚠️ **치우지 않고 쌓이게 두되 자리를 조금씩 어긋나게 놓는다** — 정확히 겹치면 여러 개가
+ * 떠 있다는 사실 자체가 안 보여 "닫아도 또 뜬다"가 전달되지 않는다.
+ */
+function openAdwareWindow(next: GameState) {
+  if (!isInfected(next)) return
+  const id = `adware-${next.day}-${next.slot}`
+  useWindowStore.getState().open({
+    id,
+    kind: 'adware',
+    title: '광고',
+    icon: 'fluent-color:megaphone-loud-24',
+    x: 260 + (next.day % 6) * 26,
+    y: 130 + (next.slot === 'afternoon' ? 26 : 0),
+    width: 340,
+  })
+}
+
+/** 떠 있는 광고 팝업을 전부 닫는다. 치료 두 갈래가 같이 부른다(감염이 풀렸는데 창이 남으면 거짓말이다). */
+function closeAdwareWindows() {
+  const store = useWindowStore.getState()
+  for (const w of store.windows) if (w.kind === 'adware') store.close(w.id)
+}
+
 interface GameStore {
   state: GameState | null
   /** 잠금화면을 통과했는지. 저장하지 않아 새로고침 시 잠금화면부터 시작한다. */
@@ -753,6 +796,15 @@ interface GameStore {
   finishRequest: (percent: number) => void
   /** 포털 광고 배너 보상(하루 한 번 100원). 턴은 소모하지 않는다. */
   claimAdBonus: () => void
+  /**
+   * 악성코드 셋. **셋 다 턴을 쓰지 않는다** — 감염은 배너를 누른 결과이고, 치료 둘은
+   * 결제(은행 거래와 같은 부류)와 명령 한 줄이다. 규칙은 전부 `systems/malware.ts`가 갖는다.
+   */
+  infectMalware: () => void
+  /** 백신 결제(`VACCINE_PRICE`). 돈이 모자라면 아무 일도 일어나지 않는다. */
+  buyVaccine: () => void
+  /** 명령 프롬프트의 `clean`. IT 랭크가 모자라면 아무 일도 일어나지 않는다(사유는 화면이 적는다). */
+  cleanMalware: () => void
   /**
    * 세이브 문자열을 되돌려 넣는다. 성공하면 true.
    *
@@ -1388,6 +1440,40 @@ export const useGameStore = create<GameStore>()(
           const claimed = claimAdBonus(current)
           // 보상을 못 받은 날(이미 받음)은 사건도 기록하지 않는다 — 누른 적이 있어야 사건이다.
           set({ state: claimed === current ? current : recordEvent(claimed, 'first-ad') })
+        },
+
+        /*
+         * 악성코드 셋. **턴을 안 쓰므로 `afterTurn`을 부르지 않는다**(광고 보상·은행 거래와
+         * 같은 통로). 판정과 금액은 전부 `systems/malware.ts`가 갖고 여기서는 부르기만 한다.
+         */
+        infectMalware: () => {
+          const current = get().state
+          if (!current) return
+          const next = infectOf(current)
+          if (next === current) return
+          set({ state: next })
+          /* ⚠️ **감염된 순간 팝업이 하나 뜬다.** 이 자리가 없으면 다음 밤까지 아무 일도
+             안 일어나 "무엇이 일어났는지" 알 길이 없다(숨은 비용 금지). */
+          openAdwareWindow(next)
+        },
+
+        /* ⚠️ 치료 둘은 **떠 있는 팝업까지 닫는다** — 감염이 풀렸는데 광고가 남으면 거짓말이다. */
+        buyVaccine: () => {
+          const current = get().state
+          if (!current) return
+          const next = buyVaccineOf(current)
+          if (next === current) return
+          set({ state: next })
+          closeAdwareWindows()
+        },
+
+        cleanMalware: () => {
+          const current = get().state
+          if (!current) return
+          const next = cleanOf(current)
+          if (next === current) return
+          set({ state: next })
+          closeAdwareWindows()
         },
 
         doSkip: () => {

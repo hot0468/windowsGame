@@ -3,7 +3,7 @@ import { illnessEfficiency, isIll } from '../../systems/illness'
 import { ILLNESS_DAYS, ILL_EFFICIENCY, ILL_STAMINA_FLOOR } from '../../data/illness'
 import { weatherEfficiency } from '../../systems/weather'
 import { getLivingCost, getWageMultiplier } from '../../systems/economy'
-import { canRun, itemStatBonusFor, jobStageOpen, outfitFor, ownsRequired, subscribed } from '../../systems/turn'
+import { canRun, jobStageOpen, outfitFor, ownsRequired, statBonusFor, subscribed } from '../../systems/turn'
 import { findSubscription } from '../../data/subscriptions'
 import { applyBlockers, attendedToday, isWorkday } from '../../systems/employment'
 import { OUTFIT_BONUS, requiredItemLabel, requiredItemStores } from '../../data/items'
@@ -92,9 +92,9 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
     }
     // 효율은 **이득에만** 곱한다(손해까지 줄여 주면 번아웃이 이득이 된다).
     if (value <= 0) return { key: statKey, value: Math.round(value) }
-    /* ⚠️ 휴대폰 보너스도 **실행과 같은 함수**로 더한다(`applyEffects`가 둘을 더한 하나의
-       비율을 쓴다) — 여기서 빠뜨리면 확인창이 실제보다 적게 적는다. */
-    const total = bonus + itemStatBonusFor(state, statKey)
+    /* ⚠️ 휴대폰·랭크 숙련 보너스도 **실행과 같은 함수**(`statBonusFor`)로 더한다 —
+       여기서 빠뜨리면 확인창이 실제보다 적게 적는다. */
+    const total = bonus + statBonusFor(state, statKey)
     const boost =
       total > 0 && (GROWTH_STAT_KEYS as readonly string[]).concat('maxStamina').includes(statKey)
         ? Math.max(1, Math.round(value * total))
