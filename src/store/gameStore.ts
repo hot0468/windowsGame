@@ -17,6 +17,8 @@ import { advanceEmployment, applyTo, canApply } from '../systems/employment'
 import { creditCall, reviveBonus, worksAtCallCenter } from '../systems/callcenter'
 import { creditPerformance, revivePerformance, worksAtOffice } from '../systems/drive'
 import { healIllness, reviveIllness } from '../systems/illness'
+import { reviveRecovery } from '../systems/recovery'
+import { useMetaStore } from './metaStore'
 import {
   buyVaccine as buyVaccineOf,
   clean as cleanOf,
@@ -486,8 +488,7 @@ function reviveState(raw: unknown): GameState | null {
     seenEndingIds: Array.isArray(saved.seenEndingIds)
       ? saved.seenEndingIds.filter((id): id is string => typeof id === 'string')
       : [],
-    gameOver:
-      saved.gameOver === 'bankrupt' || saved.gameOver === 'burnout' ? saved.gameOver : null,
+    recovery: reviveRecovery(saved.recovery),
     // 옵셔널 필드는 형태만 확인하고 통과시킨다. 여기서 빠뜨리면 세이브를 되돌릴 때마다
     // 예약·배송·도감이 조용히 사라진다(값 검증은 각 시스템이 이미 하고 있다).
     adBonusDay: Number.isFinite(saved.adBonusDay) ? Number(saved.adBonusDay) : undefined,
@@ -589,13 +590,16 @@ export function migrateSave(persisted: unknown): { state: GameState | null } {
 
 /**
  * localStorage에 실제로 저장할 부분을 고른다.
- * 끝난 게임(gameOver)은 저장하지 않는다 — 이어할 수 없는 세이브가 남으면
- * 잠금화면은 "세이브 없음"으로 취급하는데 데이터만 계속 남는 어긋난 상태가 된다.
- * 메모리의 state는 그대로 두므로 엔딩 화면과 "처음부터 다시" 흐름은 영향받지 않고,
- * 진행 중(gameOver === null) 세이브는 항상 보존된다.
+ *
+ * ⚠️ **이제 모든 판을 저장한다**(2026-08-14 육성물 전환). 예전에는 끝난 게임을
+ * 버렸는데(이어할 수 없는 세이브가 남으면 잠금화면과 데이터가 어긋나므로), **끝나는
+ * 게임 자체가 없어졌다.** 주저앉은 판은 며칠 뒤 저절로 풀리는 **진행 중인 판**이므로
+ * 버리면 회복을 기다리던 플레이어가 판을 통째로 잃는다.
+ *
+ * 함수를 남겨 두는 것은 `partialize`의 자리이자 이 사연이 사는 자리라서다.
  */
 export function selectPersistedState(state: GameState | null): { state: GameState | null } {
-  return { state: state?.gameOver ? null : state }
+  return { state }
 }
 
 /**
@@ -604,6 +608,19 @@ export function selectPersistedState(state: GameState | null): { state: GameStat
  * **턴을 넘기는 모든 통로가 여기를 지난다** — 예약 실행(`runPlans`)과 택배 수령(`collect`)을
  * 호출부마다 적어 두면 새 통로가 생길 때마다 하나씩 빠뜨린다.
  */
+/**
+ * 채용 소식을 도감 콜렉션에 찍는다.
+ *
+ * ⚠️ **`hired` 소식만 본다.** 지원·서류·면접은 아직 다닌 것이 아니고, 해고는
+ * 이미 다닌 사실을 지우지 않는다 — 콜렉션은 "다녀 본 적 있는가"를 세기 때문이다.
+ */
+function unlockHiredCareers(notices: JobNotice[]) {
+  const { unlockCareer } = useMetaStore.getState()
+  for (const n of notices) {
+    if (n.kind === 'hired') unlockCareer(n.careerId)
+  }
+}
+
 function afterTurn(next: GameState, chain?: number) {
   const ran = runPlans(next, chain)
   const got = collect(ran.state)
@@ -612,12 +629,12 @@ function afterTurn(next: GameState, chain?: number) {
   //    택배 바로 뒤인 것은 둘 다 **아이템이 인벤토리로 들어오는 일**이라 도착 알림을
   //    같은 배열(`arrivals`)로 내보내기 때문이다 — 새 알림 창구를 만들지 않는다.
   const exams = advanceCertification(got.state)
-  // ⚠️ **은행 정산은 고용 정산보다 먼저 돈다.** 둘 다 마지막 줄에서 `settleGameOver`를
+  // ⚠️ **은행 정산은 고용 정산보다 먼저 돈다.** 둘 다 마지막 줄에서 `settleRecovery`를
   //    부르므로 순서 자체가 판정을 바꾸지는 않지만(이미 확정된 사유는 되살아나지 않는다),
   //    만기 원리금이 급여보다 먼저 들어와야 급여 소식 메일에 적히는 잔액이 실제와 맞는다.
   // ⚠️ **복권 당첨금도 밤에 들어온다**(`nightPayoutPending`의 세 번째 원천).
   //    은행보다 앞인 것은 순서가 판정을 바꿔서가 아니라(셋 다 마지막 줄에서
-  //    `settleGameOver`를 부르고, 그 함수는 확정된 사유를 되살리지 않는다) —
+  //    `settleRecovery`를 부르고, 그 함수는 확정된 사유를 되살리지 않는다) —
   //    당첨금이 먼저 들어와야 급여 소식 메일에 적히는 잔액이 실제와 맞기 때문이다.
   // ⚠️ **구독료는 밤에 나가는 유일한 돈이다**(생활비는 `turn.ts`의 취침 정산이 이미 뺀다).
   //    들어오는 것들보다 **먼저** 뺀다 — 그래야 급여 소식 메일에 적힐 잔액이 실제와 맞고,
@@ -637,12 +654,12 @@ function afterTurn(next: GameState, chain?: number) {
   const charged = advanceBills(phoned)
   const drawn = advanceLottery(charged)
   // ⚠️ **트위터 주간 정산도 밤에 돈을 넣는다**(`nightPayoutPending`의 네 번째 원천).
-  //    은행·복권과 같은 자리·같은 이유이고, 셋 다 마지막 줄에서 `settleGameOver`를 부르므로
+  //    은행·복권과 같은 자리·같은 이유이고, 셋 다 마지막 줄에서 `settleRecovery`를 부르므로
   //    순서 자체가 판정을 바꾸지는 않는다(확정된 사유는 되살아나지 않는다).
   const tweeted = advanceTwitter(drawn)
   // ⚠️ **공모전 상금과 웹툰 원고료도 밤에 들어온다**(`nightPayoutPending`의 다섯째·여섯째
   //    원천 — `turn.ts`가 `resultDay`·`dueDay`를 본다). 둘 다 마지막 줄에서
-  //    `settleGameOver`를 부르므로 순서가 판정을 바꾸지는 않는다.
+  //    `settleRecovery`를 부르므로 순서가 판정을 바꾸지는 않는다.
   // ⚠️ **웹툰이 공모전보다 뒤인 것은 의도다** — 제의 조건이 공모전 입상 횟수를 보므로
   //    (`offerEarned`), 같은 밤에 입상이 확정되면 그 밤에 제의가 온다. 순서를 뒤집으면
   //    제의가 하루 늦게 오고 "입상했는데 아무 일도 안 일어난 밤"이 한 번 생긴다.
@@ -669,6 +686,12 @@ function afterTurn(next: GameState, chain?: number) {
      감염의 대가 절반이 성가심인데, 손으로 누른 자리에만 붙이면 자동 진행으로 넘긴 판에서
      통째로 사라진다. */
   openAdwareWindow(evented)
+  /* ⚠️ **도감의 직업 콜렉션을 여기서 해금한다**(2026-08-14). 채용 소식이 나오는
+     자리가 곧 "다녀 본 회사"가 생기는 자리다 — `systems/`는 스토어를 못 부르므로
+     소식을 보고 스토어가 찍는 것이 방향이 맞다(랭크 이벤트 창과 같은 자리·같은 이유).
+     ⚠️ **판을 넘어 남겨야 한다**: 세이브의 `careerLog`만 보면 새 게임을 시작하는
+     순간 다녀 본 회사가 전부 사라진다. */
+  unlockHiredCareers(job.notices)
   return {
     state: evented,
     skippedPlans: ran.skipped,
@@ -1092,7 +1115,7 @@ export const useGameStore = create<GameStore>()(
           const { state: current, autoRunning } = get()
           // 게임오버에서는 시작조차 하지 않는다. 정지 규칙(`game-over`)이 한 번 더 막지만,
           // 끝난 판에서 버튼이 "돌아가는 시늉"을 하는 것부터가 거짓말이다.
-          if (!current || current.gameOver || autoRunning) return
+          if (!current || current.recovery || autoRunning) return
           clearAutoTimer()
           set({ autoRunning: true, autoSlots: 0, autoRun: startRun(current) })
           autoTick()

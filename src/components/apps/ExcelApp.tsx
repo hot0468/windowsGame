@@ -69,6 +69,7 @@ export function ExcelApp() {
   const state = useGameStore((s) => s.state)
   const unlockedEndings = useMetaStore((s) => s.unlockedEndings)
   const unlockedRelations = useMetaStore((s) => s.unlockedRelations)
+  const unlockedCareers = useMetaStore((s) => s.unlockedCareers)
   const [sheetId, setSheetId] = useState<SheetId>('career')
   /** 고른 행. 엑셀에서 셀 하나를 고른 것과 같고, 수식 입력줄이 그 값을 적는다. */
   const [picked, setPicked] = useState<string | null>(null)
@@ -79,7 +80,7 @@ export function ExcelApp() {
      엔딩 시트와 다른 수를 말하면 같은 창 안에서 두 표가 서로를 반박한다. */
   const seenEndings = new Set([...(state.seenEndingIds ?? []), ...unlockedEndings])
   const sheets: Sheet[] = [
-    careerSheet(state),
+    careerSheet(state, unlockedCareers),
     endingSheet(seenEndings),
     achievementSheet(state, seenEndings),
     relationSheet(state, unlockedRelations),
@@ -190,13 +191,19 @@ export function ExcelApp() {
  * "이번 판에 무엇으로 먹고살아 봤는가"를 묻는 표라 빠지면 표가 거짓이 된다. 그래서 행만
  * 여기서 만들고 **레벨·경험 판정은 `systems/webtoon.ts`가 한다**(두 번째 판정 금지).
  */
-function careerSheet(state: GameState): Sheet {
+function careerSheet(state: GameState, unlocked: string[]): Sheet {
+  /* ⚠️ **두 곳을 합친다**(관계 시트와 같은 규칙): 지금 세이브의 근무 기록과 판을 넘어
+     남는 해금 기록(`metaStore.unlockedCareers`). 세이브만 보면 **새 게임을 시작하는 순간
+     다녀 본 회사가 전부 사라진다** — 콜렉션은 판이 아니라 플레이어에게 쌓이는 것이다.
+     직업 엔딩 9종이 이 시트로 들어온 자리가 여기다(2026-08-14). */
+  const seen = new Set(unlocked)
   return {
     id: 'career',
     label: '직업',
     columns: ['회사', '직함', '급여', '레벨', '상태'],
     rows: [...CAREERS.map((career) => {
-      const held = heldCareer(state, career.id)
+      const thisRun = heldCareer(state, career.id)
+      const held = thisRun || seen.has(career.id)
       const level = careerLevel(state, career.id)
       const attended = attendedCount(state, career.id)
       const toNext = toNextCareerLevel(state, career.id)
@@ -210,7 +217,9 @@ function careerSheet(state: GameState): Sheet {
           level === undefined ? '—' : `Lv.${level}`,
           held ? '경험함' : '미경험',
         ],
-        detail: held
+        detail: !thisRun && held
+          ? `${career.company} · ${career.title} — 지난 판에 다녀 본 곳입니다. · ${career.summary}`
+          : held
           ? `${career.company} · ${career.title} — 출근 ${attended}회, Lv.${level}` +
             (toNext === undefined
               ? ` (최고 레벨 ${CAREER_MAX_LEVEL})`
@@ -361,15 +370,18 @@ function relationSheet(state: GameState, unlocked: string[]): Sheet {
   }
 }
 
-/** 엔딩의 갈래. ⚠️ **직업 엔딩도 `isFailure`이므로 `careerId`를 먼저 본다.** */
-function endingKind(ending: Ending): string {
-  if (ending.careerId) return '직업'
-  return ending.isFailure ? '실패' : '성취'
+/**
+ * 엔딩의 갈래.
+ *
+ * ⚠️ **지금은 성취뿐이다**(2026-08-14). 직업 9종은 **직업 시트**로 갔고 실패 2종은
+ * 엔딩이 아니게 됐다. 열을 남겨 두는 것은 갈래가 다시 늘 자리라서다.
+ */
+function endingKind(_ending: Ending): string {
+  return '성취'
 }
 
-/** 도달 조건 한 줄. 조건이 없는 엔딩(직업·실패)은 어떻게 끝났는지를 적는다. */
+/** 도달 조건 한 줄. */
 function conditionLabel(ending: Ending): string {
-  if (ending.careerId) return '재직 중 파산'
   if (!ending.condition) return '조건 없음'
   return Object.entries(ending.condition)
     .map(([key, value]) => `${STAT_NAMES[key as keyof typeof STAT_NAMES]} ${value}`)

@@ -871,3 +871,59 @@
 .stat-ill-note {
   min-width: 0;
 }
+
+/* ── 스탯창: 생활 등급 (2026-08-14) ──────────────────────────────────────────
+ *
+ * 이 패널의 첫 줄이자 이 게임의 목표가 사는 자리다. 아래 스탯 열다섯 개가 "무엇을 얼마나
+ * 올렸나"를 말한다면 이 구역은 **"나는 지금 어디쯤인가"**에 답한다.
+ *
+ * ⚠️ **토큰을 새로 만들지 않았다.** 면은 `--hud-fill`, 헤어라인은 `--hud-rule`,
+ * 게이지는 기존 `.stat-bar`/`.stat-fill`을 그대로 쓴다 — 등급 하나 때문에 새 색을
+ * 들이면 그 순간 네 번째 시각 언어가 된다(`.stat-ill`이 같은 이유로 중립 면을 쓴다).
+ */
+.stat-life {
+  margin: 0 0 var(--sp-2);
+  padding: var(--sp-2);
+  border: 1px solid var(--hud-rule);
+  border-radius: var(--r-sm);
+  background: var(--hud-fill);
+}
+
+.stat-life-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.stat-life-label {
+  font-size: var(--fs-xs);
+  color: var(--hud-text-2);
+}
+
+/* 등급이 이 구역의 주인공이다 — 크기로 위계를 만든다(ux `visual-hierarchy`).
+   tabular-nums는 SS+2처럼 자릿수가 바뀔 때 자리가 흔들리지 않게 한다. */
+.stat-life-rank {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--hud-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 머리와 붙어 보이지 않게 한 칸 띄운다. 높이·색은 `.stat-bar`가 이미 정한다. */
+.stat-life-bar {
+  margin-top: var(--sp-2);
+}
+
+.stat-life-note {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--hud-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 주저앉은 배지. `.stat-ill`을 그대로 물려받고 글리프만 위험색으로 바꾼다 —
+   면과 테두리를 다시 정의하면 같은 판에 두 가지 경고 스타일이 생긴다. */
+.stat-down .stat-ill-title {
+  color: var(--hud-danger);
+}

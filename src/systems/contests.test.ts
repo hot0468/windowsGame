@@ -110,7 +110,7 @@ describe('출품', () => {
   it('없는 공모전·게임오버에는 아무 일도 없다', () => {
     const s = withArt(ready(), 1)
     expect(enterContest(s, 'nope', { artworkId: s.artworks![0].id })).toBe(s)
-    const over: GameState = { ...s, gameOver: 'bankrupt' }
+    const over: GameState = { ...s, recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } }
     expect(enterContest(over, SINGLE.id, { artworkId: s.artworks![0].id })).toBe(over)
   })
 })

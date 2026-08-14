@@ -1,5 +1,5 @@
 import { BILLS, MISS_REPUTATION_PENALTY, NOTICE_DAYS, billOn, noticedBills } from '../data/bills'
-import { clampStats, settleGameOver } from './turn'
+import { clampStats, settleRecovery } from './turn'
 import type { GameState } from '../types/game'
 
 /**
@@ -59,7 +59,7 @@ export function advanceBills(state: GameState): GameState {
     }
   }
 
-  return settleGameOver({
+  return settleRecovery({
     ...state,
     stats: clampStats(stats),
     paidBills: [...(state.paidBills ?? []), ...due.map((b) => b.id)],

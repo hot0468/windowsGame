@@ -80,7 +80,7 @@ describe('수강 조건', () => {
 
   it('게임이 끝났으면 못 듣는다', () => {
     const course = findCourse('ai-basic')!
-    expect(canTake(state({ gameOver: 'bankrupt' }), course)).toBe(false)
+    expect(canTake(state({ recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } }), course)).toBe(false)
   })
 })
 
@@ -114,7 +114,7 @@ describe('수료증', () => {
   function takeTimes(course = findCourse('ai-basic')!, times = CERTIFICATE_SESSIONS) {
     let s = state()
     for (let i = 0; i < times; i++) {
-      s = { ...s, stats: { ...s.stats, money: 500000, stamina: 100, mental: 100 }, gameOver: null }
+      s = { ...s, stats: { ...s.stats, money: 500000, stamina: 100, mental: 100 }, recovery: null }
       s = takeCourse(s, course)
     }
     return s

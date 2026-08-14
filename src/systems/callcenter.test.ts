@@ -9,7 +9,6 @@ import {
   findQna,
 } from '../data/callcenter'
 import { CAREERS, PAYDAY_INTERVAL, findCareer } from '../data/careers'
-import { CAREER_ENDINGS } from '../data/endings'
 import { bonusFor, callsForDay, creditCall, searchQna, worksAtCallCenter } from './callcenter'
 import { advanceEmployment } from './employment'
 import { createInitialState } from './turn'
@@ -155,7 +154,11 @@ describe('공고와의 연결', () => {
     expect(CAREERS[0].id).toBe(CALL_CENTER_CAREER_ID)
   })
 
-  it('그 회사에도 자기 엔딩이 있다 — 아무도 볼 수 없는 엔딩은 버그다', () => {
-    expect(CAREER_ENDINGS.find((e) => e.careerId === CALL_CENTER_CAREER_ID)).toBeDefined()
+  /* ⚠️ 예전에는 "그 회사에도 자기 엔딩이 있다"였다 — 직업 엔딩 9종이 도감 콜렉션으로
+     옮겨 가면서(2026-08-14) 확인할 대상이 엔딩에서 공고로 바뀌었다. */
+  it('도감이 셀 수 있게 공고에 이름과 직함이 있다', () => {
+    const career = findCareer(CALL_CENTER_CAREER_ID)!
+    expect(career.company).toBeTruthy()
+    expect(career.title).toBeTruthy()
   })
 })

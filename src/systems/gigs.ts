@@ -1,5 +1,5 @@
 import { GIGS, MISS_REPUTATION_PENALTY, findGig } from '../data/gigs'
-import { clampStats, owns, settleGameOver } from './turn'
+import { clampStats, owns, settleRecovery } from './turn'
 import type { Gig } from '../data/gigs'
 import type { GameState, GigState } from '../types/game'
 
@@ -61,7 +61,7 @@ export function canTake(state: GameState, gig: Gig): boolean {
 
 export function takeBlockers(state: GameState, gig: Gig): string[] {
   const reasons: string[] = []
-  if (state.gameOver) return ['게임이 끝나 더 이상 일을 받을 수 없습니다.']
+  if (state.recovery) return ['게임이 끝나 더 이상 일을 받을 수 없습니다.']
   if (activeContract(state)) reasons.push('이미 받아 둔 일이 있습니다 — 한 번에 하나만 받습니다')
   if (isDone(state, gig.id)) reasons.push('이미 납품한 일감입니다')
   if (gig.requiresItem && !owns(state, gig.requiresItem)) {
@@ -119,16 +119,16 @@ export { applyToolSession } from './turn'
  *
  * ⚠️ **돈을 만지지 않는다**(평판만 깎는다) — 그래서 `nightPayoutPending`에 원천을 더할
  * 필요가 없고, 밤 정산 어디에 놓아도 파산 판정이 흔들리지 않는다(자격시험 발표와 같은 부류).
- * 다만 평판이 0 밑으로 내려가지 않도록 `clampStats`를 지나고, 그 김에 `settleGameOver`로
+ * 다만 평판이 0 밑으로 내려가지 않도록 `clampStats`를 지나고, 그 김에 `settleRecovery`로
  * 판정을 한 번 물어본다(멘탈·소지금은 안 건드리므로 사실상 통과다).
  */
 export function advanceGigs(state: GameState): GameState {
   const prev = state.gigs
   const contract = prev?.active
-  if (!prev || !contract || state.gameOver) return state
+  if (!prev || !contract || state.recovery) return state
   if (state.day <= contract.dueDay) return state
 
-  return settleGameOver({
+  return settleRecovery({
     ...state,
     stats: clampStats({
       ...state.stats,

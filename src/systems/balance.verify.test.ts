@@ -16,8 +16,7 @@ import { findActivity } from '../data/activities'
 import { ABSENCE_FIRE, ABSENCE_WARNING, CAREERS, PAYDAY_INTERVAL, findCareer } from '../data/careers'
 import { getLivingCost } from './economy'
 import { countConsecutive } from './burnout'
-import { getFailureEnding } from './ending'
-import { ACHIEVEMENT_ENDINGS, careerEnding } from '../data/endings'
+import { ACHIEVEMENT_ENDINGS } from '../data/endings'
 import { advanceEmployment, applyTo, passes } from './employment'
 import { advanceBank, bankOf, bankedTotal, borrow, loanRoom, openDeposit, withdraw } from './bank'
 import { DEPOSIT_MIN, LOAN_LIMIT_BASE } from '../data/bank'
@@ -36,7 +35,7 @@ const game = findActivity('game')!
 function playOptimally(maxDays: number): { state: GameState; peakMoney: number } {
   let state = createInitialState('시뮬')
   let peakMoney = state.stats.money
-  while (!state.gameOver && state.day <= maxDays) {
+  while (state.day <= maxDays) {
     const streak = countConsecutive(state.recentActivities, 'work')
     const mentalCost = 8 + streak * 4
     let next: GameState
@@ -49,23 +48,45 @@ function playOptimally(maxDays: number): { state: GameState; peakMoney: number }
   return { state, peakMoney }
 }
 
-describe('무한 플레이 차단', () => {
-  it('최적 플레이도 결국 파산한다', () => {
+describe('무한 플레이가 성립하는가', () => {
+  /* ⚠️ **2026-08-14에 뜻이 통째로 뒤집힌 블록이다.** 예전 이름은 '무한 플레이 차단'이었고
+     "최적 플레이도 결국 파산한다"·"60~120일에 끝난다"를 지켰다 — 물가가 반드시 수입을
+     추월하게 만든 것이 이 게임의 종료 장치였기 때문이다. 육성물 전환(설계자 지시:
+     "카이로소프트처럼 완전한 게임오버는 없었으면")으로 그 장치가 사라졌으므로, 지금
+     지켜야 하는 것은 정반대다 — **오래 굴려도 판이 끝나지 않는가.** */
+
+  it('최적 플레이는 천 일을 굴려도 끝나지 않는다', () => {
     const { state } = playOptimally(1000)
-    expect(state.gameOver).toBe('bankrupt')
+    expect(state.day).toBeGreaterThan(1000)
   })
 
-  it('파산 시점이 의도한 60~120일 구간에 든다', () => {
+  it('그 판이 회복에 갇혀 있지도 않다 — 살아서 도는 것이 무한 플레이다', () => {
     const { state } = playOptimally(1000)
-    expect(state.day).toBeGreaterThanOrEqual(60)
-    expect(state.day).toBeLessThanOrEqual(120)
+    expect(state.recovery).toBeNull()
+    expect(state.stats.money).toBeGreaterThan(0)
   })
 
-  it('아무것도 하지 않으면 생활비만으로 훨씬 빨리 파산한다', () => {
+  /* 실패가 아프지 않으면 육성물이 아니라 산책이다 — 주저앉는 일은 여전히 일어나야 한다. */
+  it('아무것도 하지 않으면 곧 주저앉는다 — 벌이 사라진 것은 아니다', () => {
     let state = createInitialState('무행동')
-    while (!state.gameOver && state.day <= 100) state = skipSlot(state)
-    expect(state.gameOver).toBe('bankrupt')
-    expect(state.day).toBeLessThan(20)
+    let downs = 0
+    let wasDown = false
+    while (state.day <= 60) {
+      state = skipSlot(state)
+      const down = state.recovery !== null
+      if (down && !wasDown) downs++
+      wasDown = down
+    }
+    expect(downs, '생활비만 나가는데도 한 번도 안 주저앉았다').toBeGreaterThan(0)
+  })
+
+  it('그래도 거기서 빠져나온다 — 주저앉음이 영구 상태가 아니다', () => {
+    let state = createInitialState('무행동')
+    while (state.day <= 60) state = skipSlot(state)
+    // 60일을 굴린 끝에 회복에 **갇혀** 있으면 그것이 이름만 다른 게임오버다.
+    const before = state.day
+    while (state.recovery && state.day <= before + 10) state = skipSlot(state)
+    expect(state.recovery).toBeNull()
   })
 })
 
@@ -133,7 +154,7 @@ function playEmployed(career: Career, maxDays: number, attend = true): EmployedR
   let lowestBeforeFirstPay = Number.POSITIVE_INFINITY
 
   for (let guard = 0; guard < maxDays * 2 + 10; guard++) {
-    if (state.gameOver || state.day > maxDays) break
+    if (state.day > maxDays) break
 
     let next: GameState
     if (attend && canRun(state, commute)) {
@@ -205,11 +226,12 @@ describe('정규직 — 살아남을 수 있는가', () => {
     expect(run.state.employment?.absences ?? 0).toBeLessThan(ABSENCE_WARNING)
   })
 
-  it('정규직으로도 결국 판은 끝난다 — 고정 급여가 물가를 이기지 못한다', () => {
+  /* ⚠️ 예전 이름은 '정규직으로도 결국 판은 끝난다'였다(고정 급여가 물가를 못 이긴다).
+     급여는 여전히 물가 배율을 안 타지만, 물가가 발산하지 않으므로 판이 끝나지는 않는다. */
+  it('정규직으로 400일을 굴려도 판이 끝나지 않는다', () => {
     const run = playEmployed(entry, 400)
-    expect(run.state.gameOver).toBe('bankrupt')
-    // 알바만 하는 플레이(60~120일)보다 오래 버티되, 무한 플레이는 아니다.
-    expect(run.state.day).toBeLessThanOrEqual(220)
+    expect(run.state.day).toBeGreaterThan(400)
+    expect(run.state.recovery).toBeNull()
   })
 
   it('출근하지 않으면 경고를 거쳐 해고된다 — 예고 없이 잃지 않는다', () => {
@@ -351,7 +373,7 @@ function playToward(career: Career, maxDays: number): { state: GameState; hiredD
   let hiredDay: number | null = null
 
   for (let guard = 0; guard < maxDays * 2 + 10; guard++) {
-    if (state.gameOver || state.day > maxDays) break
+    if (state.day > maxDays) break
     const earn = canRun(state, tutor) ? tutor : work
 
     let next: GameState
@@ -398,56 +420,35 @@ function playToward(career: Career, maxDays: number): { state: GameState; hiredD
   return { state, hiredDay }
 }
 
-describe('직업 엔딩 — 아무도 볼 수 없는 엔딩은 없다', () => {
+describe('직업 콜렉션 — 아무도 못 여는 줄은 없다', () => {
+  /* ⚠️ **2026-08-14에 뜻이 뒤집힌 블록이다.** 예전 이름은 '직업 엔딩 — 아무도 볼 수 없는
+     엔딩은 없다'였고, 공고마다 **취직한 뒤 파산해** 그 회사의 엔딩으로 끝나는지를 봤다.
+     직업 엔딩 9종이 도감 콜렉션으로 옮겨 가면서 파산이 조건에서 빠졌지만, **"도달할 수
+     있는가"라는 물음 자체는 그대로 옳다** — 못 여는 콜렉션 줄은 못 보는 엔딩과 똑같이
+     버그다. 그래서 시뮬레이션(`playToward`)은 그대로 두고 단언만 바꾼다. */
   for (const career of CAREERS) {
-    it(`${career.company}에 취직한 뒤 파산해 그 회사의 엔딩으로 끝난다`, () => {
+    it(`${career.company}에 실제로 취직할 수 있다`, () => {
       const run = playToward(career, 400)
-      expect(run.hiredDay, `${career.id}에 끝내 취직하지 못했다 — 도달 불가능한 엔딩이다`).not.toBeNull()
-      // 급여가 물가를 이기지 못하므로 취직한 판도 결국 굶어 죽는다. 그게 이 엔딩의 조건이다.
-      expect(run.state.gameOver, `${career.id}: 판이 끝나지 않았다`).toBe('bankrupt')
+      expect(run.hiredDay, `${career.id}에 끝내 취직하지 못했다 — 못 여는 콜렉션이다`).not.toBeNull()
       expect(run.state.peakCareerId).toBe(career.id)
-      const ending = getFailureEnding('bankrupt', run.state)
-      expect(ending.id).toBe(careerEnding(career.id)!.id)
-      expect(ending.isFailure).toBe(true)
     })
   }
 
-  it('직장을 가져 본 적 없는 판은 그냥 파산으로 끝난다', () => {
-    const { state } = playOptimally(1000)
-    expect(state.peakCareerId).toBeUndefined()
-    expect(getFailureEnding('bankrupt', state).id).toBe('bankrupt')
-  })
-
-  /**
-   * ⚠️ **비문에 새기는 것은 도달한 최고 직장이지 죽을 때의 직함이 아니다**
-   * (`systems/ending.ts`의 `epitaphCareerId`). 해고는 이미 수입을 끊어 파산을 앞당기는데,
-   * 거기에 기록까지 지우면 한 사건에 벌을 두 번 주는 것이다.
-   */
-  it('해고된 뒤 파산해도 다녔던 회사의 엔딩으로 끝난다', () => {
+  it('해고돼도 다녔다는 기록은 남는다 — 콜렉션은 "다녀 본 적 있는가"다', () => {
     const run = playEmployed(CAREERS[0], 400, false)
     expect(run.firedDay, '결근했는데도 해고되지 않았다').not.toBeNull()
-    // ⚠️ **"끝날 때 무직이다"는 재지 않는다** — 해고된 뒤 다시 지원해 취직할 수 있으므로
-    //    판이 재직 중에 끝나는 것도 정상이다. 해고가 재직 상태를 지운다는 것 자체는
-    //    `employment.test.ts`의 단위 테스트가 지킨다. 여기서 재는 것은 **기록이 남는가**다.
-    expect(run.state.gameOver).toBe('bankrupt')
     expect(run.state.peakCareerId).toBe(CAREERS[0].id)
-    expect(getFailureEnding('bankrupt', run.state).id).toBe(careerEnding(CAREERS[0].id)!.id)
   })
 })
 
-/* ── 은행 (2026-08-05) ─────────────────────────────────────────────────────
+/**
+ * ⚠️ **이 묶음이 은행이 공짜 돈이 되지 않는다는 것을 지킨다.**
  *
- * ⚠️ **이 묶음이 은행 때문에 판이 무한해지지 않는다는 것을 지킨다.**
- *
- * 은행은 두 방향으로 이 프로젝트의 핵심 보증("게임은 반드시 끝난다")을 위협한다:
- *  (a) **복리가 물가를 앞지르면** 예금만으로 영원히 산다.
- *  (b) **빌려서 예금하기**가 이익이면 무위험 차익으로 무한히 불어난다.
- *
- * (b)는 이율 부등식(`bank.test.ts`)이 데이터 수준에서 막는다. 여기서는 **(a)를
- * 시뮬레이션으로** 재 본다 — 단언이 아니라 실제로 최적에 가깝게 굴려 보고 죽는 날을 확인한다.
- *
- * ⚠️ **위의 알바·정규직 시뮬레이션을 약화시키지 않는다.** 은행은 경로를 하나 더 여는
- * 것이지 기존 경로를 바꾸는 것이 아니다(정규직 때와 같은 원칙).
+ * ⚠️ **2026-08-14에 전제가 바뀌었다.** 예전 이 주석은 "은행 때문에 판이 무한해지지
+ * 않는다"를 지킨다고 적혀 있었다 — 그때는 "게임은 반드시 끝난다"가 프로젝트의 핵심
+ * 보증이었기 때문이다. 육성물 전환으로 판은 원래 안 끝나므로, 남은 위협은 하나다:
+ * **빌려서 예금하기가 이익이면** 무위험 차익으로 무한히 불어난다.
+ * 이율 부등식(`bank.test.ts`)이 데이터 수준에서 막고, 여기서는 시뮬레이션으로 확인한다.
  */
 
 /**
@@ -462,11 +463,12 @@ describe('직업 엔딩 — 아무도 볼 수 없는 엔딩은 없다', () => {
  * ⚠️ **매 슬롯 `advanceBank`를 돌린다** — 손으로 플레이할 때 `gameStore.afterTurn`이
  * 하는 것과 같다. 이걸 빠뜨리면 이자가 한 번도 안 붙어 시뮬레이션이 거짓이 된다.
  */
-function playBanking(maxDays: number): { state: GameState; peakBanked: number } {
+function playBanking(maxDays: number): { state: GameState; peakBanked: number; peakMoney: number } {
   let state = createInitialState('은행최적')
   let peakBanked = 0
+  let peakMoney = state.stats.money
 
-  while (!state.gameOver && state.day <= maxDays) {
+  while (state.day <= maxDays) {
     const living = getLivingCost(state)
     // 손에 남겨 둘 최소 현금. 이보다 많으면 묶고, 적으면 푼다.
     const buffer = living * 4
@@ -490,38 +492,34 @@ function playBanking(maxDays: number): { state: GameState; peakBanked: number } 
     // ⚠️ 손으로 플레이할 때와 **같은 함수, 같은 자리**. 이자·만기가 여기서 일어난다.
     state = advanceBank(state)
     peakBanked = Math.max(peakBanked, bankedTotal(state))
+    /* ⚠️ **묶인 돈까지 함께 센다** — 무한 플레이에서 은행의 값은 '며칠을 사 주는가'가
+       아니라 '얼마를 불려 주는가'인데, 현금만 보면 예금에 넣은 순간 값이 줄어 보인다. */
+    peakMoney = Math.max(peakMoney, state.stats.money + bankedTotal(state))
   }
-  return { state, peakBanked }
+  return { state, peakBanked, peakMoney }
 }
 
-describe('은행 — 그래도 판은 끝난다', () => {
-  it('은행을 최대한 굴려도 결국 파산한다 — 복리가 물가를 이기지 못한다', () => {
-    const { state } = playBanking(2000)
-    expect(state.gameOver).toBe('bankrupt')
-  })
+describe('은행 — 쓰는 이유가 있는 장치인가', () => {
+  /* ⚠️ **2026-08-14에 뜻이 뒤집힌 블록이다.** 예전 이름은 '은행 — 그래도 판은 끝난다'였고,
+     "복리가 물가를 이기지 못한다"·"연장이 240일을 안 넘는다"로 **판이 끝나는 것**을 지켰다.
+     무한 플레이가 되면서 "며칠을 사 주는가"로는 장치의 값을 잴 수 없다 — 아무도 안 죽으니까.
+     그래서 재는 것을 **얼마를 불려 주는가**로 바꾼다. 판정의 뜻은 그대로다:
+     **쓰는 이유가 있어야 장치이고, 공짜 차익이 있으면 안 된다.** */
 
-  it('은행이 실제로 며칠을 사 준다 — 쓰는 이유가 있어야 장치다', () => {
-    const banking = playBanking(2000)
-    const plain = playOptimally(2000)
+  it('예금이 실제로 돈을 불려 준다 — 쓰는 이유가 있어야 장치다', () => {
+    const banking = playBanking(400)
+    const plain = playOptimally(400)
     expect(banking.peakBanked, '은행을 한 번도 쓰지 않았다면 시뮬레이션이 거짓이다').toBeGreaterThan(0)
-    // 예금이 생존을 **늘리기는** 해야 한다. 늘지 않으면 아무도 안 쓴다.
-    expect(banking.state.day).toBeGreaterThanOrEqual(plain.state.day)
+    expect(banking.peakMoney).toBeGreaterThanOrEqual(plain.peakMoney)
   })
 
-  it('그 연장이 무한이 아니다 — 기존 상한(120일)의 두 배를 넘지 않는다', () => {
-    // ⚠️ 이 상한이 "은행이 판을 통째로 다시 쓰지는 않는다"를 못 박는다.
-    //    이자를 올리다가 이 선을 넘으면 여기서 터진다.
-    const { state } = playBanking(2000)
-    expect(state.day).toBeLessThanOrEqual(240)
-  })
-
-  it('빌려서 예금하는 짓은 판을 늘리지 못한다 — 무위험 차익이 없다', () => {
-    // 한도까지 빌려 정기예금에 넣고 시작한다. 차익이 존재한다면 이쪽이 더 오래 살아야 한다.
+  it('빌려서 예금하는 짓은 이득이 아니다 — 무위험 차익이 없다', () => {
+    // 한도까지 빌려 정기예금에 넣고 시작한다. 차익이 존재한다면 빚보다 이자가 커야 한다.
     let state: GameState = createInitialState('차익시도')
     state = borrow(state, loanRoom(state))
     state = openDeposit(state, Math.floor(state.stats.money / DEPOSIT_MIN) * DEPOSIT_MIN)
     let guard = 0
-    while (!state.gameOver && state.day <= 2000 && guard++ < 5000) {
+    while (state.day <= 400 && guard++ < 5000) {
       const streak = countConsecutive(state.recentActivities, 'work')
       if (canRun(state, work) && state.stats.mental - (8 + streak * 4) > 3) {
         state = runActivity(state, work)
@@ -529,7 +527,6 @@ describe('은행 — 그래도 판은 끝난다', () => {
       else state = skipSlot(state)
       state = advanceBank(state)
     }
-    expect(state.gameOver).toBe('bankrupt')
     // 빚이 원금보다 커져 있어야 한다 — 이자가 나를 향해 붙었다는 증거다.
     expect(bankOf(state).debt).toBeGreaterThan(LOAN_LIMIT_BASE)
   })
@@ -567,11 +564,13 @@ function playHousedGambler(maxDays: number): {
   movedDay: number | null
   tickets: number
   won: number
+  peakMoney: number
 } {
   let state = createInitialState('이사복권')
   let movedDay: number | null = null
+  let peakMoney = state.stats.money
 
-  while (!state.gameOver && state.day <= maxDays) {
+  while (state.day <= maxDays) {
     // ① 계약금이 되면 가장 싼 집으로. 생활비를 깎는 것이 가장 큰 이득이므로 최우선이다.
     if (movedDay === null && canMove(state, cheapest)) {
       state = moveTo(state, cheapest)
@@ -598,58 +597,64 @@ function playHousedGambler(maxDays: number): {
 
     // ⚠️ 손으로 플레이할 때와 **같은 함수, 같은 자리**. 당첨금이 여기서 들어온다.
     state = advanceLottery(state)
+    peakMoney = Math.max(peakMoney, state.stats.money)
   }
 
   const lot = state.lottery
-  return { state, movedDay, tickets: lot?.serial ?? 0, won: lot?.won ?? 0 }
+  return { state, movedDay, tickets: lot?.serial ?? 0, won: lot?.won ?? 0, peakMoney }
 }
 
-describe('이사 · 복권 — 그래도 판은 끝난다', () => {
-  it('가장 싼 집으로 옮기고 복권을 계속 사도 결국 파산한다', () => {
-    const run = playHousedGambler(2000)
+/**
+ * 이사만 하는(복권은 안 사는) 대조군. `move=false`면 이사도 안 한다.
+ * ⚠️ **`playHousedGambler`와 같은 정책이어야** 비교가 성립한다 — 다른 것은 복권뿐이다.
+ */
+function playHoused(maxDays: number, move: boolean): { state: GameState; peakMoney: number } {
+  let state = createInitialState(move ? '이사만' : '그대로')
+  let peakMoney = state.stats.money
+  while (state.day <= maxDays) {
+    if (move && canMove(state, cheapest)) state = moveTo(state, cheapest)
+    const streak = countConsecutive(state.recentActivities, 'work')
+    if (canRun(state, work) && state.stats.mental - (8 + streak * 4) > 3) {
+      state = runActivity(state, work)
+    } else if (canRun(state, game) && state.stats.mental < 95) state = runActivity(state, game)
+    else state = skipSlot(state)
+    peakMoney = Math.max(peakMoney, state.stats.money)
+  }
+  return { state, peakMoney }
+}
+
+describe('이사 · 복권 — 쓰는 이유가 있는 장치인가', () => {
+  /* ⚠️ **2026-08-14에 뜻이 뒤집힌 블록이다**(은행 블록과 같은 자리·같은 사유).
+     예전 이름은 '— 그래도 판은 끝난다'였고 "결국 파산한다"·"240일을 안 넘는다"로
+     **판이 끝나는 것**을 지켰다. 무한 플레이에서는 "며칠을 사 주는가"로 장치의 값을
+     잴 수 없으므로 **얼마를 남겨 주는가**로 바꾼다. 복권이 수입원이 아니라는 것,
+     이사가 실제로 이득이라는 것 — 두 판정의 뜻은 그대로다. */
+
+  it('시뮬레이션이 실제로 이사하고 복권을 산다 — 아니면 아래가 전부 거짓이다', () => {
+    const run = playHousedGambler(400)
     expect(run.movedDay, '끝내 이사하지 못했다면 시뮬레이션이 거짓이다').not.toBeNull()
     expect(run.tickets, '복권을 한 장도 사지 않았다면 시뮬레이션이 거짓이다').toBeGreaterThan(0)
-    expect(run.state.gameOver).toBe('bankrupt')
+  })
+
+  it('이사가 실제로 돈을 남겨 준다 — 쓰는 이유가 없으면 장치가 아니다', () => {
+    // 같은 정책에서 이사만 뺀 플레이와 견준다. 생활비가 줄었으니 남는 돈이 많아야 한다.
+    const moved = playHoused(400, true)
+    const stayed = playHoused(400, false)
+    expect(moved.peakMoney).toBeGreaterThan(stayed.peakMoney)
   })
 
   /**
-   * ⚠️ **이 상한이 "이사가 판을 통째로 다시 쓰지는 않는다"를 못 박는다.**
-   * 은행의 240일과 같은 자리의 같은 장치다 — 매물 배율을 낮추다가 이 선을 넘으면
-   * 여기서 터진다.
-   */
-  it('그 연장이 무한이 아니다 — 은행 상한(240일)을 넘지 않는다', () => {
-    expect(playHousedGambler(2000).state.day).toBeLessThanOrEqual(240)
-  })
-
-  it('이사가 실제로 며칠을 사 준다 — 쓰는 이유가 없으면 장치가 아니다', () => {
-    const gambler = playHousedGambler(2000)
-    const plain = playOptimally(2000)
-    expect(gambler.state.day).toBeGreaterThan(plain.state.day)
-  })
-
-  /**
-   * ⚠️ **복권은 며칠을 사 주지 않는다** — 기대값이 음수이므로 사면 살수록 손해다.
-   * 이 단언이 무너지면 복권이 수입원이 된 것이고, 그 순간 파산 보증이 죽는다.
+   * ⚠️ **복권은 돈을 벌어 주지 않는다** — 기대값이 음수이므로 사면 살수록 손해다.
+   * 이 단언이 무너지면 복권이 수입원이 된 것이고, 그 순간 노동이 뜻을 잃는다.
    */
   it('⚠️ 복권에 쓴 돈이 받은 상금보다 많다 — 수입원이 아니다', () => {
-    const run = playHousedGambler(2000)
+    const run = playHousedGambler(400)
     const lot = run.state.lottery!
     expect(lot.spent).toBeGreaterThan(lot.won)
   })
 
-  it('이사만 하고 복권을 안 사면 더 오래 산다 — 복권은 죽는 날을 앞당긴다', () => {
-    // 같은 정책에서 복권만 뺀 플레이. 복권이 이득이라면 이쪽이 더 짧아야 한다.
-    let state = createInitialState('이사만')
-    while (!state.gameOver && state.day <= 2000) {
-      if (canMove(state, cheapest)) state = moveTo(state, cheapest)
-      const streak = countConsecutive(state.recentActivities, 'work')
-      if (canRun(state, work) && state.stats.mental - (8 + streak * 4) > 3) {
-        state = runActivity(state, work)
-      } else if (canRun(state, game) && state.stats.mental < 95) state = runActivity(state, game)
-      else state = skipSlot(state)
-    }
-    expect(state.gameOver).toBe('bankrupt')
-    expect(state.day).toBeGreaterThanOrEqual(playHousedGambler(2000).state.day)
+  it('복권을 안 사면 돈이 더 남는다 — 복권은 지출이다', () => {
+    expect(playHoused(400, true).peakMoney).toBeGreaterThan(playHousedGambler(400).peakMoney)
   })
 })
 
@@ -662,7 +667,7 @@ describe('엔딩 도달 가능성', () => {
   it('현실주의자 도달일이 25~40일 구간에 든다', () => {
     let state = createInitialState('시뮬')
     let reachedDay: number | null = null
-    while (!state.gameOver && state.day <= 200) {
+    while (state.day <= 200) {
       if (reachedDay === null && state.stats.money >= 1800000) reachedDay = state.day
       const streak = countConsecutive(state.recentActivities, 'work')
       if (canRun(state, work) && state.stats.mental - (8 + streak * 4) > 3) {
@@ -687,7 +692,7 @@ describe('엔딩 도달 가능성', () => {
     const goal = ironman.condition!.athletics!
     let state = createInitialState('시뮬')
     let reachedDay: number | null = null
-    while (!state.gameOver && state.day <= 200) {
+    while (state.day <= 200) {
       if (reachedDay === null && state.stats.athletics >= goal) reachedDay = state.day
       // 돈이 마르면 일하고, 아니면 뛴다. 러닝은 돈이 안 들고 멘탈을 채운다.
       const streak = countConsecutive(state.recentActivities, 'work')

@@ -11,7 +11,7 @@ describe('migrateSave — 정상 세이브', () => {
     const result = migrateSave(saved)
     expect(result.state?.playerName).toBe('테스터')
     expect(result.state?.day).toBe(1)
-    expect(result.state?.gameOver).toBeNull()
+    expect(result.state?.recovery).toBeNull()
   })
 
   it('진행 중인 스탯 값을 보존한다', () => {
@@ -22,8 +22,8 @@ describe('migrateSave — 정상 세이브', () => {
   })
 
   it('게임오버 세이브도 형식이 맞으면 복원한다', () => {
-    const saved = { state: { ...createInitialState('t'), gameOver: 'bankrupt' as const } }
-    expect(migrateSave(saved).state?.gameOver).toBe('bankrupt')
+    const saved = { state: { ...createInitialState('t'), recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } as const } }
+    expect(migrateSave(saved).state?.recovery?.kind).toBe('bankrupt')
   })
 
   it('개명 전 세이브의 intelligence를 knowledge로 넘겨받는다', () => {
@@ -79,7 +79,7 @@ describe('migrateSave — 손상/부분 세이브 거부', () => {
   })
 
   it('스탯이 통째로 빠지면 기본 스탯으로 채운다', () => {
-    const saved = { state: { playerName: 'x', day: 3, slot: 'morning', recentActivities: [], seenEndingIds: [], gameOver: null } }
+    const saved = { state: { playerName: 'x', day: 3, slot: 'morning', recentActivities: [], seenEndingIds: [], recovery: null } }
     const result = migrateSave(saved)
     expect(result.state?.stats.money).toBe(INITIAL_STATS.money)
     expect(result.state?.stats.mental).toBe(INITIAL_STATS.mental)
@@ -129,7 +129,7 @@ describe('migrateSave — 손상/부분 세이브 거부', () => {
 
   it('알 수 없는 gameOver 값은 진행 중으로 취급한다', () => {
     const saved = { state: { ...createInitialState('t'), gameOver: 'meteor' } }
-    expect(migrateSave(saved).state?.gameOver).toBeNull()
+    expect(migrateSave(saved).state?.recovery).toBeNull()
   })
 
   it('어떤 입력에도 throw하지 않는다', () => {
@@ -139,34 +139,38 @@ describe('migrateSave — 손상/부분 세이브 거부', () => {
   })
 })
 
-describe('selectPersistedState — 끝난 게임 세이브 정리', () => {
+describe('selectPersistedState — 주저앉은 판도 저장한다', () => {
+  /* ⚠️ **2026-08-14에 뜻이 뒤집힌 블록이다.** 예전에는 "끝난 게임 세이브 정리"였고
+     파산·번아웃 세이브를 **버렸다** — 이어할 수 없는 판이었기 때문이다. 육성물 전환으로
+     끝나는 게임 자체가 없어졌고, 회복은 며칠 뒤 풀리는 **진행 중인 상태**다.
+     여기서 버리면 회복을 기다리던 플레이어가 판을 통째로 잃는다. */
   it('진행 중인 세이브는 저장한다', () => {
     const state = createInitialState('테스터')
     expect(selectPersistedState(state).state).toBe(state)
   })
 
-  it('파산으로 끝난 세이브는 저장하지 않는다', () => {
-    const state = { ...createInitialState('t'), gameOver: 'bankrupt' as const }
-    expect(selectPersistedState(state).state).toBeNull()
+  it('파산으로 주저앉은 세이브도 저장한다', () => {
+    const state = { ...createInitialState('t'), recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } as const }
+    expect(selectPersistedState(state).state).toBe(state)
   })
 
-  it('번아웃으로 끝난 세이브는 저장하지 않는다', () => {
-    const state = { ...createInitialState('t'), gameOver: 'burnout' as const }
-    expect(selectPersistedState(state).state).toBeNull()
+  it('번아웃으로 주저앉은 세이브도 저장한다', () => {
+    const state = { ...createInitialState('t'), recovery: { kind: 'burnout', startedDay: 1, daysLeft: 3 } as const }
+    expect(selectPersistedState(state).state).toBe(state)
   })
 
   it('세이브가 없으면 그대로 null이다', () => {
     expect(selectPersistedState(null).state).toBeNull()
   })
 
-  it('저장된 세이브를 다시 복원하면 항상 이어할 수 있다', () => {
-    // 저장 → 복원 왕복 후 gameOver가 남아 있으면 잠금화면이 이어하기를 못 준다.
-    const dead = { ...createInitialState('t'), gameOver: 'bankrupt' as const }
-    const restored = migrateSave(selectPersistedState(dead))
-    expect(restored.state).toBeNull()
+  it('주저앉은 판을 왕복해도 회복 상태가 살아남는다 — 이어할 수 있어야 한다', () => {
+    const down = { ...createInitialState('t'), recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 2 } as const }
+    const restored = migrateSave(selectPersistedState(down))
+    expect(restored.state).not.toBeNull()
+    expect(restored.state?.recovery).toEqual({ kind: 'bankrupt', startedDay: 1, daysLeft: 2 })
 
-    const alive = createInitialState('살아있음')
-    expect(migrateSave(selectPersistedState(alive)).state?.gameOver).toBeNull()
+    const alive = createInitialState('멀쩡함')
+    expect(migrateSave(selectPersistedState(alive)).state?.recovery).toBeNull()
   })
 })
 

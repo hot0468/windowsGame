@@ -24,6 +24,7 @@
 
 | 날짜 | 변경 | 대상 |
 |------|------|------|
+| 2026-08-14 | 육성물 전환 — 게임오버를 없애고(파산·번아웃은 며칠짜리 `Recovery`) 무한 생활 등급이 판을 이끈다. 직업·실패 엔딩 11종은 도감 콜렉션으로 | economy(상승률 동률), recovery(data+systems+test 신규), lifeRank(+test 신규), types(`Recovery`), turn·store·가드 15곳, endings(15→4), metaStore(`unlockedCareers`), StatPanel·ExcelApp·EndingModal·CalendarPanel·MobileStatSheet, balance.verify(전제 반전) |
 | 2026-08-14 | 육성 복리 — 스탯 등급 한 단계당 상승분 +15%(`masteryBonusFor`) + 첫 보상이 B·A뿐이던 스탯에 C 단발 첫 칸 7종 | turn(`statBonusFor`), rankScale 신규(rank가 재수출), activityPreview, mastery.test 신규, rankEvents·events(각 7) |
 | 2026-08-14 | 악성코드 감염 — 포털 스캠 배너를 누르면 매 턴 광고 팝업 + 밤마다 3,000원이 새고, 백신 결제나 IT B의 `clean`이 끊는다 | malware(data+systems+test 신규), AdwareApp(tsx+css 신규), types(`malware`·`WindowKind: adware`), turn(취침), gameStore(액션 3+afterTurn), appForWindow(+test), banners(`scam`), NeverPortal, SystemApps(`scan`·`clean`·`ver`) |
 | 2026-08-14 | 블루스크린 — 번아웃 효율이 하한에 닿으면 화면이 3초 뻗는다(연출뿐, 상태 불변) | BlueScreen(tsx+css 신규), burnout(`EFFICIENCY_FLOOR` 공개), layers(`BLUESCREEN`), Desktop |
@@ -33,4 +34,3 @@
 | 2026-08-13 | 장면 없는 활동의 등급 상승을 스탯창 뱃지가 말한다 + 너튜브 갈래별 시청(게임·음악·뉴스) | rank(`rankRose`+test), StatPanel, Desktop.css, activities(3), videos(`CATEGORY_ACTIVITY`), TubeSite |
 | 2026-08-13 | 너튜브 영상 감상 — 시청 화면 [끝까지 보기]가 1턴을 쓰고 감수성·창의력 소량 + 멘탈을 준다 | activities(`watch-video`), TubeSite(tsx+css) |
 | 2026-08-13 | 결과 판의 안쪽 스크롤 제거 — 끝나면 판이 흐름으로 돌아오고(`tr-done`) 높이를 내용이 정한다 | ToolRun(tsx+css) |
-| 2026-08-13 | 솔리테어 패산이 손으로는 안 눌리던 버그 — 렌더마다 새로 정의되던 `Slot`을 밖으로 뺐다 + `measure.mjs --mouse`(진짜 마우스) | SolitaireApp, scripts/measure.mjs |

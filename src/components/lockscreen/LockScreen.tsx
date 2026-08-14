@@ -13,7 +13,10 @@ export function LockScreen() {
 
   // 세이브가 있으면 이어하기를 먼저 제안한다.
   const [showNewGame, setShowNewGame] = useState(false)
-  const hasSave = saved !== null && saved.gameOver === null
+  /* ⚠️ **주저앉은 판도 이어한다**(2026-08-14). 예전에는 `gameOver === null`을 함께
+     봤는데, 그때는 끝난 판의 세이브가 이어할 수 없는 것이었다. 지금 회복은 며칠 뒤
+     풀리는 상태이므로 여기서 막으면 플레이어가 판을 통째로 잃는다. */
+  const hasSave = saved !== null
   const isNewGameMode = !hasSave || showNewGame
 
   const handleStart = () => {

@@ -1,18 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { checkAchievementEnding, epitaphCareerId, hasHigherTier, getFailureEnding } from './ending'
-import { ACHIEVEMENT_ENDINGS, CAREER_ENDINGS, ENDINGS, careerEnding } from '../data/endings'
+import { checkAchievementEnding, hasHigherTier } from './ending'
+import { ACHIEVEMENT_ENDINGS, ENDINGS } from '../data/endings'
 import { CAREERS } from '../data/careers'
-import { createInitialState } from './turn'
 import { INITIAL_STATS } from '../types/game'
-import type { GameState, Stats } from '../types/game'
+import type { Stats } from '../types/game'
 
 const statsWith = (overrides: Partial<Stats>): Stats => ({ ...INITIAL_STATS, ...overrides })
-
-/** 최고 경력만 심어 둔 상태. 직업 엔딩 판정은 이 값 하나만 본다. */
-const stateWith = (peakCareerId?: string): GameState => ({
-  ...createInitialState('테스터'),
-  peakCareerId,
-})
 
 describe('checkAchievementEnding', () => {
   it('조건 미달이면 null을 반환한다', () => {
@@ -46,9 +39,10 @@ describe('checkAchievementEnding', () => {
     expect(result?.id).not.toBe('bigtech')
   })
 
-  it('성취 엔딩 목록에 직업 엔딩이 섞여 있지 않다', () => {
+  /* ⚠️ 예전에는 `careerId`가 안 붙었는지도 함께 봤다 — 직업 엔딩이 도감 콜렉션으로
+     옮겨 가면서(2026-08-14) 그 필드 자체가 없어졌다. */
+  it('성취 엔딩은 전부 스탯 조건을 갖는다', () => {
     for (const e of ACHIEVEMENT_ENDINGS) {
-      expect(e.careerId, `${e.id}에 careerId가 붙어 있다`).toBeUndefined()
       expect(e.condition, `${e.id}에 조건이 없다`).toBeDefined()
     }
   })
@@ -95,48 +89,33 @@ describe('hasHigherTier', () => {
   })
 })
 
-describe('getFailureEnding', () => {
-  it('직장을 가져 본 적 없으면 그냥 파산 엔딩이다', () => {
-    const ending = getFailureEnding('bankrupt', stateWith(undefined))
-    expect(ending.id).toBe('bankrupt')
-    expect(ending.isFailure).toBe(true)
+/**
+ * 직업 콜렉션 (2026-08-14).
+ *
+ * ⚠️ **여기 있던 블록 셋이 통째로 뒤집혔다.** `getFailureEnding`·`직업 엔딩 정의`·
+ * `epitaphCareerId`는 전부 **"파산해야 직업 엔딩이 뜬다"**를 지키고 있었는데, 게임오버가
+ * 없어져 함수들이 사라졌다. 취직 기록은 이제 도감의 직업 시트가 받는다.
+ *
+ * 살릴 값이 있는 것은 **"아무도 볼 수 없는 것을 만들지 않는다"**는 규칙 하나였다 —
+ * 그 규칙 자체는 콜렉션에도 그대로 옳으므로 형태만 바꿔 남긴다.
+ */
+describe('직업 콜렉션 — 아무도 볼 수 없는 줄은 없다', () => {
+  it('도감이 세는 회사는 실제 공고와 같다', () => {
+    expect(CAREERS.length).toBeGreaterThan(0)
+    const ids = CAREERS.map((c) => c.id)
+    expect(new Set(ids).size, '공고 id가 겹치면 도감에 같은 줄이 두 번 뜬다').toBe(ids.length)
   })
 
-  it('번아웃 엔딩을 반환한다', () => {
-    expect(getFailureEnding('burnout', stateWith(undefined)).id).toBe('burnout')
-  })
-
-  it('경력이 있어도 번아웃은 번아웃이다 — 마음이 떨어져 죽는 것은 다른 죽음이다', () => {
-    expect(getFailureEnding('burnout', stateWith('cheongram-group')).id).toBe('burnout')
-  })
-
-  it('경력이 있으면 그 회사의 직업 엔딩으로 죽는다', () => {
-    for (const career of CAREERS) {
-      const ending = getFailureEnding('bankrupt', stateWith(career.id))
-      expect(ending.careerId, `${career.id}의 엔딩이 없다`).toBe(career.id)
-      expect(ending.isFailure, '직업 엔딩도 강제 종료여야 한다').toBe(true)
-    }
-  })
-
-  it('없는 공고를 가리키면 조용히 그냥 파산이다', () => {
-    expect(getFailureEnding('bankrupt', stateWith('없는회사')).id).toBe('bankrupt')
+  it('회사 이름과 직함이 서로 겹치지 않는다 — 도감에서 구분되는 근거다', () => {
+    const labels = CAREERS.map((c) => `${c.company}/${c.title}`)
+    expect(new Set(labels).size).toBe(labels.length)
   })
 })
 
-describe('직업 엔딩 정의', () => {
-  it('공고와 1:1이다 — 공고를 늘리고 엔딩을 안 만들면 무직으로 기록된다', () => {
-    expect(CAREER_ENDINGS.length).toBe(CAREERS.length)
-    for (const career of CAREERS) expect(careerEnding(career.id), career.id).toBeDefined()
-    for (const ending of CAREER_ENDINGS) {
-      expect(CAREERS.some((c) => c.id === ending.careerId), ending.id).toBe(true)
-    }
-  })
-
-  it('전부 강제 종료이고 스탯 조건이 없다 — 취직으로는 엔딩이 뜨지 않는다', () => {
-    for (const e of CAREER_ENDINGS) {
-      expect(e.isFailure, e.id).toBe(true)
-      expect(e.condition, e.id).toBeUndefined()
-    }
+describe('엔딩 정의', () => {
+  it('성취 엔딩뿐이다 — 파산·취직으로는 엔딩이 뜨지 않는다', () => {
+    expect(ENDINGS).toEqual(ACHIEVEMENT_ENDINGS)
+    for (const e of ENDINGS) expect(e.condition, e.id).toBeDefined()
   })
 
   it('엔딩 id와 아이콘이 서로 겹치지 않는다 — 도감에서 구분되는 근거다', () => {
@@ -146,19 +125,8 @@ describe('직업 엔딩 정의', () => {
     expect(new Set(icons).size).toBe(icons.length)
   })
 
-  it('문장을 돌려 쓰지 않는다 — 직함만 갈아 끼운 다섯 개는 엔딩이 아니라 표다', () => {
-    const texts = CAREER_ENDINGS.map((e) => e.text)
+  it('문장을 돌려 쓰지 않는다', () => {
+    const texts = ENDINGS.map((e) => e.text)
     expect(new Set(texts).size).toBe(texts.length)
-    const titles = CAREER_ENDINGS.map((e) => e.title)
-    expect(new Set(titles).size).toBe(titles.length)
-  })
-})
-
-describe('epitaphCareerId — 비문에 새기는 경력', () => {
-  it('지금 다니는 곳이 아니라 도달한 최고 직장을 본다', () => {
-    // 대기업까지 갔다가 잘려서 무직으로 죽은 판.
-    const fired: GameState = { ...stateWith('cheongram-group'), employment: undefined }
-    expect(epitaphCareerId(fired)).toBe('cheongram-group')
-    expect(getFailureEnding('bankrupt', fired).id).toBe('bigtech')
   })
 })

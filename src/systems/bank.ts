@@ -11,7 +11,7 @@ import {
   SAVINGS_RATE,
 } from '../data/bank'
 import { findCareer } from '../data/careers'
-import { clampStats, settleGameOver } from './turn'
+import { clampStats, settleRecovery } from './turn'
 import type { BankEntry, BankState, GameState, TermDeposit } from '../types/game'
 
 /**
@@ -148,7 +148,7 @@ function write(state: GameState, bank: BankState, log: BankEntry): GameState {
 
 /** 자유예금에 넣을 수 있는가. 게임오버·0 이하·잔액 초과면 못 넣는다. */
 export function canDeposit(state: GameState, amount: number): boolean {
-  return !state.gameOver && amount > 0 && state.stats.money >= amount
+  return !state.recovery && amount > 0 && state.stats.money >= amount
 }
 
 /**
@@ -170,7 +170,7 @@ export function deposit(state: GameState, amount: number): GameState {
 
 /** 자유예금에서 뺄 수 있는가. */
 export function canWithdraw(state: GameState, amount: number): boolean {
-  return !state.gameOver && amount > 0 && bankOf(state).savings >= amount
+  return !state.recovery && amount > 0 && bankOf(state).savings >= amount
 }
 
 /** 자유예금 → 소지금. **턴을 쓰지 않는다.** */
@@ -189,7 +189,7 @@ export function withdraw(state: GameState, amount: number): GameState {
 
 /** 정기예금에 들 수 있는가. 최소 금액이 있는 것은 이자가 반올림에 먹히지 않게 하기 위함이다. */
 export function canOpenDeposit(state: GameState, amount: number): boolean {
-  return !state.gameOver && amount >= DEPOSIT_MIN && state.stats.money >= amount
+  return !state.recovery && amount >= DEPOSIT_MIN && state.stats.money >= amount
 }
 
 /**
@@ -217,7 +217,7 @@ export function openDeposit(state: GameState, amount: number): GameState {
 
 /** 빌릴 수 있는가. 한도·최소 금액·게임오버를 본다. */
 export function canBorrow(state: GameState, amount: number): boolean {
-  return !state.gameOver && amount >= LOAN_MIN && amount <= loanRoom(state)
+  return !state.recovery && amount >= LOAN_MIN && amount <= loanRoom(state)
 }
 
 /**
@@ -239,7 +239,7 @@ export function borrow(state: GameState, amount: number): GameState {
 /** 갚을 수 있는 금액인가. 빚보다 많이 갚을 수는 없다(과납은 돈을 버리는 것이다). */
 export function canRepay(state: GameState, amount: number): boolean {
   const bank = bankOf(state)
-  if (state.gameOver || bank.debt <= 0) return false
+  if (state.recovery || bank.debt <= 0) return false
   return amount > 0 && amount <= state.stats.money && amount <= bank.debt
 }
 
@@ -331,9 +331,9 @@ export function advanceBank(state: GameState): GameState {
   // ⚠️ **맨 마지막에 딱 한 번** 확정한다(`advanceEmployment`와 같은 규칙).
   //    만기 원리금이 소지금에 들어간 **뒤에** 판정해야 "받을 돈이 있는데 그 전에 죽었다"가
   //    나오지 않는다. `afterTurn`은 이 함수를 `advanceEmployment`보다 **먼저** 부르고,
-  //    두 함수 다 마지막 줄에서 `settleGameOver`를 부르므로 어느 쪽이 마지막이든 옳다
-  //    (`settleGameOver`는 이미 확정된 사유를 되살리지 않는다).
-  return settleGameOver({
+  //    두 함수 다 마지막 줄에서 `settleRecovery`를 부르므로 어느 쪽이 마지막이든 옳다
+  //    (`settleRecovery`는 이미 확정된 사유를 되살리지 않는다).
+  return settleRecovery({
     ...state,
     stats: payout > 0 ? clampStats({ ...state.stats, money: state.stats.money + payout }) : state.stats,
     bank: next,

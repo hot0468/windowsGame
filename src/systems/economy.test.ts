@@ -46,26 +46,43 @@ describe('getEconomyTier', () => {
   })
 })
 
-describe('물가 외삽 — 무한 플레이 차단', () => {
-  it('알바비도 오르지만 생활비보다 훨씬 느리게 오른다', () => {
+describe('물가 외삽 — 무한 플레이가 성립하는가', () => {
+  /* ⚠️ **2026-08-14에 뜻이 통째로 뒤집힌 블록이다.** 예전 이름은 "무한 플레이 차단"이었고,
+     생활비가 알바비를 반드시 추월해 **판이 끝나도록** 지켰다(1.3 대 1.04). 육성물 전환으로
+     그 종료 장치가 사라졌으므로, 지금 지켜야 하는 것은 정반대다 — **후반에도 실질 부담이
+     발산하지 않는가.** 발산하면 끝이 없는 판에서 모든 선택이 무의미해진다. */
+
+  it('표를 넘어서도 생활비와 알바비가 같은 속도로 오른다', () => {
     const livingRatio = livingCostForDay(151) / livingCostForDay(51)
     const wageRatio = getWageMultiplier(151) / getWageMultiplier(51)
-    expect(wageRatio).toBeGreaterThan(1)
-    expect(wageRatio).toBeLessThan(livingRatio)
+    expect(livingRatio).toBeGreaterThan(1)
+    /* ⚠️ **완전히 같지는 않다** — 생활비는 원 단위 정수로 반올림되고(`livingCostForDay`)
+       알바 배율은 소수 그대로라, 구간이 쌓이면 0.1% 남짓 어긋난다. 재는 것은 "같은
+       상승률인가"이지 "같은 부동소수인가"가 아니므로 그 폭까지만 허용한다. */
+    expect(Math.abs(wageRatio / livingRatio - 1)).toBeLessThan(0.01)
   })
 
-  it('생활비가 결국 하루 최대 수입(알바 2회)을 넘어선다', () => {
+  /* 실질 부담 = 생활비 ÷ 알바 배율. 이 값이 평평해야 "스탯이 생활 수준을 정한다"가 성립한다. */
+  it('실질 부담이 후반에 수렴한다 — 날짜가 아니라 스탯이 생활을 정한다', () => {
+    const burden = (day: number) => livingCostForDay(day) / getWageMultiplier(day)
+    const late = burden(151)
+    for (const day of [201, 301, 501, 1001]) {
+      // 반올림 오차만 남는다 — 발산이면 배로 벌어진다(옛 곡선은 여기서 28배였다).
+      expect(Math.abs(burden(day) / late - 1)).toBeLessThan(0.01)
+    }
+  })
+
+  it('천 일을 넘겨도 생활비가 하루 수입을 압도하지 않는다', () => {
     // 알바 기본 보상 60000원 * 하루 2슬롯이 이론상 최대 수입이다.
     const maxDailyIncome = (day: number) => 2 * 60000 * getWageMultiplier(day)
-    expect(livingCostForDay(51)).toBeLessThan(maxDailyIncome(51))
-    expect(livingCostForDay(91)).toBeGreaterThan(maxDailyIncome(91))
+    for (let day = 51; day <= 1000; day += 50) {
+      expect(livingCostForDay(day)).toBeLessThan(maxDailyIncome(day))
+    }
   })
 
-  it('한 번 역전된 뒤에는 영구히 회복되지 않는다', () => {
-    const maxDailyIncome = (day: number) => 2 * 60000 * getWageMultiplier(day)
-    for (let day = 91; day <= 1000; day += 10) {
-      expect(livingCostForDay(day)).toBeGreaterThan(maxDailyIncome(day))
-    }
+  /* 물가가 멈추면 경제가 죽은 것처럼 보인다 — 오르는 것은 자릿수, 변하지 않는 것은 부담이다. */
+  it('그래도 숫자는 계속 커진다 — 성장감을 남긴다', () => {
+    expect(livingCostForDay(301)).toBeGreaterThan(livingCostForDay(151))
   })
 })
 
@@ -76,7 +93,9 @@ describe('livingCostForDay', () => {
 })
 
 describe('getWageMultiplier', () => {
-  it('알바비 배율은 생활비 인상률보다 낮게 오른다', () => {
+  /* ⚠️ **표 구간(1~51일차) 안에서는 여전히 격차가 있다** — 그것이 초반 난이도다.
+     동률이 되는 것은 표를 넘어선 뒤뿐이다(위 '물가 외삽' 블록). */
+  it('표 구간 안에서는 알바비가 생활비보다 느리게 오른다 — 초반 압박', () => {
     const livingRatio = livingCostForDay(51) / livingCostForDay(1)
     const wageRatio = getWageMultiplier(51) / getWageMultiplier(1)
     expect(wageRatio).toBeLessThan(livingRatio)

@@ -129,7 +129,7 @@ describe('자유예금 — 넣고 뺀다', () => {
   })
 
   it('게임오버면 아무 거래도 되지 않는다', () => {
-    const dead = fresh({ gameOver: 'bankrupt' })
+    const dead = fresh({ recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } })
     expect(deposit(dead, 10_000)).toBe(dead)
     expect(borrow(dead, LOAN_MIN)).toBe(dead)
   })
@@ -365,10 +365,11 @@ describe('밤 정산의 순서 — 만기 원리금이 우선한다', () => {
     const night = skipSlot(before)
     expect(night.day).toBe(before.day + 1)
     // 이 시점의 잔고는 0 이하다 — 순서를 안 지키면 여기서 파산이 확정된다.
+    // 판정이 미뤄지는 밤이라 **구제금도 아직 안 들어온다** — 잔고는 0 이하 그대로다.
     expect(night.stats.money).toBeLessThanOrEqual(0)
     // ⚠️ **그러나 아직 판정하지 않는다.** 오늘 밤 나올 만기 원리금이 남아 있다.
     expect(nightPayoutPending(night)).toBe(true)
-    expect(night.gameOver).toBeNull()
+    expect(night.recovery).toBeNull()
 
     const credit = bankNightCredit(night)
     expect(credit).toBeGreaterThan(500_000)
@@ -377,10 +378,10 @@ describe('밤 정산의 순서 — 만기 원리금이 우선한다', () => {
     // 원리금이 들어왔으니 살아 있어야 한다. 이것이 이 테스트의 전부다.
     expect(settled.stats.money).toBe(night.stats.money + credit)
     expect(settled.stats.money).toBeGreaterThan(0)
-    expect(settled.gameOver).toBeNull()
+    expect(settled.recovery).toBeNull()
   })
 
-  it('만기가 아닌 밤에 바닥나면 그대로 파산한다 — 파산이 사라지면 안 된다', () => {
+  it('만기가 아닌 밤에 바닥나면 그 자리에서 주저앉는다 — 판정이 사라지면 안 된다', () => {
     const base = brokeOnMaturityEve()
     // 같은 상황에서 만기만 멀리 밀어 둔다.
     const before: GameState = {
@@ -390,10 +391,12 @@ describe('밤 정산의 순서 — 만기 원리금이 우선한다', () => {
     expect(nightPayoutPending(before)).toBe(false)
 
     const night = skipSlot(before)
-    expect(night.stats.money).toBeLessThanOrEqual(0)
+    /* ⚠️ **0 이하로 남지 않는다**(2026-08-14): 주저앉는 순간 구제금이 들어온다.
+       재는 것은 "바닥났음을 잡았는가"이므로 잔액이 아니라 **회복 진입**으로 판정한다. */
+    expect(night.recovery?.kind).toBe('bankrupt')
     // 나올 돈이 없는 밤이므로 **그 자리에서** 파산이 확정된다(미루지 않는다).
-    expect(night.gameOver).toBe('bankrupt')
-    expect(advanceBank(night).gameOver).toBe('bankrupt')
+    expect(night.recovery?.kind).toBe('bankrupt')
+    expect(advanceBank(night).recovery?.kind).toBe('bankrupt')
   })
 
   it('은행 거래가 없으면 미루지 않는다 — 밸런스 시뮬레이션이 이 성질에 기대고 있다', () => {
@@ -405,7 +408,7 @@ describe('밤 정산의 순서 — 만기 원리금이 우선한다', () => {
       stats: { ...base.stats, money: livingCostForDay(20) - 1000 },
     }
     expect(nightPayoutPending(broke)).toBe(false)
-    expect(skipSlot(broke).gameOver).toBe('bankrupt')
+    expect(skipSlot(broke).recovery?.kind).toBe('bankrupt')
   })
 
   it('빚만 있는 판은 미루지 않는다 — 빚은 들어올 돈이 아니다', () => {

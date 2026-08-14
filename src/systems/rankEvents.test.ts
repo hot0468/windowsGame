@@ -119,7 +119,7 @@ describe('판정과 기록', () => {
   })
 
   it('게임오버면 아무 이벤트도 일어나지 않는다', () => {
-    const over: GameState = { ...at('athletics', 'SS'), gameOver: 'bankrupt' }
+    const over: GameState = { ...at('athletics', 'SS'), recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } }
     expect(dueRankEvents(over)).toEqual([])
   })
 

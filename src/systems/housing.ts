@@ -66,7 +66,7 @@ export function moveCost(state: GameState, target: Housing): number {
  * 눌러도 안 되는" 어긋남이 생긴다(알바몬·벼룩장터와 같은 규칙).
  */
 export function canMove(state: GameState, target: Housing): boolean {
-  if (state.gameOver) return false
+  if (state.recovery) return false
   // 살고 있는 집으로 다시 이사할 수는 없다(수수료만 나가는 무의미한 거래).
   if (currentHousing(state).id === target.id) return false
   const cost = moveCost(state, target)
@@ -76,7 +76,7 @@ export function canMove(state: GameState, target: Housing): boolean {
 
 /** 못 옮기는 이유. 판정은 `canMove`가 하고 여기서는 **문장으로 옮기기만** 한다. */
 export function moveBlockers(state: GameState, target: Housing): string[] {
-  if (state.gameOver) return ['게임이 끝나 더 이상 계약할 수 없습니다.']
+  if (state.recovery) return ['게임이 끝나 더 이상 계약할 수 없습니다.']
   if (currentHousing(state).id === target.id) return ['이미 이 집에 살고 있습니다.']
   const cost = moveCost(state, target)
   if (cost > 0 && state.stats.money < cost) {

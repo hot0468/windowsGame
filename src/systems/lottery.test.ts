@@ -156,7 +156,7 @@ describe('구매', () => {
   })
 
   it('게임오버면 살 수 없다', () => {
-    const dead = { ...rich(), gameOver: 'bankrupt' as const }
+    const dead = { ...rich(), recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } as const }
     expect(canBuyTickets(dead, 1)).toBe(false)
     expect(buyTickets(dead, 1)).toBe(dead)
   })
@@ -213,7 +213,7 @@ describe('⚠️ 당첨금은 밤에 들어온다 — 그 전에 죽지 않는�
     }
     const after = advanceLottery(s)
     expect(after.stats.money).toBe(195_000)
-    expect(after.gameOver).toBeNull()
+    expect(after.recovery).toBeNull()
   })
 
   it('당첨금을 받고도 여전히 0 이하면 파산으로 확정된다', () => {
@@ -222,7 +222,7 @@ describe('⚠️ 당첨금은 밤에 들어온다 — 그 전에 죽지 않는�
       stats: { ...rich().stats, money: -50_000 },
       lottery: { serial: 3, spent: 0, won: 0, tickets: [], pending: 10_000 },
     }
-    expect(advanceLottery(s).gameOver).toBe('bankrupt')
+    expect(advanceLottery(s).recovery?.kind).toBe('bankrupt')
   })
 
   it('⚠️ 산 적이 없으면 아무것도 하지 않는다 — 빈 기록을 세이브에 얹지 않는다', () => {

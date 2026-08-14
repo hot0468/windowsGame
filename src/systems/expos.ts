@@ -79,7 +79,7 @@ export function canJoin(state: GameState, expo: Expo): boolean {
  * 취침 정산(생활비)이 먼저 지나가 파산 판정이 한 프레임 어긋난다.
  */
 export function visitExpo(state: GameState, expoId: string): GameState {
-  if (state.gameOver) return state
+  if (state.recovery) return state
   const expo = findExpo(expoId)
   if (!expo || !canVisit(state, expo)) return state
   const activity = findActivity(expo.visitActivityId)
@@ -120,7 +120,7 @@ export function willAward(state: GameState, expo: Expo): boolean {
  * 실제 실행은 그쪽 규칙이 한다. 여기서 처리하면 판매 통로가 둘이 된다.
  */
 export function joinExpo(state: GameState, expoId: string): GameState {
-  if (state.gameOver) return state
+  if (state.recovery) return state
   const expo = findExpo(expoId)
   if (!expo?.join?.activityId || !canJoin(state, expo)) return state
   const activity = findActivity(expo.join.activityId)

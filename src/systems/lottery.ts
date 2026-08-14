@@ -4,7 +4,7 @@ import {
   MAX_TICKETS_PER_BUY,
   TICKET_PRICE,
 } from '../data/lottery'
-import { clampStats, settleGameOver } from './turn'
+import { clampStats, settleRecovery } from './turn'
 import type { GameState, LotteryState, LotteryTicket } from '../types/game'
 
 /**
@@ -95,7 +95,7 @@ export function lotteryOf(state: GameState): LotteryState {
 
 /** 몇 장까지 살 수 있는가. 잔액과 1회 상한 중 작은 쪽이다. */
 export function affordableTickets(state: GameState): number {
-  if (state.gameOver) return 0
+  if (state.recovery) return 0
   return Math.min(MAX_TICKETS_PER_BUY, Math.floor(state.stats.money / TICKET_PRICE))
 }
 
@@ -177,7 +177,7 @@ export function buyTickets(state: GameState, count: number): GameState {
 export function advanceLottery(state: GameState): GameState {
   const lot = state.lottery
   if (!lot || lot.pending <= 0) return state
-  return settleGameOver({
+  return settleRecovery({
     ...state,
     stats: clampStats({ ...state.stats, money: state.stats.money + lot.pending }),
     lottery: { ...lot, pending: 0 },

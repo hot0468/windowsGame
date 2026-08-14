@@ -15,6 +15,19 @@ interface MetaStore {
    */
   unlockedRelations: string[]
   unlockRelation: (personId: string) => void
+  /**
+   * 다녀 본 적 있는 **회사** id. 판을 넘어 남는다.
+   *
+   * ⚠️ **`unlockedEndings`와 같은 집합에 넣지 않는다**(`unlockedRelations`와 같은 규칙).
+   * 취직은 엔딩이 아니라 콜렉션이므로, 섞으면 도감의 "엔딩 n개 중 m개"가 회사를 세기
+   * 시작해 개수가 거짓이 된다.
+   *
+   * ⚠️ **판을 넘어 남겨야 하는 이유**(2026-08-14): 도감의 직업 시트는 원래 지금 세이브의
+   * `careerLog`만 봤는데, 그러면 **새 게임을 시작하는 순간 다녀 본 회사가 전부 사라진다.**
+   * 콜렉션은 판이 아니라 플레이어에게 쌓이는 것이라 여기 남는다.
+   */
+  unlockedCareers: string[]
+  unlockCareer: (careerId: string) => void
 }
 
 export const useMetaStore = create<MetaStore>()(
@@ -22,6 +35,7 @@ export const useMetaStore = create<MetaStore>()(
     (set, get) => ({
       unlockedEndings: [],
       unlockedRelations: [],
+      unlockedCareers: [],
 
       unlock: (endingId) => {
         if (get().unlockedEndings.includes(endingId)) return
@@ -33,6 +47,11 @@ export const useMetaStore = create<MetaStore>()(
       unlockRelation: (personId) => {
         if (get().unlockedRelations.includes(personId)) return
         set({ unlockedRelations: [...get().unlockedRelations, personId] })
+      },
+
+      unlockCareer: (careerId) => {
+        if (get().unlockedCareers.includes(careerId)) return
+        set({ unlockedCareers: [...get().unlockedCareers, careerId] })
       },
     }),
     { name: 'windows-game-meta', version: 1 },

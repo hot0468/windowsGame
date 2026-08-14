@@ -43,7 +43,7 @@ export function canTake(state: GameState, course: Course): boolean {
  * 들을 수 있으면 null.
  */
 export function blockReason(state: GameState, course: Course): string | null {
-  if (state.gameOver) return '게임이 끝났습니다.'
+  if (state.recovery) return '게임이 끝났습니다.'
   const activity = findActivity(course.activityId)
   if (!activity) return '강의 정보를 불러오지 못했습니다.'
   // 수강료를 먼저 본다 — 활동 자체의 돈 조건보다 이쪽이 항상 크고 구체적이다.

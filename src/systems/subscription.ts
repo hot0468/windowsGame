@@ -1,5 +1,5 @@
 import { BILLING_INTERVAL_DAYS, SUBSCRIPTIONS, findSubscription } from '../data/subscriptions'
-import { clampStats, settleGameOver, subscribed } from './turn'
+import { clampStats, settleRecovery, subscribed } from './turn'
 import type { Subscription } from '../data/subscriptions'
 import type { GameState, SubscriptionState } from '../types/game'
 
@@ -56,7 +56,7 @@ export function daysToBilling(state: GameState, id: string): number | undefined 
  */
 export function subscribe(state: GameState, id: string): GameState {
   const sub = findSubscription(id)
-  if (!sub || state.gameOver || subscribed(state, id)) return state
+  if (!sub || state.recovery || subscribed(state, id)) return state
   if (state.stats.money - sub.monthlyFee <= 0) return state
 
   const prev = subscriptionsOf(state)
@@ -93,7 +93,7 @@ export function unsubscribe(state: GameState, id: string): GameState {
  */
 export function advanceSubscriptions(state: GameState): GameState {
   const prev = state.subscriptions
-  if (!prev || state.gameOver) return state
+  if (!prev || state.recovery) return state
 
   const active = { ...prev.active }
   let money = state.stats.money
@@ -125,7 +125,7 @@ export function advanceSubscriptions(state: GameState): GameState {
   }
 
   if (!changed) return state
-  return settleGameOver({
+  return settleRecovery({
     ...state,
     stats: clampStats({ ...state.stats, money }),
     subscriptions: { active, paid: prev.paid + paid },

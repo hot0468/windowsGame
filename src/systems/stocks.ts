@@ -156,7 +156,7 @@ function log(prev: StockTrade[], entry: StockTrade): StockTrade[] {
  */
 export function buyStock(state: GameState, stockId: string, shares: number): GameState {
   const stock = findStock(stockId)
-  if (!stock || state.gameOver) return state
+  if (!stock || state.recovery) return state
   const n = Math.floor(shares)
   if (n <= 0) return state
 
@@ -186,7 +186,7 @@ export function buyStock(state: GameState, stockId: string, shares: number): Gam
 /** 판다. 수수료를 뗀 금액이 **즉시** 소지금으로 들어온다(밤 정산이 없다). */
 export function sellStock(state: GameState, stockId: string, shares: number): GameState {
   const stock = findStock(stockId)
-  if (!stock || state.gameOver) return state
+  if (!stock || state.recovery) return state
   const n = Math.floor(shares)
   const held = sharesOf(state, stockId)
   if (n <= 0 || n > held) return state

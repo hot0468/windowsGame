@@ -158,7 +158,7 @@ describe('이사', () => {
   })
 
   it('게임오버면 계약할 수 없다', () => {
-    const dead = withMoney(9_000_000, { gameOver: 'bankrupt' })
+    const dead = withMoney(9_000_000, { recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } })
     expect(canMove(dead, villa)).toBe(false)
     expect(moveTo(dead, villa)).toBe(dead)
   })

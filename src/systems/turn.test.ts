@@ -39,7 +39,7 @@ describe('createInitialState', () => {
   })
 
   it('게임오버 상태가 아니다', () => {
-    expect(createInitialState('김철수').gameOver).toBeNull()
+    expect(createInitialState('김철수').recovery).toBeNull()
   })
 })
 
@@ -98,7 +98,7 @@ describe('canRun', () => {
   })
 
   it('게임오버 상태에서는 실행 불가하다', () => {
-    expect(canRun(stateWith({ gameOver: 'bankrupt' }), study)).toBe(false)
+    expect(canRun(stateWith({ recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } }), study)).toBe(false)
   })
 })
 
@@ -151,7 +151,7 @@ describe('runActivity — 스탯 적용', () => {
     let s = createInitialState('t')
     for (let i = 0; i < 300; i++) {
       s = canRun(s, exercise) ? runActivity(s, exercise) : skipSlot(s)
-      if (s.gameOver) break
+      if (s.recovery) break
       expect(s.stats.stamina).toBeLessThanOrEqual(STAMINA_CAP)
     }
   })
@@ -350,20 +350,20 @@ describe('runActivity — 게임오버 판정', () => {
       slot: 'afternoon',
       stats: { ...createInitialState('t').stats, money: 1000 },
     })
-    expect(runActivity(before, study).gameOver).toBe('bankrupt')
+    expect(runActivity(before, study).recovery?.kind).toBe('bankrupt')
   })
 
   it('멘탈이 0 이하가 되면 번아웃이다', () => {
     const before = stateWith({ stats: { ...createInitialState('t').stats, mental: 3 } })
-    expect(runActivity(before, study).gameOver).toBe('burnout')
+    expect(runActivity(before, study).recovery?.kind).toBe('burnout')
   })
 
   it('진행 가능한 상태에서는 게임오버가 아니다', () => {
-    expect(runActivity(createInitialState('t'), study).gameOver).toBeNull()
+    expect(runActivity(createInitialState('t'), study).recovery).toBeNull()
   })
 
   it('게임오버 상태에서 활동해도 상태가 바뀌지 않는다', () => {
-    const over = stateWith({ gameOver: 'bankrupt' })
+    const over = stateWith({ recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } })
     expect(runActivity(over, study)).toBe(over)
   })
 })
@@ -406,9 +406,14 @@ describe('skipSlot', () => {
     expect(after.stats.money).toBe(before.stats.money - livingCostForDay(1))
   })
 
-  it('게임오버 상태면 아무 일도 일어나지 않는다 (버튼 비활성화와 일치)', () => {
-    const before = stateWith({ gameOver: 'bankrupt' })
-    expect(skipSlot(before)).toBe(before)
+  /* ⚠️ **2026-08-14에 뜻이 뒤집혔다.** 예전에는 게임오버면 슬롯도 안 넘어갔다(판이
+     끝났으므로). 지금은 회복이 며칠 뒤 풀려야 하는데 `daysLeft`를 줄이는 통로가 취침
+     정산뿐이라, 여기서 막으면 **영영 못 일어난다**(`recovery.test.ts`의 불변식). */
+  it('주저앉아 있어도 슬롯은 넘어간다 — 그래야 회복이 끝난다', () => {
+    const before = stateWith({ recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } })
+    const after = skipSlot(before)
+    expect(after).not.toBe(before)
+    expect(after.slot).not.toBe(before.slot)
   })
 })
 
@@ -439,7 +444,7 @@ describe('광고 배너 보상', () => {
   })
 
   it('게임오버 상태에서는 받을 수 없다', () => {
-    const s = { ...createInitialState('t'), gameOver: 'bankrupt' as const }
+    const s = { ...createInitialState('t'), recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } as const }
     expect(canClaimAdBonus(s)).toBe(false)
     expect(claimAdBonus(s)).toBe(s)
   })

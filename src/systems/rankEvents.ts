@@ -64,7 +64,7 @@ export function rankReached(state: GameState, event: RankEvent): boolean {
  * 지우면 영영 사라진다.
  */
 export function dueRankEvents(state: GameState): RankEvent[] {
-  if (state.gameOver) return []
+  if (state.recovery) return []
   return RANK_EVENTS.filter((e) => !seenRankEvent(state, e.id) && rankReached(state, e))
 }
 
@@ -147,7 +147,7 @@ export function grantWish(state: GameState, key: GrowthStatKey): GameState {
      않고도 이 함수를 부를 수 있는 통로 하나가 게이트를 통째로 지나간다 — 손으로 고친
      세이브가 그 구멍으로 들어오면 시작부터 스탯 +100이다(`canRun`이 아이템·정규직 조건까지
      보는 것과 같은 이유이고, 실제로 테스트가 잡은 구멍이다). */
-  if (!event || state.gameOver) return state
+  if (!event || state.recovery) return state
   if (seenRankEvent(state, event.id) || !rankReached(state, event)) return state
   return markRankEvent(
     {

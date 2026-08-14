@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { checkAchievementEnding, getFailureEnding, hasHigherTier } from '../../systems/ending'
+import { checkAchievementEnding, hasHigherTier } from '../../systems/ending'
 import { useGameStore } from '../../store/gameStore'
 import { useMetaStore } from '../../store/metaStore'
 import { relationEndingFor } from '../../systems/affection'
@@ -35,15 +35,18 @@ export function EndingModal() {
   /** 성취 엔딩에서 "엔딩 보기"를 눌렀을 때 최종 화면으로 전환한다. */
   const [confirmed, setConfirmed] = useState(false)
 
-  // 파산 엔딩은 "어떤 사람으로 끝났는가"에 따라 갈린다 — 판정은 systems/ending.ts 하나가 한다.
-  const failure = state?.gameOver ? getFailureEnding(state.gameOver, state) : null
-  const achievement = state && !state.gameOver
-    ? checkAchievementEnding(state.stats, state.seenEndingIds)
-    : null
-  const ending: Ending | null = failure ?? achievement
+  /* ⚠️ **성취 엔딩뿐이다**(2026-08-14 육성물 전환). 예전에는 `getFailureEnding`으로
+     파산·번아웃·직업 엔딩이 여기로 왔고 그쪽은 **강제 종료**였다. 지금 파산·번아웃은
+     며칠짜리 사건이고(`Recovery`) 취직은 도감 콜렉션이라, 이 모달이 뜨는 경우는
+     "스탯이 문턱을 넘었다" 하나뿐이다 — 그래서 **[계속하기]가 항상 있다.**
+     ⚠️ 주저앉은 동안에는 띄우지 않는다: 회복 안내 위에 축하 팝업이 겹친다. */
+  const ending: Ending | null =
+    state && !state.recovery
+      ? checkAchievementEnding(state.stats, state.seenEndingIds)
+      : null
 
   /* 관계 부가엔딩. ⚠️ **본엔딩을 고르는 판정과 섞이지 않는다** — `ending`이 무엇으로
-     정해졌든(성취·직업·실패) 그 곁에 독립적으로 붙는다(`data/relations.ts`). */
+     정해졌든 그 곁에 독립적으로 붙는다(`data/relations.ts`). */
   const companion = state ? relationEndingFor(state) : undefined
 
   // 엔딩에 도달한 순간 도감에 해금한다. 계속하기를 골라도 기록은 남는다.
@@ -59,8 +62,8 @@ export function EndingModal() {
 
   if (!state || !ending) return null
 
-  const isFailure = Boolean(failure)
-  const showFinal = isFailure || confirmed
+  /* 엔딩이 성취뿐이므로 최종 화면은 [엔딩 보기]를 누른 뒤에만 뜬다. */
+  const showFinal = confirmed
 
   const handleRestart = () => {
     closeAll()
@@ -123,17 +126,17 @@ export function EndingModal() {
                 />
               </div>
             </div>
+            {/* ⚠️ **[계속하기]가 주 버튼이다**(2026-08-14에 뒤바뀌었다). 예전에는 여기
+                도달하는 판의 대부분이 파산·번아웃이라 [처음부터 다시]가 유일한 길이었다.
+                지금 이 화면은 **성취 엔딩에서만** 뜨고 판은 멀쩡히 이어지므로, 기본 행동은
+                돌아가는 쪽이다 — 화면당 주 버튼은 하나다(ux `primary-action`). */}
             <div className="ending-buttons">
-              <button className="ending-btn ending-btn-primary" onClick={handleRestart}>
+              <button className="ending-btn ending-btn-primary" onClick={handleContinue}>
+                닫고 계속하기
+              </button>
+              <button className="ending-btn ending-btn-ghost" onClick={handleRestart}>
                 처음부터 다시
               </button>
-              {/* 성취 엔딩은 확인 후 지금 판으로 돌아갈 수 있어야 한다.
-                  실패 엔딩(파산·번아웃)은 이 버튼이 없어 강제 종료된다. */}
-              {!isFailure && (
-                <button className="ending-btn ending-btn-ghost" onClick={handleContinue}>
-                  닫고 계속하기
-                </button>
-              )}
             </div>
           </>
         ) : (

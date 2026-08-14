@@ -20,7 +20,7 @@ import { MAILBOX } from '../data/messages'
 import { findActivity } from '../data/activities'
 import { contestsStateOf } from './contests'
 import { messageTime, turnIndex } from './messages'
-import { canRun, clampStats, runActivity, settleGameOver } from './turn'
+import { canRun, clampStats, runActivity, settleRecovery } from './turn'
 import { twitterOf } from './twitter'
 import type { TimedMessage } from './messages'
 import type { GameState, WebtoonState } from '../types/game'
@@ -113,7 +113,7 @@ export function daysToDeadline(state: GameState): number | undefined {
  */
 export function acceptOffer(state: GameState): GameState {
   const w = state.webtoon
-  if (!w || w.status !== 'offered' || state.gameOver) return state
+  if (!w || w.status !== 'offered' || state.recovery) return state
   return {
     ...state,
     webtoon: {
@@ -129,7 +129,7 @@ export function acceptOffer(state: GameState): GameState {
 /** 제의를 거절한다. ⚠️ **되돌릴 수 없다** — 화면이 한 번 묻는다. */
 export function declineOffer(state: GameState): GameState {
   const w = state.webtoon
-  if (!w || w.status !== 'offered' || state.gameOver) return state
+  if (!w || w.status !== 'offered' || state.recovery) return state
   return { ...state, webtoon: { ...w, status: 'ended' } }
 }
 
@@ -143,7 +143,7 @@ export function declineOffer(state: GameState): GameState {
  * 그대로 돌려준다(반쪽 상태 금지).
  */
 export function drawWebtoon(state: GameState): GameState {
-  if (state.gameOver || !isSerializing(state)) return state
+  if (state.recovery || !isSerializing(state)) return state
   const activity = findActivity('draw-webtoon')
   if (!activity || !canRun(state, activity)) return state
 
@@ -167,10 +167,10 @@ export function drawWebtoon(state: GameState): GameState {
  * (`advanceTwitter`·`advanceEmployment`와 같은 장치).
  * ⚠️ **마감을 놓치면 위약금이 아니라 평판을 깎는다**(그몽과 같은 규칙) — 돈을 물리면
  * "수락하지 않는 것이 언제나 안전"이 되어 연재가 선택지가 아니라 함정이 된다.
- * ⚠️ **마지막 줄이 `settleGameOver`다**(밤에 돈을 넣는 함수의 규칙).
+ * ⚠️ **마지막 줄이 `settleRecovery`다**(밤에 돈을 넣는 함수의 규칙).
  */
 export function advanceWebtoon(state: GameState): GameState {
-  if (state.gameOver) return state
+  if (state.recovery) return state
   const w = state.webtoon
 
   // ① 아직 제의가 없다 — 조건을 만족했으면 이번 밤에 온다.
@@ -223,7 +223,7 @@ export function advanceWebtoon(state: GameState): GameState {
   }
 
   if (!changed) return state
-  return settleGameOver({
+  return settleRecovery({
     ...state,
     stats: clampStats({ ...state.stats, money, reputation }),
     webtoon: next,

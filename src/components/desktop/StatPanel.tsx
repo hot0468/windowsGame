@@ -6,6 +6,7 @@ import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
 import { STAMINA_CAP, growthCap } from '../../systems/turn'
 import { rankOf, rankRose, toNextRank } from '../../systems/rank'
+import { lifeProgress, lifeRankOf } from '../../systems/lifeRank'
 import { isIll } from '../../systems/illness'
 import { skillLabel } from '../../data/band'
 import { ILL_EFFICIENCY } from '../../data/illness'
@@ -206,6 +207,8 @@ export function StatPanel() {
   const { stats, day } = state
   const nextTier = getNextTier(day)
   const ill = isIll(state)
+  const life = lifeRankOf(stats)
+  const lifePct = Math.round(lifeProgress(stats) * 100)
 
   return (
     <HudPanel
@@ -238,6 +241,53 @@ export function StatPanel() {
        * `role="status"`를 붙인 것은 이 줄이 **나타나는 것 자체가 소식**이기 때문이다
        * (아픔은 토스트도 알림창도 쓰지 않는다 — `activityPreview.ts`의 경고가 예고를 맡는다).
        */}
+      {/*
+       * **생활 등급.** 이 패널에서 가장 먼저 오는 것이 규칙이다 — 아래 스탯 열다섯 개가
+       * "무엇을 얼마나 올렸나"를 말한다면 이 줄은 **"나는 지금 어디쯤인가"**에 답한다.
+       * 그 물음에 답할 것이 없던 것이 이 게임에 목표가 안 보이던 이유였다(2026-08-14).
+       *
+       * ⚠️ **게이지가 핵심이다.** 등급 글자만 있으면 "B에서 A까지 얼마나 남았나"를
+       * 알 수 없어 다시 장식이 된다. 다음 등급까지의 진행을 눈으로 재게 해야 목표가 된다.
+       * ⚠️ 색만으로 알리지 않는다 — 등급 글자와 퍼센트를 함께 적는다.
+       */}
+      <div className="stat-life">
+        <div className="stat-life-head">
+          <span className="stat-life-label">생활 등급</span>
+          <span className="stat-life-rank">{life.label}</span>
+        </div>
+        <div
+          className="stat-bar stat-life-bar"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={lifePct}
+          aria-label={`생활 등급 ${life.label} — 다음 등급까지 ${lifePct}%`}
+        >
+          {/* 기존 게이지와 **같은 클래스·같은 방식**이다(scaleX — width는 매 프레임
+              레이아웃을 다시 계산시킨다). 새 채움 스타일을 만들지 않는다. */}
+          <span className="stat-fill" style={{ transform: `scaleX(${lifePct / 100})` }} />
+        </div>
+        <p className="stat-life-note">다음 등급까지 {lifePct}%</p>
+      </div>
+
+      {/*
+       * 주저앉은 배지. 앓는 중 배지와 **같은 자리·같은 규칙**이다(2026-08-14) —
+       * 나타나는 것 자체가 소식이고, 색이 아니라 글자가 사실을 말한다.
+       *
+       * ⚠️ **파산·번아웃이 판을 끝내지 않는다는 것을 이 줄이 알린다.** 남은 날을
+       * 적지 않으면 플레이어는 게임이 망가진 줄 안다 — 예전에는 여기서 판이 끝났기 때문이다.
+       */}
+      {state.recovery && (
+        <p className="stat-ill stat-down" role="status">
+          <AppIcon name={HUD_ICONS.illness} size={15} />
+          <span className="stat-ill-title">
+            {state.recovery.kind === 'bankrupt' ? '빈털터리' : '번아웃'}
+          </span>
+          <span className="stat-ill-note">
+            {state.recovery.daysLeft}일 남음 · 활동할 수 없다 · 턴을 넘기면 지나간다
+          </span>
+        </p>
+      )}
       {ill && (
         <p className="stat-ill" role="status">
           <AppIcon name={HUD_ICONS.illness} size={15} />

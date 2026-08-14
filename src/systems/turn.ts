@@ -5,6 +5,7 @@ import { weekendCallOn } from './drive'
 import { bandPayFor, bandSkillOpen, practiceBand } from './band'
 import { wearGear } from './gear'
 import { illnessEfficiency, illnessRecoveryRatio, nextIllness } from './illness'
+import { settleRecovery, tickRecovery } from './recovery'
 import { malwareLoss } from './malware'
 /* ⚠️ `rank.ts`가 아니라 `rankScale.ts`다 — rank.ts는 `growthCap` 때문에 이 파일을
    부르고 있어 그쪽을 import하면 순환이 된다. 눈금만 leaf 모듈에서 직접 읽는다. */
@@ -18,19 +19,7 @@ import { WORK_PER_SESSION, findGig } from '../data/gigs'
 import { OUTFIT_BONUS, PHONE_BONUS, PHONE_ID, PHONE_STAT, outfitsFor, requiredItemIds } from '../data/items'
 import { FINAL_DAYS, isWorkWeekday } from '../data/careers'
 import { GROWTH_STAT_KEYS, INITIAL_STATS } from '../types/game'
-import type {
-  Activity,
-  Application,
-  Artwork,
-  Employment,
-  EventLog,
-  GameState,
-  GrowthStatKey,
-  Illness,
-  JobStageGate,
-  Slot,
-  Stats,
-} from '../types/game'
+import type { Activity, Application, Artwork, Employment, EventLog, GameState, GrowthStatKey, Illness, JobStageGate, Recovery, Slot, Stats } from '../types/game'
 
 /**
  * 취침 시 회복되는 체력. **고정값이다.**
@@ -90,7 +79,7 @@ export function createInitialState(playerName: string): GameState {
     stats: { ...INITIAL_STATS },
     recentActivities: [],
     seenEndingIds: [],
-    gameOver: null,
+    recovery: null,
   }
 }
 
@@ -192,7 +181,7 @@ export function ownsRequired(state: GameState, required: string | string[]): boo
  * ⚠️ **규칙이 아니라 판정만 여기 있다**(`owns`·`jobStageOpen`과 같은 예외).
  * 요금·주기·해지는 전부 `systems/subscription.ts`가 갖고, 여기서는 `canRun`이
  * 물어볼 수 있게 **세이브의 키 유무만** 읽는다 — 그쪽을 import하면 순환이 된다
- * (`subscription.ts`가 `clampStats`·`settleGameOver`를 부른다).
+ * (`subscription.ts`가 `clampStats`·`settleRecovery`를 부른다).
  */
 export function subscribed(state: GameState, id: string): boolean {
   return Boolean(state.subscriptions?.active[id])
@@ -243,7 +232,10 @@ export function jobStageOpen(state: GameState, gate: JobStageGate): boolean {
  * 정규직 게이트(`requiresJobStage`)도 같은 이유로 여기 있다.
  */
 export function canRun(state: GameState, activity: Activity): boolean {
-  if (state.gameOver) return false
+  /* ⚠️ **주저앉아 있으면 아무 활동도 못 한다** — 그것이 회복의 벌이다(뺏는 것은
+     시간이다). 여기서 막으므로 스케줄러 예약·자동 진행으로도 새지 않는다.
+     ⚠️ **`skipSlot`은 막지 않는다**: 턴을 못 넘기면 회복이 영영 안 끝난다. */
+  if (state.recovery) return false
   if (activity.requiresItem && !ownsRequired(state, activity.requiresItem)) return false
   if (activity.requiresSubscription && !subscribed(state, activity.requiresSubscription))
     return false
@@ -374,13 +366,28 @@ function sleep(stats: Stats, state: GameState, ill: Illness | undefined): Stats 
  * ⚠️ **아픔 판정이 여기 하나뿐이다**(`nextIllness`). 슬롯마다 물으면 같은 하루에 앓고
  * 낫는 일이 생기고, 무엇보다 근거가 "무리해서 하루를 끝냈다"이므로 그 하루가 끝나는
  * 자리에서만 물어야 뜻이 맞다. 넘겨주는 행동력은 **취침 회복을 얹기 전** 값이다.
+ *
+ * ⚠️ **주저앉은 날도 여기서 하루씩 준다**(`tickRecovery`). 회복이 밤에만 줄어야
+ * "며칠"이라는 말이 뜻을 갖는다 — 슬롯마다 깎으면 하루 반이면 풀린다.
  */
 function advance(
   state: GameState,
   stats: Stats,
-): { day: number; slot: Slot; stats: Stats; illness: Illness | undefined } {
+): {
+  day: number
+  slot: Slot
+  stats: Stats
+  illness: Illness | undefined
+  recovery: Recovery | null
+} {
   if (state.slot === 'morning') {
-    return { day: state.day, slot: 'afternoon', stats, illness: state.illness }
+    return {
+      day: state.day,
+      slot: 'afternoon',
+      stats,
+      illness: state.illness,
+      recovery: state.recovery,
+    }
   }
   const illness = nextIllness(state.illness, stats.stamina, state.day)
   return {
@@ -388,13 +395,8 @@ function advance(
     slot: 'morning',
     stats: sleep(stats, state, illness),
     illness,
+    recovery: tickRecovery(state.recovery),
   }
-}
-
-function detectGameOver(stats: Stats): GameState['gameOver'] {
-  if (stats.money <= 0) return 'bankrupt'
-  if (stats.mental <= 0) return 'burnout'
-  return null
 }
 
 /**
@@ -462,34 +464,30 @@ export function nightPayoutPending(state: GameState): boolean {
 }
 
 /**
- * **밤이 다 정산된 뒤 딱 한 번** 게임오버를 확정한다.
+ * **밤이 다 정산된 뒤 딱 한 번** 회복 여부를 확정한다.
  *
  * 생활비가 나가고 급여가 들어오고 그 밖에 그날 밤 돈을 움직이는 것이 전부 끝난 다음이
  * 유일하게 옳은 판정 시점이다. 부르는 곳은 **밤의 마지막 지점 하나**뿐이다 —
  * `employment.ts`의 `advanceEmployment` 말미(그리고 그것을 부르는 `gameStore.afterTurn`이
  * 턴을 넘기는 모든 통로의 종점이다).
  *
- * ⚠️ **되살아나게 하는 함수가 아니다.** 이미 확정된 게임오버는 그대로 두고(초기화하지
- * 않는다), 아직 null인 판만 지금 상태로 판단한다. 그래야 "죽었다가 살아나는" 상태가
- * 화면에 한 프레임도 나타나지 않는다.
+ * ⚠️ **판정 자체는 `systems/recovery.ts`가 갖는다**(2026-08-14). 여기서 재수출하는 것은
+ * 부르는 곳 열두 군데의 import를 그대로 두기 위해서다 — 옛 이름은 `settleRecovery`였고,
+ * 그때는 이 함수가 판을 끝냈다. 지금은 며칠간 주저앉힐 뿐이다.
  */
-export function settleGameOver(state: GameState): GameState {
-  if (state.gameOver) return state
-  const gameOver = detectGameOver(state.stats)
-  return gameOver ? { ...state, gameOver } : state
-}
+export { settleRecovery } from './recovery'
 
 /**
- * 슬롯을 넘긴 결과에 게임오버 판정을 붙인다.
+ * 슬롯을 넘긴 결과에 회복 판정을 붙인다.
  *
  * ⚠️ **입금이 남은 밤에는 판단을 미룬다**(`nightPayoutPending`). 미룬 판은
- * `advanceEmployment` 말미의 `settleGameOver`가 급여까지 끝난 뒤에 결정한다. `runActivity`·`skipSlot`을
+ * `advanceEmployment` 말미의 `settleRecovery`가 급여까지 끝난 뒤에 결정한다. `runActivity`·`skipSlot`을
  * 직접 부르는 곳(밸런스 시뮬레이션)에서도 **무직이면 지금 그대로 판정된다** —
  * 미뤄지는 것은 오직 "오늘 밤 월급이 들어오는 재직자"뿐이다.
  */
-function withGameOver(next: GameState): GameState {
+function withRecovery(next: GameState): GameState {
   if (nightPayoutPending(next)) return next
-  return { ...next, gameOver: detectGameOver(next.stats) }
+  return settleRecovery(next)
 }
 
 /**
@@ -601,7 +599,8 @@ export function applyToolSession(state: GameState, tool: string): GameState {
 
 /** 활동을 실행하고 다음 슬롯 상태를 반환한다. 원본은 변경하지 않는다. */
 export function runActivity(state: GameState, activity: Activity): GameState {
-  if (state.gameOver) return state
+  // 주저앉은 판에서는 활동이 통째로 거절된다(`canRun`과 같은 판단, 이중 방어).
+  if (state.recovery) return state
 
   // 알바 4종은 같은 키를 공유한다 — 종류를 바꿔 가며 일해도 연속 노동은 연속 노동이다.
   const key = burnoutKeyOf(activity)
@@ -637,7 +636,7 @@ export function runActivity(state: GameState, activity: Activity): GameState {
   const advanced = advance(state, withEffects)
   const stats = clampStats(advanced.stats)
 
-  const advancedState = withGameOver({
+  const advancedState = withRecovery({
     /* ⚠️ **`worn.state`를 펼친다**(원본 `state`가 아니다) — 원본을 펼치면 방금 새긴
        장비 마모·고장이 통째로 버려진다. 실제로 그렇게 짰다가 잡았다. */
     ...worn.state,
@@ -648,6 +647,7 @@ export function runActivity(state: GameState, activity: Activity): GameState {
     slot: advanced.slot,
     stats,
     illness: advanced.illness,
+    recovery: advanced.recovery,
     recentActivities: pushActivity(state.recentActivities, key),
   })
 
@@ -668,7 +668,7 @@ export const AD_BONUS_MONEY = 100
 
 /** 오늘 아직 광고 보상을 받지 않았고 게임이 진행 중이면 true. */
 export function canClaimAdBonus(state: GameState): boolean {
-  return !state.gameOver && state.adBonusDay !== state.day
+  return !state.recovery && state.adBonusDay !== state.day
 }
 
 /** 보상을 받는다. 이미 받았거나 게임오버면 상태를 그대로 돌려준다(호출부에서 막지 않아도 안전). */
@@ -689,23 +689,33 @@ export function claimAdBonus(state: GameState): GameState {
  * 잔액이 모자라면 아무것도 하지 않는다 — 마이너스 잔액은 파산 판정을 흐린다.
  */
 export function spendMoney(state: GameState, amount: number): GameState {
-  if (state.gameOver || amount <= 0 || state.stats.money < amount) return state
+  if (state.recovery || amount <= 0 || state.stats.money < amount) return state
   return { ...state, stats: clampStats({ ...state.stats, money: state.stats.money - amount }) }
 }
 
 /** 아무 활동 없이 슬롯만 넘긴다. 'rest' 기록으로 번아웃 연속이 끊긴다. */
 export function skipSlot(state: GameState): GameState {
-  if (state.gameOver) return state
+  /* ⚠️ **회복 중에도 슬롯은 넘어간다.** 여기서 막으면 `daysLeft`를 줄이는 유일한
+     통로(취침 정산)가 함께 막혀 **영영 못 일어난다** — 이름만 다른 게임오버다.
+     활동(`runActivity`)은 여전히 거절하므로 "쉬는 것 말고는 못 한다"가 그대로 성립한다.
+     `recovery.test.ts`가 지키는 불변식이다. */
 
   const advanced = advance(state, { ...state.stats })
   const stats = clampStats(advanced.stats)
 
-  return withGameOver({
+  return withRecovery({
     ...state,
     day: advanced.day,
     slot: advanced.slot,
     stats,
     illness: advanced.illness,
-    recentActivities: pushActivity(state.recentActivities, 'rest'),
+    recovery: advanced.recovery,
+    /* ⚠️ **주저앉은 동안 넘긴 턴은 이력에 안 남긴다.** 회복 중에는 활동이 전부
+       막혀 있어 넘기기가 **유일하게 할 수 있는 일**인데, 그것을 연속 실행으로 세면
+       번아웃 효율이 바닥을 치고 블루스크린이 매 턴 뜬다 — 강제된 행동에 벌을 주는 셈이다.
+       실측으로 잡았다(회복 탈출 중 3초 정지가 반복됐다). */
+    recentActivities: state.recovery
+      ? state.recentActivities
+      : pushActivity(state.recentActivities, 'rest'),
   })
 }

@@ -194,7 +194,7 @@ export function previewWarnings(state: GameState, activity: Activity): ActivityW
 export function blockReasons(state: GameState, activity: Activity): string[] {
   const reasons: string[] = []
 
-  if (state.gameOver) {
+  if (state.recovery) {
     reasons.push('게임이 끝나 더 이상 활동할 수 없습니다.')
     // 게임이 끝났으면 나머지 조건은 따질 이유가 없다.
     return reasons

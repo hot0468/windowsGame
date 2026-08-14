@@ -122,7 +122,7 @@ describe('참관', () => {
   it('없는 행사·게임오버에는 아무 일도 없다', () => {
     const s = ready(openDayFor(VISIT_ONLY))
     expect(visitExpo(s, 'nope')).toBe(s)
-    const over: GameState = { ...s, gameOver: 'bankrupt' }
+    const over: GameState = { ...s, recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } }
     expect(visitExpo(over, VISIT_ONLY.id)).toBe(over)
   })
 })

@@ -2,7 +2,7 @@ import { CONTESTS, findContest } from '../data/contests'
 import { MAILBOX } from '../data/messages'
 import { artRatio } from './artwork'
 import { findProject, pagesOf, projectScore, projectsOf } from './projects'
-import { clampStats, growthCap, settleGameOver } from './turn'
+import { clampStats, growthCap, settleRecovery } from './turn'
 import type { Contest } from '../data/contests'
 import { messageTime, turnIndex } from './messages'
 import type { TimedMessage } from './messages'
@@ -107,7 +107,7 @@ export function enterContest(
   contestId: string,
   pick: { projectId?: string; artworkId?: string },
 ): GameState {
-  if (state.gameOver) return state
+  if (state.recovery) return state
   const contest = findContest(contestId)
   if (!contest || !canEnter(state, contest, pick)) return state
 
@@ -178,12 +178,12 @@ export function prizeFor(contest: Contest, score: number) {
  * ⚠️ **상금이 밤에 들어오므로 `nightPayoutPending`의 원천이다**(`turn.ts`가 `resultDay`를
  * 본다). 안 보면 **상금이 들어오기 직전 밤에 굶어 죽는다** — 정기예금 만기·트위터 정산과
  * 정확히 같은 형태다.
- * ⚠️ **마지막 줄이 `settleGameOver`다**(밤에 돈을 넣는 함수의 규칙).
+ * ⚠️ **마지막 줄이 `settleRecovery`다**(밤에 돈을 넣는 함수의 규칙).
  * ⚠️ `state.contests`가 없으면 아무것도 하지 않는다(낸 적 없는 사람의 세이브를 안 부풀린다).
  */
 export function advanceContests(state: GameState): GameState {
   const contests = state.contests
-  if (!contests || state.gameOver) return state
+  if (!contests || state.recovery) return state
 
   let money = state.stats.money
   let reputation = state.stats.reputation
@@ -206,7 +206,7 @@ export function advanceContests(state: GameState): GameState {
 
   if (!changed) return state
 
-  return settleGameOver({
+  return settleRecovery({
     ...state,
     stats: clampStats({ ...state.stats, money, reputation }),
     contests: { entries, wins, earned },

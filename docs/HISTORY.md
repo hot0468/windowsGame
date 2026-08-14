@@ -6,6 +6,7 @@ CLAUDE.md의 변경 이력 표에서 밀려난 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-13 | 솔리테어 패산이 손으로는 안 눌리던 버그 — 렌더마다 새로 정의되던 `Slot`을 밖으로 뺐다 + `measure.mjs --mouse`(진짜 마우스) | SolitaireApp, scripts/measure.mjs |
 | 2026-08-13 | IT 스탯 신설(`tech`, VS 코드 작업이 주 공급원 · 랭크 이벤트 1) + 스탯창 이름 아래 선·여백 제거 | types(`Stats.tech`·키 4곳), statMeta, activities(`tool-vscode`), rankEvents·events(`merged-pr`), HudPanel.css |
 | 2026-08-09 | VS 코드 창 — 받아 둔 일감이 파일·배지·상태 표시줄이 되고 ▶가 활동을 실행한다 | vscode(data+test 5 신규), VsCodeApp(tsx+css 신규), types(`WindowKind: vscode`), appForWindow(+test, `dark`·`bareTitle`), Window.css(`:has(> .vs)`), desktopItems(+test 불변식 확장) |
 | 2026-08-09 | 개발용 UI 견본 화면(`?ui`) — 장면 10종 × 등급 상승 5단을 골라 재생, 세이브는 안 건드린다 | dev/UiGallery(tsx+css 신규), App(`import.meta.env.DEV` 분기) |

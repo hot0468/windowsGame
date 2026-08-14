@@ -23,8 +23,9 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
  * 띄우면 화면이 번쩍이기만 하고 아무것도 읽히지 않는다. 그 구간의 요약은 진행이 끝난 뒤
  * `AutoLogApp`이 통째로 맡는다(알림 창구를 두 개로 늘리지 않는다).
  *
- * ⚠️ **게임오버면 뜨지 않는다.** 파산한 밤에도 날은 밝지만, 그때 먼저 읽혀야 하는 것은
- * 엔딩이다(`LAYERS.DAYBREAK`가 `ENDING`보다 아래인 것과 같은 판단).
+ * ⚠️ **주저앉은 동안에는 뜨지 않는다.** 날은 밝지만 그 며칠은 플레이어가 아무것도
+ * 고르지 않는 구간이라, 해 뜨는 연출이 매일 끼어들면 "넘기기만 하는 시간"이 더 길게
+ * 느껴진다. 회복이 끝나는 날 아침부터 다시 뜬다.
  *
  * ⚠️ **아무것도 막지 않는다.** 스스로 사라지고, 누르면 즉시 닫히며, 뒤의 게임 상태는
  * 손대지 않는다(ux `escape-routes`·`no-blocking-animation`).
@@ -39,7 +40,7 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
  */
 export function Daybreak() {
   const day = useGameStore((s) => s.state?.day)
-  const gameOver = useGameStore((s) => s.state?.gameOver)
+  const recovery = useGameStore((s) => s.state?.recovery)
   const autoRunning = useGameStore((s) => s.autoRunning)
   /* ⚠️ **창 종류로 본다**(창 id가 아니라) — 실행 연출은 활동마다 id가 다르고, 앞으로
      장면이 붙는 활동이 늘어도 이 줄은 그대로여야 한다. */
@@ -71,8 +72,8 @@ export function Daybreak() {
     if (shown.current !== day) {
       const first = shown.current === undefined
       shown.current = day
-      // 첫 렌더·자동 진행·게임오버는 건너뛴다(위 주석의 세 규칙).
-      if (!first && !autoRunning && !gameOver) pending.current = true
+      // 첫 렌더·자동 진행·주저앉은 동안은 건너뛴다(위 주석의 세 규칙).
+      if (!first && !autoRunning && !recovery) pending.current = true
     }
     // 결과 창이 떠 있으면 그것부터 읽게 두고 기다린다.
     if (!pending.current || runOpen) return
@@ -80,7 +81,7 @@ export function Daybreak() {
     setVisible(true)
     const timer = setTimeout(() => setVisible(false), SHOW_MS)
     return () => clearTimeout(timer)
-  }, [day, autoRunning, gameOver, runOpen])
+  }, [day, autoRunning, recovery, runOpen])
 
   if (!visible || day === undefined) return null
 

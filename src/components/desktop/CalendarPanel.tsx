@@ -93,11 +93,18 @@ export function CalendarPanel() {
 
       {/* 구역 라벨도 구분선도 없다(설계자 지시). 아래가 버튼 하나뿐이라 무엇인지는
           버튼 글자가 이미 말하고, 선을 그으면 없는 구역을 있는 척하게 된다. */}
+      {/* ⚠️ **주저앉아 있을 때도 눌려야 한다**(2026-08-14). 예전에는 게임오버면 막았는데,
+          지금 회복은 **턴을 넘겨야 끝난다** — 여기서 막으면 유일한 탈출구가 사라져
+          로직이 멀쩡해도 화면에서 갇힌다. 자동 진행 중에만 막는다(그쪽이 이미 넘기고 있다). */}
       <button
         className="cal-skip"
         onClick={doSkip}
-        disabled={state.gameOver !== null || autoRunning}
-        title="이 슬롯을 아무것도 하지 않고 넘깁니다"
+        disabled={autoRunning}
+        title={
+          state.recovery
+            ? '주저앉은 동안에는 이것만 할 수 있습니다. 넘길수록 회복이 가까워집니다'
+            : '이 슬롯을 아무것도 하지 않고 넘깁니다'
+        }
       >
         <AppIcon name={HUD_ICONS.skipTurn} size={14} />
         {isMorning ? '오전' : '오후'} 건너뛰기
@@ -110,7 +117,9 @@ export function CalendarPanel() {
       <button
         className={`cal-skip cal-auto${autoRunning ? ' cal-auto-on' : ''}`}
         onClick={autoRunning ? stopAuto : startAuto}
-        disabled={state.gameOver !== null}
+        /* 자동 진행은 회복 중에 막는다 — 모르는 사이 회복이 지나가면 무슨 일이
+           있었는지 못 본다(`autoAdvance.ts`의 첫 정지 규칙과 같은 판단). */
+        disabled={state.recovery !== null}
         title={
           autoRunning
             ? '지금 슬롯까지만 진행하고 멈춥니다'

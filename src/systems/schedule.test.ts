@@ -104,7 +104,7 @@ describe('runPlans', () => {
   })
 
   it('게임오버 상태에서는 실행하지 않는다', () => {
-    const s = base({ gameOver: 'bankrupt', plans: [{ day: 1, slot: 'morning', activityId: 'study' }] })
+    const s = base({ recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 }, plans: [{ day: 1, slot: 'morning', activityId: 'study' }] })
     expect(runPlans(s).state.day).toBe(1)
   })
 

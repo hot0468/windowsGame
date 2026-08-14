@@ -9,7 +9,7 @@ import {
 } from '../data/artworks'
 import { followersFrom } from '../data/tweets'
 import { artGrade, findArtwork } from './artwork'
-import { canRun, clampStats, runActivity, settleGameOver, subscribed } from './turn'
+import { canRun, clampStats, runActivity, settleRecovery, subscribed } from './turn'
 import { findActivity } from '../data/activities'
 
 /** 유료 구독 id(`data/subscriptions.ts`). ⚠️ **관계는 정산 → 구독 한 방향으로만 적는다.** */
@@ -120,7 +120,7 @@ export function daysToPayout(state: GameState): number | undefined {
  * 두면 아무것도 안 한 사람에게도 밤마다 `nightPayoutPending`이 참이 된다.
  */
 export function postArtwork(state: GameState, artworkId: string): GameState {
-  if (state.gameOver) return state
+  if (state.recovery) return state
   const work = findArtwork(state, artworkId)
   if (!work || isPosted(state, artworkId)) return state
 
@@ -156,7 +156,7 @@ export function postArtwork(state: GameState, artworkId: string): GameState {
  * ⚠️ **금액은 정산하는 시점의 팔로워로 계산한다** — 그 주 내내의 평균이 아니다.
  * 계산할 근거(주중의 팔로워 이력)를 저장하지 않기 때문이고, 저장할 만한 값도 아니다.
  *
- * ⚠️ **마지막 줄이 `settleGameOver`다**(`advanceBank`·`advanceLottery`와 같다) —
+ * ⚠️ **마지막 줄이 `settleRecovery`다**(`advanceBank`·`advanceLottery`와 같다) —
  * 밤에 돈을 넣는 함수는 넣은 뒤 판정을 다시 물어야 "정산금을 쥔 채 굶어 죽는" 판이 안 난다.
  *
  * ⚠️ `state.twitter`가 없으면 **아무것도 하지 않는다**(올린 적 없는 사람의 세이브를
@@ -164,7 +164,7 @@ export function postArtwork(state: GameState, artworkId: string): GameState {
  */
 export function advanceTwitter(state: GameState): GameState {
   const twitter = state.twitter
-  if (!twitter || state.gameOver) return state
+  if (!twitter || state.recovery) return state
 
   let paidDay = twitter.paidDay
   let money = state.stats.money
@@ -178,7 +178,7 @@ export function advanceTwitter(state: GameState): GameState {
   }
   if (paid === 0) return state
 
-  return settleGameOver({
+  return settleRecovery({
     ...state,
     stats: clampStats({ ...state.stats, money }),
     twitter: { ...twitter, paidDay },

@@ -127,11 +127,13 @@ export function MobileStatSheet({ onClose }: { onClose: () => void }) {
               ⚠️ 멈추기는 언제나 닿을 수 있어야 한다 — 시트는 하단바에서 한 번에 열린다. */}
           <hr className="mo-rule" />
           <div className="mo-sheet-actions">
+            {/* ⚠️ **주저앉아 있을 때도 눌려야 한다**(데스크톱 날짜칸과 같은 규칙) —
+                회복은 턴을 넘겨야 끝나므로 여기서 막으면 유일한 탈출구가 사라진다. */}
             <button
               type="button"
               className="mo-btn"
               onClick={doSkip}
-              disabled={state.gameOver !== null || autoRunning}
+              disabled={autoRunning}
             >
               {isMorning ? '오전' : '오후'} 건너뛰기
             </button>
@@ -139,7 +141,7 @@ export function MobileStatSheet({ onClose }: { onClose: () => void }) {
               type="button"
               className={`mo-btn${autoRunning ? ' mo-btn-on' : ''}`}
               onClick={autoRunning ? stopAuto : startAuto}
-              disabled={state.gameOver !== null}
+              disabled={state.recovery !== null}
             >
               {autoRunning ? '멈추기' : '자동 진행'}
             </button>

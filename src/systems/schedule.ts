@@ -110,7 +110,7 @@ export function runPlans(
   const skipped: SkippedPlan[] = []
 
   for (let i = 0; i < Math.min(limit, MAX_CHAIN); i++) {
-    if (current.gameOver) break
+    if (current.recovery) break
     const plans = current.plans ?? []
     const plan = findPlan(plans, current.day, current.slot)
     if (!plan) break

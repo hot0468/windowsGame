@@ -26,7 +26,7 @@ const DELIVERY_DAYS = 1
 
 /** 살 수 있는지. 게임오버·잔액 부족·이미 보유·이미 배송 중이면 못 산다. */
 export function canOrder(state: GameState, item: ShopItem): boolean {
-  if (state.gameOver) return false
+  if (state.recovery) return false
   if (state.stats.money < item.price) return false
   // 같은 물건을 두 개 사도 효과는 한 번뿐이라(도감 형식) 아예 막는다 —
   // 살 수는 있는데 아무 일도 안 일어나는 게 제일 나쁘다.

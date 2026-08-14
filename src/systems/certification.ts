@@ -53,7 +53,7 @@ export function hasCert(state: GameState, cert: Cert): boolean {
  * 것이 이 시스템의 도박이기 때문이다(정규직 지원과 정확히 같은 규칙).
  */
 export function blockReason(state: GameState, cert: Cert): string | null {
-  if (state.gameOver) return '게임이 끝났습니다.'
+  if (state.recovery) return '게임이 끝났습니다.'
   const activity = findActivity(EXAM_ACTIVITY_ID)
   if (!activity) return '시험 정보를 불러오지 못했습니다.'
   if (hasCert(state, cert)) return '이미 취득한 자격증입니다.'

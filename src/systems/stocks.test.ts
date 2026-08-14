@@ -165,7 +165,7 @@ describe('매매', () => {
   it('없는 종목·게임오버에는 아무 일도 일어나지 않는다', () => {
     const s = rich()
     expect(buyStock(s, 'nope', 1)).toBe(s)
-    const over: GameState = { ...s, gameOver: 'bankrupt' }
+    const over: GameState = { ...s, recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } }
     expect(buyStock(over, STOCKS[0].id, 1)).toBe(over)
   })
 

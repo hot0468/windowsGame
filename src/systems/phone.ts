@@ -1,6 +1,6 @@
 import { PHONE_BONUS, PHONE_FEE, PHONE_ID, PHONE_STAT } from '../data/items'
 import { BILLING_INTERVAL_DAYS } from '../data/subscriptions'
-import { clampStats, inventoryOf, owns, settleGameOver } from './turn'
+import { clampStats, inventoryOf, owns, settleRecovery } from './turn'
 import type { GameState, GrowthStatKey } from '../types/game'
 
 /**
@@ -73,7 +73,7 @@ export function advancePhoneBill(state: GameState): GameState {
         suspendedPhone: true,
       }
     }
-    next = settleGameOver({
+    next = settleRecovery({
       ...next,
       stats: clampStats({ ...next.stats, money: next.stats.money - PHONE_FEE }),
       phoneBilledDay: due,

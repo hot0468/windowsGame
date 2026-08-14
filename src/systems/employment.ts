@@ -17,7 +17,7 @@ import { STAT_NAMES } from '../types/game'
 import { markHired } from './careerLog'
 import { overtimePay } from './drive'
 import { messageTime, turnIndex } from './messages'
-import { clampStats, owns, settleGameOver } from './turn'
+import { clampStats, owns, settleRecovery } from './turn'
 import type { TimedMessage } from './messages'
 import type { Career, CareerRequirement } from '../data/careers'
 import type { Application, GameState, JobNotice, Stats } from '../types/game'
@@ -91,7 +91,7 @@ export function passes(
  */
 export function applyBlockers(state: GameState): string[] {
   const blockers: string[] = []
-  if (state.gameOver) blockers.push('게임이 끝나 더 이상 지원할 수 없습니다.')
+  if (state.recovery) blockers.push('게임이 끝나 더 이상 지원할 수 없습니다.')
   if (state.employment) {
     const career = findCareer(state.employment.careerId)
     blockers.push(`${career?.company ?? '회사'}에 재직 중입니다. 한 번에 한 곳만 다닐 수 있습니다.`)
@@ -340,7 +340,7 @@ function enforceAttendance(state: GameState): { state: GameState; notices: JobNo
  * 그래서 `runActivity`/`skipSlot`은 입금이 남은 밤이면 판정을 미루고(`nightPayoutPending`),
  * 그 마지막 결정을 밤의 마지막 지점인 여기가 맡는다.
  *
- * ⚠️ **`settleGameOver`를 이 줄에서 빼거나 급여보다 앞으로 올리지 말 것** —
+ * ⚠️ **`settleRecovery`를 이 줄에서 빼거나 급여보다 앞으로 올리지 말 것** —
  * 급여일에 파산하는 버그가 그대로 되돌아온다. 밤의 판정은 **한 번, 맨 마지막에** 한다.
  * 턴을 넘기는 모든 통로가 `afterTurn` → 이 함수를 지나므로 여기 한 곳이면 샐 데가 없다.
  */
@@ -350,7 +350,7 @@ export function advanceEmployment(state: GameState): { state: GameState; notices
   const paid = payWages(audited)
   const enforced = enforceAttendance(paid.state)
   const notices = [...stepped.notices, ...paid.notices, ...enforced.notices]
-  return { state: settleGameOver(push(enforced.state, notices)), notices }
+  return { state: settleRecovery(push(enforced.state, notices)), notices }
 }
 
 /* ── 화면이 묻는 것들 ──────────────────────────────────────────────────── */

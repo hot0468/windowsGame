@@ -76,7 +76,7 @@ describe('수주', () => {
   it('없는 일감·게임오버에는 아무 일도 없다', () => {
     const s = ready()
     expect(takeGig(s, 'nope')).toBe(s)
-    const over: GameState = { ...s, gameOver: 'bankrupt' }
+    const over: GameState = { ...s, recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } }
     expect(takeGig(over, FREE.id)).toBe(over)
   })
 })

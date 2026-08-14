@@ -1,7 +1,7 @@
 import { MIN_BOOK_PAGES, QUALITY_MULTIPLIER, WON_PER_PAGE } from '../data/contests'
 import { findActivity } from '../data/activities'
 import { artRatio } from './artwork'
-import { canRun, clampStats, runActivity, settleGameOver } from './turn'
+import { canRun, clampStats, runActivity, settleRecovery } from './turn'
 import type { Artwork, GameState, Project, ProjectState } from '../types/game'
 
 /**
@@ -66,7 +66,7 @@ export function projectScore(state: GameState, project: Project): number {
  * (그몽 수주·은행 거래와 같은 부류).
  */
 export function createProject(state: GameState): GameState {
-  if (state.gameOver) return state
+  if (state.recovery) return state
   const book = projectsOf(state)
   const serial = book.nextSerial
   const project: Project = {
@@ -95,7 +95,7 @@ export function createProject(state: GameState): GameState {
  * **방금 생긴 마지막 그림을 이 권에 가리키게 하는 것**뿐이다.
  */
 export function drawIntoProject(state: GameState, projectId: string): GameState {
-  if (state.gameOver) return state
+  if (state.recovery) return state
   const project = findProject(state, projectId)
   if (!project || project.usedFor) return state
 
@@ -146,10 +146,10 @@ export function bookRevenue(state: GameState, project: Project): number {
  *
  * ⚠️ **돈은 즉시 들어온다**(밤으로 미루지 않는다). 미루면 `nightPayoutPending`에 원천이
  * 하나 더 생기고 "다 팔았는데 그날 밤 굶어 죽는" 판이 난다 — 외주 납품과 같은 판단.
- * ⚠️ **`settleGameOver`로 끝낸다** — 밤에 돈을 넣는 함수의 규칙과 같다.
+ * ⚠️ **`settleRecovery`로 끝낸다** — 밤에 돈을 넣는 함수의 규칙과 같다.
  */
 export function sellAtComicon(state: GameState, projectId: string): GameState {
-  if (state.gameOver) return state
+  if (state.recovery) return state
   const project = findProject(state, projectId)
   if (!project || project.usedFor || project.pageIds.length < MIN_BOOK_PAGES) return state
 
@@ -161,7 +161,7 @@ export function sellAtComicon(state: GameState, projectId: string): GameState {
   if (next === state) return state
 
   const book = projectsOf(next)
-  return settleGameOver({
+  return settleRecovery({
     ...next,
     stats: clampStats({ ...next.stats, money: next.stats.money + revenue }),
     projects: {

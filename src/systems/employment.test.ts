@@ -30,7 +30,7 @@ import {
   createInitialState,
   nightPayoutPending,
   runActivity,
-  settleGameOver,
+  settleRecovery,
   skipSlot,
 } from './turn'
 import { livingCostForDay } from './economy'
@@ -378,7 +378,7 @@ describe('최고 경력', () => {
  * ## 고친 방식
  * 게임오버는 **밤이 다 정산된 뒤 딱 한 번** 결정된다. `runActivity`/`skipSlot`은 입금이
  * 남은 밤이면 판정을 미루고(`turn.ts`의 `nightPayoutPending`), 밤의 마지막 지점인
- * `advanceEmployment`가 `settleGameOver`로 결정한다. **죽였다가 되살리는 것이 아니라
+ * `advanceEmployment`가 `settleRecovery`로 결정한다. **죽였다가 되살리는 것이 아니라
  * 애초에 한 번만 판단한다** — 그래서 "파산" 화면이 한 프레임도 지나가지 않는다.
  *
  * ⚠️ 아래 두 테스트는 **짝이다.** 위만 있으면 파산을 통째로 못 걸게 만들어도 통과하므로,
@@ -410,19 +410,20 @@ describe('밤 정산의 순서 — 급여가 우선한다', () => {
     const night = skipSlot(before)
     expect(night.day).toBe(payday)
     // 이 시점의 잔고는 0 이하다 — 옛 코드가 여기서 파산을 확정했다.
+    // 판정이 미뤄지는 밤이라 **구제금도 아직 안 들어온다** — 잔고는 0 이하 그대로다.
     expect(night.stats.money).toBeLessThanOrEqual(0)
     // ⚠️ **그러나 아직 판정하지 않는다.** 오늘 밤 들어올 급여가 남아 있다.
-    expect(night.gameOver).toBeNull()
+    expect(night.recovery).toBeNull()
 
     const settled = advanceEmployment(night)
     expect(settled.notices.some((n) => n.kind === 'payday')).toBe(true)
     // 급여가 들어왔으니 살아 있어야 한다. 이것이 이 테스트의 전부다.
-    expect(settled.state.gameOver).toBeNull()
+    expect(settled.state.recovery).toBeNull()
     expect(settled.state.stats.money).toBe(night.stats.money + entry.salary)
     expect(settled.state.stats.money).toBeGreaterThan(0)
   })
 
-  it('급여일이 아닌 밤에 바닥나면 그대로 파산한다 — 파산이 사라지면 안 된다', () => {
+  it('급여일이 아닌 밤에 바닥나면 그 자리에서 주저앉는다 — 판정이 사라지면 안 된다', () => {
     // 같은 상황에서 급여일만 멀리 밀어 둔다.
     const payday = mondayOnOrAfter(30) + PAYDAY_INTERVAL
     const base = brokeOnPaydayEve(payday)
@@ -432,13 +433,15 @@ describe('밤 정산의 순서 — 급여가 우선한다', () => {
     }
 
     const night = skipSlot(before)
-    expect(night.stats.money).toBeLessThanOrEqual(0)
+    /* ⚠️ **0 이하로 남지 않는다**(2026-08-14): 주저앉는 순간 구제금이 들어온다.
+       재는 것은 "바닥났음을 잡았는가"이므로 잔액이 아니라 **회복 진입**으로 판정한다. */
+    expect(night.recovery?.kind).toBe('bankrupt')
     // 들어올 돈이 없는 밤이므로 **그 자리에서** 파산이 확정된다(미루지 않는다).
-    expect(night.gameOver).toBe('bankrupt')
+    expect(night.recovery?.kind).toBe('bankrupt')
 
     const settled = advanceEmployment(night)
     expect(settled.notices.some((n) => n.kind === 'payday')).toBe(false)
-    expect(settled.state.gameOver).toBe('bankrupt')
+    expect(settled.state.recovery?.kind).toBe('bankrupt')
   })
 
   it('무직이면 판정을 미루지 않는다 — 밸런스 시뮬레이션이 이 성질에 기대고 있다', () => {
@@ -451,14 +454,14 @@ describe('밤 정산의 순서 — 급여가 우선한다', () => {
       stats: { ...base.stats, money: livingCostForDay(base.day) - 1000 },
     }
     expect(nightPayoutPending(broke)).toBe(false)
-    expect(skipSlot(broke).gameOver).toBe('bankrupt')
+    expect(skipSlot(broke).recovery?.kind).toBe('bankrupt')
   })
 
-  it('이미 확정된 게임오버를 되살리지 않는다', () => {
-    const dead: GameState = { ...createInitialState('t'), gameOver: 'burnout' }
+  it('이미 주저앉은 판을 다시 걸지 않는다', () => {
+    const dead: GameState = { ...createInitialState('t'), recovery: { kind: 'burnout', startedDay: 1, daysLeft: 3 } }
     // 소지금·멘탈이 멀쩡해도 확정된 사유는 그대로다(되살아나는 함수가 아니다).
-    expect(settleGameOver(dead)).toBe(dead)
-    expect(settleGameOver(dead).gameOver).toBe('burnout')
+    expect(settleRecovery(dead)).toBe(dead)
+    expect(settleRecovery(dead).recovery?.kind).toBe('burnout')
   })
 })
 

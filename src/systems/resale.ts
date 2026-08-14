@@ -70,7 +70,7 @@ export function sellablePostcards(state: GameState): Postcard[] {
  * ⚠️ **`sold`에 남기는 것을 빼먹지 말 것** — 그 한 줄이 위의 되사기 구멍을 막는다.
  */
 export function sellItem(state: GameState, itemId: string): GameState {
-  if (state.gameOver) return state
+  if (state.recovery) return state
   const item = findItem(itemId)
   if (!item || item.buyable === false || !owns(state, itemId)) return state
 
@@ -90,7 +90,7 @@ export function sellItem(state: GameState, itemId: string): GameState {
  * (도감의 '전종 수집' 업적은 다시 못 채우게 되지만, 그건 파는 쪽이 감수하는 값이다.)
  */
 export function sellPostcard(state: GameState, filmId: string): GameState {
-  if (state.gameOver) return state
+  if (state.recovery) return state
   if (!postcardsOf(state).some((p) => p.filmId === filmId)) return state
 
   return {

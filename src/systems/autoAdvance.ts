@@ -34,7 +34,7 @@ import type { GameState, JobNotice, JobNoticeKind, Slot, Stats } from '../types/
  * `'stopped'`만 규칙이 아니다 — 플레이어가 멈추기를 누른 경우라 판정할 것이 없다.
  */
 export type AutoStopId =
-  | 'game-over'
+  | 'recovery'
   | 'ending'
   | 'job'
   | 'money'
@@ -120,17 +120,22 @@ export function moneyDangerLine(state: GameState): number {
  */
 export const STOP_RULES: StopRule[] = [
   {
-    id: 'game-over',
+    id: 'recovery',
     bad: true,
     /**
-     * ⚠️ **반드시 첫 번째다.** 게임오버를 지나 한 슬롯이라도 더 가면 죽은 판이 계속 흘러간다.
-     * `runActivity`·`skipSlot`도 게임오버면 상태를 그대로 돌려주므로 이중으로 막혀 있다.
+     * ⚠️ **반드시 첫 번째다.** 주저앉은 판을 자동으로 흘려보내면 플레이어가 모르는 사이
+     * 회복 기간이 지나가 **무슨 일이 있었는지 못 본다**. `runActivity`·`skipSlot`도
+     * 회복 중이면 상태를 그대로 돌려주므로 이중으로 막혀 있다.
+     *
+     * ⚠️ **판이 끝난 것이 아니다**(2026-08-14). 옛 이름은 `game-over`였고 그때는 실제로
+     * 끝이었다. 지금은 며칠 뒤 저절로 풀리므로 문구도 "쓰러졌다"가 아니라 **며칠 남았는지**를
+     * 말한다 — 플레이어가 [턴 넘기기]로 빠져나올 수 있음을 알아야 하기 때문이다.
      */
     test: (c) =>
-      c.state.gameOver === 'bankrupt'
-        ? '소지금이 0원이 되어 파산했습니다.'
-        : c.state.gameOver === 'burnout'
-          ? '멘탈이 0이 되어 번아웃으로 쓰러졌습니다.'
+      c.state.recovery?.kind === 'bankrupt'
+        ? `소지금이 바닥나 주저앉았습니다. ${c.state.recovery.daysLeft}일 남았습니다.`
+        : c.state.recovery?.kind === 'burnout'
+          ? `번아웃으로 주저앉았습니다. ${c.state.recovery.daysLeft}일 남았습니다.`
           : null,
   },
   {

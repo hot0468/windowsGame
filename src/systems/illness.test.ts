@@ -113,7 +113,7 @@ describe('앓는 동안', () => {
 
   it('⚠️ 게임오버를 만들지 않는다 — 판을 끝내는 것은 파산·번아웃 둘뿐이다', () => {
     const sick = skipSlot(at(10, 0, { startedDay: 9, daysLeft: 1 }))
-    expect(sick.gameOver).toBeNull()
+    expect(sick.recovery).toBeNull()
   })
 })
 

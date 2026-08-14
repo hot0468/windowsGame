@@ -168,8 +168,9 @@ describe('주간 정산', () => {
       stats: { ...posted.stats, money: -weeklyIncome(posted) - 1 },
     }
     const after = advanceTwitter(broke)
-    expect(after.stats.money).toBeLessThanOrEqual(0)
-    expect(after.gameOver).toBe('bankrupt')
+    /* ⚠️ 주저앉으면 구제금이 들어오므로 잔액이 아니라 회복 진입으로 판정한다. */
+    expect(after.recovery?.kind).toBe('bankrupt')
+    expect(after.recovery?.kind).toBe('bankrupt')
     // 생활비가 실제로 계속 나가는 판이라는 것도 함께 확인한다.
     expect(getLivingCost(broke)).toBeGreaterThan(0)
   })

@@ -40,10 +40,10 @@ describe('정지 조건', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('게임오버가 가장 먼저 걸린다 — 죽은 판이 더 흐르면 안 된다', () => {
-    expect(STOP_RULES[0].id).toBe('game-over')
-    const stop = findStop(ctx({ state: base({ gameOver: 'bankrupt' }) }))
-    expect(stop?.id).toBe('game-over')
+  it('주저앉음이 가장 먼저 걸린다 — 모르는 사이 회복이 지나가면 안 된다', () => {
+    expect(STOP_RULES[0].id).toBe('recovery')
+    const stop = findStop(ctx({ state: base({ recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } }) }))
+    expect(stop?.id).toBe('recovery')
     expect(stop?.bad).toBe(true)
   })
 
