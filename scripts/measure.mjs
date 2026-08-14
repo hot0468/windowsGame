@@ -284,6 +284,8 @@ CDP 실측 하네스 — 헤드리스 크롬으로 찍고 합성 픽셀로 대�
   --reduced          prefers-reduced-motion을 켠다 (⚠️ CSS 애니메이션을 찍으려면 필수)
   --fresh            localStorage를 비우고 새 판으로 시작한다
   --seed <json>      localStorage에 세이브를 심고 시작한다(키-값 JSON 파일).
+                     ⚠️ 검증(reviveState)에 걸리면 **조용히 새 게임으로 떨어진다** —
+                     심은 날짜가 화면 날짜칸과 다르면 seed가 거부된 것이다
                      상태로 잠긴 화면(취직해야 뜨는 출근 미니게임 등)을 재려면
                      클릭 수십 번 대신 이걸 쓴다. --fresh와 함께 주면 비운 뒤 심는다
   --name <이름>      잠금화면에 넣을 이름(기본 "측정")
