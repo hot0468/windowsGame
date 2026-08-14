@@ -55,6 +55,9 @@ function payloadFor(activity: Activity, rankUp: StatRank | ''): ToolRunPayload {
     steps: scene.steps,
     accent: scene.accent,
     look: scene.look,
+    /* ⚠️ **`runSceneOf`가 주는 것을 빠짐없이 옮긴다** — 여기서 하나를 빠뜨리면
+       견본만 진짜 게임과 다르게 보인다(실제로 `art`를 빠뜨려 한 번 겪었다). */
+    art: scene.art,
     /* 등급 상승을 보려면 **오른 스탯이 그 줄에 있어야** 한다 — 없으면 게이지가 안 그려진다. */
     rows: rankUp
       ? [

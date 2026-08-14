@@ -47,16 +47,48 @@ describe('실행 연출 장면', () => {
   })
 })
 
+describe('활동별 그림 (2026-08-14)', () => {
+  /* ⚠️ **`look`과 다른 축이다** — 그전에는 그림이 판에 딸려 있어 어두운 판의 활동이
+     전부 같은 막대였다(달리기·작곡·외주 개발이 화면에서 구분이 안 됐다). */
+  it('그림이 붙은 활동은 서로 다른 그림을 갖는다', () => {
+    const arts = new Map<string, string>()
+    for (const a of ACTIVITIES) {
+      const art = runSceneOf(a)?.art
+      if (art) arts.set(a.id, art)
+    }
+    expect(arts.size).toBeGreaterThan(0)
+    // 몸·손·소리·코드·숫자 — 갈래가 실제로 갈려 있어야 그림을 나눈 뜻이 산다.
+    expect(new Set(arts.values()).size).toBeGreaterThan(1)
+  })
+
+  it('그림은 정해진 다섯 중 하나다 — CSS가 없는 값을 쓰면 빈 판이 된다', () => {
+    const known = new Set(['run', 'brush', 'wave', 'code', 'chart'])
+    for (const a of ACTIVITIES) {
+      const art = runSceneOf(a)?.art
+      if (art) expect(known, `${a.id}`).toContain(art)
+    }
+  })
+
+  /* 종이 판은 책장이 이미 그 자리를 쓴다 — 둘이 겹치면 무엇이 그려질지 알 수 없다. */
+  it('종이 판에는 따로 그림을 붙이지 않는다', () => {
+    for (const a of ACTIVITIES) {
+      const scene = runSceneOf(a)
+      if (scene?.look === 'paper') expect(scene.art, `${a.id}`).toBeUndefined()
+    }
+  })
+})
+
 describe('종이 판 (책상에 앉아 읽고 쓰는 일)', () => {
   /*
    * ⚠️ **셋이 한 몸이다**: 밝은 판 · 책장 그림 · 닫기 버튼 없는 시스템 팝업.
    * `look` 하나가 셋을 함께 정하므로, 창 크롬이 그 값을 안 보면 어두운 타이틀 바 아래
    * 흰 종이가 붙어 창이 위아래로 갈린다(2026-08-09 설계자 지시로 만든 규칙).
    */
-  /* ⚠️ **2026-08-14에 넷으로 늘었다**(독서·경제 공부 추가). 갈래로 가르지 않는 이유는
-     `PAPER_IDS` 주석에 있다 — 독서는 여가이고 공부는 학습인데 화면에서는 같은 일이다. */
+  /* ⚠️ **2026-08-14에 셋으로 늘었다**(독서 추가). 갈래로 가르지 않는 이유는
+     `PAPER_IDS` 주석에 있다 — 독서는 여가이고 공부는 학습인데 화면에서는 같은 일이다.
+     경제 공부는 차트 그림을 쓰므로 여기 없다(그림과 판이 겹치면 안 된다). */
   it('읽고 쓰는 활동만 종이 판이고 나머지는 기본 판이다', () => {
-    const paperIds = new Set(['study', 'writing', 'reading', 'finance-study'])
+    const paperIds = new Set(['study', 'writing', 'reading'])
     for (const a of ACTIVITIES) {
       const scene = runSceneOf(a)
       if (!scene) continue

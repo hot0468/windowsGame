@@ -33,14 +33,27 @@ export interface RunScene {
   /** 상태 줄에 차례로 흐르는 문구. */
   steps: string[]
   /**
-   * 판의 생김새. 생략 = 기본(어두운 작업 화면 + 막대 몇 개).
+   * 판의 생김새. 생략 = 기본(어두운 작업 화면).
    *
-   * ⚠️ **`'paper'` 하나가 세 가지를 함께 바꾼다**: 밝은 종이 판 · 책장 넘기는 그림 ·
+   * ⚠️ **`'paper'` 하나가 세 가지를 함께 바꾼다**: 밝은 종이 판 · 기본 그림을 책장으로 ·
    * 닫기 버튼 없는 시스템 팝업(2026-08-09 설계자 지시). 셋을 따로 두면 "밝은데 코드 줄이
    * 흐르는" 같은 조합이 생기고, 어느 조합이 옳은지 아무도 답할 수 없다. **공부가 도구처럼
    * 보이던 것이 이 필드가 생긴 이유다.**
    */
   look?: 'paper'
+  /**
+   * 무엇을 그릴 것인가. 생략하면 판이 정한다(종이 판이면 책장, 아니면 흐르는 줄).
+   *
+   * ⚠️ **`look`에서 갈라 낸 축이다**(2026-08-14, 설계자 지시: "활동별로 진짜 다른 그림").
+   * 그전에는 그림이 판에 딸려 있어 **어두운 판에서는 전부 같은 막대**였다 — 달리기와
+   * 작곡과 외주 개발이 화면에서 구분이 안 됐다. 판(밝기·크롬)과 그림은 다른 물음이므로
+   * 필드를 나눈다: 종이 판에 파형을 그릴 일은 없어도, **어두운 판에 그림 다섯은 있다.**
+   *
+   * ⚠️ **그림마다 CSS 한 벌이 붙는다**(`ToolRun.css`). 늘리기 전에 그 파일을 보라 —
+   * 움직임은 `transform`·`opacity`만 쓰고(레이아웃을 다시 계산시키지 않는다),
+   * `prefers-reduced-motion`에서 **멈춘 모습이 고장으로 읽히지 않을 자리**를 함께 정해야 한다.
+   */
+  art?: 'run' | 'brush' | 'wave' | 'code' | 'chart'
 }
 
 /**
@@ -99,8 +112,12 @@ const WORK_STEPS: Record<string, string[]> = {
  * 종이 판으로 그리는 활동. **책상에 앉아 읽고 쓰는 일**이다 — 알바·운동·그림은 아니다.
  * ⚠️ 갈래(`category`)로 가르지 않는다: 독서는 여가이고 공부는 학습인데 **화면에서는
  * 같은 일**이다. 무엇처럼 보이는가가 기준이라 목록으로 둔다.
+ *
+ * ⚠️ **`ART`와 겹치지 않는다**(테스트가 지킨다) — 종이 판은 책장이 이미 그 자리를
+ * 쓰므로, 둘 다 붙으면 무엇이 그려질지 알 수 없다. 경제 공부가 종이에서 빠진 것이
+ * 그래서다: 숫자를 읽는 일이라 **차트 쪽이 더 그 활동답다.**
  */
-const PAPER_IDS = new Set(['study', 'writing', 'reading', 'finance-study'])
+const PAPER_IDS = new Set(['study', 'writing', 'reading'])
 
 /** 알바 장면의 액센트. 넷이 서로 달라야 "다른 일"로 읽힌다. */
 const WORK_ACCENT: Record<string, string> = {
@@ -121,6 +138,28 @@ const WORK_ACCENT: Record<string, string> = {
 }
 
 /**
+ * 활동별 그림. **없으면 판 기본값**(종이=책장, 어두움=흐르는 줄)이다.
+ *
+ * ⚠️ **모든 활동에 다른 그림을 만들지 않는다** — 다섯 개로 묶은 것은 그림 하나에
+ * CSS 한 벌이 붙기 때문이다(스무 개면 그 파일을 아무도 못 고친다). 알바 넷은 여전히
+ * 기본 그림을 쓰되 **액센트와 문구로** 갈린다.
+ */
+const ART: Record<string, RunScene['art']> = {
+  /* 몸을 쓰는 둘 — 트랙 위를 지나가는 선. */
+  exercise: 'run',
+  running: 'run',
+  /* 손으로 만드는 것 — 붓이 지나간 자리. */
+  draw: 'brush',
+  /* 소리 — 파형이 오르내린다. */
+  compose: 'wave',
+  /* 코드 — 들여쓰기가 있는 줄이 쌓인다. */
+  'coding-study': 'code',
+  'tool-vscode': 'code',
+  /* 숫자를 읽는 일 — 막대가 오르내린다. */
+  'finance-study': 'chart',
+}
+
+/**
  * 그 활동이 여는 장면. **없으면 `undefined`**이고, 그때는 연출 없이 곧바로 끝난다
  * (모든 활동에 장면을 만들지 않는다 — 잠자기·식사까지 2.5초를 끌면 그건 벌칙이다).
  */
@@ -131,6 +170,7 @@ export function runSceneOf(activity: Activity): RunScene | undefined {
       icon: activity.icon,
       accent: activity.toolId,
       steps: TOOL_STEPS[activity.toolId],
+      art: ART[activity.id],
     }
   }
   const steps = WORK_STEPS[activity.id]
@@ -141,6 +181,7 @@ export function runSceneOf(activity: Activity): RunScene | undefined {
     accent: WORK_ACCENT[activity.id] ?? 'store',
     steps,
     look: PAPER_IDS.has(activity.id) ? 'paper' : undefined,
+    art: ART[activity.id],
   }
 }
 

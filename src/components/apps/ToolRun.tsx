@@ -180,6 +180,7 @@ export function openToolWindow(state: GameState, activity: Activity): void {
       steps: scene.steps,
       accent: scene.accent,
       look: scene.look,
+      art: scene.art,
       rows,
       mentalPenalty,
       contract: activeContract(state),
@@ -207,6 +208,7 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
   const percent = Math.round((Math.min(step, steps.length) / steps.length) * 100)
 
   const paper = payload.look === 'paper'
+  const art = payload.art
 
   return (
     <div
@@ -219,7 +221,64 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
          * 규칙). 화면 낭독기에는 아무 뜻도 없으므로 통째로 숨긴다 — 진행 상황은 아래
          * 상태 줄과 진행 막대가 말한다.
          */}
-        {paper ? (
+        {art ? (
+          /*
+           * ⚠️ **활동별 그림**(2026-08-14). 상자 몇 개로 그리는 것은 책장·막대와 같은
+           * 규칙이다(오프라인: 이미지 파일을 들이지 않는다). 움직임은 `transform`·`opacity`만
+           * 쓰고, 멈췄을 때(`prefers-reduced-motion`) 고장으로 안 보이는 모습은 CSS가 정한다.
+           */
+          <div className={`tr-canvas tr-art tr-art-${art}`} aria-hidden="true">
+            {art === 'run' && (
+              /* 트랙 위를 지나가는 선. 바닥 선 하나 + 지나가는 점 셋. */
+              <span className="tr-run">
+                <span className="tr-run-track" />
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="tr-run-dot" style={{ animationDelay: `${i * 420}ms` }} />
+                ))}
+              </span>
+            )}
+            {art === 'brush' && (
+              /* 붓이 지나간 자리. 획 셋이 차례로 그어진다. */
+              <span className="tr-brush">
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="tr-brush-stroke"
+                    style={{ animationDelay: `${i * 560}ms` }}
+                  />
+                ))}
+              </span>
+            )}
+            {art === 'wave' && (
+              /* 파형. 막대가 오르내린다 — 소리는 세로로 움직인다. */
+              <span className="tr-wave">
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <span key={i} className="tr-wave-bar" style={{ animationDelay: `${i * 90}ms` }} />
+                ))}
+              </span>
+            )}
+            {art === 'code' && (
+              /* 들여쓰기가 있는 줄이 쌓인다. 흐르는 막대와 달리 **줄마다 길이가 다르다.** */
+              <span className="tr-code">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <span
+                    key={i}
+                    className={`tr-code-line tr-code-i${i % 3}`}
+                    style={{ animationDelay: `${i * 180}ms` }}
+                  />
+                ))}
+              </span>
+            )}
+            {art === 'chart' && (
+              /* 막대 그래프가 자란다. 숫자를 읽는 일이라 **바닥에서 위로** 움직인다. */
+              <span className="tr-chart">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <span key={i} className="tr-chart-bar" style={{ animationDelay: `${i * 140}ms` }} />
+                ))}
+              </span>
+            )}
+          </div>
+        ) : paper ? (
           /*
            * 책장 넘기는 그림. ⚠️ **이미지가 아니라 상자 몇 개다**(막대와 같은 오프라인 규칙).
            * 코드 줄이 흐르는 기본 판은 공부에 어울리지 않았다(설계자 지시).
