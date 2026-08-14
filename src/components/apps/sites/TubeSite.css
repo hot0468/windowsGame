@@ -15,6 +15,9 @@
   --tb-hover: #f2f2f2;
   --tb-red: #cc0000; /* #fff 위 5.9:1. 실제 유튜브의 #ff0000은 3.99:1이라 글자에 못 쓴다 */
 
+  /* ⚠️ 반응형은 **뷰포트가 아니라 컨테이너**로 판정한다 — 사이트는 창 안이라
+     미디어쿼리를 쓰면 창을 줄여도 뷰포트가 그대로여서 영영 안 접힌다(프로젝트 규칙). */
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   min-height: 100%;
@@ -43,6 +46,10 @@
   display: flex;
   align-items: center;
   gap: var(--sp-1);
+  /* ⚠️ **줄어들지 않는다.** 헤더가 flex라 검색창이 늘어나면 로고가 짓눌리고,
+     그때 "너튜브"가 한 글자씩 세로로 쪼개진다(2026-08-14 375px 실측: 5줄).
+     브랜드는 접히느니 자리를 지켜야 하고, 좁으면 **검색창이 먼저 양보한다**. */
+  flex: 0 0 auto;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -54,6 +61,8 @@
 }
 
 .tube-logo-text {
+  /* 브랜드 글자는 절대 줄바꿈하지 않는다(위 .tube-logo 주석 참조). */
+  white-space: nowrap;
   font-size: var(--fs-lg);
   font-weight: 700;
   letter-spacing: -0.04em;
@@ -754,4 +763,36 @@
 .tube-topic-desc {
   font-size: var(--fs-xs);
   color: var(--tb-text-2);
+}
+
+
+/*
+ * ── 좁은 폭(폰) ────────────────────────────────────────
+ * 판정은 컨테이너다(위 `.tube`의 `container-type` 주석 참조).
+ * 트위터가 좁아지면 사이드바를 먼저 접는 것과 **같은 판단**이다 — 화면이 좁을수록
+ * 남길 것은 본문이고, 길잡이는 접어도 갈 데가 사라지지 않는다.
+ */
+@container (max-width: 560px) {
+  /*
+   * 세로 레일을 감춘다. 76px은 375px 화면에서 본문의 20%다.
+   * ⚠️ **갈 데가 사라지지 않는다** — 레일의 항목(홈·Shorts·구독·내 채널)은
+   * 헤더의 햄버거와 본문 칩 줄이 이미 같은 곳으로 보낸다(ux `empty-nav-state`).
+   */
+  .tube-rail {
+    display: none;
+  }
+
+  /* Premium 같은 부가 표시는 좁은 폭에서 자리를 다투기만 한다. */
+  .tube-logo-sup {
+    display: none;
+  }
+
+  /*
+   * 검색창이 헤더에서 넘치던 자리를 되돌린다.
+   * ⚠️ `min-width: 0`이 없으면 flex 항목이 내용 최소 폭 아래로 못 줄어들어
+   * 오른쪽이 잘린다(로고를 짓누르던 것과 같은 원인의 반대편이다).
+   */
+  .tube-search {
+    min-width: 0;
+  }
 }
