@@ -24,6 +24,7 @@
 
 | 날짜 | 변경 | 대상 |
 |------|------|------|
+| 2026-08-14 | 첫 판 안내 메일 4통(한 번만 온다) + 실행 연출을 관계·S 일감으로 넓힘(10→29/71) | guide(data+systems+test 신규), types(`guides`), gameStore(afterTurn→feedback), MailApp, runScenes(문구 8·`table` 신규), ToolRun(tsx+css) |
 | 2026-08-14 | 관계 깊이 — 안 만나면 멀어지고(유예 5일·바닥 30), 친해지면 방의 말이 바뀌고, 가까우면 만남이 멘탈을 더 준다 | relations(상수 4+`STAGE_LINES`), affection(`decayAffection`·`stageOf`·`stageMessages`·`meetMentalBonus`·`isCooling`), types(`lastMet`), turn(`withRecovery`), ChatApp(+css), activityPreview |
 | 2026-08-14 | 활동별 실행 그림 8종 — `RunScene.art`를 `look`에서 갈라내 달리기·붓질·파형·코드·차트·무대조명·손·김을 그린다 | runScenes(`art`+배정), types(`ToolRunPayload.art`), ToolRun(tsx 그림 5+css), UiGallery(payload 누락 수정), runScenes.test |
 | 2026-08-14 | 행동 피드백 — 기록 갱신·내면 감상 토스트 + 육성 활동 7종에 실행 연출(그전엔 71개 중 10개만 있었다) | records·inner(systems+data+test 신규), gameStore(`feedback`), ToastHost(채널 2+정적 카드), runScenes(7)·ToolRun.css(액센트 3) |
@@ -33,4 +34,3 @@
 | 2026-08-14 | 악성코드 감염 — 포털 스캠 배너를 누르면 매 턴 광고 팝업 + 밤마다 3,000원이 새고, 백신 결제나 IT B의 `clean`이 끊는다 | malware(data+systems+test 신규), AdwareApp(tsx+css 신규), types(`malware`·`WindowKind: adware`), turn(취침), gameStore(액션 3+afterTurn), appForWindow(+test), banners(`scam`), NeverPortal, SystemApps(`scan`·`clean`·`ver`) |
 | 2026-08-14 | 블루스크린 — 번아웃 효율이 하한에 닿으면 화면이 3초 뻗는다(연출뿐, 상태 불변) | BlueScreen(tsx+css 신규), burnout(`EFFICIENCY_FLOOR` 공개), layers(`BLUESCREEN`), Desktop |
 | 2026-08-14 | 그림판 — 시작 메뉴의 낙서 장난감(색 8·굵기 3·지우개·전체 지우기). 창을 닫으면 그림이 사라진다 | paint(data 신규), PaintApp(tsx+css 신규), types(`WindowKind: paint`), appForWindow(+test), startMenu |
-| 2026-08-14 | 휴지통 — 고장 난 장비(`broken`)의 잔해가 처음 남는 자리 + 고정 파일 3개. `sold`는 안 들어가고 비우기도 없다 | trash(data 신규), ExplorerApp(+test 신규), types(`FolderId: trash`), desktopItems |

@@ -61,8 +61,8 @@ describe('활동별 그림 (2026-08-14)', () => {
     expect(new Set(arts.values()).size).toBeGreaterThan(1)
   })
 
-  it('그림은 정해진 여덟 중 하나다 — CSS가 없는 값을 쓰면 빈 판이 된다', () => {
-    const known = new Set(['run', 'brush', 'wave', 'code', 'chart', 'stage', 'hands', 'steam'])
+  it('그림은 정해진 아홉 중 하나다 — CSS가 없는 값을 쓰면 빈 판이 된다', () => {
+    const known = new Set(['run', 'brush', 'wave', 'code', 'chart', 'stage', 'hands', 'steam', 'table'])
     for (const a of ACTIVITIES) {
       const art = runSceneOf(a)?.art
       if (art) expect(known, `${a.id}`).toContain(art)

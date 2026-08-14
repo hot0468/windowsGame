@@ -269,6 +269,18 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
                 ))}
               </span>
             )}
+            {art === 'table' && (
+              /*
+               * 마주 앉은 둘 — 탁자를 사이에 두고 잔 둘이 놓여 있다.
+               * ⚠️ **사람을 그리지 않는다**(손 그림과 같은 판단) — 상자로 사람을 그리면
+               * 사람이 아니라 얼룩이 된다. 마주 놓인 잔이 "둘이 앉아 있다"를 말한다.
+               */
+              <span className="tr-table">
+                <span className="tr-cup tr-cup-a" />
+                <span className="tr-table-top" />
+                <span className="tr-cup tr-cup-b" />
+              </span>
+            )}
             {art === 'stage' && (
               /* 무대 조명 — 위에서 빛기둥이 내려온다. 보는 일이라 **내가 아니라 무대가 움직인다.** */
               <span className="tr-stage-art">

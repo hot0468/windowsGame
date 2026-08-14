@@ -173,7 +173,7 @@ export interface ToolRunPayload {
   /** 판의 생김새(`RunScene.look`). `'paper'`면 밝은 판 + 책장 + 닫기 버튼 없는 팝업. */
   look?: 'paper'
   /** 무엇을 그리는가(`RunScene.art`). 생략하면 판 기본값. */
-  art?: 'run' | 'brush' | 'wave' | 'code' | 'chart' | 'stage' | 'hands' | 'steam'
+  art?: 'run' | 'brush' | 'wave' | 'code' | 'chart' | 'stage' | 'hands' | 'steam' | 'table'
   rows: { key: keyof Stats; value: number }[]
   mentalPenalty: number
   contract?: GigContract
@@ -1377,6 +1377,14 @@ export interface GameState {
    * 날로 친다(`decayAffection`이 그렇게 읽는다).
    */
   lastMet?: Record<string, number>
+  /**
+   * 이미 받은 **첫 판 안내** id(`data/guide.ts`). 받은 적 없으면 필드가 없다.
+   *
+   * ⚠️ **세이브에 둔다**(`metaStore`가 아니라). 안내는 "이 판을 어떻게 시작하는가"이지
+   * 도감처럼 모으는 것이 아니고, 새 판을 여는 사람은 대개 오랜만에 돌아온 사람이라
+   * 다시 읽을 자리가 있는 편이 낫다(`systems/guide.ts`).
+   */
+  guides?: string[]
   /**
    * 이미 겪은 **랭크 이벤트** id(`data/rankEvents.ts`). 겪은 적 없으면 필드가 없다.
    *

@@ -425,6 +425,11 @@
     transform: translateY(-6px) scaleY(1);
     opacity: 0.9;
   }
+  /* 잔 둘은 **둘 다 밝은 채로** 멈춘다 — 한쪽만 흐리면 고장으로 읽힌다. */
+  .tr-cup {
+    animation: none !important;
+    opacity: 1;
+  }
   /* ⚠️ 게이지와 등급 표시는 **다 자란 상태로** 멈춘다 — 정보는 그대로 두고 움직임만
      걷어낸다(위 `.tr-row`와 같은 규칙). `animation: none`만 걸면 시작 프레임에 얼어붙어
      등급 표시가 통째로 안 보인다. */
@@ -655,6 +660,55 @@
   }
   50% {
     transform: scaleY(1);
+  }
+}
+
+/* 마주 앉은 자리 — 탁자 하나와 잔 둘. 대화가 오가듯 번갈아 밝아진다. */
+.tr-table {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 150px;
+  height: 96px;
+}
+
+/* 탁자. 가운데 가로선 하나면 "사이에 둔 것"이 읽힌다. */
+.tr-table-top {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tr-accent) 45%, var(--tr-card));
+}
+
+/* ⚠️ **탁자 폭에 견줘 잔이 너무 작으면 얼룩으로 보인다**(실측) — 탁자(150px)의
+   1/6쯤은 돼야 "놓인 것"으로 읽힌다. */
+.tr-cup {
+  position: absolute;
+  width: 26px;
+  height: 30px;
+  border-radius: 3px 3px 10px 10px;
+  background: var(--tr-accent);
+  animation: tr-talk 2.4s ease-in-out infinite;
+}
+
+/* 위아래로 마주 놓는다 — 좌우로 두면 탁자가 아니라 선반처럼 보인다. */
+.tr-cup-a {
+  top: 8px;
+}
+
+.tr-cup-b {
+  bottom: 8px;
+  /* ⚠️ **반 박자 늦게 밝아진다** — 동시에 밝아지면 대화가 아니라 깜빡임이 된다. */
+  animation-delay: 1.2s;
+}
+
+@keyframes tr-talk {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
   }
 }
 

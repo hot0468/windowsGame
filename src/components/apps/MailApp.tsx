@@ -10,6 +10,7 @@ import { billMessages } from '../../systems/bills'
 import { webtoonMessages } from '../../systems/webtoon'
 import { noticeMessages } from '../../systems/employment'
 import { selectChannel } from '../../systems/messages'
+import { guideMessages } from '../../systems/guide'
 import type { TimedMessage } from '../../systems/messages'
 import './MailApp.css'
 
@@ -74,6 +75,11 @@ export function MailApp() {
     ...phoneMessages(state).map((m) => ({ ...m, time: '방금', turn: Number.MAX_SAFE_INTEGER })),
     ...billMessages(state).map((m) => ({ ...m, time: '방금', turn: Number.MAX_SAFE_INTEGER })),
     ...webtoonMessages(state),
+    /* 첫 판 안내(2026-08-14). 받은 것만 나오고 한 번만 온다 — 편성표에 넣으면 순환해서
+       200일차에 "입주를 환영합니다"가 다시 온다(`systems/guide.ts`). 도착 순서가 곧
+       배우는 순서라 **받은 날 턴을 그대로 쓴다**(항상 맨 위로 올리면 첫날 안내가
+       200일차에도 최상단에 남는다). */
+    ...guideMessages(state).map((m, i) => ({ ...m, time: '오전 9:00', turn: i })),
   ].sort((a, b) => b.turn - a.turn)
   const mails = all.filter((m) => (folder === 'ad' ? isAd(m) : !isAd(m)))
   /*

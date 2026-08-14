@@ -53,7 +53,7 @@ export interface RunScene {
    * 움직임은 `transform`·`opacity`만 쓰고(레이아웃을 다시 계산시키지 않는다),
    * `prefers-reduced-motion`에서 **멈춘 모습이 고장으로 읽히지 않을 자리**를 함께 정해야 한다.
    */
-  art?: 'run' | 'brush' | 'wave' | 'code' | 'chart' | 'stage' | 'hands' | 'steam'
+  art?: 'run' | 'brush' | 'wave' | 'code' | 'chart' | 'stage' | 'hands' | 'steam' | 'table'
 }
 
 /**
@@ -103,6 +103,17 @@ const WORK_STEPS: Record<string, string[]> = {
   draw: ['캔버스를 여는 중', '밑그림을 잡는 중', '선을 정리하는 중', '색을 얹는 중'],
   compose: ['건반을 켜는 중', '네 마디를 잡는 중', '코드를 갈아 보는 중', '다시 들어 보는 중'],
   'coding-study': ['예제를 여는 중', '따라 치는 중', '에러를 읽는 중', '고쳐 돌려 보는 중'],
+  /* 마주 앉는 일 셋. ⚠️ **문구가 서로 달라야 한다** — 같은 그림을 쓰므로 문구까지
+     같으면 세 활동이 한 활동으로 읽힌다. */
+  social: ['약속 장소로 가는 중', '근황을 묻는 중', '이야기가 길어지는 중', '다음을 기약하는 중'],
+  'family-visit': ['현관에 들어서는 중', '밥상을 차리는 중', '잔소리를 듣는 중', '반찬통을 받는 중'],
+  club: ['회비를 내는 중', '자리에 앉는 중', '이름을 외우는 중', '뒷정리를 돕는 중'],
+  /* S 일감 다섯. 큰돈이 걸린 일이라 **맡는 자리부터 시작한다.** */
+  'univ-lecture': ['강의실을 여는 중', '자료를 띄우는 중', '질문을 받는 중', '마무리하는 중'],
+  'solo-exhibit': ['벽을 재는 중', '순서를 정하는 중', '조명을 맞추는 중', '도록을 넘겨 보는 중'],
+  'sw-contract': ['요구사항을 읽는 중', '빈 폴더를 여는 중', '뼈대를 세우는 중', '견적서를 쓰는 중'],
+  'ost-work': ['레퍼런스를 듣는 중', '삼십 초를 재는 중', '한 소절을 고치는 중', '넘기기 전 다시 듣는 중'],
+  'fund-advice': ['자료를 훑는 중', '관점을 정리하는 중', '숫자를 다시 세는 중', '말을 고르는 중'],
   /* 무대 — 보는 일이라 "내가 하는 단계"가 아니라 **막이 진행되는 단계**다. */
   concert: ['자리를 찾는 중', '조명이 어두워지는 중', '첫 곡이 시작되는 중', '앙코르를 기다리는 중'],
   /* 손 — 남을 위해 쓰는 시간. 단계마다 **상대가 있다.** */
@@ -148,6 +159,18 @@ const WORK_ACCENT: Record<string, string> = {
   volunteer: 'give',
   'meal-junk': 'meal',
   'meal-healthy': 'meal',
+  /* 마주 앉는 일 셋 — 관계는 하나로 묶는다(같은 종류의 시간이다). */
+  social: 'meet',
+  'family-visit': 'meet',
+  club: 'meet',
+  /* S 일감 다섯 — **각자 스탯의 액센트를 물려받는다**: 대학 강의는 공부(`study`),
+     개인전은 만드는 일(`make`), 나머지도 그 스탯이 하던 일의 색을 그대로 쓴다.
+     새 색을 다섯 더하면 액센트가 "무슨 일인가"를 말하는 힘을 잃는다. */
+  'univ-lecture': 'study',
+  'solo-exhibit': 'make',
+  'sw-contract': 'make',
+  'ost-work': 'make',
+  'fund-advice': 'read',
 }
 
 /**
@@ -177,6 +200,17 @@ const ART: Record<string, RunScene['art']> = {
   /* 김 — 그릇에서 올라간다. */
   'meal-junk': 'steam',
   'meal-healthy': 'steam',
+  /* 마주 앉는 자리 — 탁자 하나를 사이에 둔 둘. */
+  social: 'table',
+  'family-visit': 'table',
+  club: 'table',
+  /* S 일감은 **기존 그림을 물려받는다**(그 스탯이 하던 일과 같은 종류다) —
+     다섯에 새 그림을 만들면 CSS가 다섯 벌 더 붙는다. */
+  'univ-lecture': 'code',
+  'solo-exhibit': 'brush',
+  'sw-contract': 'code',
+  'ost-work': 'wave',
+  'fund-advice': 'chart',
 }
 
 /**
