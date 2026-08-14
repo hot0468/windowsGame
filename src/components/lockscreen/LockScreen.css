@@ -25,7 +25,13 @@
  * tabular-nums로 분이 바뀔 때 폭이 흔들리는 것도 막는다.
  */
 .lock-clock {
-  font-size: 72px;
+  /*
+   * ⚠️ **폭을 따라 줄어든다 — 72px 고정으로 두면 320px 화면에서 좌우가 잘린다**
+   * (2026-08-14 실측: 시계 314px / 화면 320px에 여백 3px, 실제 화면에서는 글자가
+   * 가장자리를 넘었다. `.lock`이 넘침을 감춰 스크롤로는 안 잡힌다).
+   * `clamp`의 가운데 항이 폭에 비례하고 상한 72px은 데스크톱에서 지금과 같은 값이다.
+   */
+  font-size: clamp(44px, 17vw, 72px);
   font-weight: 200;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -64,9 +70,11 @@
 }
 
 .lock-input {
-  width: 260px;
-  /* 최소 터치/클릭 타깃 높이. */
-  min-height: 40px;
+  /* 260px을 유지하되 좁은 화면에서는 화면을 넘지 않는다(좌우 여백 20px씩). */
+  width: min(260px, calc(100vw - var(--sp-8) * 2));
+  /* ⚠️ 최소 터치 타깃 44px(ux `touch-target-size`) — 40px은 그 기준에 미달이다.
+     잠금화면은 폰에서 **가장 먼저 만지는 화면**이라 여기서 어긋나면 첫인상이 어긋난다. */
+  min-height: 44px;
   padding: var(--sp-2) var(--sp-4);
   border: 1px solid rgba(255, 255, 255, 0.35);
   /* 윈도우 11 입력창의 특징은 "아래쪽 한 줄만 진한 밑선"이다(액센트 밑선).
@@ -104,7 +112,8 @@
 }
 
 .lock-btn {
-  min-height: 40px;
+  /* ux `touch-target-size`: 최소 44px(입력창과 같은 이유). */
+  min-height: 44px;
   padding: var(--sp-2) var(--sp-6);
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: var(--r-sm);
@@ -136,6 +145,12 @@
 /* 보조 행동(새로 시작)은 주요 행동보다 시각적으로 확실히 아래에 둔다
    (style `primary-action`: 보조는 종속시킨다). */
 .lock-sub {
+  /* 밑줄 글자라 시각적으로는 작지만 탭 대상은 44px을 채운다(ux `touch-target-size`).
+     ⚠️ 보이는 크기를 키우지 않는다 — 보조 행동이 주요 행동만큼 커 보이면 위계가 무너진다
+     (style `primary-action`). 그래서 높이만 주고 배경은 두지 않는다. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: var(--sp-1) var(--sp-2);
   font-size: var(--fs-md);
   background: none;

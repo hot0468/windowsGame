@@ -74,6 +74,11 @@
 }
 
 .bank-logo {
+  /* ⚠️ **브랜드는 짓눌려도 줄바꿈하지 않는다.** 헤더가 flex라 옆 요소(검색·메뉴)가
+     늘어나면 로고가 눌리고, 그때 한글 상호가 한 글자씩 세로로 쪼개진다
+     (2026-08-14 375px 실측). 좁으면 브랜드가 아니라 **옆이 양보한다**. */
+  flex: 0 0 auto;
+  white-space: nowrap;
   margin: 0;
   display: flex;
   align-items: center;

@@ -63,6 +63,8 @@
 
 .flea-brand {
   flex: 0 0 auto;
+  /* 위 세 사이트와 같은 이유로 줄바꿈을 막는다(브랜드는 접히지 않는다). */
+  white-space: nowrap;
 }
 
 .flea-brand-sub {
