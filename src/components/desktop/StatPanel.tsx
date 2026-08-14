@@ -3,7 +3,6 @@ import { HudPanel, HudSection } from './HudPanel'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
-import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
 import { STAMINA_CAP, growthCap } from '../../systems/turn'
 import { rankOf, rankRose, toNextRank } from '../../systems/rank'
 import { lifeProgress, lifeRankOf } from '../../systems/lifeRank'
@@ -94,7 +93,7 @@ function rankTitle(key: GrowthStatKey, value: number): string {
  * 게이지는 줄 안에 끼워 넣지 않고 그 아래 전폭 막대로 깐다 —
  * 줄 가운데 막대를 넣으면 숫자 자리가 좁아져 "숫자가 주인공"이라는 위계가 무너진다.
  */
-function ResourceRow({
+export function ResourceRow({
   statKey,
   value,
   max,
@@ -204,8 +203,7 @@ export function StatPanel() {
   const rankUps = useRankUps(state?.stats)
   if (!state || !visible) return null
 
-  const { stats, day } = state
-  const nextTier = getNextTier(day)
+  const { stats } = state
   const ill = isIll(state)
   const life = lifeRankOf(stats)
   const lifePct = Math.round(lifeProgress(stats) * 100)
@@ -334,43 +332,27 @@ export function StatPanel() {
         ))}
       </div>
 
-      {/* 3구역: 생계. 소지금이 여기 머리에 온다(설계자 지시) — 버는 돈과 나가는 돈이
-          한 구역에 모여야 "이 달을 버틸 수 있나"가 한눈에 읽힌다.
-          라벨 없이 구분선만 두는 것은 다른 구역과 같다. */}
-      <HudSection />
-      <ResourceRow
-        statKey="money"
-        value={stats.money}
-        suffix="원"
-        warn={stats.money <= 100000}
-      />
-      {/* ⚠️ 두 줄 다 **지금 사는 집의 배율**을 탄 금액이다(`getLivingCost`/`tierCostFor`).
-          한쪽만 기준 금액을 적으면 이사한 플레이어에게 "오늘 21,600원 → 5일 후 60,000원"처럼
-          말이 안 되는 예고가 뜬다. */}
-      <div className="stat-note">
-        <span className="stat-note-row">
-          <span>오늘 생활비</span>
-          <span className="stat-note-num">{getLivingCost(state).toLocaleString('ko-KR')}원</span>
-        </span>
-        <span className="stat-note-row">
-          <span>{nextTier.day - day}일 후 인상</span>
-          <span className="stat-note-num">
-            {tierCostFor(state, nextTier).toLocaleString('ko-KR')}원
-          </span>
-        </span>
-      </div>
+      {/* ⚠️ **생계 구역(소지금·생활비)은 여기 없다 — `WalletPanel`로 떼어 냈다**(2026-08-14).
+          스탯이 열다섯으로 늘면서 이 패널이 화면보다 길어져 소지금 줄이 잘렸고, 그것이
+          **판을 이끄는 숫자**라 잘려서는 안 되는 유일한 줄이었다. 되돌리지 말 것 —
+          되돌리면 스탯을 하나 더할 때마다 같은 자리에서 다시 잘린다. */}
       {/* ⚠️ **밴드에 들어간 사람에게만 보인다** — 없는 사람에게 "숙련도 0"을 띄우면
           아무도 안 여는 축이 상시 자리를 차지한다(조건부 바탕화면 항목과 같은 규칙).
-          공연·앨범 문턱을 여기서 다시 적지 않고 사람이 읽는 말(`skillLabel`)로 대신한다. */}
+          공연·앨범 문턱을 여기서 다시 적지 않고 사람이 읽는 말(`skillLabel`)로 대신한다.
+          ⚠️ 구분선은 **이 블록 안에 있다** — 밖에 두면 밴드가 없는 판에서 그리드 아래에
+          아무것도 안 가르는 선이 하나 남는다. */}
       {state.band && (
-        <div className="stat-note">
-          <span className="stat-note-row">
-            <span>밴드 숙련도</span>
-            <span className="stat-note-num">
-              {state.band.skill} · {skillLabel(state.band.skill)}
+        <>
+          <HudSection />
+          <div className="stat-note">
+            <span className="stat-note-row">
+              <span>밴드 숙련도</span>
+              <span className="stat-note-num">
+                {state.band.skill} · {skillLabel(state.band.skill)}
+              </span>
             </span>
-          </span>
-        </div>
+          </div>
+        </>
       )}
     </HudPanel>
   )

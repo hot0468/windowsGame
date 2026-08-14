@@ -19,7 +19,6 @@ import { creditPerformance, revivePerformance, worksAtOffice } from '../systems/
 import { healIllness, reviveIllness } from '../systems/illness'
 import { reviveRecovery } from '../systems/recovery'
 import { brokenRecords } from '../systems/records'
-import { settleGuides } from '../systems/guide'
 import { innerLine } from '../systems/inner'
 import { useMetaStore } from './metaStore'
 import {
@@ -567,6 +566,8 @@ function reviveState(raw: unknown): GameState | null {
     illness: reviveIllness(saved.illness),
     affection: reviveAffection(saved.affection),
     rankEvents: reviveRankEvents(saved.rankEvents),
+    // 투어를 물어봤는가. 불리언 하나라 형태만 본다 — 값이 이상하면 다시 묻는 쪽이 안전하다.
+    tourSeen: saved.tourSeen === true ? true : undefined,
     // ⚠️ 응시 기록은 **돈을 만들지 않으므로** 검증이 은행·정규직만큼 빡빡할 필요가 없다
     //    (합격해도 나오는 것은 아이템 하나다). 날짜만 유한하면 통과시키고, 없는 종목을
     //    가리키는 기록은 `advanceCertification`이 조용히 닫는다.
@@ -718,20 +719,14 @@ function afterTurn(next: GameState, chain?: number) {
      ⚠️ **판을 넘어 남겨야 한다**: 세이브의 `careerLog`만 보면 새 게임을 시작하는
      순간 다녀 본 회사가 전부 사라진다. */
   unlockHiredCareers(job.notices)
-  /* ⚠️ **첫 판 안내도 여기서 도착한다**(랭크 이벤트와 같은 자리·같은 이유) — 턴을
-     넘기는 통로가 넷이라 호출부마다 적으면 새 통로가 생길 때 하나씩 빠뜨린다.
-     안내 메일은 회사 소식과 **같은 창구**(`jobNotices` → 토스트 + 아웃룩)로 나간다:
-     새 알림 창구를 만들지 않는 것이 이 프로젝트의 규칙이다. */
-  const guided = settleGuides(evented)
   return {
-    state: guided.state,
+    state: evented,
     skippedPlans: ran.skipped,
     arrivals: [...got.arrived, ...exams.arrived],
     jobNotices: job.notices,
-    /* ⚠️ **안내 메일은 `feedback` 창구로 나간다**(기록·내면 감상과 같은 파이프) —
-       `Message` 형태가 같고, 토스트 겹침 제한·중복 제거를 한 벌로 유지하기 위해서다.
-       `jobNotices`에 못 섞는 것은 그쪽이 `JobNotice[]`(회사 소식 전용 형태)라서다. */
-    feedback: guided.mails,
+    /* ⚠️ **매 턴 비운다** — 피드백 토스트는 방금 한 행동에 대한 말이라 다음 턴까지
+       남으면 거짓이 된다(`doActivity`가 이 자리에 그 턴의 감상을 채워 넣는다). */
+    feedback: [],
   }
 }
 
@@ -914,6 +909,16 @@ interface GameStore {
    */
   feedback: Message[]
   clearFeedback: () => void
+  /**
+   * 첫 실행 안내 투어가 지금 돌고 있는가. **휘발이다**(`partialize`가 `state`만 저장한다) —
+   * 새로고침 도중 끊긴 투어를 되살릴 이유가 없고, 되찾는 길은 설정에 있다.
+   */
+  tourRunning: boolean
+  /** 투어를 **처음부터** 돌린다. 물어본 기록(`tourSeen`)도 함께 남긴다. */
+  startTour: () => void
+  endTour: () => void
+  /** 물어보기만 하고 넘어갔다 — [바로 시작]이 이 자리다. 다시 묻지 않는다. */
+  markTourSeen: () => void
   /**
    * 정규직 공고에 지원한다. **1턴을 쓴다**(`job-apply` 활동이 비용을 갖는다).
    *
@@ -1204,6 +1209,24 @@ export const useGameStore = create<GameStore>()(
         feedback: [],
         clearFeedback: () => set({ feedback: [] }),
 
+        tourRunning: false,
+        /* ⚠️ 시작할 때 물어본 기록을 함께 남긴다 — 중간에 [건너뛰기]로 나가도 다시 묻지
+           않아야 하고, 판정을 `tourSeen` 하나로 유지하는 것이 그 규칙의 전부다.
+           ⚠️ **열린 창을 먼저 닫는다** — 투어가 가리키는 것은 전부 바탕화면 요소인데,
+           설정 창에서 [다시 보기]를 누른 판이라면 그 창이 대상 위를 덮고 있다.
+           구멍은 좌표를 뚫을 뿐이라 **그 자리에 있는 창이 그대로 보인다.** */
+        startTour: () => {
+          useWindowStore.getState().closeAll()
+          get().markTourSeen()
+          set({ tourRunning: true })
+        },
+        endTour: () => set({ tourRunning: false }),
+        markTourSeen: () => {
+          const current = get().state
+          if (!current || current.tourSeen) return
+          set({ state: { ...current, tourSeen: true } })
+        },
+
         jobNotices: [],
         clearJobNotices: () => set({ jobNotices: [] }),
 
@@ -1465,12 +1488,9 @@ export const useGameStore = create<GameStore>()(
              둘 다 쥔 유일한 자리다(기록 갱신은 둘을 견줘야 알 수 있다).
              ⚠️ **밤 정산까지 끝난 상태로 잰다**(`result.state`): 오후 행동이면 생활비가
              빠진 뒤라야 "잔고 기록"이 실제와 맞는다. */
-          /* ⚠️ **`result.feedback`을 덮어쓰지 않고 합친다** — 그 자리에 이미 안내 메일이
-             실려 있을 수 있고(`afterTurn`의 `settleGuides`), 덮으면 그 턴에 온 안내가
-             조용히 사라진다. 안내가 먼저인 것은 그쪽이 "지금 알아야 할 것"이라서다. */
           set({
             ...result,
-            feedback: [...result.feedback, ...feedbackFor(current, result.state, activity)],
+            feedback: feedbackFor(current, result.state, activity),
           })
           openCallCenterIfWorking(current, activity.id)
           openDriveIfWorking(current, activity.id)

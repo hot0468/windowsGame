@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { HudPanel } from './HudPanel'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
@@ -41,6 +42,13 @@ export function CalendarPanel() {
   const raise = useDesktopPanelStore((s) => s.raise)
   /* 작업 표시줄 버튼이 끄면 아예 그리지 않는다. 되돌리는 수단은 같은 버튼이다. */
   const visible = useDesktopPanelStore((s) => s.visible.calendar)
+  /* ⚠️ **자기 높이를 알린다** — 지갑칸이 바로 아래에 서는데 이 패널은 자동 진행 문구가
+     붙었다 떨어졌다 하며 키가 변한다(`WalletPanel` 머리말). 셀렉터로 액션 하나만 고르므로
+     참조가 안정적이고, 그래서 `HudPanel`의 effect가 매 렌더 다시 돌지 않는다. */
+  const setHeight = useDesktopPanelStore((s) => s.setHeight)
+  /* ⚠️ `useCallback`이 필수다 — 매 렌더 새 함수를 넘기면 `HudPanel`의 effect가 매번
+     `ResizeObserver`를 끊었다 다시 건다(무한 루프는 아니지만 순수한 낭비다). */
+  const reportHeight = useCallback((h: number) => setHeight('calendar', h), [setHeight])
 
   const { width, gap, top } = CALENDAR_PANEL_LAYOUT
   /** 스탯창 바로 왼쪽에 고정한다. 드래그로 옮길 수 없으므로 상태로 들고 있지 않는다. */
@@ -65,6 +73,7 @@ export function CalendarPanel() {
       width={width}
       zIndex={zIndex}
       onActivate={() => raise('calendar')}
+      onHeight={reportHeight}
     >
       {/* 날짜는 이 패널의 주인공이다 — 타입 스케일 최상단(24px) + tabular 숫자로
           한눈에 잡히게 한다(ux `visual-hierarchy`: 크기로 위계를 만든다).

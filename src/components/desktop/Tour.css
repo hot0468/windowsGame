@@ -1,0 +1,124 @@
+/*
+ * 첫 실행 안내 투어. 시각 언어는 **OS 크롬(--os-*)** 그대로다 —
+ * 게임이 자기 목소리를 내는 자리가 아니라 "이 컴퓨터를 이렇게 씁니다"라는 안내라서다.
+ *
+ * ⚠️ z-index는 여기 없다. `Tour.tsx`가 `LAYERS.TOUR`를 인라인으로 넣는다 —
+ * Desktop.css처럼 두 벌로 두면 한쪽만 고치는 사고가 난다.
+ */
+.tour {
+  position: fixed;
+  inset: 0;
+  /* ⚠️ 딤이 클릭을 막는다 — 안내 중에 뒤를 눌러 창이 열리면 대상 좌표가 어긋난다. */
+  pointer-events: auto;
+}
+
+/* 대상을 못 찾은 단계(구멍 없음)와 물어보는 팝업이 쓰는 평범한 딤. */
+.tour-dim {
+  position: absolute;
+  inset: 0;
+  background: var(--os-scrim);
+}
+
+/*
+ * 스포트라이트. **딤은 이 요소의 그림자다** — 안쪽은 비어 있고 9999px 스프레드가
+ * 화면 바깥까지 덮는다. 그림자 목록의 앞이 위에 그려지므로 액센트 링이 딤보다 위다.
+ */
+.tour-hole {
+  position: absolute;
+  border-radius: var(--r-md);
+  box-shadow:
+    0 0 0 2px var(--os-accent),
+    0 0 0 9999px var(--os-scrim);
+  pointer-events: none;
+  /* 단계가 넘어갈 때 구멍이 미끄러져 이동한다 — 어디로 옮겨 갔는지가 보여야
+     "다음 것"이 무엇인지 눈이 따라간다(ux `motion-meaning`). */
+  transition:
+    left 200ms ease,
+    top 200ms ease,
+    width 200ms ease,
+    height 200ms ease;
+}
+
+.tour-card {
+  position: absolute;
+  /* ⚠️ `Tour.tsx`의 CARD_W와 같은 값. 좌표 클램프가 이 숫자를 쓴다. */
+  width: 320px;
+  max-width: calc(100vw - var(--sp-4));
+  padding: var(--sp-4);
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--el-3);
+  color: var(--os-text);
+}
+
+.tour-card:focus-visible {
+  outline: 2px solid var(--os-accent);
+  outline-offset: 2px;
+}
+
+/* 물어보는 팝업은 어느 것도 가리키지 않으므로 화면 한가운데다. */
+.tour-ask {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.tour-step {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-xs);
+  color: var(--os-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.tour-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
+.tour-text {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.65;
+  color: var(--os-text-2);
+}
+
+.tour-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+
+.tour-btn {
+  padding: var(--sp-2) var(--sp-4);
+  font-size: var(--fs-md);
+  font-family: inherit;
+  color: var(--os-text);
+  background: var(--os-fill);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.tour-btn:hover {
+  background: var(--os-chrome-alt);
+}
+
+.tour-btn-main {
+  color: #fff;
+  background: var(--os-accent);
+  border-color: var(--os-accent);
+}
+
+.tour-btn-main:hover {
+  background: var(--os-accent-hover);
+  border-color: var(--os-accent-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-hole {
+    transition: none;
+  }
+}

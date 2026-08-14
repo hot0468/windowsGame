@@ -25,6 +25,8 @@ export const UI_ICONS = {
   statPanel: 'mdi-light:account',
   /** 작업 표시줄 날짜칸 버튼 — 트레이 라인 글리프. */
   calendarPanel: 'mdi-light:calendar',
+  /** 작업 표시줄 지갑칸 버튼 — 트레이 라인 글리프. */
+  walletPanel: 'mdi-light:wallet',
   /**
    * 작업 표시줄 [아이콘 위치 초기화] — 트레이 라인 글리프.
    * 새로 고침(refresh)이 아니라 **되돌리기(undo)** 글리프다: 하는 일이

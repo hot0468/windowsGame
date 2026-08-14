@@ -2,21 +2,40 @@ import { useEffect, useRef, useState } from 'react'
 import { formatGameDate, weekdayOf } from '../../data/calendar'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
+import type { Slot } from '../../types/game'
 import './Daybreak.css'
 
-/** 화면이 스스로 사라지기까지. 애니메이션(해가 다 뜨는 데 1.6초)보다 넉넉히 잡는다. */
-const SHOW_MS = 2600
+/**
+ * 화면이 스스로 사라지기까지. 애니메이션(해가 다 뜨는 데 1.6초)보다 넉넉히 잡는다.
+ *
+ * ⚠️ **오후는 더 짧다.** 날이 바뀌는 것은 판이 한 칸 움직이는 사건이지만 오후로 접어드는
+ * 것은 **같은 하루 안의 반환점**이라, 같은 길이를 주면 하루에 두 번 같은 무게의 화면이
+ * 들어와 둘 다 성가셔진다.
+ */
+const SHOW_MS = { dawn: 2600, dusk: 1800 } as const
+
+/** 지금 알리는 것이 무엇인가. `null`이면 아무것도 안 뜬다. */
+type Phase = 'dawn' | 'dusk'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
 /**
- * **날이 밝았다는 알림.** 날짜가 바뀌면 해가 떠오르는 화면이 잠깐 덮었다가 사라진다.
+ * **시간이 넘어갔다는 알림.** 갈래가 둘이고 **한 컴포넌트가 둘 다 진다**:
+ *   - `dawn` — 날짜가 바뀌었다. 해가 떠오른다.
+ *   - `dusk` — 같은 날 **오전 → 오후**로 접어들었다. 해가 기운다.
+ *
+ * ⚠️ **둘을 다른 컴포넌트로 쪼개지 말 것**(2026-08-14에 오후 갈래를 여기에 붙였다).
+ * 쪼개면 타이밍·자동 진행 제외·회복 중 제외·결과 창 대기·모션 감소 처리 다섯 가지를
+ * 두 벌로 유지하게 되고, 무엇보다 **둘이 동시에 뜨는 조합**이 생긴다. 여기서는
+ * 날짜가 바뀌었는지를 먼저 묻기 때문에 두 갈래가 구조적으로 배타다.
  *
  * ## 왜 필요한가
- * 이 게임에는 날짜 제한이 없고 하루가 슬롯 둘이라, **오후 행동 한 번에 날짜가 조용히
- * 넘어간다**. 날짜칸을 보고 있지 않으면 며칠이 지났는지 감각이 없어진다(설계자 지시).
- * 토스트로는 부족하다 — 토스트는 "무슨 일이 있었나"를 알리는 창구이고, 날이 바뀌는 것은
- * **판 전체가 한 칸 움직이는 사건**이라 화면이 한 번 덮여야 몸으로 읽힌다.
+ * 이 게임에는 날짜 제한이 없고 하루가 슬롯 둘이라, **행동 한 번에 시간이 조용히
+ * 넘어간다**. 날짜칸을 보고 있지 않으면 며칠이 지났는지, 지금이 오전인지 오후인지
+ * 감각이 없어진다(설계자 지시 — 오후 갈래는 "오전에서 오후로 넘어가는 게 인식이 잘
+ * 안 된다"는 신고에서 왔다). 토스트로는 부족하다 — 토스트는 "무슨 일이 있었나"를 알리는
+ * 창구이고, 시간이 넘어가는 것은 **판이 한 칸 움직이는 사건**이라 화면이 한 번 덮여야
+ * 몸으로 읽힌다.
  *
  * ## 지키는 것
  * ⚠️ **자동 진행 중에는 뜨지 않는다.** 자동 진행은 120ms마다 슬롯을 넘기므로 날마다
@@ -40,6 +59,7 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
  */
 export function Daybreak() {
   const day = useGameStore((s) => s.state?.day)
+  const slot = useGameStore((s) => s.state?.slot)
   const recovery = useGameStore((s) => s.state?.recovery)
   const autoRunning = useGameStore((s) => s.autoRunning)
   /* ⚠️ **창 종류로 본다**(창 id가 아니라) — 실행 연출은 활동마다 id가 다르고, 앞으로
@@ -58,9 +78,15 @@ export function Daybreak() {
    * "날이 밝았다"가 뜨면 거짓말이다(그 날은 이미 밝아 있었다).
    */
   const shown = useRef<number | undefined>(undefined)
-  /** 날은 밝았는데 아직 못 띄운 상태. 결과 창이 닫히면 그때 뜬다. */
-  const pending = useRef(false)
-  const [visible, setVisible] = useState(false)
+  /**
+   * 마지막으로 알린 슬롯. **`shown`과 따로 두는 것이 두 갈래를 배타로 만든다** —
+   * 날이 바뀌면 슬롯도 함께 바뀌는데(오후 → 다음 날 오전), 날짜 변화를 먼저 처리하고
+   * 이 값을 같이 갱신하므로 같은 전환에서 오후 알림이 뒤따라 뜨지 않는다.
+   */
+  const shownSlot = useRef<Slot | undefined>(undefined)
+  /** 시간은 넘어갔는데 아직 못 띄운 알림. 결과 창이 닫히면 그때 뜬다. */
+  const pending = useRef<Phase | null>(null)
+  const [showing, setShowing] = useState<Phase | null>(null)
 
   /*
    * ⚠️ **효과를 둘로 쪼개지 않는다.** "날짜가 바뀌었다"와 "창이 닫혔다"는 서로 다른 시점에
@@ -68,29 +94,62 @@ export function Daybreak() {
    * (잠자기·이동)에 두 번째 효과의 의존값이 안 바뀌어 알림이 영영 안 뜬다.
    */
   useEffect(() => {
-    if (day === undefined) return
-    if (shown.current !== day) {
-      const first = shown.current === undefined
+    if (day === undefined || slot === undefined) return
+    const first = shown.current === undefined
+    if (shown.current !== day || shownSlot.current !== slot) {
+      /* ⚠️ **날짜를 먼저 묻는다.** 날이 바뀌는 전환은 슬롯도 함께 바꾸므로(오후 → 오전),
+         순서를 뒤집으면 한 전환에서 두 알림이 다 예약된다. */
+      const next: Phase | null =
+        shown.current !== day ? 'dawn' : slot === 'afternoon' ? 'dusk' : null
       shown.current = day
+      shownSlot.current = slot
       // 첫 렌더·자동 진행·주저앉은 동안은 건너뛴다(위 주석의 세 규칙).
-      if (!first && !autoRunning && !recovery) pending.current = true
+      if (!first && next && !autoRunning && !recovery) pending.current = next
     }
     // 결과 창이 떠 있으면 그것부터 읽게 두고 기다린다.
-    if (!pending.current || runOpen) return
-    pending.current = false
-    setVisible(true)
-    const timer = setTimeout(() => setVisible(false), SHOW_MS)
+    const phase = pending.current
+    if (!phase || runOpen) return
+    pending.current = null
+    setShowing(phase)
+    const timer = setTimeout(() => setShowing(null), SHOW_MS[phase])
     return () => clearTimeout(timer)
-  }, [day, autoRunning, recovery, runOpen])
+  }, [day, slot, autoRunning, recovery, runOpen])
 
-  if (!visible || day === undefined) return null
+  if (!showing || day === undefined) return null
+
+  /*
+   * ⚠️ **두 갈래의 판형이 다르고 그것이 규칙이다**(2026-08-14 설계자 지시로 오후를
+   * 전체 화면에서 이쪽으로 옮겼다). 날이 바뀌는 것은 판이 한 칸 움직이는 사건이라
+   * 화면을 통째로 덮을 값이 있지만, 오후로 접어드는 것은 **같은 하루의 반환점**이라
+   * 하루 걸러 한 번씩 전체 화면이 들어오면 연출이 아니라 통행세가 된다.
+   * 그래서 오후는 **딤 + 작은 팝업**이고, 시계 하나가 왼쪽에서 오른쪽으로 건너간다.
+   * ⚠️ **오후를 다시 전체 화면으로 만들지 말 것.**
+   */
+  if (showing === 'dusk') {
+    return (
+      <div className="db-slot" role="status" onClick={() => setShowing(null)}>
+        <div className="db-slot-card">
+          {/* 시계가 왼쪽 끝에서 오른쪽 끝으로 건너가며 바늘이 한 바퀴 돈다 —
+              "시간이 앞으로 갔다"를 글자 없이 전하는 부분이라 `aria-hidden`이다
+              (읽어야 할 것은 아래 두 줄이 이미 적는다). */}
+          <div className="db-track" aria-hidden="true">
+            <span className="db-clock">
+              <span className="db-hand" />
+            </span>
+          </div>
+          <p className="db-slot-title">오후가 되었습니다</p>
+          <p className="db-slot-note">{day}일차 오후</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     /*
      * 누르면 바로 닫힌다. `role="status"`인 이유: 이것은 대답을 요구하는 대화상자가
      * 아니라 **지나가는 알림**이다 — `alertdialog`로 두면 스크린 리더가 초점을 뺏는다.
      */
-    <div className="db" role="status" onClick={() => setVisible(false)}>
+    <div className="db" role="status" onClick={() => setShowing(null)}>
       <div className="db-sky" aria-hidden="true">
         <span className="db-sun" />
         <span className="db-land" />

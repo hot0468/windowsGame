@@ -27,9 +27,11 @@ import { ActivityConfirm } from '../apps/ActivityConfirm'
 import { EndingModal } from '../apps/EndingModal'
 import { CalendarPanel } from './CalendarPanel'
 import { StatPanel } from './StatPanel'
+import { WalletPanel } from './WalletPanel'
 import { Taskbar } from './Taskbar'
 import { Daybreak } from './Daybreak'
 import { BlueScreen } from './BlueScreen'
+import { Tour } from './Tour'
 import { ToastHost } from './ToastHost'
 import './Desktop.css'
 
@@ -291,6 +293,9 @@ export function Desktop() {
           return (
             <button
               key={entry.id}
+              // 첫 실행 안내 투어가 가리키는 표식. 순서 셀렉터를 쓸 수 없어서다 —
+              // 아이콘은 드래그로 옮길 수 있고 조건부 항목이 있어 순서가 정해지지 않는다.
+              data-tour={entry.id}
               className={`desktop-icon${dragging ? ' desktop-icon-dragging' : ''}`}
               style={{ left: pos.x, top: pos.y }}
               onPointerDown={(e) => handlePointerDown(e, entry)}
@@ -354,6 +359,9 @@ export function Desktop() {
       {/* 스탯창·날짜칸은 바탕화면 요소다 — 일반 창에 가려지는 것이 정상이며,
           작업 표시줄의 패널 버튼으로 다시 앞으로 가져온다. */}
       <CalendarPanel />
+      {/* 지갑칸은 날짜칸 **바로 아래**에 선다 — 위치는 날짜칸의 실제 높이가 정하므로
+          여기서는 순서만 맞춘다(사유는 `WalletPanel` 머리말). */}
+      <WalletPanel />
       <StatPanel />
       <WindowManager />
       <Taskbar />
@@ -364,6 +372,10 @@ export function Desktop() {
       {/* 번아웃이 바닥에 닿으면 화면이 뻗는다. **데스크톱 셸에만 있다** — 폰이 블루스크린을
           띄우면 그 자체가 말이 안 되고, 모바일 셸은 이 컴포넌트를 마운트하지 않는다. */}
       <BlueScreen />
+      {/* 첫 실행 안내 투어. **데스크톱 셸에만 있다** — 가리키는 대상이 전부 데스크톱
+          DOM(아이콘·HUD 패널·작업 표시줄)이라 폰에서는 가리킬 것이 없다(`BlueScreen`과
+          같은 규칙). 화면을 덮으므로 여기 마운트 순서가 곧 형제들 위에 서는 순서다. */}
+      <Tour />
 
       {/* 아이콘 오른쪽 클릭 메뉴. 공용 부품이라 열고 닫는 것만 여기서 관리한다. */}
       {menu && (

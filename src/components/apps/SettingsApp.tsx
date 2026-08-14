@@ -5,6 +5,7 @@ import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
 import { daysToBilling, subscriptionsOf } from '../../systems/subscription'
 import { subscribed } from '../../systems/turn'
+import { useShell } from '../../hooks/useShell'
 import type { Subscription } from '../../data/subscriptions'
 import type { GameState } from '../../types/game'
 import './SettingsApp.css'
@@ -26,12 +27,20 @@ import './SettingsApp.css'
  * ## ⚠️ 레일(좌측 카테고리)을 만들지 않았다
  * 실제 윈도우 설정은 좌측 카테고리 목록이 있지만 **여기 카테고리는 하나뿐**이라,
  * 레일을 두면 눌러도 갈 데 없는 항목이 여섯 개 생긴다(이 프로젝트의 장식 금지 규칙).
- * 구역이 둘 이상이 되면 그때 만든다.
+ * ⚠️ 2026-08-14에 [게임 설명 다시 보기]가 붙어 구역이 둘이 됐지만 **여전히 레일은
+ * 만들지 않는다** — 둘을 가르는 데는 헤어라인 하나면 충분하고, 레일은 항목이 여섯쯤
+ * 될 때 값을 한다.
+ *
+ * ## ⚠️ 안내 다시 보기는 데스크톱에서만 그린다
+ * 투어(`components/desktop/Tour.tsx`)가 데스크톱 셸에만 마운트되므로 폰에서 누르면
+ * 아무 일도 일어나지 않는다 — 죽은 컨트롤을 만들지 않는다.
  */
 export function SettingsApp() {
   const state = useGameStore((s) => s.state)
   const unsubscribeFrom = useGameStore((s) => s.unsubscribeFrom)
+  const startTour = useGameStore((s) => s.startTour)
   const openSite = useWindowStore((s) => s.openSite)
+  const mobile = useShell() === 'mobile'
 
   if (!state) return null
   const book = subscriptionsOf(state)
@@ -79,6 +88,29 @@ export function SettingsApp() {
           그날로 해지되고, 밀린 요금이 쌓이지는 않습니다.
         </p>
       </section>
+
+      {/* ⚠️ **한 번 보고 끝이면 안 된다** — 첫 판 안내는 새로고침 한 번이면 사라지는데,
+          되찾을 길이 없으면 그 뒤로 영영 못 본다. 구역은 헤어라인 하나로만 가른다. */}
+      {!mobile && (
+        <section className="set-sec" aria-label="안내">
+          <div className="set-sec-head">
+            <h2 className="set-sec-title">안내</h2>
+          </div>
+          <article className="set-row">
+            <span className="set-row-body">
+              <span className="set-row-name">게임 설명</span>
+              <span className="set-row-state">
+                바탕화면의 각 부분을 짚어 가며 처음부터 다시 알려 드립니다.
+              </span>
+            </span>
+            <span className="set-row-act">
+              <button type="button" className="set-btn set-btn-go" onClick={startTour}>
+                다시 보기
+              </button>
+            </span>
+          </article>
+        </section>
+      )}
     </div>
   )
 }

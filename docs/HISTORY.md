@@ -6,6 +6,9 @@ CLAUDE.md의 변경 이력 표에서 밀려난 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-14 | 악성코드 감염 — 포털 스캠 배너를 누르면 매 턴 광고 팝업 + 밤마다 3,000원이 새고, 백신 결제나 IT B의 `clean`이 끊는다 | malware(data+systems+test 신규), AdwareApp(tsx+css 신규), types(`malware`·`WindowKind: adware`), turn(취침), gameStore(액션 3+afterTurn), appForWindow(+test), banners(`scam`), NeverPortal, SystemApps(`scan`·`clean`·`ver`) |
+| 2026-08-14 | 블루스크린 — 번아웃 효율이 하한에 닿으면 화면이 3초 뻗는다(연출뿐, 상태 불변) | BlueScreen(tsx+css 신규), burnout(`EFFICIENCY_FLOOR` 공개), layers(`BLUESCREEN`), Desktop |
+| 2026-08-14 | 그림판 — 시작 메뉴의 낙서 장난감(색 8·굵기 3·지우개·전체 지우기). 창을 닫으면 그림이 사라진다 | paint(data 신규), PaintApp(tsx+css 신규), types(`WindowKind: paint`), appForWindow(+test), startMenu |
 | 2026-08-14 | 휴지통 — 고장 난 장비(`broken`)의 잔해가 처음 남는 자리 + 고정 파일 3개. `sold`는 안 들어가고 비우기도 없다 | trash(data 신규), ExplorerApp(+test 신규), types(`FolderId: trash`), desktopItems |
 | 2026-08-13 | IT에 쓸 곳 — 코딩 공부(둘째 공급원) · IT B가 여는 유지보수 의뢰 방 | activities(`coding-study`·`maintenance`), courses(`ai-automation`), messages(방 `devcrew`), rankEvents(data+systems 첫 마디) |
 | 2026-08-13 | 장면 없는 활동의 등급 상승을 스탯창 뱃지가 말한다 + 너튜브 갈래별 시청(게임·음악·뉴스) | rank(`rankRose`+test), StatPanel, Desktop.css, activities(3), videos(`CATEGORY_ACTIVITY`), TubeSite |

@@ -19,6 +19,8 @@ import { StartMenu } from './StartMenu'
  */
 const PANEL_BUTTONS: { id: DesktopPanelId; label: string; icon: IconName }[] = [
   { id: 'calendar', label: '날짜', icon: UI_ICONS.calendarPanel },
+  /* 지갑칸은 날짜칸 아래에 붙는 같은 열이라 버튼도 그 옆이다(화면 배치와 같은 순서). */
+  { id: 'wallet', label: '지갑', icon: UI_ICONS.walletPanel },
   { id: 'stats', label: '스탯', icon: UI_ICONS.statPanel },
 ]
 
@@ -74,6 +76,8 @@ export function Taskbar() {
           (다색 격자는 아크릴 위에서 1.03:1로 사실상 보이지 않았다). */}
       <button
         className={`taskbar-start${startOpen ? ' taskbar-start-on' : ''}`}
+        // 첫 실행 안내 투어의 마지막 단계가 이 버튼을 가리킨다(`data/tour.ts`).
+        data-tour="start"
         aria-label="시작"
         aria-expanded={startOpen}
         aria-haspopup="menu"

@@ -33,6 +33,122 @@
   animation: db-in 2600ms ease-in-out forwards;
 }
 
+/*
+ * ── 오후 갈래(`.db-slot`) ────────────────────────────────
+ * **전체 화면이 아니라 딤 + 작은 팝업이다**(설계자 지시 — 사유는 `Daybreak.tsx`의
+ * 렌더 주석). 위의 아침 장면과 **판형을 공유하지 않는다**: 무게가 다른 알림에
+ * 같은 화면을 주면 하루 걸러 한 번씩 전체 화면이 들어와 통행세가 된다.
+ *
+ * ⚠️ **여기는 새 색을 만들지 않는다.** 딤은 시스템 팝업과 **같은 `--os-scrim`**이고
+ * 카드는 `--os-*` 그대로다 — 이쪽은 "한 장면"이 아니라 **OS 위에 잠깐 뜨는 알림**이라
+ * 위 `.db`의 자체 팔레트 예외가 적용되지 않는다.
+ *
+ * ⚠️ 길이(1800ms)는 `Daybreak.tsx`의 **`SHOW_MS.dusk`가 정본**이고 여기가 따라간다.
+ * 바꿀 때 양쪽을 함께 고친다.
+ */
+.db-slot {
+  position: fixed;
+  inset: 0;
+  z-index: 9450; /* LAYERS.DAYBREAK (src/data/layers.ts) — 바꿀 때 함께 고친다 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--os-scrim);
+  cursor: pointer;
+  /* ⚠️ **여기에는 페이드가 없다.** 아침 장면(`.db`)은 나타났다 사라지는 것 자체가 장면의
+     일부지만, 이쪽은 1.8초짜리 알림이라 페이드를 넣으면 **움직이는 것이 둘**이 되어
+     정작 뜻을 지는 시계가 묻힌다. 덤으로 "첫 프레임에 얼어붙은 opacity: 0" 함정
+     (헤드리스에서 실제로 걸렸다)이 통째로 사라진다. */
+}
+
+.db-slot-card {
+  /* 시계가 건너갈 폭이 있어야 움직임이 읽힌다 — 좁으면 그냥 깜빡인 것으로 보인다. */
+  width: 260px;
+  padding: var(--sp-5) var(--sp-6) var(--sp-4);
+  border: 1px solid var(--os-border);
+  border-radius: var(--r-lg);
+  background: var(--os-surface);
+  box-shadow: var(--el-3);
+  text-align: center;
+}
+
+/* 시계가 건너가는 길. 가는 선 하나 — 진행 막대로 읽히면 안 된다(채워지지 않는다). */
+.db-track {
+  position: relative;
+  height: 26px;
+  margin-bottom: var(--sp-4);
+  /* 선은 시계 뒤 가운데를 지난다. */
+  background: linear-gradient(var(--os-border), var(--os-border)) center / 100% 1px no-repeat;
+}
+
+.db-clock {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--os-accent);
+  border-radius: 50%;
+  background: var(--os-surface);
+  animation: db-clock-run 1200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* 바늘. 12시 방향에서 시작해 한 바퀴 돈다. */
+.db-hand {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  width: 2px;
+  height: 8px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--os-accent);
+  transform-origin: 50% 100%;
+  animation: db-hand-spin 1200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.db-slot-title {
+  margin: 0;
+  /* 게임이 자기 말을 하는 자리 — 날짜칸과 같은 목소리다(굵기 400 고정 이유는 아래 참조). */
+  font-family: var(--font-point);
+  font-weight: 400;
+  font-size: var(--fs-xl);
+  color: var(--os-text);
+}
+
+.db-slot-note {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-md);
+  color: var(--os-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * 왼쪽 끝 → 오른쪽 끝.
+ * ⚠️ **`transform`이 아니라 `left`를 움직인다**(이 리포에서 게이지가 `scaleX`를 쓰는 것과
+ * 반대다). `translateX`의 `%`는 **자기 폭**(26px) 기준이라 이동 거리를 카드 폭에서 손으로
+ * 계산해 박아야 하고, 카드 폭을 손보는 순간 조용히 어긋난다. `left`의 `%`는 **길의 폭**
+ * 기준이라 `calc(100% - 26px)` 한 줄이 어떤 폭에서도 맞는다. 절대 배치된 26px 하나라
+ * 레이아웃 비용도 없다.
+ */
+@keyframes db-clock-run {
+  from {
+    left: 0;
+  }
+  to {
+    left: calc(100% - 26px);
+  }
+}
+
+@keyframes db-hand-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ── 하늘 ────────────────────────────────────────────────── */
 .db-sky {
   position: absolute;
@@ -196,5 +312,17 @@
   .db-text {
     opacity: 1;
     transform: none;
+  }
+
+  /* ⚠️ 오후 팝업은 **시계가 길 끝에 가 있는 상태**로 멈춘다. 여기 안 적으면 시계가
+     왼쪽 끝에 선 채로 남아 "아직 오전"으로 읽힌다(정보가 뒤집히는 셈이다).
+     딤과 카드는 애초에 페이드가 없어 손댈 것이 없다. */
+  .db-clock,
+  .db-hand {
+    animation: none;
+  }
+
+  .db-clock {
+    left: calc(100% - 26px);
   }
 }

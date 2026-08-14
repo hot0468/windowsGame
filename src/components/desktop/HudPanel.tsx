@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import './HudPanel.css'
 
 interface HudPanelProps {
@@ -25,6 +25,14 @@ interface HudPanelProps {
   zIndex: number
   /** 눌렀을 때 이 패널을 앞으로 가져온다 (desktopPanelStore.raise). */
   onActivate: () => void
+  /**
+   * 렌더된 높이가 바뀔 때마다 알린다. **아래에 다른 패널이 붙는 패널만** 넘긴다
+   * (지금은 날짜칸 하나 — 지갑칸이 그 아래에 선다).
+   *
+   * ⚠️ 마운트 한 번이 아니라 `ResizeObserver`인 이유: 날짜칸은 자동 진행 문구가
+   * 붙었다 떨어졌다 하며 **런타임에 키가 변한다**. 마운트 때만 재면 그 순간부터 어긋난다.
+   */
+  onHeight?: (height: number) => void
   children: ReactNode
 }
 
@@ -63,11 +71,28 @@ export function HudPanel({
   width,
   zIndex,
   onActivate,
+  onHeight,
   children,
 }: HudPanelProps) {
+  const ref = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !onHeight) return
+    /* 첫 값은 즉시 준다 — 관찰자만 걸면 아래 패널이 한 프레임 동안 겹쳐 보인다. */
+    onHeight(el.offsetHeight)
+    const observer = new ResizeObserver(() => onHeight(el.offsetHeight))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [onHeight])
+
   return (
     <section
+      ref={ref}
       className="hud"
+      // 첫 실행 안내 투어가 가리키는 표식. 패널 id(`calendar`·`wallet`·`stats`)가
+      // 그대로 온다 — `data/tour.ts`가 그 이름으로 대상을 고른다.
+      data-tour={id}
       style={{ left: x, top: y, width, zIndex }}
       // 고정 패널이라 드래그 핸들러를 붙이지 않는다. 누르면 앞으로만 온다.
       onPointerDown={onActivate}

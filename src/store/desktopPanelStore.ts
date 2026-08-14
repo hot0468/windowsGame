@@ -6,7 +6,7 @@ import { LAYERS } from '../data/layers'
  * 이들은 일부러 windowStore.windows에 넣지 않는다 —
  * 넣으면 작업 표시줄의 열린 창 목록에 섞이고, 엔딩 시 closeAll()에 지워진다.
  */
-export type DesktopPanelId = 'stats' | 'calendar'
+export type DesktopPanelId = 'stats' | 'calendar' | 'wallet'
 
 interface DesktopPanelStore {
   /**
@@ -17,6 +17,17 @@ interface DesktopPanelStore {
   z: Record<DesktopPanelId, number>
   /** 패널별 표시 여부. 작업 표시줄 버튼이 토글한다. */
   visible: Record<DesktopPanelId, boolean>
+  /**
+   * 패널별 **실제로 렌더된 높이**(px). 지금 쓰는 곳은 하나다 — 지갑칸이 날짜칸 **아래**에
+   * 붙어야 하는데, 날짜칸은 자동 진행 문구가 붙었다 떨어졌다 하며 키가 변한다.
+   *
+   * ⚠️ **고정 오프셋으로 대신하지 말 것.** 최대 높이에 맞춰 상수를 박으면 평소에는 빈 띠가
+   * 남고, 날짜칸에 줄을 하나 더하는 순간 두 패널이 겹친다(레이아웃 겹침은 테스트가 못 잡는다).
+   * 값은 `HudPanel`이 자기 `ResizeObserver`로 넣는다.
+   */
+  heights: Partial<Record<DesktopPanelId, number>>
+  /** `HudPanel`이 자기 높이를 알린다. 같은 값이면 아무것도 하지 않는다(갱신 루프 방지). */
+  setHeight: (id: DesktopPanelId, height: number) => void
   /** 해당 패널을 모든 일반 창 위로 끌어올린다. 패널 본문을 눌렀을 때 호출한다. */
   raise: (id: DesktopPanelId) => void
   /**
@@ -34,13 +45,26 @@ interface DesktopPanelStore {
 const BASE: Record<DesktopPanelId, number> = {
   stats: LAYERS.DESKTOP_PANEL,
   calendar: LAYERS.DESKTOP_PANEL,
+  wallet: LAYERS.DESKTOP_PANEL,
 }
 
-const ALL_VISIBLE: Record<DesktopPanelId, boolean> = { stats: true, calendar: true }
+const ALL_VISIBLE: Record<DesktopPanelId, boolean> = {
+  stats: true,
+  calendar: true,
+  wallet: true,
+}
 
 export const useDesktopPanelStore = create<DesktopPanelStore>((set, get) => ({
   z: { ...BASE },
   visible: { ...ALL_VISIBLE },
+  /* 비어 있는 채로 시작한다 — 첫 렌더에서는 잰 값이 없고, 읽는 쪽이 0으로 폴백한다. */
+  heights: {},
+
+  setHeight: (id, height) => {
+    const { heights } = get()
+    if (heights[id] === height) return
+    set({ heights: { ...heights, [id]: height } })
+  },
 
   /**
    * 두 패널이 서로 겹칠 수도 있으므로, 이미 올라온 다른 패널보다 확실히 위로 가도록
