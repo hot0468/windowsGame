@@ -1367,6 +1367,17 @@ export interface GameState {
    */
   affection?: Record<string, number>
   /**
+   * 사람별 **마지막으로 만난 날**. 안 만나면 멀어지는 판정이 이 값을 본다
+   * (`systems/affection.ts`의 `decayAffection`).
+   *
+   * ⚠️ **`affection`과 따로 두는 이유**: 호감도는 "얼마나 가까운가"이고 이쪽은
+   * "언제 봤는가"다. 한 값으로 합치려면 호감도에 날짜를 섞어야 하는데, 그러면 도감·
+   * 대화창이 읽는 숫자가 날짜를 품게 된다.
+   * ⚠️ 옵셔널이라 **이 필드가 없던 세이브도 그대로 열린다** — 값이 없으면 처음 만난
+   * 날로 친다(`decayAffection`이 그렇게 읽는다).
+   */
+  lastMet?: Record<string, number>
+  /**
    * 이미 겪은 **랭크 이벤트** id(`data/rankEvents.ts`). 겪은 적 없으면 필드가 없다.
    *
    * ⚠️ **등급이 내려가도 지우지 않는다** — 지우면 오르내리기로 같은 이벤트를 무한히 다시

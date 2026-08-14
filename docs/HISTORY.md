@@ -6,6 +6,7 @@ CLAUDE.md의 변경 이력 표에서 밀려난 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-13 | IT에 쓸 곳 — 코딩 공부(둘째 공급원) · IT B가 여는 유지보수 의뢰 방 | activities(`coding-study`·`maintenance`), courses(`ai-automation`), messages(방 `devcrew`), rankEvents(data+systems 첫 마디) |
 | 2026-08-13 | 장면 없는 활동의 등급 상승을 스탯창 뱃지가 말한다 + 너튜브 갈래별 시청(게임·음악·뉴스) | rank(`rankRose`+test), StatPanel, Desktop.css, activities(3), videos(`CATEGORY_ACTIVITY`), TubeSite |
 | 2026-08-13 | 너튜브 영상 감상 — 시청 화면 [끝까지 보기]가 1턴을 쓰고 감수성·창의력 소량 + 멘탈을 준다 | activities(`watch-video`), TubeSite(tsx+css) |
 | 2026-08-13 | 결과 판의 안쪽 스크롤 제거 — 끝나면 판이 흐름으로 돌아오고(`tr-done`) 높이를 내용이 정한다 | ToolRun(tsx+css) |

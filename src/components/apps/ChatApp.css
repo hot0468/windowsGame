@@ -468,6 +468,18 @@
   color: var(--os-danger);
 }
 
+/*
+ * 식고 있다는 안내(2026-08-14). ⚠️ **경고색 면을 새로 만들지 않는다**
+ * (`.stat-ill`이 같은 판단을 했다) — `--os-danger`는 글자색 토큰 하나뿐이고 틴트·
+ * 헤어라인 짝이 없다. 없는 var를 쓰면 선언이 조용히 무효가 되고, 새로 정의하면
+ * 그 순간 새 시각 언어다. 그래서 **글자만** 위험색으로 둔다.
+ */
+.chat-cooling {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--os-danger);
+}
+
 .chat-btn {
   width: 100%;
   min-height: 36px;

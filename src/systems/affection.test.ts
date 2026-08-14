@@ -2,14 +2,22 @@ import { describe, it, expect } from 'vitest'
 import {
   affectionOf,
   creditAffection,
+  decayAffection,
   hasRelationEnding,
+  meetMentalBonus,
   relationEndingFor,
   reviveAffection,
+  stageMessages,
+  stageOf,
 } from './affection'
 import {
   AFFECTION_CAP,
+  AFFECTION_DECAY_PER_DAY,
+  AFFECTION_FLOOR,
   AFFECTION_FOR_ENDING,
+  AFFECTION_GRACE_DAYS,
   AFFECTION_PER_MEET,
+  CLOSE_MENTAL_BONUS,
   PEOPLE,
   personOfActivity,
   personOfThread,
@@ -114,6 +122,124 @@ describe('부가엔딩', () => {
     expect((meets * PEOPLE.length) / 2).toBeLessThan(88)
     // 그러면서도 "아무 선택 없이 셋 다 열리는" 수준은 아니어야 한다(24턴 = 12일 이상).
     expect(meets * PEOPLE.length).toBeGreaterThanOrEqual(20)
+  })
+
+  /* ⚠️ **감쇠가 이 도달성을 깨지 않는가**(2026-08-14). 셋을 번갈아 만들면 한 사람을
+     다시 보기까지 `PEOPLE.length`턴 = 1.5일이라 유예(5일) 안이다 — 유예를 이보다 짧게
+     잡으면 **로테이션 플레이가 영영 문턱을 못 넘는다.** 그 관계를 여기서 못 박는다. */
+  it('⚠️ 셋을 번갈아 만나는 플레이가 감쇠에 걸리지 않는다', () => {
+    const daysPerCycle = PEOPLE.length / 2 // 하루 2턴
+    expect(daysPerCycle).toBeLessThanOrEqual(AFFECTION_GRACE_DAYS)
+  })
+})
+
+describe('⚠️ 안 만나면 멀어진다 (2026-08-14)', () => {
+  const met = (day: number, value: number): GameState => ({
+    ...createInitialState('관계'),
+    day,
+    affection: { minji: value },
+    lastMet: { minji: 1 },
+  })
+
+  it('유예 안에는 안 식는다 — 매일 만나야 하는 게임이 되면 안 된다', () => {
+    const s = met(1 + AFFECTION_GRACE_DAYS, 60)
+    expect(decayAffection(s).affection!.minji).toBe(60)
+  })
+
+  it('유예를 넘기면 하루에 그만큼 식는다', () => {
+    const s = met(1 + AFFECTION_GRACE_DAYS + 3, 60)
+    expect(decayAffection(s).affection!.minji).toBe(60 - 3 * AFFECTION_DECAY_PER_DAY)
+  })
+
+  /* ⚠️ 이 셋이 이 축의 불변식이다 — 하나라도 깨지면 관계가 사라지거나 벌이 된다. */
+  it('바닥 아래로는 안 내려간다 — 만난 적 있는 사람이 남이 되면 안 된다', () => {
+    const s = met(500, 100)
+    expect(decayAffection(s).affection!.minji).toBe(AFFECTION_FLOOR)
+  })
+
+  it('바닥보다 낮은 값은 **올려 주지 않는다** — 한 번 만난 사람이 공짜로 가까워지면 안 된다', () => {
+    const s = met(500, AFFECTION_PER_MEET)
+    expect(decayAffection(s).affection!.minji).toBe(AFFECTION_PER_MEET)
+  })
+
+  it('만나면 그날로 기록돼 다시 식지 않는다', () => {
+    const s = { ...met(50, 60), lastMet: { minji: 1 } }
+    const after = creditAffection(s, 'social')
+    expect(after.lastMet!.minji).toBe(50)
+    expect(decayAffection(after).affection!.minji).toBe(after.affection!.minji)
+  })
+
+  /* ⚠️ 상한에서도 날짜를 찍어야 한다 — 안 찍으면 가장 친한 사람이 가장 빨리 식는다. */
+  it('호감도가 상한이어도 만난 날은 찍힌다', () => {
+    const s = { ...met(50, AFFECTION_CAP), lastMet: { minji: 1 } }
+    expect(creditAffection(s, 'social').lastMet!.minji).toBe(50)
+  })
+
+  it('만난 기록이 없는 옛 세이브는 열자마자 식지 않는다', () => {
+    const s: GameState = { ...createInitialState('옛세이브'), day: 300, affection: { minji: 60 } }
+    expect(decayAffection(s).affection!.minji).toBe(60)
+  })
+
+  /* ⚠️ **문턱을 되찾을 수 있어야 한다** — 못 되찾으면 방치가 곧 영구 상실이다. */
+  it('바닥까지 식어도 네 번 만나면 문턱을 되찾는다', () => {
+    const meets = Math.ceil((AFFECTION_FOR_ENDING - AFFECTION_FLOOR) / AFFECTION_PER_MEET)
+    expect(AFFECTION_FLOOR + meets * AFFECTION_PER_MEET).toBeGreaterThanOrEqual(AFFECTION_FOR_ENDING)
+    expect(meets).toBeLessThanOrEqual(5)
+  })
+
+  it('바닥이 문턱보다 낮다 — 같거나 높으면 방치해도 부가엔딩이 유지된다', () => {
+    expect(AFFECTION_FLOOR).toBeLessThan(AFFECTION_FOR_ENDING)
+  })
+})
+
+describe('친해지면 다른 말을 한다', () => {
+  it('단계가 호감도에 따라 갈린다', () => {
+    const at = (v: number): GameState => ({ ...createInitialState('단계'), affection: { minji: v } })
+    expect(stageOf(at(0), 'minji')).toBe('far')
+    expect(stageOf(at(AFFECTION_FLOOR + 1), 'minji')).toBe('near')
+    expect(stageOf(at(AFFECTION_FOR_ENDING), 'minji')).toBe('close')
+  })
+
+  it('가까워지면 방에 말이 생기고, 서먹하면 없다', () => {
+    const far: GameState = { ...createInitialState('말'), affection: {} }
+    expect(stageMessages(far).some((m) => m.channel === 'minji')).toBe(false)
+    const close: GameState = { ...createInitialState('말'), affection: { minji: AFFECTION_FOR_ENDING } }
+    expect(stageMessages(close).some((m) => m.channel === 'minji')).toBe(true)
+  })
+
+  /* 단계가 바뀌면 **다른 말**이라야 한다 — 같으면 이 축이 아무 일도 안 한 것이다. */
+  it('단계가 오르면 말이 바뀐다', () => {
+    const line = (v: number) =>
+      stageMessages({ ...createInitialState('말'), affection: { minji: v } }).find(
+        (m) => m.channel === 'minji',
+      )?.text
+    expect(line(AFFECTION_FLOOR + 1)).not.toBe(line(AFFECTION_FOR_ENDING))
+  })
+
+  it('가리키는 방이 실재한다 — 없는 방의 말은 아무 데도 안 뜬다', () => {
+    const s: GameState = {
+      ...createInitialState('말'),
+      affection: Object.fromEntries(PEOPLE.map((p) => [p.id, AFFECTION_FOR_ENDING])),
+    }
+    const threads = new Set(PEOPLE.map((p) => p.threadId))
+    for (const m of stageMessages(s)) expect(threads).toContain(m.channel)
+  })
+})
+
+describe('관계가 보상을 준다', () => {
+  it('가까운 사람을 만나면 멘탈이 더 돌아온다', () => {
+    const close: GameState = { ...createInitialState('보상'), affection: { minji: AFFECTION_FOR_ENDING } }
+    expect(meetMentalBonus(close, 'social')).toBe(CLOSE_MENTAL_BONUS)
+  })
+
+  it('아직 안 가까우면 보너스가 없다 — 유지해야 유지되는 값이다', () => {
+    const near: GameState = { ...createInitialState('보상'), affection: { minji: AFFECTION_FLOOR } }
+    expect(meetMentalBonus(near, 'social')).toBe(0)
+  })
+
+  it('관계와 무관한 활동은 보너스가 없다', () => {
+    const close: GameState = { ...createInitialState('보상'), affection: { minji: AFFECTION_FOR_ENDING } }
+    expect(meetMentalBonus(close, 'study')).toBe(0)
   })
 })
 

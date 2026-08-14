@@ -1,4 +1,5 @@
 import { burnoutKeyOf, getBurnoutPenalty } from '../../systems/burnout'
+import { meetMentalBonus } from '../../systems/affection'
 import { illnessEfficiency, isIll } from '../../systems/illness'
 import { ILLNESS_DAYS, ILL_EFFICIENCY, ILL_STAMINA_FLOOR } from '../../data/illness'
 import { weatherEfficiency } from '../../systems/weather'
@@ -101,6 +102,15 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
         : 0
     return { key: statKey, value: Math.round(value * applied + boost) }
   })
+
+  /* ⚠️ **가까운 사람을 만나는 보너스도 여기서 적는다**(`turn.ts`와 같은 함수).
+     빠뜨리면 확인창이 실제보다 적게 적고, 플레이어는 관계가 보상을 준다는 것을 모른다. */
+  const meetBonus = meetMentalBonus(state, activity.id)
+  if (meetBonus > 0) {
+    const mental = rows.find((r) => r.key === 'mental')
+    if (mental) mental.value += meetBonus
+    else rows.push({ key: 'mental', value: meetBonus })
+  }
 
   return { rows, efficiency, mentalPenalty, isBurnedOut: efficiency < 1, outfit: outfit?.name }
 }

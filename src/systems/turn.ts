@@ -6,6 +6,7 @@ import { bandPayFor, bandSkillOpen, practiceBand } from './band'
 import { wearGear } from './gear'
 import { illnessEfficiency, illnessRecoveryRatio, nextIllness } from './illness'
 import { settleRecovery, tickRecovery } from './recovery'
+import { decayAffection, meetMentalBonus } from './affection'
 import { malwareLoss } from './malware'
 /* ⚠️ `rank.ts`가 아니라 `rankScale.ts`다 — rank.ts는 `growthCap` 때문에 이 파일을
    부르고 있어 그쪽을 import하면 순환이 된다. 눈금만 leaf 모듈에서 직접 읽는다. */
@@ -486,8 +487,14 @@ export { settleRecovery } from './recovery'
  * 미뤄지는 것은 오직 "오늘 밤 월급이 들어오는 재직자"뿐이다.
  */
 function withRecovery(next: GameState): GameState {
-  if (nightPayoutPending(next)) return next
-  return settleRecovery(next)
+  /* ⚠️ **관계 감쇠도 여기서 돈다**(2026-08-14). 슬롯을 넘기는 두 통로가 전부 이 함수를
+     지나므로 한 자리면 샐 곳이 없다 — `advance` 안에 넣지 않은 것은 그쪽이 상태가 아니라
+     날짜·스탯 조각만 돌려주기 때문이다.
+     ⚠️ **`nightPayoutPending`보다 먼저다**: 감쇠는 돈을 안 만지므로 미룰 이유가 없고,
+     미루면 급여일마다 하루씩 안 식는다. */
+  const cooled = decayAffection(next)
+  if (nightPayoutPending(cooled)) return cooled
+  return settleRecovery(cooled)
 }
 
 /**
@@ -617,6 +624,12 @@ export function runActivity(state: GameState, activity: Activity): GameState {
     outfitBonusFor(state, activity.id),
   )
   withEffects.mental -= mentalPenalty
+  /* ⚠️ **가까운 사람을 만나면 멘탈이 더 돌아온다**(2026-08-14, `data/relations.ts`의
+     `CLOSE_MENTAL_BONUS`). 효율 계수와 달리 **곱이 아니라 덧셈**인 것은 관계가 활동을
+     잘하게 만드는 것이 아니라 **그 만남이 더 위로가 된다**는 뜻이라서다.
+     ⚠️ **미리보기(`activityPreview.ts`)도 같은 함수를 부른다** — 여기만 고치면
+     확인창이 실제보다 적게 적는다(위 주석의 규칙). */
+  withEffects.mental += meetMentalBonus(state, activity.id)
   /* ⚠️ **밴드 보수는 숙련도의 함수라 활동 데이터에 없다**(`data/band.ts`) — 활동 효과가
      끝난 자리에서 얹는다. 물가 배율을 타지 않는 것은 그몽 보수·월급과 같은 규칙이다:
      타면 후반에 밴드만으로 버틸 수 있게 되어 "판은 반드시 끝난다"가 무너진다. */

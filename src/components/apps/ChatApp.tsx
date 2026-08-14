@@ -3,7 +3,7 @@ import { AppIcon } from '../../icons/AppIcon'
 import { findChatApp, findThread } from '../../data/messages'
 import { findActivity } from '../../data/activities'
 import { personOfThread, AFFECTION_FOR_ENDING, AFFECTION_PER_MEET } from '../../data/relations'
-import { affectionOf } from '../../systems/affection'
+import { affectionOf, isCooling, stageMessages } from '../../systems/affection'
 import { findItem } from '../../data/items'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
@@ -77,7 +77,14 @@ const RAIL_ICONS = {
  * 말이 생긴다. 원천을 늘릴 자리는 여기 하나다.
  */
 function derivedMessages(state: GameState) {
-  return [...weekendCallMessages(state), ...webtoonReviewMessages(state), ...rankEventMessages(state)]
+  return [
+    ...weekendCallMessages(state),
+    ...webtoonReviewMessages(state),
+    ...rankEventMessages(state),
+    /* 관계 단계에 따라 바뀌는 말(2026-08-14). 편성표에 못 넣는 이유는 위 셋과 같다 —
+       (day, slot)이 아니라 **그 사람과 얼마나 가까운가**가 정한다. */
+    ...stageMessages(state),
+  ]
 }
 
 export function ChatListApp({ appId }: { appId: string }) {
@@ -335,6 +342,8 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
   ]
   const canMeet = meetup ? canRun(state, meetup) : false
   const affection = person ? affectionOf(state, person.id) : 0
+  /* 유예를 넘겨 실제로 식기 시작했는가. 바닥에 닿은 뒤로는 더 안 줄므로 알릴 것도 없다. */
+  const cooling = person ? isCooling(state, person.id) : false
   const tone = findChatApp(thread.app)?.tone ?? 'warm'
 
   return (
@@ -446,6 +455,15 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
               ? ' · 충분히 가까워졌습니다'
               : ` · ${Math.ceil((AFFECTION_FOR_ENDING - affection) / AFFECTION_PER_MEET)}번 더`}
           </p>
+          {/* ⚠️ **식고 있으면 그 사실을 적는다**(2026-08-14). 안 적으면 플레이어는
+              숫자가 왜 줄었는지 모르고 **버그로 읽는다** — 관계는 조용히 깎이는 유일한
+              값이라(스탯은 활동이 깎는다) 화면이 말해 주지 않으면 알 길이 없다.
+              ⚠️ 색이 아니라 **글자**가 사실을 말한다(ux `color-not-only`). */}
+          {cooling && (
+            <p className="chat-cooling" role="status">
+              한동안 연락이 없었습니다 · 만나지 않으면 조금씩 멀어집니다
+            </p>
+          )}
           <button
             className="chat-btn"
             onClick={() => {
