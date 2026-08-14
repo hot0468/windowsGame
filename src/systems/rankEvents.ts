@@ -1,6 +1,7 @@
 import { RANK_EVENTS, WISH_AMOUNT, findRankEvent } from '../data/rankEvents'
 import { RANK_ORDER } from './rank'
 import { rankOf } from './rank'
+import { lifeRankOf } from './lifeRank'
 import { clampStats } from './turn'
 import { recordEvent } from './delivery'
 import type { RankEvent } from '../data/rankEvents'
@@ -51,7 +52,11 @@ export function seenRankEvent(state: GameState, id: string): boolean {
  */
 export function rankReached(state: GameState, event: RankEvent): boolean {
   if (event.afterDay !== undefined && state.day < event.afterDay) return false
-  const now = RANK_ORDER.indexOf(rankOf(event.key, state.stats[event.key]))
+  /* ⚠️ **`key`가 없으면 생활 등급을 본다**(성장 스탯 15종의 평균). 스탯 하나로는
+     답할 수 없는 "두루 올렸는가"가 조건인 이벤트가 그쪽이다 — 판정을 `lifeRankOf`
+     하나에게 맡기는 것은 `rankOf`에 맡기는 것과 같은 이유다(문턱을 두 곳에 적지 않는다). */
+  const rank = event.key ? rankOf(event.key, state.stats[event.key]) : lifeRankOf(state.stats).rank
+  const now = RANK_ORDER.indexOf(rank)
   const need = RANK_ORDER.indexOf(event.rank)
   return event.below ? now <= need : now >= need
 }
@@ -175,6 +180,38 @@ export function rankEventMessages(
   /* ⚠️ **방마다 한 줄씩 짝이 있어야 한다**(위 주석의 실측 버그) — 방을 새로 열면서
      여기에 말을 안 붙이면 "아직 대화가 없습니다"만 뜬다. `rankEvents.test.ts`가 지킨다. */
   const lines: Record<string, { from: string; text: string }> = {
+    /* 생활 등급이 여는 방 둘. ⚠️ **일감 제안이 아니라 사람이 부르는 말**이다 —
+       두루 올린 것의 보상은 돈이 아니라 폭이라는 것이 이 방들의 자리다. */
+    'mentor-circle': {
+      from: '모임지기 연수',
+      text: '이것저것 두루 하시는 것 같아 연락드려요. 매주 한 명씩 모셔서 각자 아는 걸 푸는 자리인데, 그런 분이 오시면 이야기가 삽니다.',
+    },
+    'column-desk': {
+      from: '편집자 지우',
+      text: '한 가지만 파신 분들 글은 많은데, 여러 곳을 지나오신 분 글이 필요합니다. 살아오신 이야기로 한 편 써 주시겠어요? 분량은 자유입니다.',
+    },
+    /* S 등급이 여는 방 다섯. ⚠️ **말투가 앞의 방들과 다르다** — 오픈채팅 권유가
+       아니라 **일을 맡기는 연락**이라, 자기소개보다 용건이 먼저 온다. */
+    'univ-office': {
+      from: '교무처 박선생',
+      text: '학과에서 이번 학기 초빙 강의를 부탁드리고 싶다고 합니다. 논문이 아니라 실제로 해 오신 이야기를 듣고 싶어 해요. 강의료는 회차당 책정해 드립니다.',
+    },
+    gallery: {
+      from: '관장 서윤',
+      text: '작업 쭉 보고 있었습니다. 봄에 2층 벽이 비는데 개인전 한번 하시죠. 도록이랑 오프닝은 저희가 맡습니다.',
+    },
+    'sw-client': {
+      from: '두손테크 정과장',
+      text: '전에 고쳐 주신 것 잘 쓰고 있습니다. 이번엔 아예 새로 만들어야 하는 건이 있는데 맡아 주실 수 있을까요? 일정은 맞춰 드리겠습니다.',
+    },
+    'ost-studio': {
+      from: '온음 PD 하람',
+      text: '올려 두신 곡들 들었습니다. 이번 작품에 삼십 초짜리 한 곡이 필요한데, 그 결이 딱 맞아서요. 레퍼런스 보내 드릴게요.',
+    },
+    'fund-client': {
+      from: '한올 이팀장',
+      text: '시장 보시는 눈이 남다르시더군요. 저희 분기 자문 계약 이야기를 나누고 싶습니다. 종목 추천이 아니라 관점을 사는 자리입니다.',
+    },
     'running-crew': {
       from: '크루장 유진',
       text: '천변에서 몇 번 뵀어요! 저희 수요일 저녁마다 10km 도네요. 회비도 없고 그냥 같이 뛰기만 하면 됩니다. 같이 하실래요?',

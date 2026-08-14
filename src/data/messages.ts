@@ -364,6 +364,146 @@ export const THREADS: Thread[] = [
       ],
     },
   },
+  /*
+   * ── 생활 등급이 여는 방 2개 (2026-08-14) ───────────────────────
+   *
+   * ⚠️ **스탯 하나가 아니라 15종의 평균이 연다**(`systems/lifeRank.ts`). 아래 S 방들이
+   * "한 우물을 깊게 판 사람"의 자리라면 여기는 **"두루 올린 사람"**의 자리다 — 둘이
+   * 같으면 생활 등급이 화면에 숫자만 띄우고 아무것도 안 여는 장식으로 남는다.
+   *
+   * ⚠️ **일감이 아니라 사람이 온다.** 특화의 보상은 돈(고수익 일감)이고 두루 올린 것의
+   * 보상은 **다른 종류**여야 축이 갈린다 — 그래서 이쪽은 배우는 자리·묻는 자리다.
+   */
+  {
+    id: 'mentor-circle',
+    app: 'kakao',
+    name: '건너건너 모임',
+    members: 9,
+    open: true,
+    offer: {
+      question: '이번 주에도 한 명 모셔 왔어요. 오실래요?',
+      options: [
+        {
+          id: 'mentor-meet',
+          label: '가겠습니다',
+          desc: '참가비 20,000원 · 1턴 소모',
+          activityId: 'mentor-meet',
+        },
+      ],
+    },
+  },
+  {
+    id: 'column-desk',
+    app: 'kakao',
+    name: '월간 물음표 편집자',
+    members: 1,
+    offer: {
+      question: '이번 호 칼럼, 살아온 이야기로 한 편 부탁드려요.',
+      options: [
+        {
+          id: 'column-write',
+          label: '써 보겠습니다',
+          desc: '원고료 260,000원 · 1턴 소모',
+          activityId: 'column-write',
+        },
+      ],
+    },
+  },
+  /*
+   * ── S 등급이 여는 방 5개 (2026-08-14) ───────────────────────────
+   *
+   * 학원(지식 A)·해온소프트(IT B)와 **같은 형태**다: 1:1 방 + 제안 하나 + 주간 예약 없음.
+   * 다른 것은 문턱뿐이고, 그래서 새 구조를 만들지 않는다.
+   *
+   * ⚠️ **`requires`를 걸지 않는다.** 이 방들은 스탯 절대값이 아니라 **랭크 이벤트**가
+   * 연다(`data/rankEvents.ts`) — 여기에 절대값을 또 적으면 같은 문턱이 두 곳에 생기고
+   * 상한이 바뀌는 순간 한쪽만 낡는다(`RankEvent` 주석의 규칙 그대로).
+   */
+  {
+    id: 'univ-office',
+    app: 'kakao',
+    name: '한국대 교무처',
+    members: 1,
+    offer: {
+      question: '이번 학기 초빙 강의 맡아 주실 수 있을까요?',
+      options: [
+        {
+          id: 'univ-lecture-take',
+          label: '맡겠습니다',
+          desc: '강의료 380,000원 · 1턴 소모',
+          activityId: 'univ-lecture',
+        },
+      ],
+    },
+  },
+  {
+    id: 'gallery',
+    app: 'kakao',
+    name: '연희동 갤러리 관장',
+    members: 1,
+    offer: {
+      question: '이번 봄에 개인전 한번 하시죠. 벽은 비워 뒀습니다.',
+      options: [
+        {
+          id: 'solo-exhibit-take',
+          label: '하겠습니다',
+          desc: '작가료 450,000원 · 1턴 소모',
+          activityId: 'solo-exhibit',
+        },
+      ],
+    },
+  },
+  {
+    id: 'sw-client',
+    app: 'kakao',
+    name: '두손테크 발주 담당',
+    members: 1,
+    offer: {
+      question: '이번 건은 처음부터 만들어 주셔야 합니다. 가능하실까요?',
+      options: [
+        {
+          id: 'sw-contract-take',
+          label: '견적 보내겠습니다',
+          desc: '개발비 520,000원 · 1턴 소모',
+          activityId: 'sw-contract',
+        },
+      ],
+    },
+  },
+  {
+    id: 'ost-studio',
+    app: 'kakao',
+    name: '스튜디오 온음 PD',
+    members: 1,
+    offer: {
+      question: '이번 작품 OST 한 곡 부탁드려도 될까요?',
+      options: [
+        {
+          id: 'ost-work-take',
+          label: '해보겠습니다',
+          desc: '작업비 400,000원 · 1턴 소모',
+          activityId: 'ost-work',
+        },
+      ],
+    },
+  },
+  {
+    id: 'fund-client',
+    app: 'kakao',
+    name: '한올자산운용 팀장',
+    members: 1,
+    offer: {
+      question: '이번 분기 자문 계약 이야기를 나누고 싶습니다.',
+      options: [
+        {
+          id: 'fund-advice-take',
+          label: '뵙겠습니다',
+          desc: '자문료 480,000원 · 1턴 소모',
+          activityId: 'fund-advice',
+        },
+      ],
+    },
+  },
   {
     /*
      * IT B가 여는 방. ⚠️ **주간 예약이 없다**(학원과 같은 이유) — 유지보수는 정기권이

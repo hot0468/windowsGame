@@ -28,8 +28,14 @@ import type { StatRank } from '../systems/rank'
 
 export interface RankEvent {
   id: string
-  /** 이 스탯이 */
-  key: GrowthStatKey
+  /**
+   * 이 스탯이. **생략하면 생활 등급**(`systems/lifeRank.ts` — 성장 스탯 15종의 평균)을 본다.
+   *
+   * ⚠️ **한 우물만 판 사람은 못 보는 자리다**(2026-08-14 신설). 스탯 하나가 여는 것은
+   * 특화의 보상이고, 이쪽은 **두루 올린 것의 보상**이다 — 둘이 같으면 생활 등급이
+   * 화면에 숫자만 띄우고 아무것도 안 여는 장식으로 남는다.
+   */
+  key?: GrowthStatKey
   /** 이 등급에 닿으면 일어난다(`below`면 이 등급 **이하**일 때). */
   rank: StatRank
   /**
@@ -83,6 +89,76 @@ export interface RankEvent {
  * 특화해야 겨우 닿는다. "아무도 볼 수 없는 이벤트"는 버그다.
  */
 export const RANK_EVENTS: RankEvent[] = [
+  /*
+   * ── 생활 등급이 여는 방 2개 (2026-08-14) ──────────────────────
+   *
+   * ⚠️ **`key`가 없다 — 생활 등급(15종 평균)을 본다**(`rankReached`). 스탯 하나가 여는
+   * 자리는 특화의 보상이고, 이 둘은 **두루 올린 것**의 보상이다.
+   *
+   * 문턱이 C·B인 것은 평균이 그만큼 무겁기 때문이다: 고루 올려도 C가 90일, B가 266일쯤이다
+   * (스탯 하나의 C는 며칠이면 닿는다 — 같은 글자라도 뜻이 다르다). **무한 플레이가 된
+   * 지금이라야 성립하는 문턱**이고, 판이 88일에 끝나던 시절이라면 B는 아무도 못 봤다.
+   */
+  {
+    id: 'mentor-circle',
+    rank: 'C',
+    kind: 'thread',
+    target: 'mentor-circle',
+  },
+  {
+    id: 'column-desk',
+    rank: 'B',
+    kind: 'thread',
+    target: 'column-desk',
+  },
+  /*
+   * ── S 등급이 여는 방 5개 (2026-08-14) ───────────────────────────
+   *
+   * ⚠️ **이 축의 윗칸이 통째로 비어 있었다**(2026-08-14 설계자 지적). 31개 중 S가 1개,
+   * SS가 0개였고 그 하나마저 `kind: 'event'`(사진첩 한 줄)라 **아무것도 안 열렸다.**
+   * 게임오버를 없애 후반이 무한히 길어졌는데 그 후반에 열릴 것이 없으면, 스탯을 999까지
+   * 올린 사람과 500에서 멈춘 사람에게 게임이 주는 차이가 없다.
+   *
+   * 다섯을 고른 기준은 **주 공급원이 뚜렷해 특화하면 실제로 닿는 스탯**이다
+   * (도달 일수: 예술 32 · 음악 47 · 경제 54 · 지식 63 · IT 63일. 한 판이 그보다 길다).
+   * 15종 전부에 붙이지 않은 것은 **문장을 돌려 쓴 방 열다섯 개**가 되기 때문이다
+   * — 직업 엔딩 9종이 같은 이유로 기각됐다.
+   */
+  {
+    id: 'univ-office',
+    key: 'knowledge',
+    rank: 'S',
+    kind: 'thread',
+    target: 'univ-office',
+  },
+  {
+    id: 'gallery',
+    key: 'art',
+    rank: 'S',
+    kind: 'thread',
+    target: 'gallery',
+  },
+  {
+    id: 'sw-client',
+    key: 'tech',
+    rank: 'S',
+    kind: 'thread',
+    target: 'sw-client',
+  },
+  {
+    id: 'ost-studio',
+    key: 'music',
+    rank: 'S',
+    kind: 'thread',
+    target: 'ost-studio',
+  },
+  {
+    id: 'fund-client',
+    key: 'finance',
+    rank: 'S',
+    kind: 'thread',
+    target: 'fund-client',
+  },
   {
     /*
      * 운동 C(=100). 러닝 한 번이 8이므로 13번쯤이면 닿는다 — 판 초중반이고, 그때

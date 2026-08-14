@@ -978,6 +978,123 @@ export const ACTIVITIES: Activity[] = [
     requires: { stamina: 24 },
     burnoutKey: 'lecture',
   },
+  /*
+   * ── 생활 등급이 여는 것 2종 (2026-08-14) ───────────────────────
+   *
+   * ⚠️ **아래 S 일감과 축이 다르다.** 특화의 보상은 돈이고 두루 올린 것의 보상은
+   * **폭**이다 — 그래서 이 둘은 여러 스탯을 조금씩 올린다. 금액도 S 일감(380~520k)보다
+   * 낮게 둔다: 생활 등급은 이미 "다 올렸다"는 뜻이라 돈까지 더 주면 그쪽이 정답이 된다.
+   */
+  {
+    /* 생활 등급 C. 15종 평균 10%라 고루 올린 판이 대략 90일쯤에 닿는다. */
+    id: 'mentor-meet',
+    label: '건너건너 모임',
+    icon: 'fluent-color:people-community-24',
+    category: 'relation',
+    description: '매주 다른 사람이 와서 자기가 아는 것을 푼다. 오늘은 목수였다.',
+    effects: {
+      knowledge: 2,
+      sociability: 3,
+      sensitivity: 2,
+      manners: 1,
+      mental: 3,
+      stamina: -12,
+      money: -20000,
+    },
+    requires: { stamina: 12, money: 20000 },
+    burnoutKey: 'meet',
+  },
+  {
+    /* 생활 등급 B(15종 평균 30%). 두루 올린 사람만 쓸 수 있는 글이라 문턱이 여기다. */
+    id: 'column-write',
+    label: '칼럼 기고',
+    icon: 'fluent-color:document-24',
+    category: 'living',
+    description: '살아온 이야기를 원고지에 옮긴다. 한 줄에 몇 달씩 들어 있다.',
+    effects: {
+      money: 260000,
+      vocabulary: 4,
+      creativity: 2,
+      reputation: 3,
+      stamina: -20,
+      mental: -6,
+    },
+    requires: { stamina: 20 },
+    burnoutKey: 'gig',
+  },
+  /*
+   * ── S 등급이 여는 일감 5종 (2026-08-14) ─────────────────────────
+   *
+   * ⚠️ **A 등급 일감(학원 특강 130,000원 · 유지보수 90,000원)의 세 배 안팎이다.**
+   * 그 격차가 S까지 올릴 이유 자체다 — 상한의 75%는 한 스탯에 특화해야 겨우 닿는
+   * 자리라(`rankEvents.test.ts`가 도달 일수를 지킨다), 보상이 A와 비슷하면 아무도 안 올린다.
+   *
+   * ⚠️ **주간 예약(`weekly`)을 붙이지 않는다** — 요일 1~6이 이미 다 찼고
+   * (`messages.ts`), 무엇보다 이 일들은 정기권이 아니라 **부를 때 가는 일**이다
+   * (학원 특강·유지보수와 같은 규칙).
+   *
+   * ⚠️ **`burnoutKey: 'gig'`을 공유한다.** 다섯을 돌려 가며 무한히 벌 수 있으면
+   * 후반이 통째로 돈 문제에서 풀려난다 — 한 키를 나눠 써야 연속 실행이 실제로 깎인다.
+   */
+  {
+    /* 지식 S(=749). 학원 특강(지식 A)의 윗칸이다 — 같은 "가르치는 일"인데 상대가 바뀐다. */
+    id: 'univ-lecture',
+    label: '대학 초빙 강의',
+    icon: 'fluent-color:book-open-lightbulb-24',
+    category: 'living',
+    description: '강의실 뒤쪽까지 사람이 찼다. 아는 것을 말하는 일이 이렇게 값이 될 줄은 몰랐다.',
+    effects: { money: 380000, knowledge: 4, vocabulary: 4, reputation: 2, stamina: -28, mental: -10 },
+    requires: { stamina: 28 },
+    burnoutKey: 'gig',
+  },
+  {
+    /* 예술 S(=749). 공모전이 단발 상금이라면 이쪽은 **부를 때 가는 일**이다. */
+    id: 'solo-exhibit',
+    label: '개인전 준비',
+    icon: 'fluent-color:paint-brush-24',
+    category: 'living',
+    description: '벽에 걸릴 순서를 정한다. 몇 년치 그림이 한 줄로 늘어서 있다.',
+    effects: { money: 450000, art: 4, creativity: 3, reputation: 3, stamina: -30, mental: -10 },
+    requires: { stamina: 30 },
+    burnoutKey: 'gig',
+  },
+  {
+    /* IT S(=749). 유지보수(IT B)의 윗칸 — 남의 코드를 고치던 사람이 처음부터 짠다. */
+    id: 'sw-contract',
+    label: '외주 개발 계약',
+    icon: 'fluent-color:code-24',
+    category: 'living',
+    description: '이번엔 남의 코드를 고치는 게 아니라 빈 폴더에서 시작한다. 견적서에 내 이름이 있다.',
+    effects: { money: 520000, tech: 5, knowledge: 2, stamina: -32, mental: -12 },
+    requires: { stamina: 32 },
+    burnoutKey: 'gig',
+  },
+  {
+    /* 음악 S(=749). 작곡이 주 공급원(7/턴)이라 특화하면 후반에 닿는다. */
+    id: 'ost-work',
+    label: 'OST 작업',
+    icon: 'fluent-color:headphones-24',
+    category: 'living',
+    description: '삼십 초짜리 곡에 마감이 붙었다. 남의 이야기에 내 소리를 얹는 일이다.',
+    effects: { money: 400000, music: 4, sensitivity: 3, stamina: -28, mental: -10 },
+    requires: { stamina: 28 },
+    burnoutKey: 'gig',
+  },
+  {
+    id: 'fund-advice',
+    label: '자문 계약',
+    icon: 'fluent-color:data-trending-24',
+    category: 'living',
+    description: '남의 돈이 어디로 갈지를 말해 주고 받는 돈. 틀리면 안 된다는 무게가 다르다.',
+    /* 경제 S(=749).
+       ⚠️ **"경제 활동은 돈을 만들지 않는다"는 규칙의 유일한 예외다**(project-context).
+       그 규칙은 **경제 스탯을 올리는 활동**(`finance-study`)이 은행·주식과 수입원을
+       겹치지 말라는 뜻이었다. 이건 반대 방향이다 — 다 올린 **결과**를 일로 바꾸는
+       자리이고, 지식 S가 강의가 되는 것과 같은 구조다. 경제를 올려 주는 몫은 작게 둔다. */
+    effects: { money: 480000, finance: 3, reputation: 2, stamina: -26, mental: -12 },
+    requires: { stamina: 26 },
+    burnoutKey: 'gig',
+  },
   {
     /*
      * 정기 유지보수. **IT B가 여는 방(`devcrew`)의 제안이 실행하는 활동**이고, 학원 특강이
