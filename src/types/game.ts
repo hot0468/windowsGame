@@ -173,7 +173,7 @@ export interface ToolRunPayload {
   /** 판의 생김새(`RunScene.look`). `'paper'`면 밝은 판 + 책장 + 닫기 버튼 없는 팝업. */
   look?: 'paper'
   /** 무엇을 그리는가(`RunScene.art`). 생략하면 판 기본값. */
-  art?: 'run' | 'brush' | 'wave' | 'code' | 'chart'
+  art?: 'run' | 'brush' | 'wave' | 'code' | 'chart' | 'stage' | 'hands' | 'steam'
   rows: { key: keyof Stats; value: number }[]
   mentalPenalty: number
   contract?: GigContract

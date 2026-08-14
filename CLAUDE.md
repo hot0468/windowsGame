@@ -24,7 +24,7 @@
 
 | 날짜 | 변경 | 대상 |
 |------|------|------|
-| 2026-08-14 | 활동별 실행 그림 5종 — `RunScene.art`를 `look`에서 갈라내 달리기·붓질·파형·코드·차트를 그린다 | runScenes(`art`+배정), types(`ToolRunPayload.art`), ToolRun(tsx 그림 5+css), UiGallery(payload 누락 수정), runScenes.test |
+| 2026-08-14 | 활동별 실행 그림 8종 — `RunScene.art`를 `look`에서 갈라내 달리기·붓질·파형·코드·차트·무대조명·손·김을 그린다 | runScenes(`art`+배정), types(`ToolRunPayload.art`), ToolRun(tsx 그림 5+css), UiGallery(payload 누락 수정), runScenes.test |
 | 2026-08-14 | 행동 피드백 — 기록 갱신·내면 감상 토스트 + 육성 활동 7종에 실행 연출(그전엔 71개 중 10개만 있었다) | records·inner(systems+data+test 신규), gameStore(`feedback`), ToastHost(채널 2+정적 카드), runScenes(7)·ToolRun.css(액센트 3) |
 | 2026-08-14 | 랭크 이벤트의 윗칸 — S가 여는 고수익 일감 5종 + **생활 등급이 여는 방 2개**(`RankEvent.key`가 옵셔널이 되어 15종 평균을 본다) | activities(7), messages(방 7), rankEvents(data 7 + systems 권유 7 + `rankReached`), rankEvents.test(생활 등급 묶음 신규) |
 | 2026-08-14 | 육성물 전환 — 게임오버를 없애고(파산·번아웃은 며칠짜리 `Recovery`) 무한 생활 등급이 판을 이끈다. 직업·실패 엔딩 11종은 도감 콜렉션으로 | economy(상승률 동률), recovery(data+systems+test 신규), lifeRank(+test 신규), types(`Recovery`), turn·store·가드 15곳, endings(15→4), metaStore(`unlockedCareers`), StatPanel·ExcelApp·EndingModal·CalendarPanel·MobileStatSheet, balance.verify(전제 반전) |

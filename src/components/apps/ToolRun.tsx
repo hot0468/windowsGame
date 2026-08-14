@@ -269,6 +269,36 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
                 ))}
               </span>
             )}
+            {art === 'stage' && (
+              /* 무대 조명 — 위에서 빛기둥이 내려온다. 보는 일이라 **내가 아니라 무대가 움직인다.** */
+              <span className="tr-stage-art">
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="tr-beam"
+                    style={{ animationDelay: `${i * 700}ms` }}
+                  />
+                ))}
+                <span className="tr-stage-floor" />
+              </span>
+            )}
+            {art === 'hands' && (
+              /* 손 — 아래 손이 위 손에게 무언가를 건넨다. 둘 사이의 것이 오간다. */
+              <span className="tr-hands">
+                <span className="tr-hand tr-hand-top" />
+                <span className="tr-gift" />
+                <span className="tr-hand tr-hand-bottom" />
+              </span>
+            )}
+            {art === 'steam' && (
+              /* 김 — 그릇에서 올라간다. 기다렸다 먹는 일이라 **위로만** 움직인다. */
+              <span className="tr-steam">
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="tr-steam-puff" style={{ animationDelay: `${i * 500}ms` }} />
+                ))}
+                <span className="tr-bowl" />
+              </span>
+            )}
             {art === 'chart' && (
               /* 막대 그래프가 자란다. 숫자를 읽는 일이라 **바닥에서 위로** 움직인다. */
               <span className="tr-chart">

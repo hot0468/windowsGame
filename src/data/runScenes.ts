@@ -53,7 +53,7 @@ export interface RunScene {
    * 움직임은 `transform`·`opacity`만 쓰고(레이아웃을 다시 계산시키지 않는다),
    * `prefers-reduced-motion`에서 **멈춘 모습이 고장으로 읽히지 않을 자리**를 함께 정해야 한다.
    */
-  art?: 'run' | 'brush' | 'wave' | 'code' | 'chart'
+  art?: 'run' | 'brush' | 'wave' | 'code' | 'chart' | 'stage' | 'hands' | 'steam'
 }
 
 /**
@@ -103,6 +103,14 @@ const WORK_STEPS: Record<string, string[]> = {
   draw: ['캔버스를 여는 중', '밑그림을 잡는 중', '선을 정리하는 중', '색을 얹는 중'],
   compose: ['건반을 켜는 중', '네 마디를 잡는 중', '코드를 갈아 보는 중', '다시 들어 보는 중'],
   'coding-study': ['예제를 여는 중', '따라 치는 중', '에러를 읽는 중', '고쳐 돌려 보는 중'],
+  /* 무대 — 보는 일이라 "내가 하는 단계"가 아니라 **막이 진행되는 단계**다. */
+  concert: ['자리를 찾는 중', '조명이 어두워지는 중', '첫 곡이 시작되는 중', '앙코르를 기다리는 중'],
+  /* 손 — 남을 위해 쓰는 시간. 단계마다 **상대가 있다.** */
+  volunteer: ['배식대를 여는 중', '국을 푸는 중', '자리를 닦는 중', '인사를 나누는 중'],
+  /* 배달 둘. ⚠️ **한순간에 끝나는 일이라 장면이 없던 쪽**인데, 김이 오르는 그림 하나가
+     "기다렸다 먹는다"를 만든다(설계자 지시). 단계 수는 넷으로 맞춘다 — 같은 1턴이다. */
+  'meal-junk': ['주문을 넣는 중', '조리가 시작되는 중', '배달이 오는 중', '포장을 뜯는 중'],
+  'meal-healthy': ['메뉴를 고르는 중', '조리가 시작되는 중', '배달이 오는 중', '뚜껑을 여는 중'],
   /* 받아들이는 것 둘. 읽고 보는 일이라 종이 판을 쓴다(아래 `PAPER_IDS`). */
   reading: ['책을 펴는 중', '한 챕터를 지나는 중', '접어 둘 곳을 찾는 중', '덮고 생각하는 중'],
   'finance-study': ['지표를 여는 중', '차트를 겹쳐 보는 중', '숫자를 적어 두는 중', '다시 세는 중'],
@@ -135,6 +143,11 @@ const WORK_ACCENT: Record<string, string> = {
   'coding-study': 'make',
   reading: 'read',
   'finance-study': 'read',
+  /* 보는 일·주는 일·먹는 일. 셋 다 앞의 것들과 갈려야 "다른 종류"로 읽힌다. */
+  concert: 'show',
+  volunteer: 'give',
+  'meal-junk': 'meal',
+  'meal-healthy': 'meal',
 }
 
 /**
@@ -157,6 +170,13 @@ const ART: Record<string, RunScene['art']> = {
   'tool-vscode': 'code',
   /* 숫자를 읽는 일 — 막대가 오르내린다. */
   'finance-study': 'chart',
+  /* 무대 조명 — 위에서 빛이 내려온다. */
+  concert: 'stage',
+  /* 손 — 무언가를 건네는 자리. */
+  volunteer: 'hands',
+  /* 김 — 그릇에서 올라간다. */
+  'meal-junk': 'steam',
+  'meal-healthy': 'steam',
 }
 
 /**

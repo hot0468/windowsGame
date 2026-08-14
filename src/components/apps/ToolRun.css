@@ -97,6 +97,19 @@
 .tr-read {
   --tr-accent: #facc15;
 }
+/* 보는 일·주는 일·먹는 일(2026-08-14). 앞의 것들과 같은 대역에서 고른다.
+   ⚠️ **`.tr-stage`를 쓰지 않는다** — 그 이름은 위에서 **작업 영역 레이아웃**이 이미
+   쓰고 있어서, 액센트로 다시 정의하면 모든 장면의 판이 통째로 깨진다(실측으로 잡았다).
+   그래서 관람만 `-show`를 붙인다. */
+.tr-show {
+  --tr-accent: #f0abfc;
+}
+.tr-give {
+  --tr-accent: #7dd3fc;
+}
+.tr-meal {
+  --tr-accent: #fb923c;
+}
 
 /* ── 작업 영역 ───────────────────────────────────────────── */
 /*
@@ -395,6 +408,23 @@
   .tr-run-dot:nth-child(4) {
     transform: translateX(190px);
   }
+  /* 조명은 **똑바로 선 채로** 멈춘다(기울어진 채 얼면 고장으로 읽힌다). */
+  .tr-beam {
+    animation: none !important;
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+  /* 건네는 것·김은 **다 오른 자리**에서 멈춘다 — 아래에 얼면 그림이 반만 남는다. */
+  .tr-gift {
+    animation: none !important;
+    transform: translateY(-14px);
+    opacity: 1;
+  }
+  .tr-steam-puff {
+    animation: none !important;
+    transform: translateY(-6px) scaleY(1);
+    opacity: 0.9;
+  }
   /* ⚠️ 게이지와 등급 표시는 **다 자란 상태로** 멈춘다 — 정보는 그대로 두고 움직임만
      걷어낸다(위 `.tr-row`와 같은 규칙). `animation: none`만 걸면 시작 프레임에 얼어붙어
      등급 표시가 통째로 안 보인다. */
@@ -625,6 +655,153 @@
   }
   50% {
     transform: scaleY(1);
+  }
+}
+
+/* 무대 조명 — 위에서 빛기둥이 내려오고 바닥에 무대가 있다. */
+.tr-stage-art {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+  width: 100%;
+  max-width: 220px;
+  height: 92px;
+}
+
+/*
+ * 빛기둥. ⚠️ **위가 좁고 아래가 넓다**(`clip-path`) — 직사각형이면 조명이 아니라
+ * 그냥 막대다. 조명기구는 그리지 않는다: 빛만으로 무대가 읽힌다.
+ */
+.tr-beam {
+  width: 34px;
+  height: 74px;
+  clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, var(--tr-accent), transparent);
+  transform-origin: top center;
+  animation: tr-beam-sway 2.4s ease-in-out infinite;
+}
+
+/* 무대 바닥. 빛이 닿는 자리라 있어야 "무대"가 된다. */
+.tr-stage-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tr-accent) 45%, var(--tr-card));
+}
+
+@keyframes tr-beam-sway {
+  0%,
+  100% {
+    transform: rotate(-7deg);
+    opacity: 0.45;
+  }
+  50% {
+    transform: rotate(7deg);
+    opacity: 1;
+  }
+}
+
+/* 손 — 아래 손이 위 손에게 건넨다. */
+.tr-hands {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 120px;
+  /* ⚠️ 손 사이가 벌어져 있어야 **오가는 것이 보인다** — 좁으면 물건이 손에 겹친다. */
+  height: 112px;
+}
+
+/*
+ * 손 둘. ⚠️ **손가락을 그리지 않는다** — 상자 몇 개로 손을 그리면 손이 아니라
+ * 얼룩이 된다. 둥근 사각형 둘이 마주 보는 것으로 "주고받는다"가 읽힌다.
+ */
+.tr-hand {
+  position: absolute;
+  width: 62px;
+  height: 18px;
+  border-radius: 999px 999px 6px 6px;
+  background: color-mix(in srgb, var(--tr-accent) 60%, var(--tr-card));
+}
+
+.tr-hand-top {
+  top: 6px;
+  transform: rotate(180deg);
+}
+
+.tr-hand-bottom {
+  bottom: 6px;
+}
+
+/* 오가는 것. 아래에서 위로 올라갔다 사라진다. */
+.tr-gift {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-sm);
+  background: var(--tr-accent);
+  animation: tr-give 2.2s ease-in-out infinite;
+}
+
+/*
+ * ⚠️ **손 안으로 들어가지 않는 폭이다**(실측). 손 둘이 위아래 6px에 있고 높이가 18px씩이라,
+ * 오가는 거리를 ±20px 넘게 주면 물건이 손 **뒤로** 들어가 사라진 것처럼 보인다.
+ * 두 손 사이(약 40px)에서만 움직이게 잡는다.
+ */
+@keyframes tr-give {
+  0%,
+  100% {
+    transform: translateY(16px) scale(0.85);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(-14px) scale(1);
+    opacity: 1;
+  }
+}
+
+/* 김 — 그릇에서 올라간다. */
+.tr-steam {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  width: 120px;
+  height: 96px;
+}
+
+.tr-steam-puff {
+  width: 8px;
+  height: 46px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, transparent, var(--tr-accent));
+  transform-origin: bottom center;
+  animation: tr-rise 2.1s ease-in-out infinite;
+}
+
+/* 그릇. 김이 어디서 오는지 말해 주는 자리다. */
+.tr-bowl {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  height: 26px;
+  border-radius: 4px 4px 999px 999px;
+  background: color-mix(in srgb, var(--tr-accent) 55%, var(--tr-card));
+}
+
+@keyframes tr-rise {
+  0%,
+  100% {
+    transform: translateY(8px) scaleY(0.6);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translateY(-6px) scaleY(1);
+    opacity: 0.9;
   }
 }
 
