@@ -47,18 +47,20 @@ describe('실행 연출 장면', () => {
   })
 })
 
-describe('종이 판 (공부)', () => {
+describe('종이 판 (책상에 앉아 읽고 쓰는 일)', () => {
   /*
    * ⚠️ **셋이 한 몸이다**: 밝은 판 · 책장 그림 · 닫기 버튼 없는 시스템 팝업.
    * `look` 하나가 셋을 함께 정하므로, 창 크롬이 그 값을 안 보면 어두운 타이틀 바 아래
    * 흰 종이가 붙어 창이 위아래로 갈린다(2026-08-09 설계자 지시로 만든 규칙).
    */
-  it('공부 둘만 종이 판이고 나머지는 기본 판이다', () => {
+  /* ⚠️ **2026-08-14에 넷으로 늘었다**(독서·경제 공부 추가). 갈래로 가르지 않는 이유는
+     `PAPER_IDS` 주석에 있다 — 독서는 여가이고 공부는 학습인데 화면에서는 같은 일이다. */
+  it('읽고 쓰는 활동만 종이 판이고 나머지는 기본 판이다', () => {
+    const paperIds = new Set(['study', 'writing', 'reading', 'finance-study'])
     for (const a of ACTIVITIES) {
       const scene = runSceneOf(a)
       if (!scene) continue
-      const paper = a.id === 'study' || a.id === 'writing'
-      expect(scene.look === 'paper', `${a.id}`).toBe(paper)
+      expect(scene.look === 'paper', `${a.id}`).toBe(paperIds.has(a.id))
     }
   })
 

@@ -6,6 +6,7 @@ CLAUDE.md의 변경 이력 표에서 밀려난 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-13 | 너튜브 영상 감상 — 시청 화면 [끝까지 보기]가 1턴을 쓰고 감수성·창의력 소량 + 멘탈을 준다 | activities(`watch-video`), TubeSite(tsx+css) |
 | 2026-08-13 | 결과 판의 안쪽 스크롤 제거 — 끝나면 판이 흐름으로 돌아오고(`tr-done`) 높이를 내용이 정한다 | ToolRun(tsx+css) |
 | 2026-08-13 | 솔리테어 패산이 손으로는 안 눌리던 버그 — 렌더마다 새로 정의되던 `Slot`을 밖으로 뺐다 + `measure.mjs --mouse`(진짜 마우스) | SolitaireApp, scripts/measure.mjs |
 | 2026-08-13 | IT 스탯 신설(`tech`, VS 코드 작업이 주 공급원 · 랭크 이벤트 1) + 스탯창 이름 아래 선·여백 제거 | types(`Stats.tech`·키 4곳), statMeta, activities(`tool-vscode`), rankEvents·events(`merged-pr`), HudPanel.css |

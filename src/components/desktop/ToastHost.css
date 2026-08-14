@@ -155,3 +155,13 @@
   /* 320px 고정폭은 375px 화면에서 오른쪽으로 넘친다 — 폭을 화면에 맡긴다. */
   width: auto;
 }
+
+/* 누를 수 없는 토스트(기록 갱신·내면 감상). ⚠️ **손 모양과 hover를 걷어낸다** —
+   눌러도 아무 일 없는데 눌러 보라고 말하는 것이 죽은 컨트롤이다. 모양은 그대로 둔다. */
+.toast-body-static {
+  cursor: default;
+}
+
+.toast-body-static:hover {
+  background: transparent;
+}

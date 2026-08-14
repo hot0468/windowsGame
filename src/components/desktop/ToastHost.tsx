@@ -20,6 +20,24 @@ const TOAST_MS = 5000
  */
 const DELIVERY_CHANNEL = 'delivery'
 
+/**
+ * 기록 갱신·내면 감상 토스트의 채널(2026-08-14).
+ *
+ * ⚠️ **택배 채널과 같은 수법이다** — `Message` 자료구조를 그대로 재사용하고 채널로만
+ * 가른다. 토스트 타입을 하나 더 만들면 겹침 제한(`MAX_TOASTS`)과 중복 제거를 두 벌로
+ * 관리하게 된다.
+ *
+ * ⚠️ **누를 데가 없는 토스트다.** 택배·메일은 목적지가 있지만 이 둘은 **알리는 것이
+ * 전부**라, 눌러도 열 창이 없다(죽은 컨트롤을 만들지 않는다는 규칙 — `onOpen`을 안 넘긴다).
+ */
+const RECORD_CHANNEL = 'record'
+const INNER_CHANNEL = 'inner'
+
+/** 기록 갱신 토스트 아이콘. 트로피가 아니라 **올라가는 그래프**다 — 기록은 거울이지 상이 아니다. */
+const RECORD_ICON = 'fluent-color:arrow-trending-lines-24'
+/** 내면 감상 아이콘. 혼잣말이라 말풍선 하나. */
+const INNER_ICON = 'fluent-color:chat-bubbles-question-24'
+
 /** 택배 알림·인벤토리 폴더 공용 아이콘. */
 const DELIVERY_ICON = 'fluent-color:document-folder-24'
 
@@ -44,6 +62,8 @@ export function ToastHost() {
   const dismiss = useToastStore((s) => s.dismiss)
   const open = useWindowStore((s) => s.open)
   const arrivals = useGameStore((s) => s.arrivals)
+  const feedback = useGameStore((s) => s.feedback)
+  const clearFeedback = useGameStore((s) => s.clearFeedback)
   const clearArrivals = useGameStore((s) => s.clearArrivals)
   const jobNotices = useGameStore((s) => s.jobNotices)
   const clearJobNotices = useGameStore((s) => s.clearJobNotices)
@@ -97,6 +117,18 @@ export function ToastHost() {
     clearJobNotices()
   }, [jobNotices, push, clearJobNotices])
 
+  /**
+   * **방금 깨진 기록**(`systems/records.ts`)과 **내면 감상**.
+   *
+   * ⚠️ 스토어가 행동 직후에 담아 주고 띄운 뒤 비운다 — 택배(`arrivals`)와 같은 흐름이다.
+   * 비우지 않으면 다음 리렌더에서 같은 알림이 다시 쌓인다.
+   */
+  useEffect(() => {
+    if (!feedback.length) return
+    push(feedback)
+    clearFeedback()
+  }, [feedback, push, clearFeedback])
+
   if (!toasts.length) return null
 
   return (
@@ -105,6 +137,21 @@ export function ToastHost() {
     <div className="toasts" role="region" aria-live="polite" aria-label="알림">
       {toasts.map((t) => {
         const delivery = t.message.channel === DELIVERY_CHANNEL
+        /* 누를 데가 없는 두 종류. 위 채널 주석 참고. */
+        const record = t.message.channel === RECORD_CHANNEL
+        const inner = t.message.channel === INNER_CHANNEL
+        if (record || inner) {
+          return (
+            <ToastCard
+              key={t.id}
+              title={record ? '기록 갱신' : '문득'}
+              icon={record ? RECORD_ICON : INNER_ICON}
+              from={t.message.from}
+              text={t.message.text}
+              onDismiss={() => dismiss(t.id)}
+            />
+          )
+        }
         // 채널이 채팅방이면 그 방의 앱을, 아니면 사서함이다.
         const thread = delivery ? undefined : findThread(t.message.channel)
         const app = thread ? CHAT_APPS.find((a) => a.id === thread.app) : undefined
@@ -183,7 +230,8 @@ function ToastCard({
   icon?: string
   from: string
   text: string
-  onOpen: () => void
+  /** 없으면 **누를 수 없는 토스트**다(기록 갱신·내면 감상 — 갈 데가 없다). */
+  onOpen?: () => void
   onDismiss: () => void
 }) {
   useEffect(() => {
@@ -196,15 +244,28 @@ function ToastCard({
   return (
     <div className="toast">
       {/* 카드 전체가 클릭 대상이지만, 닫기 버튼이 안에 있으므로 button 중첩을 피해
-          본문만 버튼으로 만든다(버튼 안의 버튼은 HTML에서 허용되지 않는다). */}
-      <button type="button" className="toast-body" onClick={onOpen}>
-        <span className="toast-head">
-          {icon && <AppIcon name={icon} size={16} />}
-          {title}
-        </span>
-        <span className="toast-from">{from}</span>
-        <span className="toast-text">{text}</span>
-      </button>
+          본문만 버튼으로 만든다(버튼 안의 버튼은 HTML에서 허용되지 않는다).
+          ⚠️ **갈 데가 없으면 버튼으로 만들지 않는다**(`onOpen` 없음) — 눌러도 아무 일도
+          없는 버튼은 죽은 컨트롤이다(프로젝트 컨벤션). 그때는 같은 모양의 div로 그린다. */}
+      {onOpen ? (
+        <button type="button" className="toast-body" onClick={onOpen}>
+          <span className="toast-head">
+            {icon && <AppIcon name={icon} size={16} />}
+            {title}
+          </span>
+          <span className="toast-from">{from}</span>
+          <span className="toast-text">{text}</span>
+        </button>
+      ) : (
+        <div className="toast-body toast-body-static">
+          <span className="toast-head">
+            {icon && <AppIcon name={icon} size={16} />}
+            {title}
+          </span>
+          <span className="toast-from">{from}</span>
+          <span className="toast-text">{text}</span>
+        </div>
+      )}
       <button type="button" className="toast-close" onClick={onDismiss} aria-label="알림 닫기">
         <span className="toast-x" aria-hidden="true" />
       </button>

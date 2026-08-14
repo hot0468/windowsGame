@@ -18,6 +18,8 @@ import { creditCall, reviveBonus, worksAtCallCenter } from '../systems/callcente
 import { creditPerformance, revivePerformance, worksAtOffice } from '../systems/drive'
 import { healIllness, reviveIllness } from '../systems/illness'
 import { reviveRecovery } from '../systems/recovery'
+import { brokenRecords } from '../systems/records'
+import { innerLine } from '../systems/inner'
 import { useMetaStore } from './metaStore'
 import {
   buyVaccine as buyVaccineOf,
@@ -83,6 +85,7 @@ import { AUTO_STEP_MS } from '../data/autoAdvance'
 import { findCareer } from '../data/careers'
 import type { AutoRun, AutoStop, StopContext } from '../systems/autoAdvance'
 import type { Career } from '../data/careers'
+import type { Message } from '../data/messages'
 import type { Cert } from '../data/certs'
 import type { Course } from '../data/courses'
 import type { SteamGame } from '../data/steam'
@@ -621,6 +624,28 @@ function unlockHiredCareers(notices: JobNotice[]) {
   }
 }
 
+/**
+ * 행동 하나가 만든 **피드백 토스트**를 모은다(기록 갱신 + 내면 감상).
+ *
+ * ⚠️ **기록이 먼저다.** 둘 다 뜨면 "무엇을 이뤘나"가 "어떤 기분인가"보다 먼저 읽혀야
+ * 한다 — 토스트는 최대 세 개까지만 쌓이므로(`MAX_TOASTS`) 순서가 곧 우선순위다.
+ *
+ * ⚠️ **id에 턴을 섞는다** — 같은 기록을 다음 턴에 또 깨면 중복 제거에 걸려
+ * 두 번째부터 안 뜬다(택배 알림이 같은 이유로 날짜를 섞는다).
+ */
+function feedbackFor(before: GameState, after: GameState, activity: Activity): Message[] {
+  const turn = `${after.day}-${after.slot}`
+  const out: Message[] = brokenRecords(before, after).map((r) => ({
+    id: `record-${r.id}-${turn}`,
+    channel: 'record',
+    from: r.label,
+    text: `${r.value} · 여태 중 제일 좋다.`,
+  }))
+  const line = innerLine(after, activity)
+  if (line) out.push({ id: `inner-${turn}`, channel: 'inner', from: '', text: line })
+  return out
+}
+
 function afterTurn(next: GameState, chain?: number) {
   const ran = runPlans(next, chain)
   const got = collect(ran.state)
@@ -870,6 +895,15 @@ interface GameStore {
    */
   arrivals: ShopItem[]
   clearArrivals: () => void
+  /**
+   * 방금 행동에 대한 **피드백 토스트**(기록 갱신 · 내면 감상). **휘발**이다
+   * (`arrivals`와 같은 규칙 — 띄우고 나면 남길 이유가 없다).
+   *
+   * ⚠️ `Message` 형태를 그대로 쓴다: 토스트 자료구조를 하나 더 만들면 겹침 제한과
+   * 중복 제거를 두 벌로 관리하게 된다(택배 알림이 같은 판단을 이미 했다).
+   */
+  feedback: Message[]
+  clearFeedback: () => void
   /**
    * 정규직 공고에 지원한다. **1턴을 쓴다**(`job-apply` 활동이 비용을 갖는다).
    *
@@ -1157,6 +1191,9 @@ export const useGameStore = create<GameStore>()(
         arrivals: [],
         clearArrivals: () => set({ arrivals: [] }),
 
+        feedback: [],
+        clearFeedback: () => set({ feedback: [] }),
+
         jobNotices: [],
         clearJobNotices: () => set({ jobNotices: [] }),
 
@@ -1413,7 +1450,12 @@ export const useGameStore = create<GameStore>()(
              같은 `doActivity`를 지나므로, 이 한 자리가 곧 단일 출처다(`creditAffection`은
              관계와 무관한 활동이면 상태를 그대로 돌려준다). */
           const healed = activity.id === 'clinic' ? healIllness(ran) : ran
-          set(afterTurn(creditAffection(healed, activity.id)))
+          const result = afterTurn(creditAffection(healed, activity.id))
+          /* ⚠️ **행동 피드백은 여기서 만든다** — 행동 직전(`current`)과 직후 상태를
+             둘 다 쥔 유일한 자리다(기록 갱신은 둘을 견줘야 알 수 있다).
+             ⚠️ **밤 정산까지 끝난 상태로 잰다**(`result.state`): 오후 행동이면 생활비가
+             빠진 뒤라야 "잔고 기록"이 실제와 맞는다. */
+          set({ ...result, feedback: feedbackFor(current, result.state, activity) })
           openCallCenterIfWorking(current, activity.id)
           openDriveIfWorking(current, activity.id)
         },
