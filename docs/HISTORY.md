@@ -6,6 +6,7 @@ CLAUDE.md의 변경 이력 표에서 밀려난 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-08 | 음악 스탯 신설 + 공모전에 그림 아닌 대회 4종(백일장·데이터시각화·모의주식·음원), 콘테스트하다를 레퍼런스 판형으로 | types·statMeta·activities(`compose`), contests(`kind: 'stat'`·`judgedBy`·`category`·`CONTEST_POSTER`)+systems `statScore`, ContestSite(tsx+css 개편), 상금 하향(불변식), turn.test |
 | 2026-08-08 | 포털 가로 띠를 슬라이드로 — 배너 4장(코미콘·콘테스트하다 추가), 하단 소개 카드에서 행사·공모전·코미콘 제거 | banners(+2, `WIDE_ROTATE_MS`)+test, NeverPortal(`WideStrip` 캐러셀)+css, sites(promo 셋 제거)+test |
 | 2026-08-08 | 랭크 이벤트 9종 추가(게임/어휘력 C 주간모임 · 매력/지식 A 제안 · 단발 5종) + 예의범절 상한 999 | rankEvents(data `kind: offer\|event` 확장, systems `offerUnlockedByRank`·메시지 표)+test, messages(방 3 + 미용실 옵션), activities(활동 4), events(도감 5), turn(예의범절 상한), ChatApp·TwitterSite(인증 뱃지) |
 | 2026-08-08 | **행동력과 체력을 `stamina` 하나로 합쳤다** — 행동이 체력을 쓰고, 몸을 키운 결과는 운동 스탯으로 간다 | types(`maxStamina` 삭제), turn(`STAMINA_CAP` 고정·`SLEEP_RECOVERY` 고정값), activities·items(효과 → `athletics`), endings(철인 → `athletics: 200`), statMeta·StatPanel·MobileStatSheet·EndingModal·autoAdvance, gameStore(구세이브 → 운동 스탯 이관), balance.verify(철인 도달 시뮬)+test 12파일 |

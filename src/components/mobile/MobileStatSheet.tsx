@@ -6,7 +6,7 @@ import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
 import { skillLabel } from '../../data/band'
-import { rankOf, toNextRank } from '../../systems/rank'
+import { rankOf, rankProgress, toNextRank } from '../../systems/rank'
 import { growthCap, STAMINA_CAP } from '../../systems/turn'
 import { STAT_NAMES } from '../../types/game'
 import type { GrowthStatKey, Stats } from '../../types/game'
@@ -91,11 +91,20 @@ export function MobileStatSheet({ onClose }: { onClose: () => void }) {
           <hr className="mo-rule" />
           <ul className="mo-cells">
             {GROWTH_STAT_ORDER.map((key) => (
-              <li key={key} className="mo-cell">
+              /* ⚠️ 여기서는 `title`이 아니라 `aria-label`이 남은 수치를 진다 —
+                 휴대폰에는 hover가 없어 툴팁이 영영 안 뜬다. */
+              <li key={key} className="mo-cell" aria-label={rankTitle(key, stats[key])}>
                 <AppIcon name={STAT_META[key].hudIcon} size={15} className="mo-cell-icon" />
                 <span className="mo-cell-name">{STAT_NAMES[key]}</span>
                 <RankBadge rank={rankOf(key, stats[key])} title={rankTitle(key, stats[key])} />
                 <span className="mo-cell-value">{stats[key]}</span>
+                {/* 다음 등급까지의 게이지. 데스크톱 스탯창과 **같은 함수·같은 자리**다
+                    (칸 바닥에 깔려 높이를 늘리지 않는다). */}
+                <span
+                  className="mo-cell-bar"
+                  style={{ transform: `scaleX(${rankProgress(key, stats[key])})` }}
+                  aria-hidden="true"
+                />
               </li>
             ))}
           </ul>

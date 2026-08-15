@@ -1,5 +1,6 @@
 import { growthCap } from './turn'
-import type { GrowthStatKey } from '../types/game'
+import { GROWTH_STAT_KEYS } from '../types/game'
+import type { GrowthStatKey, Stats } from '../types/game'
 
 /**
  * 스탯 랭크 (2026-08-05 신설).
@@ -83,4 +84,59 @@ export function toNextRank(key: GrowthStatKey, value: number): number | undefine
   const next = RANK_ORDER[i + 1]
   const min = RANK_THRESHOLDS.find((t) => t.rank === next)!.min
   return Math.max(1, Math.ceil(min * cap - value))
+}
+
+/** 그 등급에 들어가는 최소 비율. 표에 없는 등급은 없으므로 항상 찾힌다. */
+function minRatioOf(rank: StatRank): number {
+  return RANK_THRESHOLDS.find((t) => t.rank === rank)!.min
+}
+
+/**
+ * **지금 등급 구간을 얼마나 채웠나**(0~1).
+ *
+ * ## 왜 상한 대비가 아닌가
+ * 성장 스탯 칸에는 오랫동안 게이지가 없었다 — 상한이 999라 막대가 늘 비어 보여
+ * 정보가 되지 않았기 때문이다. 그런데 그 탓에 **활동을 해도 화면이 안 변했다**:
+ * 지식 137이 4 올라도 999분의 4는 눈에 안 보이는 폭이라, 스탯을 올리는 일에
+ * 되돌아오는 것이 숫자 한 칸뿐이었다.
+ *
+ * 구간 기준으로 재면 같은 4가 **다음 등급까지 남은 거리 안에서** 읽힌다.
+ * 그래서 이 막대는 등급이 오를 때마다 0으로 돌아가고 **활동 한 번에도 눈에 띄게 움직인다** —
+ * 999짜리 절대 막대가 못 하던 일이다.
+ *
+ * ⚠️ **최고 등급(SS)은 1을 돌려준다.** 다음 구간이 없어 나눌 것이 없고, 다 찬 막대가
+ * "여기가 끝"이라는 뜻을 그대로 진다(`toNextRank`가 `undefined`를 주는 것과 짝이다).
+ */
+export function rankProgress(key: GrowthStatKey, value: number): number {
+  const cap = growthCap(key)
+  const current = rankOf(key, value)
+  const i = RANK_ORDER.indexOf(current)
+  if (i === RANK_ORDER.length - 1) return 1
+  const from = minRatioOf(current)
+  const to = minRatioOf(RANK_ORDER[i + 1])
+  const ratio = (value / cap - from) / (to - from)
+  return Math.min(1, Math.max(0, ratio))
+}
+
+/** 등급이 오른 스탯 하나. 어디서 어디로 갔는지를 함께 든다 — 화면이 "C → B"를 적는다. */
+export type RankUp = { key: GrowthStatKey; from: StatRank; to: StatRank }
+
+/**
+ * 두 스탯 뭉치 사이에 **등급이 오른** 것들.
+ *
+ * ⚠️ **오른 것만 돌려준다.** 스탯은 내려가기도 하고(낮은 스탯의 대가 `below` 랭크 이벤트,
+ * 밤 정산의 음수 효과) 그때는 알릴 것이 없다 — 축하는 올라간 순간의 몫이다.
+ * 내려간 뒤 다시 오르면 그때 또 알린다(호출부가 비교 기준을 매번 갱신하므로 저절로 그렇다).
+ *
+ * ⚠️ **순서는 `GROWTH_STAT_KEYS`가 정한다** — 한 턴에 여럿이 오르면 화면이 그 순서대로
+ * 줄을 세우는데, 정렬을 따로 하면 스탯창 그리드 순서와 어긋나 같은 것이 두 순서로 읽힌다.
+ */
+export function rankUps(before: Stats, after: Stats): RankUp[] {
+  const ups: RankUp[] = []
+  for (const key of GROWTH_STAT_KEYS) {
+    const from = rankOf(key, before[key])
+    const to = rankOf(key, after[key])
+    if (RANK_ORDER.indexOf(to) > RANK_ORDER.indexOf(from)) ups.push({ key, from, to })
+  }
+  return ups
 }

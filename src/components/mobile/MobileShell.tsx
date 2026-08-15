@@ -10,6 +10,7 @@ import type { Activity, DesktopEntry, DesktopItem } from '../../types/game'
 import { ActivityConfirm } from '../apps/ActivityConfirm'
 import { EndingModal } from '../apps/EndingModal'
 import { Daybreak } from '../desktop/Daybreak'
+import { RankUp } from '../desktop/RankUp'
 import { ToastHost } from '../desktop/ToastHost'
 import { MobileAppView } from './MobileAppView'
 import { MobileNavBar } from './MobileNavBar'
@@ -169,6 +170,8 @@ export function MobileShell() {
       <ToastHost />
       {/* 날이 바뀌면 해가 뜨는 화면이 잠깐 덮는다(설계자 지시). 두 셸이 같이 쓴다. */}
       <Daybreak />
+      {/* 등급이 오르면 승급 화면이 잠깐 덮는다. 순서(승급 → 날 밝음)는 `sceneStore`가 정한다. */}
+      <RankUp />
       {confirming && (
         <ActivityConfirm activity={confirming} onClose={() => setConfirming(null)} />
       )}

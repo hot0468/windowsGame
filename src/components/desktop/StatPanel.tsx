@@ -4,7 +4,7 @@ import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
 import { STAMINA_CAP, growthCap } from '../../systems/turn'
-import { rankOf, toNextRank } from '../../systems/rank'
+import { rankOf, rankProgress, toNextRank } from '../../systems/rank'
 import { isIll } from '../../systems/illness'
 import { skillLabel } from '../../data/band'
 import { ILL_EFFICIENCY } from '../../data/illness'
@@ -116,10 +116,23 @@ function GrowthCell({ statKey, value }: { statKey: GrowthStatKey; value: number 
     <div className="stat-cell" title={rankTitle(statKey, value)}>
       <AppIcon name={hudIcon} size={14} className="stat-icon" />
       <span className="stat-cell-name">{STAT_NAMES[statKey]}</span>
-      {/* 게이지가 없는 칸이라 **등급이 곧 게이지다** — 999 상한에서 숫자 137이 어디쯤인지
-          말해 주는 것이 여기서는 이 한 글자뿐이다. */}
       <RankBadge rank={rankOf(statKey, value)} title={rankTitle(statKey, value)} />
       <span className="stat-cell-value">{value}</span>
+      {/*
+       * **다음 등급까지의 게이지.** 상한(999) 대비가 아니라 **지금 등급 구간** 대비다
+       * (`rankProgress` 주석에 이유가 있다) — 그래서 활동 한 번에도 눈에 띄게 움직이고,
+       * 등급이 오르면 0으로 돌아간다.
+       * ⚠️ **칸 높이를 한 픽셀도 늘리지 않는다.** 이 패널은 세로 720px 화면에서 이미
+       * 상한에 닿아 있어(`.stat-cell`의 min-height 주석) 줄을 더하면 스크롤바가 생긴다 —
+       * 그래서 칸 바닥에 **깔리는** 막대이고 글자와 자리를 다투지 않는다.
+       * ⚠️ 남은 수치는 여전히 `title`이 적는다. 막대는 "얼마나 왔나"를, 툴팁은 "몇 남았나"를
+       * 맡고 **둘은 같은 함수가 만든다**(`rank.test.ts`가 어긋나지 않음을 지킨다).
+       */}
+      <span
+        className="stat-cell-bar"
+        style={{ transform: `scaleX(${rankProgress(statKey, value)})` }}
+        aria-hidden="true"
+      />
     </div>
   )
 }

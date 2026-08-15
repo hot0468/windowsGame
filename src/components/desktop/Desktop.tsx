@@ -29,6 +29,7 @@ import { CalendarPanel } from './CalendarPanel'
 import { StatPanel } from './StatPanel'
 import { Taskbar } from './Taskbar'
 import { Daybreak } from './Daybreak'
+import { RankUp } from './RankUp'
 import { ToastHost } from './ToastHost'
 import './Desktop.css'
 
@@ -360,6 +361,9 @@ export function Desktop() {
       <ToastHost />
       {/* 날이 바뀌면 해가 뜨는 화면이 잠깐 덮는다(설계자 지시). 두 셸이 같이 쓴다. */}
       <Daybreak />
+      {/* 등급이 오르면 승급 화면이 잠깐 덮는다. ⚠️ 둘은 겹치지 않는다 — 순서를 정하는 것은
+          여기 배치가 아니라 `sceneStore`이고, 승급이 날 밝음보다 먼저 뜬다. */}
+      <RankUp />
 
       {/* 아이콘 오른쪽 클릭 메뉴. 공용 부품이라 열고 닫는 것만 여기서 관리한다. */}
       {menu && (

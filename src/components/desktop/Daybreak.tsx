@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { formatGameDate, weekdayOf } from '../../data/calendar'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
+import { useSceneStore } from '../../store/sceneStore'
 import './Daybreak.css'
 
 /** 화면이 스스로 사라지기까지. 애니메이션(해가 다 뜨는 데 1.6초)보다 넉넉히 잡는다. */
@@ -34,6 +35,11 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
  * 해가 떠 화면을 덮었다**(2026-08-09 설계자 신고). 날짜 변화는 `pending`에 적어 두고
  * 그 창이 닫힌 뒤에 띄운다 — 알림을 없애는 것이 아니라 **순서를 주는 것**이다.
  *
+ * ⚠️ **승급 화면(`RankUp`)이 먼저다.** 오후 행동 하나가 둘을 함께 부른다 — 공부해서 등급이
+ * 올랐고 그 행동이 날짜를 넘겼다. 승급은 **방금 한 행동의 결과**이고 날이 밝는 것은 그
+ * 다음에 일어나는 일이라, 겹치거나 뒤집히면 원인과 결과가 거꾸로 읽힌다. 기다리는 방식은
+ * 실행 결과 창을 기다리는 것과 같다(`useSceneStore` 주석).
+ *
  * ⚠️ **`prefers-reduced-motion`을 존중한다** — 모션을 줄인 환경에서는 해가 움직이지 않고
  * 밝아진 화면만 뜬다(CSS가 처리한다).
  */
@@ -44,6 +50,9 @@ export function Daybreak() {
   /* ⚠️ **창 종류로 본다**(창 id가 아니라) — 실행 연출은 활동마다 id가 다르고, 앞으로
      장면이 붙는 활동이 늘어도 이 줄은 그대로여야 한다. */
   const runOpen = useWindowStore((s) => s.windows.some((w) => w.kind === 'tool' && !w.minimized))
+  const scene = useSceneStore((s) => s.scene)
+  const openScene = useSceneStore((s) => s.openScene)
+  const closeScene = useSceneStore((s) => s.closeScene)
 
   /**
    * 마지막으로 알린 날. **ref인 이유는 ToastHost와 같다** — 이 값이 바뀐다고 다시 그릴
@@ -57,9 +66,10 @@ export function Daybreak() {
   const [visible, setVisible] = useState(false)
 
   /*
-   * ⚠️ **효과를 둘로 쪼개지 않는다.** "날짜가 바뀌었다"와 "창이 닫혔다"는 서로 다른 시점에
-   * 오지만, 뜨는 조건은 둘을 함께 봐야 한다 — 나누면 창이 처음부터 안 열린 경우
+   * ⚠️ **뜨는 조건을 쪼개지 않는다.** "날짜가 바뀌었다"·"창이 닫혔다"·"앞 장면이 끝났다"는
+   * 서로 다른 시점에 오지만 하나라도 따로 보면 안 된다 — 나누면 창이 처음부터 안 열린 경우
    * (잠자기·이동)에 두 번째 효과의 의존값이 안 바뀌어 알림이 영영 안 뜬다.
+   * **머무는 시간만 아래에서 따로 잰다**(그 이유는 거기 적었다).
    */
   useEffect(() => {
     if (day === undefined) return
@@ -69,22 +79,44 @@ export function Daybreak() {
       // 첫 렌더·자동 진행·게임오버는 건너뛴다(위 주석의 세 규칙).
       if (!first && !autoRunning && !gameOver) pending.current = true
     }
-    // 결과 창이 떠 있으면 그것부터 읽게 두고 기다린다.
-    if (!pending.current || runOpen) return
+    // 결과 창이 떠 있거나 승급 화면이 도는 중이면 그것부터 읽게 두고 기다린다.
+    if (!pending.current || runOpen || scene !== null) return
     pending.current = false
+    openScene('daybreak')
     setVisible(true)
-    const timer = setTimeout(() => setVisible(false), SHOW_MS)
+  }, [day, autoRunning, gameOver, runOpen, scene, openScene])
+
+  /*
+   * 스스로 사라지는 타이머.
+   * ⚠️ **위 효과 안에 두지 않는다.** 저 효과는 `scene`을 의존값으로 갖는데 자기가 그 값을
+   * 바꾸므로(`openScene`), 타이머를 거기 두면 **연 직후 정리 함수가 돌아 타이머가 취소되고
+   * 화면이 영영 안 닫힌다.** 뜨는 조건과 머무는 시간은 서로 다른 물음이라 자리도 갈린다.
+   */
+  useEffect(() => {
+    if (!visible) return
+    const timer = setTimeout(() => {
+      setVisible(false)
+      closeScene('daybreak')
+    }, SHOW_MS)
     return () => clearTimeout(timer)
-  }, [day, autoRunning, gameOver, runOpen])
+  }, [visible, closeScene])
+
+  /* 언마운트될 때 자리를 비운다 — 안 비우면 잠금화면으로 나갔다 온 판에서 다음 장면이 영영 막힌다. */
+  useEffect(() => () => closeScene('daybreak'), [closeScene])
 
   if (!visible || day === undefined) return null
+
+  const dismiss = () => {
+    setVisible(false)
+    closeScene('daybreak')
+  }
 
   return (
     /*
      * 누르면 바로 닫힌다. `role="status"`인 이유: 이것은 대답을 요구하는 대화상자가
      * 아니라 **지나가는 알림**이다 — `alertdialog`로 두면 스크린 리더가 초점을 뺏는다.
      */
-    <div className="db" role="status" onClick={() => setVisible(false)}>
+    <div className="db" role="status" onClick={dismiss}>
       <div className="db-sky" aria-hidden="true">
         <span className="db-sun" />
         <span className="db-land" />
