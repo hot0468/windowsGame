@@ -22,6 +22,21 @@ describe('랭크 척도', () => {
     expect([...mins].sort((a, b) => b - a)).toEqual(mins)
   })
 
+  /**
+   * ⚠️ **앞이 촘촘하고 뒤가 성기다**(2026-08-16 재분배의 의도 그 자체). 고른 간격으로
+   * 되돌리면 판 초반 서른 날이 통째로 "아무 등급도 안 오르는 구간"이 된다 —
+   * 사유는 `RANK_THRESHOLDS` 주석에 있다. 값을 손볼 때 이 검사가 먼저 터진다.
+   */
+  it('구간 간격이 뒤로 갈수록 넓어진다 — 앞에서 첫 승급이 빨리 와야 한다', () => {
+    const mins = [...RANK_THRESHOLDS].reverse().map((t) => t.min) // F부터 오름차순
+    const gaps = mins.slice(1).map((m, i) => m - mins[i])
+    // 마지막 칸(S→SS)만 예외다: SS는 '거의 만점'이라 일부러 좁다.
+    const rising = gaps.slice(0, -1)
+    for (let i = 1; i < rising.length; i++) {
+      expect(rising[i], `${i}번째 간격이 앞보다 좁다: ${gaps.join(',')}`).toBeGreaterThan(rising[i - 1])
+    }
+  })
+
   it('최하 등급의 문턱은 0이다 — 0점짜리 스탯도 등급을 받는다', () => {
     expect(RANK_THRESHOLDS.at(-1)).toEqual({ rank: 'F', min: 0 })
   })
