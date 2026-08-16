@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { BrowserApp } from '../apps/BrowserApp'
 import { CallCenterApp } from '../apps/CallCenterApp'
 import { WishApp } from '../apps/WishApp'
+import { MasterVisit } from '../apps/MasterVisit'
 import { DriveApp } from '../apps/DriveApp'
 import { ChatListApp, ChatThreadApp } from '../apps/ChatApp'
 import { MailApp } from '../apps/MailApp'
@@ -59,6 +60,7 @@ export const WINDOW_APP_KINDS = [
   'settings',
   'callcenter',
   'wish',
+  'master',
   'drive',
   'tool',
   'clipstudio',
@@ -126,6 +128,9 @@ export function appForWindow(w: OpenWindow, { onClose }: AppSlots): ReactNode {
     /* 랭크 이벤트(감수성 A)가 여는 창. 턴을 쓰지 않고 소원 하나를 고른다. */
     case 'wish':
       return <WishApp onClose={onClose} />
+    /* 등급이 A에 닿으면 찾아오는 스탯 마스터. 별똥별과 같은 부류(스스로 못 열고 턴을 안 쓴다). */
+    case 'master':
+      return w.masterId ? <MasterVisit masterId={w.masterId} onClose={onClose} /> : null
     /* 출근이 여는 사내 프로그램. 턴은 이미 지나갔고 여기서 버는 것은 보너스뿐이다. */
     case 'callcenter':
       return <CallCenterApp onClose={onClose} />

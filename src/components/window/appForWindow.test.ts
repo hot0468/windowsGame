@@ -38,6 +38,7 @@ const ALL_KINDS = [
   'settings',
   'callcenter',
   'wish',
+  'master',
   'drive',
   'folder',
   'scheduler',

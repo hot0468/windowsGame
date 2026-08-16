@@ -24,6 +24,7 @@ import {
   reviveRankEvents,
   settleRankEvents,
 } from '../systems/rankEvents'
+import { dueMasters, receiveGift, reviveMasters } from '../systems/masters'
 import { useWindowStore } from './windowStore'
 import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../systems/bank'
 import { moveTo } from '../systems/housing'
@@ -551,6 +552,7 @@ function reviveState(raw: unknown): GameState | null {
     illness: reviveIllness(saved.illness),
     affection: reviveAffection(saved.affection),
     rankEvents: reviveRankEvents(saved.rankEvents),
+    masters: reviveMasters(saved.masters),
     // ⚠️ 응시 기록은 **돈을 만들지 않으므로** 검증이 은행·정규직만큼 빡빡할 필요가 없다
     //    (합격해도 나오는 것은 아이템 하나다). 날짜만 유한하면 통과시키고, 없는 종목을
     //    가리키는 기록은 `advanceCertification`이 조용히 닫는다.
@@ -654,6 +656,7 @@ function afterTurn(next: GameState, chain?: number) {
      결과가 같다 — 그래도 "기록 → 파생" 방향을 지켜 둔다(나중에 얽히면 이 순서가 답이다). */
   const evented = settleRankEvents(job.state)
   openRankEventWindows(evented)
+  openMasterWindows(evented)
   return {
     state: evented,
     skippedPlans: ran.skipped,
@@ -733,6 +736,34 @@ function openRankEventWindows(next: GameState) {
   }
 }
 
+/**
+ * 등급이 문턱을 넘은 스승의 방문 창을 띄운다.
+ *
+ * ⚠️ **`openRankEventWindows`와 같은 자리·같은 이유다** — 랭크는 스케줄러 예약·자동
+ * 진행으로도 오르므로, 손으로 누른 자리에만 붙이면 자동으로 넘긴 판에서 스승이 통째로
+ * 안 온다. 그래서 모든 턴 통로가 지나는 `afterTurn` 끝에 붙는다.
+ *
+ * ⚠️ **여기서는 아무것도 기록하지 않는다.** 기록은 선물을 받을 때 찍히고(`receiveGift`),
+ * 그래서 창을 닫기만 하면 다음 밤에 다시 온다(별똥별과 같은 규칙).
+ *
+ * ⚠️ **여럿이 같은 밤에 오면 조금씩 어긋나게 놓는다** — 정확히 겹치면 뒤의 창이 앞의 창에
+ * 완전히 가려 두 번째 스승이 온 것을 알 수 없다.
+ */
+function openMasterWindows(next: GameState) {
+  dueMasters(next).forEach((master, i) => {
+    useWindowStore.getState().open({
+      id: master.id,
+      kind: 'master',
+      masterId: master.id,
+      title: `${master.name} (${master.title})`,
+      icon: master.icon,
+      x: 200 + i * 28,
+      y: 108 + i * 28,
+      width: 480,
+    })
+  })
+}
+
 interface GameStore {
   state: GameState | null
   /** 잠금화면을 통과했는지. 저장하지 않아 새로고침 시 잠금화면부터 시작한다. */
@@ -743,6 +774,8 @@ interface GameStore {
   doActivity: (activity: Activity) => void
   /** 별똥별 소원 — 고른 성장 스탯을 올린다. 한 번만 된다. */
   makeWish: (key: GrowthStatKey) => void
+  /** 찾아온 스탯 마스터의 선물을 받는다. 한 번만 되고 턴을 쓰지 않는다. */
+  receiveMasterGift: (masterId: string) => void
   doSkip: () => void
   /** 콜센터 미니게임에서 콜 한 건을 마쳤다. 인자는 그 콜의 보너스(원). */
   finishCall: (won: number) => void
@@ -1189,6 +1222,18 @@ export const useGameStore = create<GameStore>()(
           const current = get().state
           if (!current) return
           const next = grantWish(current, key)
+          if (next !== current) set({ state: next })
+        },
+
+        /*
+         * ⚠️ **`afterTurn`을 부르지 않는다**(별똥별과 같은 이유): 스승이 찾아온 것은
+         * 턴을 쓰는 행동이 아니라 이미 지나간 밤에 일어난 일이라, 여기서 밤 정산을 다시
+         * 돌리면 그 밤이 두 번 정산된다.
+         */
+        receiveMasterGift: (masterId) => {
+          const current = get().state
+          if (!current) return
+          const next = receiveGift(current, masterId)
           if (next !== current) set({ state: next })
         },
 
