@@ -363,6 +363,9 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
         </span>
         <span className="chat-head-body">
           <span className="chat-peer">{thread.name}</span>
+          {/* ⚠️ **프로필 상태메시지가 신원을 진다.** 처음 연락해 온 사람(스탯 마스터)은
+              이름만으로는 누구인지 알 수 없어, 무엇을 하는 사람인지가 여기 뜬다. */}
+          {thread.status && <span className="chat-status">{thread.status}</span>}
           {thread.members > 1 && (
             <span className="chat-members">
               <AppIcon name={RAIL_ICONS.me} size={14} />

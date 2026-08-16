@@ -200,6 +200,19 @@ describe('카톡 방', () => {
     }
   })
 
+  /**
+   * ⚠️ **화면이 "이 사람이 누구인가"에 답할 수 있어야 한다**(설계자 신고: "스승을 한 번도
+   * 본 적 없는데 스승인지 어떻게 알아"). 대화창 헤더는 이름과 상태메시지만 그리므로,
+   * 칭호가 상태메시지로 실려 있지 않으면 처음 연락해 온 사람이 이름 석 자로만 남는다.
+   */
+  it('방마다 상태메시지로 칭호가 실려 있다', () => {
+    for (const m of MASTERS) {
+      const thread = THREADS.find((t) => t.id === m.id)!
+      expect(thread.status, `${m.id}의 상태메시지가 없다`).toBe(m.title)
+      expect(m.title.length).toBeGreaterThan(0)
+    }
+  })
+
   /** ⚠️ 오픈채팅에는 조건을 걸지 않는다는 규칙과 부딪히지 않아야 한다. */
   it('오픈채팅이 아니다 — 아는 사람이 개인적으로 연락해 온 것이다', () => {
     for (const t of MASTER_THREADS) expect('open' in t).toBe(false)

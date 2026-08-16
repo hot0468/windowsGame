@@ -341,6 +341,13 @@
   color: var(--os-text);
 }
 
+/* 프로필 상태메시지. 이름 아래 한 단 낮은 무게로 붙는다 — 이름과 경쟁하면 누가 말하는지가
+   흐려지고, 너무 흐리면 신원을 지는 역할을 못 한다. */
+.chat-status {
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+}
+
 /* 인원수는 사람 글리프와 함께 이름 아래 줄에 붙는다(레퍼런스와 같은 배치). */
 .chat-members {
   display: flex;
