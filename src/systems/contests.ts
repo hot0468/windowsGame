@@ -1,4 +1,4 @@
-import { CONTESTS, findContest } from '../data/contests'
+import { CONTESTS, daysUntilDue, daysUntilEntry, entryOpen, findContest } from '../data/contests'
 import { MAILBOX } from '../data/messages'
 import { artRatio } from './artwork'
 import { findProject, pagesOf, projectScore, projectsOf } from './projects'
@@ -60,6 +60,12 @@ export function entryBlockers(
 ): string[] {
   const out: string[] = []
   if (hasEntered(state, contest.id)) out.push('이미 출품한 공모전입니다')
+  /* ⚠️ **마감은 "이미 냈는가"와 함께 맨 앞에서 막는다**(2026-08-16) — 뒤에 두면 낼 물건을
+     고르라는 말이 먼저 뜨고, 골라 봐야 어차피 못 낸다. 다음 회차 날짜를 함께 적는 것이
+     규칙이다: 닫힌 문만 보여 주고 언제 열리는지 안 적으면 막다른 곳이 된다. */
+  if (!entryOpen(contest, state.day)) {
+    out.push(`접수 기간이 아닙니다 — ${daysUntilEntry(contest, state.day)}일 후 접수 시작`)
+  }
 
   /* ⚠️ **스탯 대회는 낼 물건이 없다** — 고르지 않았다고 막으면 영영 못 낸다.
      막는 것은 "이미 냈는가" 하나뿐이고, 점수가 낮으면 못 내는 것이 아니라 **낙선한다**
@@ -245,9 +251,26 @@ export function contestMessages(state: GameState): TimedMessage[] {
     })
 }
 
-/** 낼 수 있는 공모전(아직 안 낸 것). 목록 화면이 쓰는 파생값이다. */
+/**
+ * 아직 안 낸 공모전. 목록 화면이 쓰는 파생값이다.
+ * ⚠️ **접수 중인지는 안 본다** — 목록에서 빼 버리면 "언제 열리는지"를 볼 자리가 사라진다
+ * (화면은 닫힌 것도 그리고 `entryBlockers`가 사유와 다음 날짜를 적는다).
+ */
 export function openContests(state: GameState): Contest[] {
   return CONTESTS.filter((c) => !hasEntered(state, c.id))
+}
+
+/**
+ * **지금 접수 중이고 아직 안 낸** 공모전 중 마감이 가까운 순.
+ * 날짜칸의 "다가오는 일정"이 이걸 읽는다 — 목표는 마감이 정한다.
+ */
+export function dueSoonContests(state: GameState): { contest: Contest; inDays: number }[] {
+  return openContests(state)
+    .flatMap((contest) => {
+      const inDays = daysUntilDue(contest, state.day)
+      return inDays === undefined ? [] : [{ contest, inDays }]
+    })
+    .sort((a, b) => a.inDays - b.inDays)
 }
 
 /** 그 출품에 실제로 들어간 그림들. 화면이 "무엇을 냈는지" 되짚을 때 쓴다. */

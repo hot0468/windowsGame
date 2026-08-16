@@ -13,7 +13,14 @@ import {
 } from './contests'
 import { createProject, drawIntoProject, openProjects } from './projects'
 import { createInitialState, growthCap } from './turn'
-import { CONTEST_CATEGORIES, CONTESTS, findContest } from '../data/contests'
+import {
+  CONTEST_CATEGORIES,
+  CONTESTS,
+  daysUntilDue,
+  daysUntilEntry,
+  entryOpen,
+  findContest,
+} from '../data/contests'
 import { MAILBOX } from '../data/messages'
 import { GROWTH_STAT_KEYS } from '../types/game'
 import type { GameState } from '../types/game'
@@ -26,10 +33,23 @@ import type { GameState } from '../types/game'
 const SINGLE = CONTESTS.find((c) => c.kind === 'single')!
 const COMIC = CONTESTS.find((c) => c.kind === 'comic')!
 
-function ready(art = 200): GameState {
+/**
+ * 그 공모전의 **접수 기간 안**에 있는 날(2026-08-16 마감 신설).
+ * ⚠️ 테스트가 날짜를 손으로 적으면 주기를 손볼 때마다 여기가 낡는다 — 데이터에게 물어본다.
+ */
+function dayOpenFor(contest: { cycle: number; openDays: number; offset: number }): number {
+  for (let day = 1; day <= contest.cycle * 2 + 1; day++) {
+    if (entryOpen(contest as never, day)) return day
+  }
+  throw new Error('접수 기간이 없는 공모전이다')
+}
+
+function ready(art = 200, contest = SINGLE): GameState {
   const base = createInitialState('작가')
   return {
     ...base,
+    // ⚠️ 접수 기간 안으로 날을 맞춘다 — 아니면 `entryBlockers`가 마감으로 막는다.
+    day: dayOpenFor(contest),
     inventory: [{ id: 'pen-tablet', day: 1 }],
     stats: { ...base.stats, money: 500_000, stamina: 200, art, creativity: art },
   }
@@ -90,7 +110,7 @@ describe('출품', () => {
   })
 
   it('⚠️ 낸 작품집은 잠긴다 — 회지로도 파는 이중 수입을 막는다', () => {
-    const s = withArt(ready(), COMIC.minPages ?? 4)
+    const s = withArt(ready(200, COMIC), COMIC.minPages ?? 4)
     const id = openProjects(s)[0].id
     const after = enterContest(s, COMIC.id, { projectId: id })
     expect(openProjects(after)).toHaveLength(0)
@@ -98,7 +118,7 @@ describe('출품', () => {
   })
 
   it('⚠️ 낸 시점의 점수를 박는다 — 내고 나서 더 그려 점수를 올릴 수 없다', () => {
-    const s = withArt(ready(), COMIC.minPages ?? 4)
+    const s = withArt(ready(200, COMIC), COMIC.minPages ?? 4)
     const id = openProjects(s)[0].id
     const entered = enterContest(s, COMIC.id, { projectId: id })
     const score = contestsStateOf(entered).entries[0].score
@@ -209,8 +229,10 @@ describe('⚠️ 불변식 — 상금이 물가를 이기지 못한다', () => {
 })
 
 /** 갓 시작한 판. 스탯 대회는 낼 물건이 없으므로 이것만으로 충분하다. */
-function fresh(): GameState {
-  return createInitialState('작가')
+/** ⚠️ 스탯 대회도 접수 기간이 있다 — 대회마다 오프셋이 달라 날을 대회에 맞춰 잡는다. */
+function fresh(contest?: { cycle: number; openDays: number; offset: number }): GameState {
+  const base = createInitialState('작가')
+  return contest ? { ...base, day: dayOpenFor(contest) } : base
 }
 
 describe('스탯 대회 (그림이 아닌 공모전)', () => {
@@ -225,7 +247,7 @@ describe('스탯 대회 (그림이 아닌 공모전)', () => {
   })
 
   it('⚠️ 낼 물건이 없어도 낼 수 있다 — 고르기를 요구하면 영영 못 낸다', () => {
-    for (const c of statContests) expect(entryBlockers(fresh(), c, {})).toEqual([])
+    for (const c of statContests) expect(entryBlockers(fresh(c), c, {})).toEqual([])
   })
 
   it('점수는 심사 스탯의 평균 비율이다 — 상한이 다른 스탯을 섞어도 한쪽이 독차지하지 않는다', () => {
@@ -247,7 +269,7 @@ describe('스탯 대회 (그림이 아닌 공모전)', () => {
   it('⚠️ 낸 시점의 점수로 박힌다 — 낸 뒤에 올려도 결과가 안 바뀐다', () => {
     const c = statContests[0]
     const [a] = c.judgedBy!
-    const before = { ...fresh(), stats: { ...fresh().stats, [a]: 100 } }
+    const before = { ...fresh(c), stats: { ...fresh().stats, [a]: 100 } }
     const entered = enterContest(before, c.id, {})
     const entry = contestsStateOf(entered).entries.find((e) => e.contestId === c.id)!
     const grown = { ...entered, stats: { ...entered.stats, [a]: growthCap(a) } }
@@ -259,5 +281,72 @@ describe('스탯 대회 (그림이 아닌 공모전)', () => {
       expect(CONTESTS.some((c) => c.category === cat), `${cat} 분야에 대회가 없다`).toBe(true)
     }
     for (const c of CONTESTS) expect(CONTEST_CATEGORIES).toContain(c.category)
+  })
+})
+
+describe('접수 마감 (2026-08-16)', () => {
+  /**
+   * ⚠️ **마감이 없으면 목표가 아니다.** 예전에는 `judgeDays`(낸 뒤 며칠)만 있고 "언제까지"가
+   * 없어 아무 때나 냈다 — 다가오는 날이 아니라 내가 고르는 날이라 미루게 된다.
+   */
+  it('접수 기간이 아니면 못 낸다 — 사유에 다음 접수일이 함께 적힌다', () => {
+    const c = SINGLE
+    const shut = { ...ready(200, c), day: dayOpenFor(c) + c.openDays }
+    expect(entryOpen(c, shut.day)).toBe(false)
+    const reasons = entryBlockers(shut, c, {})
+    expect(reasons.some((r) => r.includes('접수 기간이 아닙니다'))).toBe(true)
+    // 닫힌 문만 보여 주고 언제 열리는지 안 적으면 막다른 곳이 된다.
+    expect(reasons.some((r) => r.includes('일 후 접수 시작'))).toBe(true)
+  })
+
+  it('접수 기간의 마지막 날에는 낼 수 있다 — 0은 오늘 마감이지 지난 것이 아니다', () => {
+    const c = SINGLE
+    const last = dayOpenFor(c) + c.openDays - 1
+    expect(daysUntilDue(c, last)).toBe(0)
+    expect(entryOpen(c, last)).toBe(true)
+  })
+
+  /**
+   * ⚠️ **주기로 두되 출품은 여전히 한 번뿐이다.** 다음 회차가 와도 다시 못 낸다 —
+   * 이 목록의 상금 총합이 곧 평생 상한이고 그것이 "판은 반드시 끝난다"를 지탱한다.
+   * 규칙을 뒤집어(두 번째 회차에 또 내기) 증명한다.
+   */
+  it('다음 회차가 와도 같은 공모전에 두 번은 못 낸다', () => {
+    const c = SINGLE
+    const s = withArt(ready(200, c), 1)
+    const entered = enterContest(s, c.id, { artworkId: s.artworks![0].id })
+    expect(hasEntered(entered, c.id)).toBe(true)
+    const nextRound = { ...entered, day: entered.day + c.cycle }
+    expect(entryOpen(c, nextRound.day)).toBe(true)
+    expect(entryBlockers(nextRound, c, {}).some((r) => r.includes('이미 출품'))).toBe(true)
+  })
+
+  /** ⚠️ 전부 같은 날 열리면 목록이 "전부 열림 / 전부 닫힘" 두 상태만 오간다. */
+  it('오프셋이 서로 다르다', () => {
+    expect(new Set(CONTESTS.map((c) => c.offset)).size).toBe(CONTESTS.length)
+  })
+
+  /**
+   * ⚠️ **처음 낼 수 있는 하나가 1일차부터 있어야 한다**(편의점 알바가 조건 없는 유일한
+   * 알바인 것과 같은 자리) — 없으면 공모전이 판 초반에 통째로 닫힌 문이 된다.
+   */
+  it('1일차에 접수 중인 공모전이 최소 하나 있다', () => {
+    expect(CONTESTS.filter((c) => entryOpen(c, 1)).length).toBeGreaterThan(0)
+  })
+
+  it('접수 기간과 주기가 말이 된다 — 기간이 주기보다 길면 늘 열려 있는 셈이다', () => {
+    for (const c of CONTESTS) {
+      expect(c.openDays, `${c.id}`).toBeGreaterThan(0)
+      expect(c.openDays, `${c.id}의 접수 기간이 주기보다 길다`).toBeLessThan(c.cycle)
+      expect(c.offset, `${c.id}`).toBeGreaterThanOrEqual(0)
+      expect(c.offset, `${c.id}의 오프셋이 주기를 넘는다`).toBeLessThan(c.cycle)
+    }
+  })
+
+  it('닫혀 있으면 다음 접수까지 남은 날이 1 이상이다', () => {
+    const c = SINGLE
+    const shut = dayOpenFor(c) + c.openDays
+    expect(daysUntilEntry(c, shut)).toBeGreaterThan(0)
+    expect(entryOpen(c, shut + daysUntilEntry(c, shut))).toBe(true)
   })
 })

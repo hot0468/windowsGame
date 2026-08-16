@@ -481,6 +481,47 @@
   flex: none;
 }
 
+/*
+ * 다가오는 일정. 날씨 줄 바로 아래이고 **같은 크기·같은 잉크**다 — 둘 다 "오늘 알아 둘
+ * 것"이라 위계가 같아야 한다(하나만 키우면 다른 하나가 덜 중요해 보인다).
+ *
+ * ⚠️ **남은 날을 액센트로 칠한다**(`--hud-accent`). 이 패널의 액센트는 하나뿐이고
+ * 여기가 그 자리다 — 며칠 남았는지가 이 줄에서 유일하게 급한 값이다.
+ * ⚠️ **`nowrap`은 남은 날 쪽에만 준다** — 실측에서 "3일 후"가 쪼개져 두 줄이 된 것과 같은
+ * 함정이다(`.cal-weather` 주석). 접히는 것은 일정 이름 쪽이다.
+ */
+.cal-soon {
+  list-style: none;
+  margin: var(--sp-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--fs-xs);
+  color: var(--hud-text-3);
+}
+
+.cal-soon li {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.cal-soon-when {
+  flex: none;
+  white-space: nowrap;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--hud-accent);
+}
+
+.cal-soon-what {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ⚠️ **줄바꿈을 막는다.** 실측에서 "맑음"이 글자 단위로 쪼개져 두 줄이 됐다 — 옆의 보정
    문장이 flex 여유를 다 먹으면서 이 칸이 한 글자 폭까지 눌린 것이다. 날씨 이름은 짧고
    반드시 한 줄이어야 하므로 `flex: none`으로 자기 폭을 지키고, 접히는 것은 문장 쪽이다. */

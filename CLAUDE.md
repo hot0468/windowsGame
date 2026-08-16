@@ -24,6 +24,7 @@
 
 | 날짜 | 변경 | 대상 |
 |------|------|------|
+| 2026-08-16 | 목표가 다가온다 — 공모전에 접수 마감(주기·기간·오프셋)을 주고 날짜칸이 다가오는 일정을 적는다 | contests(`cycle`/`openDays`/`offset` 10종·`entryOpen`·`dueSoonContests`)+test 7, upcoming(신규+test 6), CalendarPanel+css, ContestSite(D-표기), banners(고정 숫자 제거) |
 | 2026-08-16 | 랭크 문턱을 앞쪽으로 촘촘하게 재분배 — 초반 서른 날이 통째로 F이던 구간을 없앤다 | rank(`RANK_THRESHOLDS` 5/20/40/70/95)+test 1, 낡은 주석 3(rank·masters·contests) |
 | 2026-08-16 | 다녀온 곳 기념품 도감 — 여행을 가면 그 곳의 기념품이 남고 도감 `여행` 시트가 안 가 본 곳까지 보여 준다 | trips(systems+test 14 신규, data 기념품 10), types(`Souvenir`), ExcelApp(시트), TravelSite(`takeTrip`), gameStore, achievements(3종+metric 2), runScenes(`look: 'road'`)+ToolRun+test 5 |
 | 2026-08-16 | 스탯 마스터 — 등급 A에 닿으면 그 분야 스승이 **카톡으로 연락해 선물하기로** 가르침·멘탈·기념품을 준다 | masters(data+systems+test 29 신규), messages(방 파생·`threadVisible`+test), ChatApp(선물 카드)+css, items(기념품 14), types(`masters`), gameStore(`receiveMasterGift`·복원) |
@@ -33,4 +34,3 @@
 | 2026-08-09 | 알바몬 편성표 메일이 지원을 단정하던 버그 + 공부에도 실행 연출·성장 게이지·[확인] | messages(문구·규칙 주석)+test(불변식), ActivityConfirm(`onCommit` 갈래도 창을 연다), runScenes(`study`·`writing`), ToolRun(게이지+제목), ToolRun.css, CampusSite.css(실측 AA 3건) |
 | 2026-08-08 | 하이마루 최신형 휴대폰 — 가지고 있으면 친화력 상승분 +25%, 대신 30일마다 3,000원 | items(`PHONE_*` + 물건), phone(systems+test 9건 신규), turn(`itemStatBonusFor`·applyEffects 합산), types(`phoneBilledDay`·`suspendedPhone`), gameStore(밤 정산·복원), MailApp, activityPreview |
 | 2026-08-08 | 랭크 이벤트 6종 추가 — 친화력 C·경제 B가 방을 열고(집들이·투자 스터디), 예의범절 A·운동 S·지식 A·창의력 A는 단발 | rankEvents(data+systems 첫 마디), events(단발 4), messages(방 2), activities(`housewarming`·`study-talk`), rankEvents.test(스탯 전수 커버 불변식 2건) |
-| 2026-08-08 | 음악 스탯에 쓸 곳 셋 — 오디션 도구·그몽 음악 일감 3종 + 음악 A가 여는 밴드(숙련도로 공연·앨범 해제) | types(`ToolId: audition`·`BandState`·`requiresBandSkill`/`buildsBandSkill`), band(data+systems+test 12건), turn(게이트·숙련·보수), gigs·activities·desktopItems·messages·rankEvents, StatPanel·MobileStatSheet·ToolRun |
