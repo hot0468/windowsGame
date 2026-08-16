@@ -24,6 +24,7 @@ import {
   reviveRankEvents,
   settleRankEvents,
 } from '../systems/rankEvents'
+import { receiveGift, reviveMasters } from '../systems/masters'
 import { useWindowStore } from './windowStore'
 import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../systems/bank'
 import { moveTo } from '../systems/housing'
@@ -60,6 +61,7 @@ import { reviveGear } from '../systems/gear'
 import { playGame as playGameOf } from '../systems/steam'
 import { renameChannel as renameChannelOf, startStream as startStreamOf } from '../systems/channel'
 import { watchFilm as watchFilmOf } from '../systems/cinema'
+import { takeTrip as takeTripOf, reviveSouvenirs } from '../systems/trips'
 import { sellItem as sellItemOf, sellPostcard as sellPostcardOf } from '../systems/resale'
 import { advanceCertification, takeExam as takeExamOf } from '../systems/certification'
 import { findHousing } from '../data/housing'
@@ -75,6 +77,7 @@ import { AUTO_STEP_MS } from '../data/autoAdvance'
 import { findCareer } from '../data/careers'
 import type { AutoRun, AutoStop, StopContext } from '../systems/autoAdvance'
 import type { Career } from '../data/careers'
+import type { Trip } from '../data/trips'
 import type { Cert } from '../data/certs'
 import type { Course } from '../data/courses'
 import type { SteamGame } from '../data/steam'
@@ -543,6 +546,9 @@ function reviveState(raw: unknown): GameState | null {
           (p) => p && typeof p.filmId === 'string' && Number.isFinite(p.day),
         ) as Postcard[])
       : undefined,
+    /* ⚠️ 기념품은 포스트카드와 달리 **팔 수도 없어서** 돈에 닿을 길이 아예 없다 —
+       그래도 없는 상품을 가리키는 기록은 버린다(도감의 "몇 곳 중 몇 곳"이 흔들린다). */
+    souvenirs: reviveSouvenirs(saved.souvenirs),
     twitter: reviveTwitter(saved),
     stocks: reviveStocks(saved),
     subscriptions: reviveSubscriptions(saved),
@@ -551,6 +557,7 @@ function reviveState(raw: unknown): GameState | null {
     illness: reviveIllness(saved.illness),
     affection: reviveAffection(saved.affection),
     rankEvents: reviveRankEvents(saved.rankEvents),
+    masters: reviveMasters(saved.masters),
     // ⚠️ 응시 기록은 **돈을 만들지 않으므로** 검증이 은행·정규직만큼 빡빡할 필요가 없다
     //    (합격해도 나오는 것은 아이템 하나다). 날짜만 유한하면 통과시키고, 없는 종목을
     //    가리키는 기록은 `advanceCertification`이 조용히 닫는다.
@@ -733,6 +740,7 @@ function openRankEventWindows(next: GameState) {
   }
 }
 
+
 interface GameStore {
   state: GameState | null
   /** 잠금화면을 통과했는지. 저장하지 않아 새로고침 시 잠금화면부터 시작한다. */
@@ -743,6 +751,8 @@ interface GameStore {
   doActivity: (activity: Activity) => void
   /** 별똥별 소원 — 고른 성장 스탯을 올린다. 한 번만 된다. */
   makeWish: (key: GrowthStatKey) => void
+  /** 찾아온 스탯 마스터의 선물을 받는다. 한 번만 되고 턴을 쓰지 않는다. */
+  receiveMasterGift: (masterId: string) => void
   doSkip: () => void
   /** 콜센터 미니게임에서 콜 한 건을 마쳤다. 인자는 그 콜의 보너스(원). */
   finishCall: (won: number) => void
@@ -840,6 +850,8 @@ interface GameStore {
    * 모르는 사실이라, 활동만 실행하면 사라진다.
    */
   watchFilm: (film: Film) => void
+  /** 여행을 간다 — 상품이 가리키는 활동을 실행하고 그 곳의 기념품을 남긴다. */
+  takeTrip: (trip: Trip) => void
   /**
    * 방송 채널 이름을 짓는다. **턴을 쓰지 않는다** — 그래서 `afterTurn`도 부르지 않는다
    * (은행 창구·쇼핑 주문과 같은 통로: 상태만 바꾸고 하루는 흐르지 않는다).
@@ -1192,6 +1204,18 @@ export const useGameStore = create<GameStore>()(
           if (next !== current) set({ state: next })
         },
 
+        /*
+         * ⚠️ **`afterTurn`을 부르지 않는다**(별똥별과 같은 이유): 스승이 찾아온 것은
+         * 턴을 쓰는 행동이 아니라 이미 지나간 밤에 일어난 일이라, 여기서 밤 정산을 다시
+         * 돌리면 그 밤이 두 번 정산된다.
+         */
+        receiveMasterGift: (masterId) => {
+          const current = get().state
+          if (!current) return
+          const next = receiveGift(current, masterId)
+          if (next !== current) set({ state: next })
+        },
+
         postArtwork: (artworkId) => {
           const current = get().state
           if (!current) return
@@ -1212,6 +1236,15 @@ export const useGameStore = create<GameStore>()(
           if (!current) return
           // `watchFilm`이 조건(행동력·관람료)을 다 보고 안 되면 상태를 그대로 돌려준다.
           const next = watchFilmOf(current, film)
+          if (next !== current) set(afterTurn(next))
+        },
+
+        /* ⚠️ `watchFilm`과 같은 자리·같은 모양이다 — 고른 것(영화/상품)은 활동이 모르는
+           사실이라 스토어가 그것을 함께 넘긴다. 턴을 쓰므로 `afterTurn`을 탄다. */
+        takeTrip: (trip) => {
+          const current = get().state
+          if (!current) return
+          const next = takeTripOf(current, trip)
           if (next !== current) set(afterTurn(next))
         },
 

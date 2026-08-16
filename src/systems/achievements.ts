@@ -3,6 +3,8 @@ import { CAREERS } from '../data/careers'
 import { careerLevel } from './careerLog'
 import { postcardsOf } from './cinema'
 import { sellableItems } from './resale'
+import { souvenirsOf } from './trips'
+import { findTrip } from '../data/trips'
 import type { Achievement, AchievementMetric } from '../data/achievements'
 import type { GameState } from '../types/game'
 
@@ -44,6 +46,12 @@ function metricValue(state: GameState, seenEndings: Set<string>, metric: Achieve
       // ⚠️ 인벤토리 전체가 아니라 **팔 수 있는 물건**만이다 — 수료증까지 세면
       //    "쇼핑에서 파는 물건 열 개"라는 문구가 거짓이 된다.
       return sellableItems(state).length
+    case 'souvenirs':
+      return souvenirsOf(state).length
+    case 'souvenirsFar':
+      /* ⚠️ 지역은 기록이 아니라 **상품이 갖는다** — `Souvenir`에 지역을 복사해 두면
+         상품을 옮길 때 옛 기록만 낡는다(포스트카드가 영화를 id로 가리키는 것과 같은 규칙). */
+      return souvenirsOf(state).filter((s) => findTrip(s.tripId)?.region === '장거리').length
   }
 }
 

@@ -8,6 +8,8 @@ import { achievementProgress } from '../../systems/achievements'
 import { affectionOf, hasRelationEnding } from '../../systems/affection'
 import { AFFECTION_FOR_ENDING, AFFECTION_PER_MEET, PEOPLE } from '../../data/relations'
 import { findActivity } from '../../data/activities'
+import { TRIPS } from '../../data/trips'
+import { visitedDay } from '../../systems/trips'
 import { EPISODE_PAY, SERIES_TITLE, STUDIO_NAME, WEEKLY_PAGES, webtoonLevel } from '../../systems/webtoon'
 import { useGameStore } from '../../store/gameStore'
 import { useMetaStore } from '../../store/metaStore'
@@ -44,7 +46,7 @@ import './ExcelApp.css'
  * ⚠️ **읽기 전용 창이다.** `gameStore`를 읽기만 하고 턴·스탯을 건드리지 않는다.
  */
 
-type SheetId = 'career' | 'ending' | 'achievement' | 'relation'
+type SheetId = 'career' | 'ending' | 'achievement' | 'relation' | 'trip'
 
 /** 표 한 줄. 시트가 둘이지만 그리는 코드는 하나다 — 열 이름만 시트가 갖는다. */
 interface Row {
@@ -83,6 +85,7 @@ export function ExcelApp() {
     endingSheet(seenEndings),
     achievementSheet(state, seenEndings),
     relationSheet(state, unlockedRelations),
+    tripSheet(state),
   ]
   const sheet = sheets.find((s) => s.id === sheetId) ?? sheets[0]
   const doneCount = sheet.rows.filter((r) => r.done).length
@@ -278,6 +281,46 @@ function endingSheet(seen: Set<string>): Sheet {
       }
     }),
     countLabel: (done, total) => `엔딩 ${total}개 중 ${done}개 달성`,
+  }
+}
+
+/**
+ * 여행 시트 — **다녀온 곳과 거기서 가져온 기념품.**
+ *
+ * ⚠️ **안 가 본 곳도 흐리게 보여 준다**(다른 시트와 같은 규칙) — 그것이 이 시트를 폴더가
+ * 아니라 도감으로 만든 이유다. 폴더는 가진 것만 보여 주므로 "몇 곳이 남았는가"에 답할 수
+ * 없고, 그 물음이 없으면 모을 이유도 없다.
+ *
+ * ⚠️ **기념품은 다녀와야 보인다**(엔딩의 조건을 감추는 것과 같은 판단) — 무엇을 받는지
+ * 미리 알면 거기 가는 이유가 "그 물건"으로 좁아진다. 목적지·지역은 사이트에서 이미
+ * 볼 수 있으므로 감추지 않는다.
+ *
+ * ⚠️ **저장된 사실은 `tripId`와 날짜뿐이다** — 목적지·기념품 이름은 `TRIPS`가 단일
+ * 출처이고 여기서 id로 되찾는다(포스트카드가 영화를 가리키는 것과 같은 규칙).
+ */
+function tripSheet(state: GameState): Sheet {
+  return {
+    id: 'trip',
+    label: '여행',
+    columns: ['목적지', '지역', '기념품', '다녀온 날'],
+    rows: TRIPS.map((trip) => {
+      const day = visitedDay(state, trip.id)
+      const done = day !== undefined
+      return {
+        key: trip.id,
+        done,
+        cells: [
+          trip.destination,
+          trip.region,
+          done ? trip.souvenir : '???',
+          done ? `${day}일차` : '미방문',
+        ],
+        detail: done
+          ? `${day}일차에 「${trip.title}」으로 다녀왔습니다. ${trip.souvenir} — ${trip.souvenirNote}`
+          : `${trip.destination}. 먼바다투어의 「${trip.title}」으로 갈 수 있습니다.`,
+      }
+    }),
+    countLabel: (done, total) => `${total}곳 중 ${done}곳 다녀옴`,
   }
 }
 

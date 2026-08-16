@@ -56,6 +56,30 @@ export interface Contest {
   /** 출품일로부터 며칠 뒤 밤에 결과가 나오는가. */
   judgeDays: number
   /**
+   * 접수 주기(일). **행사와 같은 판형이다**(`data/expos.ts`) — 개최는 날짜의 순수 함수이고
+   * 저장하지 않는다(저장하면 새로 고칠 때마다 다시 굴러 세이브 스커밍이 열린다).
+   *
+   * ## ⚠️ 왜 마감을 만들었나 (2026-08-16)
+   * 예전에는 `judgeDays`(낸 뒤 며칠)만 있고 **언제까지 내라가 없었다.** 그래서 아무 때나
+   * 내면 됐고, "그날까지 준비한다"가 성립하지 않았다 — **다가오는 날이 아니라 내가 고르는
+   * 날이라 미루게 된다.** 육성 게임의 목표는 정해진 날이 만든다.
+   *
+   * ## ⚠️ 주기로 두되 출품은 여전히 한 번뿐이다
+   * 고정일로 두면 놓친 공모전이 영영 사라지고, 늦게 그리기 시작한 판에서는 절반이 닫힌
+   * 문이 된다. 주기면 다음 회차가 오므로 용서가 된다 — 그러면서도 **`hasEntered`가 그대로
+   * 막으므로 상금은 안 늘어난다**(이 목록의 상금 총합이 곧 평생 상한이고, 그것이 "판은
+   * 반드시 끝난다"를 지탱한다).
+   */
+  cycle: number
+  /** 접수 기간(일). 이 날수가 지나면 마감이고 다음 주기까지 닫힌다. */
+  openDays: number
+  /**
+   * 주기 안에서 몇째 날에 접수가 열리는가(0 = 1일차).
+   * ⚠️ **서로 다르게 흩어 둔다**(행사와 같은 규칙) — 전부 같은 날 열리면 목록이
+   * "전부 열림 / 전부 닫힘" 두 상태만 오간다.
+   */
+  offset: number
+  /**
    * 상. **점수 내림차순으로 적는다** — 판정은 위에서부터 처음 걸리는 것 하나다.
    * 다 못 넘으면 낙선이고 그것도 결과다(아무 말도 안 하는 상태를 만들지 않는다).
    */
@@ -76,7 +100,9 @@ export interface ContestPrize {
  * 공모전 6종.
  *
  * ⚠️ **`minScore`는 `artRatio` 기준이다**(`(예술+창의력) / (2 × ART_MASTERY)`).
- * 0.25가 C, 0.5가 B, 0.75가 S 언저리라 **초반에는 입선도 어렵고 후반에는 대상이 열린다** —
+ * 0.2가 B, 0.4가 A, 0.7이 S 언저리라 **초반에는 입선도 어렵고 후반에는 대상이 열린다** —
+ * (⚠️ 등급 이름은 `RANK_THRESHOLDS`를 읽고 적은 것이고 판정은 `minScore`가 한다 —
+ *  표가 바뀌면 이 줄만 낡는다. 실제 당락은 안 움직인다.)
  * 그리기를 계속할 이유가 여기서 나온다.
  * ⚠️ 조건 없는 단일 공모전(`open-illust`)이 **처음 낼 수 있는 하나**다. 편의점 알바가
  * 조건 없는 유일한 알바인 것과 같은 자리 — 없으면 공모전이 통째로 닫힌 문이 된다.
@@ -89,6 +115,9 @@ export const CONTESTS: Contest[] = [
     title: '아무거나 그리기 공모전',
     kind: 'single',
     judgeDays: 4,
+    cycle: 14,
+    openDays: 7,
+    offset: 0,
     prizes: [
       { label: '대상', minScore: 0.62, money: 500_000, reputation: 8 },
       { label: '우수상', minScore: 0.4, money: 200_000, reputation: 5 },
@@ -104,6 +133,9 @@ export const CONTESTS: Contest[] = [
     title: '우리 동네 포스터 공모전',
     kind: 'single',
     judgeDays: 6,
+    cycle: 21,
+    openDays: 5,
+    offset: 3,
     prizes: [
       { label: '대상', minScore: 0.7, money: 900_000, reputation: 10 },
       { label: '우수상', minScore: 0.5, money: 350_000, reputation: 6 },
@@ -120,6 +152,9 @@ export const CONTESTS: Contest[] = [
     minPages: 4,
     maxPages: 8,
     judgeDays: 7,
+    cycle: 28,
+    openDays: 4,
+    offset: 9,
     prizes: [
       { label: '대상', minScore: 0.66, money: 1_200_000, reputation: 12 },
       { label: '우수상', minScore: 0.45, money: 450_000, reputation: 7 },
@@ -137,6 +172,9 @@ export const CONTESTS: Contest[] = [
     minPages: 10,
     maxPages: 20,
     judgeDays: 9,
+    cycle: 35,
+    openDays: 4,
+    offset: 17,
     prizes: [
       { label: '대상', minScore: 0.72, money: 2_000_000, reputation: 15 },
       { label: '우수상', minScore: 0.52, money: 700_000, reputation: 8 },
@@ -153,6 +191,9 @@ export const CONTESTS: Contest[] = [
     minPages: 6,
     maxPages: 14,
     judgeDays: 8,
+    cycle: 42,
+    openDays: 5,
+    offset: 25,
     prizes: [
       { label: '대상', minScore: 0.68, money: 1_500_000, reputation: 13 },
       { label: '우수상', minScore: 0.48, money: 550_000, reputation: 7 },
@@ -167,6 +208,9 @@ export const CONTESTS: Contest[] = [
     title: '올해의 일러스트 대상',
     kind: 'single',
     judgeDays: 10,
+    cycle: 30,
+    openDays: 3,
+    offset: 12,
     prizes: [
       { label: '대상', minScore: 0.8, money: 1_800_000, reputation: 16 },
       { label: '우수상', minScore: 0.6, money: 600_000, reputation: 9 },
@@ -191,6 +235,9 @@ export const CONTESTS: Contest[] = [
     /* 글은 어휘가 반이고 나머지 반이 무엇을 쓰느냐다 — 둘 다 올려야 점수가 오른다. */
     judgedBy: ['vocabulary', 'creativity'],
     judgeDays: 5,
+    cycle: 24,
+    openDays: 4,
+    offset: 6,
     prizes: [
       { label: '장원', minScore: 0.5, money: 600_000, reputation: 10 },
       { label: '차상', minScore: 0.3, money: 220_000, reputation: 6 },
@@ -208,6 +255,9 @@ export const CONTESTS: Contest[] = [
     /* 읽어 내는 것은 지식, 보여 주는 방식은 창의력. 도구는 이 게임이 안 따진다. */
     judgedBy: ['knowledge', 'creativity'],
     judgeDays: 7,
+    cycle: 26,
+    openDays: 4,
+    offset: 15,
     prizes: [
       { label: '최우수', minScore: 0.55, money: 900_000, reputation: 12 },
       { label: '우수', minScore: 0.35, money: 330_000, reputation: 7 },
@@ -231,6 +281,9 @@ export const CONTESTS: Contest[] = [
     kind: 'stat',
     judgedBy: ['finance', 'gaming'],
     judgeDays: 8,
+    cycle: 32,
+    openDays: 3,
+    offset: 21,
     prizes: [
       { label: '1위', minScore: 0.5, money: 1_000_000, reputation: 11 },
       { label: '2위', minScore: 0.32, money: 380_000, reputation: 6 },
@@ -250,6 +303,9 @@ export const CONTESTS: Contest[] = [
     kind: 'stat',
     judgedBy: ['music', 'sensitivity'],
     judgeDays: 9,
+    cycle: 28,
+    openDays: 4,
+    offset: 11,
     prizes: [
       { label: '음원 발매', minScore: 0.52, money: 900_000, reputation: 14 },
       { label: '공연 초청', minScore: 0.33, money: 320_000, reputation: 7 },
@@ -321,3 +377,33 @@ export const QUALITY_MULTIPLIER: { minScore: number; label: string; multiplier: 
 
 /** 회지로 낼 수 있는 최소 장수. 한 장짜리는 책이 아니다. */
 export const MIN_BOOK_PAGES = 3
+
+/**
+ * 주기 안에서 오늘이 몇 번째 날인가(0부터). 음수 나머지를 두 번 접어 항상 0 이상이다.
+ * ⚠️ 1일차부터 세므로 `day - 1`이 기준이다 — 안 그러면 `offset: 0`인 공모전이 1일차에 안 연다
+ * (행사의 `phaseOf`와 같은 함수·같은 함정).
+ */
+function phaseOf(contest: Contest, day: number): number {
+  const raw = (day - 1 - contest.offset) % contest.cycle
+  return ((raw % contest.cycle) + contest.cycle) % contest.cycle
+}
+
+/** 오늘 접수를 받는가. **날짜의 순수 함수다** — 저장하지 않는다. */
+export function entryOpen(contest: Contest, day: number): boolean {
+  return phaseOf(contest, day) < contest.openDays
+}
+
+/**
+ * 마감까지 남은 날. 접수 중이 아니면 `undefined`.
+ * **0이면 오늘이 마감일이다**(오늘까지는 낼 수 있다).
+ */
+export function daysUntilDue(contest: Contest, day: number): number | undefined {
+  if (!entryOpen(contest, day)) return undefined
+  return contest.openDays - 1 - phaseOf(contest, day)
+}
+
+/** 다음 접수 시작까지 남은 날. 지금 접수 중이면 0이다. */
+export function daysUntilEntry(contest: Contest, day: number): number {
+  if (entryOpen(contest, day)) return 0
+  return contest.cycle - phaseOf(contest, day)
+}

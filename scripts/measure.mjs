@@ -31,15 +31,35 @@
  * ⚠️ **대비는 계산하지 말고 픽셀을 읽어라.** 반투명 판·그라데이션 위 글자는 선언된 색과
  *    실제로 합성된 색이 다르다. 이 스크립트는 캡처한 PNG를 페이지 안 canvas로 되돌려
  *    요소 상자 안의 **최빈 픽셀 = 배경**으로 잡고 글자색과의 대비를 낸다.
+ *
+ * ⚠️ **화면 밖으로 잘린 요소의 값은 믿지 마라 — 없는 버그를 만들어 낸다.** 배경을 상자 안의
+ *    최빈 픽셀로 잡는 방식이라, 요소가 뷰포트 아래(또는 작업 표시줄 뒤)로 잘리면 표본이
+ *    **그 요소의 배경이 아니라 뒤쪽 페이지**가 된다. 2026-08-16에 여행 사이트의 포함 사항
+ *    칩이 4.1:1로 잡혀 "고쳐야 할 대비 미달"로 보고됐는데, `--size`를 키워 칩이 온전히
+ *    들어오게 하니 **6.58:1**이었다(칩 배경 `#FDF1E7`가 그제야 표본이 됐다).
+ *    **미달이 뜨면 먼저 그 요소가 화면 안에 다 들어와 있는지 확인하라** — `--size`를 키우거나
+ *    `--shot`으로 찍어 눈으로 본다. 세로로 긴 사이트는 1400 이상이 필요할 때가 있다.
  */
 
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 
+/*
+ * 크롬을 찾는 순서. ⚠️ **개발 머신은 윈도우지만 이 스크립트가 도는 곳은 그것만이 아니다** —
+ * 리눅스 컨테이너(원격 세션·CI)에는 윈도우 경로가 없어 실측이 통째로 못 돌았다.
+ * `CHROME_PATH`가 맨 앞인 것은 그 두 갈래로도 못 맞추는 환경에 **탈출구를 주기 위해서다**
+ * (경로를 새로 알게 될 때마다 이 배열을 고치게 두면 목록이 환경 수만큼 길어진다).
+ */
 const CHROME_PATHS = [
+  process.env.CHROME_PATH,
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-]
+  // 리눅스. 첫째는 플레이wright가 깔아 두는 자리이고 나머지는 배포판 기본 설치 경로다.
+  '/opt/pw-browsers/chromium',
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+].filter(Boolean)
 const PORT = 9222
 const DEV_PORTS = [5173, 5174, 5175]
 const WAIT_STEP = 100
@@ -91,6 +111,10 @@ async function ensureChrome(width, height) {
       `--window-size=${width},${height}`,
       '--disable-background-timer-throttling',
       '--disable-renderer-backgrounding',
+      /* ⚠️ **root로 도는 컨테이너에서만 붙인다.** 크롬은 root면 샌드박스 없이는 아예 안 뜨는데
+         (`zygote_host_impl_linux.cc`), 그렇다고 늘 붙이면 개발 머신에서까지 보호를 끄게 된다.
+         조건은 "root인가"지 "리눅스인가"가 아니다 — 리눅스 데스크톱은 root가 아니다. */
+      ...(process.getuid?.() === 0 ? ['--no-sandbox'] : []),
       `--user-data-dir=${process.env.TEMP || '/tmp'}/windowsgame-cdp`,
       'about:blank',
     ],
@@ -260,6 +284,12 @@ CDP 실측 하네스 — 헤드리스 크롬으로 찍고 합성 픽셀로 대�
   --reduced          prefers-reduced-motion을 켠다 (⚠️ CSS 애니메이션을 찍으려면 필수)
   --fresh            localStorage를 비우고 새 판으로 시작한다
   --seed <json>      localStorage에 세이브를 심고 시작한다(키-값 JSON 파일).
+                     ⚠️ 값은 **객체 그대로** 적는다(미리 문자열로 만들지 말 것 —
+                     여기서 한 번 더 stringify 해서 이중 인코딩되고, 게임은 그 세이브를
+                     조용히 버리고 새 판으로 시작한다). 세이브는 부분만 적어도 되고
+                     빠진 필드는 migrateSave가 기본값으로 채운다 (⚠️ 이 도움말은
+                     템플릿 리터럴이다 — 백틱을 적으면 스크립트가 통째로 안 뜬다):
+                     {"windows-game-save":{"state":{"state":{"day":3,"stats":{...}}},"version":1}}
                      상태로 잠긴 화면(취직해야 뜨는 출근 미니게임 등)을 재려면
                      클릭 수십 번 대신 이걸 쓴다. --fresh와 함께 주면 비운 뒤 심는다
   --name <이름>      잠금화면에 넣을 이름(기본 "측정")

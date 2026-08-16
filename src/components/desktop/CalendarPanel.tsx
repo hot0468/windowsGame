@@ -5,6 +5,7 @@ import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { HUD_ICONS } from '../../data/icons'
 import { CALENDAR_PANEL_LAYOUT, formatGameDate } from '../../data/calendar'
 import { weatherOf } from '../../systems/weather'
+import { upcoming } from '../../systems/upcoming'
 
 /**
  * 날짜칸. 스탯창 왼쪽에 붙는 바탕화면 상시 패널이다.
@@ -54,6 +55,7 @@ export function CalendarPanel() {
   const isMorning = state.slot === 'morning'
   const slotIcon = isMorning ? HUD_ICONS.slotMorning : HUD_ICONS.slotAfternoon
   const weather = weatherOf(state.day)
+  const soon = upcoming(state)
 
   return (
     <HudPanel
@@ -90,6 +92,28 @@ export function CalendarPanel() {
         <span className="cal-weather-label">{weather.label}</span>
         <span className="cal-weather-note">{weather.note}</span>
       </p>
+
+      {/*
+       * 다가오는 일정. **목표가 다가온다는 감각이 여기서 나온다**(2026-08-16) — 공모전
+       * 마감·발표, 행사 개최가 며칠 뒤인지 적는다. 문장은 `systems/upcoming.ts`가 만들고
+       * 여기서는 그리기만 한다(화면이 문구를 지으면 원천이 늘 때마다 여기도 고쳐야 한다).
+       *
+       * ⚠️ **비면 아예 안 그린다**(앓는 중 배지와 같은 규칙) — 늘 떠 있는 빈 칸은
+       * 아무것도 알리지 않으면서 매일 자리를 먹는다. 가까운 것이 없는 날이 정상이다.
+       * ⚠️ **날짜를 여기서 다시 계산하지 않는다** — `inDays`를 받아 글자로만 옮긴다.
+       */}
+      {soon.length > 0 && (
+        <ul className="cal-soon">
+          {soon.map((item) => (
+            <li key={item.id}>
+              <span className="cal-soon-when">
+                {item.inDays === 0 ? '오늘' : `${item.inDays}일 후`}
+              </span>
+              <span className="cal-soon-what">{item.label}</span>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {/* 구역 라벨도 구분선도 없다(설계자 지시). 아래가 버튼 하나뿐이라 무엇인지는
           버튼 글자가 이미 말하고, 선을 그으면 없는 구역을 있는 척하게 된다. */}

@@ -1,4 +1,5 @@
 import type { IconName, Stats } from '../types/game'
+import { STAT_META } from './statMeta'
 
 /**
  * 쇼핑에서 살 수 있는 물건.
@@ -473,6 +474,158 @@ export const SHOP_ITEMS: ShopItem[] = [
     effects: {},
     store: 'wear',
     outfit: { fits: ['job-apply', 'job-interview', 'commute'] },
+  },
+  /*
+   * ── 스탯 마스터의 기념품 14종 (2026-08-15) ──
+   * ⚠️ **수료증·자격증과 같은 부류다**: `buyable: false`라 쇼핑 목록에서 빠지고
+   * **중고마켓에서도 팔 수 없다**(`resale.ts`가 `buyable !== false`로 거른다).
+   * 팔 수 있으면 스승 열넷의 선물이 곧 목돈이 되어 "판은 물가로 끝난다"가 흔들린다.
+   * ⚠️ **`effects: {}`이고 값어치는 물건 자체다.** 스탯은 스승이 직접 올려 주고
+   * (`systems/masters.ts`), 이것은 **그 일이 있었다는 증거**로 인벤토리에 남는다.
+   * ⚠️ **가격 0**: 산 적이 없는 물건이라 값이 없다. 탐색기의 '크기' 열이 0 KB로 뜨는데,
+   * 그것이 오히려 참이다(`fakeSize`는 가격에서 만들어 낸 가짜 숫자다).
+   * ⚠️ 아이콘은 **그 스탯의 다색 글리프를 그대로 쓴다** — 이름을 지어내면 `npm run icons`가
+   * 빌드를 실패시키고, 그 분야의 물건이라 뜻도 맞는다(중복은 `buyable: false`라 허용된다).
+   */
+  {
+    id: 'keepsake-knowledge',
+    name: '낡은 만년필',
+    price: 0,
+    desc: '촉이 닳아 글씨가 조금 굵게 나온다. 강 노인이 사십 년 쓰던 것이다.',
+    icon: STAT_META.knowledge.icon,
+    ext: '.pen',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'keepsake-charm',
+    name: '손거울',
+    price: 0,
+    desc: '테두리 칠이 벗겨졌다. 민서가 처음 일할 때 쓰던 것이다.',
+    icon: STAT_META.charm.icon,
+    ext: '.mir',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'keepsake-sensitivity',
+    name: '필름 한 통',
+    price: 0,
+    desc: '유통기한이 한참 지났다. 이연은 그래서 색이 더 좋다고 했다.',
+    icon: STAT_META.sensitivity.icon,
+    ext: '.flm',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'keepsake-reputation',
+    name: '동네 신문 표창장',
+    price: 0,
+    desc: '받은 사람 이름 석 자와 날짜뿐이다. 액자는 없다.',
+    icon: STAT_META.reputation.icon,
+    ext: '.crt',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'keepsake-morality',
+    name: '손때 묻은 명찰',
+    price: 0,
+    desc: '이십 년 달고 다닌 것이라 글자가 반쯤 지워졌다.',
+    icon: STAT_META.morality.icon,
+    ext: '.tag',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'keepsake-creativity',
+    name: '다 쓴 아이디어 노트',
+    price: 0,
+    desc: '마지막 장까지 빼곡하다. 대부분은 쓸모없는 것이었다고 오 작가가 말했다.',
+    icon: STAT_META.creativity.icon,
+    ext: '.txt',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'keepsake-sociability',
+    name: '연락처 수첩',
+    price: 0,
+    desc: '이름이 삼백 개 넘게 적혀 있고, 절반은 줄이 그어져 있다.',
+    icon: STAT_META.sociability.icon,
+    ext: '.txt',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'keepsake-vocabulary',
+    name: '빨간 색연필',
+    price: 0,
+    desc: '짧게 닳았다. 서 편집자는 이제 화면으로만 본다고 했다.',
+    icon: STAT_META.vocabulary.icon,
+    ext: '.pen',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'keepsake-athletics',
+    name: '손목 스트랩',
+    price: 0,
+    desc: '땀에 절어 색이 변했다. 장 코치가 선수 시절 쓰던 것이다.',
+    icon: STAT_META.athletics.icon,
+    ext: '.gea',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'keepsake-gaming',
+    name: '낡은 키캡',
+    price: 0,
+    desc: '가장 많이 누른 자리만 반들거린다.',
+    icon: STAT_META.gaming.icon,
+    ext: '.key',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'keepsake-manners',
+    name: '찻잔 하나',
+    price: 0,
+    desc: '손잡이가 없다. 윤 여사는 원래 그런 것이라고 했다.',
+    icon: STAT_META.manners.icon,
+    ext: '.cup',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'keepsake-art',
+    name: '낡은 붓',
+    price: 0,
+    desc: '털이 한쪽으로 눕는다. 도화는 그 버릇까지 손에 익는 거라고 했다.',
+    icon: STAT_META.art.icon,
+    ext: '.brs',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'keepsake-music',
+    name: '튜닝 포크',
+    price: 0,
+    desc: '치면 아직도 정확하게 운다.',
+    icon: STAT_META.music.icon,
+    ext: '.tun',
+    effects: {},
+    buyable: false,
+  },
+  {
+    id: 'keepsake-finance',
+    name: '낡은 계산기',
+    price: 0,
+    desc: '숫자 몇 개는 눌러도 안 들어간다. 조 실장은 그 숫자를 안 쓴다고 했다.',
+    icon: STAT_META.finance.icon,
+    ext: '.cal',
+    effects: {},
+    buyable: false,
   },
 ]
 

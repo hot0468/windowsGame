@@ -2,6 +2,7 @@ import { CAREERS, CAREER_MAX_LEVEL } from './careers'
 import { ENDINGS } from './endings'
 import { FILMS } from './media'
 import { BUYABLE_ITEMS } from './items'
+import { TRIPS } from './trips'
 
 /**
  * 업적 — 도감의 세 번째 시트.
@@ -34,6 +35,13 @@ export type AchievementMetric =
   | 'streams'
   /** 가지고 있는 물건 수(중고마켓에 팔면 줄어든다). */
   | 'items'
+  /**
+   * 다녀온 곳 수. ⚠️ **포스트카드와 달리 줄어들 길이 없다** — 기념품은 팔 수 없다
+   * (`systems/trips.ts`: 여행은 25만 원짜리라 되팔이가 그 값을 부분 환불한다).
+   */
+  | 'souvenirs'
+  /** 다녀온 곳 중 **장거리**만. 값이 셋 중 가장 비싸서 "멀리 가 봤다"가 따로 뜻을 갖는다. */
+  | 'souvenirsFar'
 
 export interface Achievement {
   id: string
@@ -101,5 +109,33 @@ export const ACHIEVEMENTS: Achievement[] = [
     desc: `쇼핑에서 파는 물건 ${BUYABLE_ITEMS.length}종 중 열 개를 동시에 가지고 있는다`,
     metric: 'items',
     goal: 10,
+  },
+  /*
+   * ── 여행 3종 (2026-08-16) ──
+   * ⚠️ **목표 수를 손으로 적지 않는다**(이 파일의 규칙 그대로) — 상품을 하나 더 넣는
+   * 순간 "모두 다녀온다"가 조용히 거짓이 되기 때문이다.
+   * ⚠️ 시작(세 곳) → 장거리 전부 → 전종의 세 단계다. 가운데가 **개수가 아니라 종류**인
+   * 것이 의도다: 값싼 국내만 열 번 도는 것과 25만 원짜리를 네 번 가는 것은 다른 일이다.
+   */
+  {
+    id: 'trip-start',
+    title: '첫 도장',
+    desc: '먼바다투어로 세 곳을 다녀온다',
+    metric: 'souvenirs',
+    goal: 3,
+  },
+  {
+    id: 'trip-far',
+    title: '멀리 가 본 사람',
+    desc: `장거리 상품 ${TRIPS.filter((t) => t.region === '장거리').length}곳을 모두 다녀온다`,
+    metric: 'souvenirsFar',
+    goal: TRIPS.filter((t) => t.region === '장거리').length,
+  },
+  {
+    id: 'trip-all',
+    title: '어디든 가 본 사람',
+    desc: `먼바다투어의 ${TRIPS.length}곳을 모두 다녀온다`,
+    metric: 'souvenirs',
+    goal: TRIPS.length,
   },
 ]

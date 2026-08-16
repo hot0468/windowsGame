@@ -655,12 +655,31 @@
 }
 
 .mo-cell {
+  /* 아래 `.mo-cell-bar`가 칸 바닥에 깔리는 기준면이다. */
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--sp-2);
   padding: var(--sp-1) var(--sp-2);
   border-radius: var(--r-sm);
   background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+/*
+ * 다음 등급까지의 진행 막대. **데스크톱 스탯창의 `.stat-cell-bar`와 같은 규칙이다**:
+ * 칸 바닥에 깔려 높이를 늘리지 않고, width가 아니라 `scaleX`로 채우며, 등급별 색은 없다.
+ * ⚠️ 색은 `--mo-accent`다 — 글자가 아닌 자리(표식 막대)에만 쓰라는 그 토큰의 용도 그대로다.
+ */
+.mo-cell-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--mo-accent);
+  transform-origin: left center;
+  transition: transform 200ms ease-out;
 }
 
 .mo-cell-icon {

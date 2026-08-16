@@ -161,8 +161,11 @@ export interface ToolRunPayload {
   steps: string[]
   /** CSS 액센트 갈래(`.tr-<accent>`). */
   accent: string
-  /** 판의 생김새(`RunScene.look`). `'paper'`면 밝은 판 + 책장 + 닫기 버튼 없는 팝업. */
-  look?: 'paper'
+  /**
+   * 판의 생김새(`RunScene.look`). 값 하나가 조합 하나를 가리킨다 — 사유는 그쪽 주석에 있다.
+   * `'paper'` = 밝은 판 + 책장 + 닫기 버튼 없는 팝업 / `'road'` = 어두운 판 + 창밖 풍경 + 보통 창.
+   */
+  look?: 'paper' | 'road'
   rows: { key: keyof Stats; value: number }[]
   mentalPenalty: number
   contract?: GigContract
@@ -501,6 +504,23 @@ export type FolderId = 'inventory' | 'codex' | 'gallery' | 'postcard' | `project
 export interface Postcard {
   filmId: string
   /** 본 날. 턴이 넘어가기 **전**의 날짜다(그림이 그린 날을 박는 것과 같다). */
+  day: number
+}
+
+/**
+ * 여행에서 가져온 기념품.
+ *
+ * ⚠️ **상품의 사실을 복사하지 않고 id만 가리킨다**(포스트카드가 영화를 가리키는 것과 같은
+ * 규칙) — 목적지·기념품 이름의 단일 출처는 `data/trips.ts`의 `TRIPS`다.
+ * ⚠️ **같은 곳의 기념품은 하나뿐이다**(규칙은 `systems/trips.ts`) — 두 번 가면 둘이 되는
+ * 순간 기념품은 모으는 것이 아니라 방문 횟수 표시가 된다(포스트카드와 같은 판단).
+ * ⚠️ **인벤토리에는 안 들어간다.** 도감에만 남는 기록이라 팔 수 없다 — 여행은 이 게임에서
+ * 가장 비싼 멘탈 회복처(25만 원)인데 기념품이 팔리면 그 값이 부분 환불된다
+ * (포스트카드는 관람료 15,000원짜리라 되팔이가 밸런스를 못 흔든다 — 값이 다르면 규칙도 다르다).
+ */
+export interface Souvenir {
+  tripId: string
+  /** 다녀온 날. 턴이 넘어가기 **전**의 날짜다(포스트카드와 같다). */
   day: number
 }
 
@@ -1237,6 +1257,11 @@ export interface GameState {
    */
   postcards?: Postcard[]
   /**
+   * 여행에서 가져온 기념품. 도감 '여행' 시트가 이걸 읽는다.
+   * ⚠️ 옵셔널이라 구버전 세이브는 "아직 아무 데도 안 갔음"으로 읽힌다.
+   */
+  souvenirs?: Souvenir[]
+  /**
    * 트위터 활동(업로드·팔로워·주간 정산). **옵셔널이다** — 올린 적 없으면 없다.
    *
    * ⚠️ `reviveState`의 검증이 `courses`보다 빡빡하다(`lottery`와 같은 이유 —
@@ -1290,6 +1315,16 @@ export interface GameState {
    * 받을 수 있고, 그중 하나가 스탯 +100(소원)이다. 규칙은 `systems/rankEvents.ts`.
    */
   rankEvents?: string[]
+  /**
+   * 선물을 **받은** 스탯 마스터의 id.
+   *
+   * ⚠️ **"찾아왔다"가 아니라 "받았다"의 기록이다** — 카톡 방이 열리는 것은 등급이 정하고
+   * (`threadUnlockedByMaster`), 이 목록은 **선물을 눌러 받았는가**만 답한다.
+   * 안 받고 두면 방에 선물이 그대로 남는다. 규칙은 `systems/masters.ts`.
+   *
+   * ⚠️ **등급이 내려가도 지우지 않는다** — 지우면 오르내리기로 같은 선물을 무한히 받는다.
+   */
+  masters?: string[]
 }
 
 /**

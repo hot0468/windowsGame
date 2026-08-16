@@ -341,6 +341,13 @@
   color: var(--os-text);
 }
 
+/* 프로필 상태메시지. 이름 아래 한 단 낮은 무게로 붙는다 — 이름과 경쟁하면 누가 말하는지가
+   흐려지고, 너무 흐리면 신원을 지는 역할을 못 한다. */
+.chat-status {
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+}
+
 /* 인원수는 사람 글리프와 함께 이름 아래 줄에 붙는다(레퍼런스와 같은 배치). */
 .chat-members {
   display: flex;
@@ -606,4 +613,59 @@
 .chat-offer-desc {
   font-size: var(--fs-sm);
   color: var(--os-text-3);
+}
+
+/*
+ * 카톡 선물하기 — 스탯 마스터가 보낸 선물 카드.
+ *
+ * ⚠️ **확정 토큰만 쓴다.** 선물이라고 금색·리본을 만들면 그 순간 이 카드 하나를 위한
+ * 새 시각 언어가 된다(별똥별 창이 밤하늘 판을 안 그린 것과 같은 판단). 카드임은
+ * **면과 테두리**가 만들고, 무엇인지는 글자가 말한다.
+ * ⚠️ 버튼은 기존 `.chat-offer`를 그대로 쓴다 — 제안과 선물은 "눌러서 받는 한 줄"이라는
+ * 점에서 같은 물건이고, 여기서 새 버튼을 만들면 대화창에 비슷한 버튼이 둘 생긴다.
+ */
+.chat-gift {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-md);
+  background: var(--os-surface);
+}
+
+.chat-gift-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* 무엇이 온 것인지 먼저 말한다 — 물건 이름만 있으면 왜 여기 있는지 안 읽힌다. */
+.chat-gift-label {
+  font-size: var(--fs-xs);
+  color: var(--os-text-2);
+}
+
+.chat-gift-name {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+.chat-gift-desc {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--os-text-2);
+}
+
+/* 받은 뒤. 버튼 자리를 빈칸으로 두지 않고 **무엇을 받았는지**를 남긴다. */
+.chat-gift-done {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--os-fill);
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
 }

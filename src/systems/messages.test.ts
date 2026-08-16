@@ -8,6 +8,7 @@ import {
   visibleThreadsOf,
 } from './messages'
 import { markRankEvent, threadUnlockedByRank } from './rankEvents'
+import { threadUnlockedByMaster } from './masters'
 import { MESSAGE_SCHEDULE, THREADS, findThread } from '../data/messages'
 import { createInitialState } from './turn'
 import type { GameState, Stats } from '../types/game'
@@ -115,13 +116,16 @@ describe('방이 나타나는 조건', () => {
     /* ⚠️ 조건 축이 늘면 여기도 늘어야 한다(`requiresWebtoon` 2026-08-08).
        ⚠️ **랭크 이벤트로 열리는 방은 `Thread`에 조건 필드가 아예 없다**(문턱이
        `data/rankEvents.ts` 한 곳에 있다) — 그래서 필드만 세면 "조건 없음"으로 잘못
-       분류된다. 시스템에 물어봐서 걸러낸다(`undefined` = 랭크로 열리는 방이 아니다). */
+       분류된다. 시스템에 물어봐서 걸러낸다(`undefined` = 랭크로 열리는 방이 아니다).
+       ⚠️ **스탯 마스터의 방도 완전히 같다**(2026-08-16) — 문턱이 `data/masters.ts`에 있고
+       `Thread`에는 조건 필드가 없다. */
     for (const t of THREADS.filter(
       (x) =>
         !x.requires &&
         !x.requiresEmployment &&
         !x.requiresWebtoon &&
-        threadUnlockedByRank(state(), x.id) === undefined,
+        threadUnlockedByRank(state(), x.id) === undefined &&
+        threadUnlockedByMaster(state(), x.id) === undefined,
     )) {
       expect(threadVisible(t, state()), t.id).toBe(true)
     }

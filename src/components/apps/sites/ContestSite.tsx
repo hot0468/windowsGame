@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { CONTEST_CATEGORIES, CONTEST_POSTER, findContest } from '../../../data/contests'
+import {
+  CONTEST_CATEGORIES,
+  CONTEST_POSTER,
+  daysUntilDue,
+  daysUntilEntry,
+  findContest,
+} from '../../../data/contests'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
 import { artFileName, artGrade, artRatio, artworksOf } from '../../../systems/artwork'
@@ -274,16 +280,30 @@ function ContestCard({
   onToggle: () => void
   onEnter: (pick: { projectId?: string; artworkId?: string }) => void
 }) {
+  /** 접수 중이면 마감까지 남은 날, 아니면 `undefined`. */
+  const dueIn = daysUntilDue(contest, state.day)
   return (
     <article className={`ct-card${open ? ' ct-card-open' : ''}`}>
       {/*
         포스터 자리. ⚠️ **이미지가 아니라 그라데이션 + 글자다**(배너·썸네일과 같은 규칙).
         레퍼런스 카드의 큰 포스터 사진 자리이고, 분야마다 색이 달라 훑을 때 갈래가 보인다.
-        ⚠️ 배지 둘은 **실제 값**이다: 왼쪽은 발표까지 며칠(D-표기), 오른쪽은 최고 상금.
+        ⚠️ 배지 둘은 **실제 값**이다: 왼쪽은 접수 마감(D-표기), 오른쪽은 최고 상금.
         레퍼런스의 [AD] 배지는 안 그린다 — 이 게임에 광고주가 없다.
       */}
       <div className="ct-poster" style={{ background: CONTEST_POSTER[contest.category] }}>
-        <span className="ct-poster-dday">D-{contest.judgeDays}</span>
+        {/*
+          ⚠️ **D-day는 접수 마감까지다**(2026-08-16). 예전에는 `judgeDays`를 D-로 적었는데
+          그건 *낸 뒤* 발표까지 걸리는 날이라 D-day 표기로는 거짓말이었다 — 마감이 생기면서
+          이 자리에 적을 진짜 날짜가 처음 생겼다. 발표까지 며칠인지는 아래 조건 줄이 진다.
+          ⚠️ 접수 중이 아니면 **언제 열리는지**를 적는다(닫힌 문만 보여 주지 않는다).
+        */}
+        <span className="ct-poster-dday">
+          {dueIn === undefined
+            ? `${daysUntilEntry(contest, state.day)}일 후 접수`
+            : dueIn === 0
+              ? 'D-DAY'
+              : `D-${dueIn}`}
+        </span>
         <span className="ct-poster-prize">최고 {(topPrize(contest) / 10000).toFixed(0)}만원</span>
         {/* ⚠️ **제목은 포스터가 진다** — 아래에 또 적으면 카드마다 같은 문장이 두 번
             나온다(실측에서 그렇게 보였다). 아래는 분야·조건·상금만 남는다. */}

@@ -24,14 +24,13 @@
 
 | 날짜 | 변경 | 대상 |
 |------|------|------|
+| 2026-08-16 | 목표가 다가온다 — 공모전에 접수 마감(주기·기간·오프셋)을 주고 날짜칸이 다가오는 일정을 적는다 | contests(`cycle`/`openDays`/`offset` 10종·`entryOpen`·`dueSoonContests`)+test 7, upcoming(신규+test 6), CalendarPanel+css, ContestSite(D-표기), banners(고정 숫자 제거) |
+| 2026-08-16 | 랭크 문턱을 앞쪽으로 촘촘하게 재분배 — 초반 서른 날이 통째로 F이던 구간을 없앤다 | rank(`RANK_THRESHOLDS` 5/20/40/70/95)+test 1, 낡은 주석 3(rank·masters·contests) |
+| 2026-08-16 | 다녀온 곳 기념품 도감 — 여행을 가면 그 곳의 기념품이 남고 도감 `여행` 시트가 안 가 본 곳까지 보여 준다 | trips(systems+test 14 신규, data 기념품 10), types(`Souvenir`), ExcelApp(시트), TravelSite(`takeTrip`), gameStore, achievements(3종+metric 2), runScenes(`look: 'road'`)+ToolRun+test 5 |
+| 2026-08-16 | 스탯 마스터 — 등급 A에 닿으면 그 분야 스승이 **카톡으로 연락해 선물하기로** 가르침·멘탈·기념품을 준다 | masters(data+systems+test 29 신규), messages(방 파생·`threadVisible`+test), ChatApp(선물 카드)+css, items(기념품 14), types(`masters`), gameStore(`receiveMasterGift`·복원) |
+| 2026-08-15 | 등급이 오르는 순간 — 승급 전용 화면 + 성장 스탯 칸의 다음 등급 게이지 | rank(`rankProgress`·`rankUps`)+test 8, sceneStore 신규, RankUp(tsx+css 신규), Daybreak(장면 순서), layers(`RANKUP`), Desktop·MobileShell(마운트), StatPanel·MobileStatSheet+css 2 |
 | 2026-08-09 | 낮은 스탯의 대가(`below`+`afterDay`) · 요일의 질감(주말 알바 할증·`requiresWeek`) · 목돈 청구 4건 | rankEvents(data+systems+test 5), events(단발 4), calendar(`isWeekend`), economy(`WEEKEND_WAGE_BONUS`), types(`requiresWeek`·`paidBills`), turn·activityPreview, activities(3), bills(data+systems+test 10 신규), weekGate.test 신규, gameStore·MailApp |
 | 2026-08-09 | 공부 팝업 — 종이 판 · 책장 그림 · 헤더 없는 시스템 팝업 + 전체 화면 딤, 날 밝음은 [확인] 뒤로 밀린다 | runScenes(`look`), types, windowStore(`popup`·`Z_STEP`), Window(tsx+css `win-popup`/`win-scrim`), WindowManager, appForWindow, ToolRun(tsx+css), Daybreak(`pending`), runScenes.test(+2) |
 | 2026-08-09 | 알바몬 편성표 메일이 지원을 단정하던 버그 + 공부에도 실행 연출·성장 게이지·[확인] | messages(문구·규칙 주석)+test(불변식), ActivityConfirm(`onCommit` 갈래도 창을 연다), runScenes(`study`·`writing`), ToolRun(게이지+제목), ToolRun.css, CampusSite.css(실측 AA 3건) |
 | 2026-08-08 | 하이마루 최신형 휴대폰 — 가지고 있으면 친화력 상승분 +25%, 대신 30일마다 3,000원 | items(`PHONE_*` + 물건), phone(systems+test 9건 신규), turn(`itemStatBonusFor`·applyEffects 합산), types(`phoneBilledDay`·`suspendedPhone`), gameStore(밤 정산·복원), MailApp, activityPreview |
 | 2026-08-08 | 랭크 이벤트 6종 추가 — 친화력 C·경제 B가 방을 열고(집들이·투자 스터디), 예의범절 A·운동 S·지식 A·창의력 A는 단발 | rankEvents(data+systems 첫 마디), events(단발 4), messages(방 2), activities(`housewarming`·`study-talk`), rankEvents.test(스탯 전수 커버 불변식 2건) |
-| 2026-08-08 | 음악 스탯에 쓸 곳 셋 — 오디션 도구·그몽 음악 일감 3종 + 음악 A가 여는 밴드(숙련도로 공연·앨범 해제) | types(`ToolId: audition`·`BandState`·`requiresBandSkill`/`buildsBandSkill`), band(data+systems+test 12건), turn(게이트·숙련·보수), gigs·activities·desktopItems·messages·rankEvents, StatPanel·MobileStatSheet·ToolRun |
-| 2026-08-08 | 슬롯 제약(오전/오후 전용 활동 5종) · 장비 고장(사용 횟수, 무작위 없음) · 경제 스탯이 여는 주식 변동성 예보 | types(`requiresSlot`·`SLOT_NAMES`·`gear`/`broken`), turn(`canRun`·`wearGear`), gear(data+systems+test), delivery(되사기 자물쇠), stocks(예보)·StockSite, activityPreview, ExplorerApp, slotGate.test |
-| 2026-08-08 | 경제 스탯 신설 + 모바일 도감의 사방 여백·높이 상한 제거 | types·statMeta·activities(`finance-study`), contests(모의주식 심사 `knowledge`→`finance`), MobileShell.css, measure.mjs(모바일 셸 셀렉터 오타) |
-| 2026-08-08 | 알바도 일하는 장면을 한 번 보여 주고 결과를 띄운다 — 도구 전용이던 실행 연출을 일반화 | runScenes(data 신규 + test 5건), types(`ToolRunPayload` 일반화), ToolRun(장면 주입·일감 줄 조건부·끝나면 상태 줄 제거), ToolRun.css(액센트 4), ExeApp·ActivityConfirm(통로 둘) |
-| 2026-08-08 | 음악 스탯 신설 + 공모전에 그림 아닌 대회 4종(백일장·데이터시각화·모의주식·음원), 콘테스트하다를 레퍼런스 판형으로 | types·statMeta·activities(`compose`), contests(`kind: 'stat'`·`judgedBy`·`category`·`CONTEST_POSTER`)+systems `statScore`, ContestSite(tsx+css 개편), 상금 하향(불변식), turn.test |
-

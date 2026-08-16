@@ -1,5 +1,6 @@
 import { EDITOR_NAME } from './webtoon'
 import type { IconName, Stats } from '../types/game'
+import { MASTER_THREADS } from './masters'
 
 /**
  * 메신저 앱. 앱 하나가 **채팅방 여러 개**를 담는다(레퍼런스: 카톡 PC).
@@ -51,6 +52,15 @@ export interface Thread {
   members: number
   /** true면 오픈채팅. 목록에서 라벨이 붙고, 모르는 사람들의 방이라는 뜻이다. */
   open?: boolean
+  /**
+   * 프로필 상태메시지. 대화창 헤더의 **이름 아래**에 뜬다(실제 카톡과 같은 자리).
+   *
+   * ⚠️ **장식이 아니라 신원이다.** 스탯 마스터가 이 필드의 존재 이유다 — 처음 연락해 온
+   * 사람인데 이름만 뜨면 "이 사람이 왜 나한테 물건을 주는가"에 화면이 답을 못 한다
+   * (설계자 신고: "스승을 한 번도 본 적 없는데 스승인지 어떻게 알아").
+   * 아는 사람 방에는 넣지 않는다 — 이미 아는 사람에게 직업을 붙여 두면 명함처럼 읽힌다.
+   */
+  status?: string
   /**
    * 이 방이 목록에 나타나는 조건(스탯). **없으면 처음부터 있다.**
    *
@@ -369,6 +379,12 @@ export const THREADS: Thread[] = [
   { id: 'webtoon-editor', app: 'kakao', name: EDITOR_NAME, members: 1, requiresWebtoon: true },
   { id: 'boss', app: 'nateon', name: '팀장님', members: 1, requiresEmployment: true },
   { id: 'devteam', app: 'nateon', name: '개발 2팀', members: 7, requiresEmployment: true },
+  /*
+   * ⚠️ **스탯 마스터의 방 14개는 `data/masters.ts`에서 파생된다** — 여기 손으로 적지
+   * 않는다(스승과 방 이름이 갈린다). 보이는 조건은 `Thread`가 아니라 등급이 정하고
+   * 판정은 `threadUnlockedByMaster` 하나다(랭크 이벤트 방과 완전히 같은 판형).
+   */
+  ...MASTER_THREADS
 ]
 
 /** 메일 사서함. 채팅이 아니므로 앱 목록과 따로 둔다. */

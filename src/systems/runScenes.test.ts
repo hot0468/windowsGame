@@ -69,3 +69,46 @@ describe('종이 판 (공부)', () => {
     expect(windowChrome({ kind: 'tool', toolRun: { look: dark.look } as never }).dark).toBe(true)
   })
 })
+
+describe('창밖 풍경 (여행)', () => {
+  const TRAVEL_IDS = ['travel', 'travel-near']
+
+  it('여행 둘에 장면이 있다 — 없으면 25만 원을 쓰고 결과창만 뜬다', () => {
+    for (const id of TRAVEL_IDS) {
+      expect(runSceneOf(findActivity(id)!), `${id}에 장면이 없다`).toBeDefined()
+    }
+  })
+
+  it('여행 둘만 창밖 풍경이고 나머지는 아니다', () => {
+    for (const a of ACTIVITIES) {
+      const scene = runSceneOf(a)
+      if (!scene) continue
+      expect(scene.look === 'road', `${a.id}`).toBe(TRAVEL_IDS.includes(a.id))
+    }
+  })
+
+  /**
+   * ⚠️ **종이 판과 갈라 둔다.** `look`이 팝업 여부까지 정하므로, 여행이 `'paper'`가 되면
+   * 닫기 버튼 없는 시스템 팝업으로 떠 버린다 — 여행은 시스템이 알리는 것이 아니라
+   * 플레이어가 떠나는 장면이라 보통 창이어야 한다.
+   */
+  it('창밖 풍경은 어두운 창 그대로다 — 팝업이 아니다', () => {
+    const road = runSceneOf(findActivity('travel')!)!
+    expect(road.look).not.toBe('paper')
+    expect(windowChrome({ kind: 'tool', toolRun: { look: road.look } as never }).dark).toBe(true)
+  })
+
+  /** ⚠️ 액센트가 겹치면 "어디까지 가는가"가 색으로 안 읽히고 알바와도 구분이 안 된다. */
+  it('여행 둘의 액센트가 서로 다르고 알바 넷과도 안 겹친다', () => {
+    const travel = TRAVEL_IDS.map((id) => runSceneOf(findActivity(id)!)!.accent)
+    const work = WORK_ACTIVITIES.map((a) => runSceneOf(a)!.accent)
+    expect(new Set(travel).size).toBe(travel.length)
+    expect(travel.some((a) => work.includes(a))).toBe(false)
+  })
+
+  it('가는 방법이 문구로 갈린다 — 둘이 같으면 장거리와 근거리가 한 장면이 된다', () => {
+    const far = runSceneOf(findActivity('travel')!)!.steps
+    const near = runSceneOf(findActivity('travel-near')!)!.steps
+    expect(far).not.toEqual(near)
+  })
+})

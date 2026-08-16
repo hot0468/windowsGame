@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { RANK_ORDER, RANK_THRESHOLDS, rankOf, rankOfRatio, toNextRank } from './rank'
+import {
+  RANK_ORDER,
+  RANK_THRESHOLDS,
+  rankOf,
+  rankOfRatio,
+  rankProgress,
+  rankUps,
+  toNextRank,
+} from './rank'
 import { growthCap } from './turn'
-import { GROWTH_STAT_KEYS } from '../types/game'
+import { GROWTH_STAT_KEYS, INITIAL_STATS } from '../types/game'
+import type { Stats } from '../types/game'
 
 describe('랭크 척도', () => {
   it('여섯 단계다 (설계자 지시: F·C·B·A·S·SS)', () => {
@@ -11,6 +20,21 @@ describe('랭크 척도', () => {
   it('문턱 표는 높은 등급부터 내림차순이다 — 뒤집히면 모든 스탯이 F가 된다', () => {
     const mins = RANK_THRESHOLDS.map((t) => t.min)
     expect([...mins].sort((a, b) => b - a)).toEqual(mins)
+  })
+
+  /**
+   * ⚠️ **앞이 촘촘하고 뒤가 성기다**(2026-08-16 재분배의 의도 그 자체). 고른 간격으로
+   * 되돌리면 판 초반 서른 날이 통째로 "아무 등급도 안 오르는 구간"이 된다 —
+   * 사유는 `RANK_THRESHOLDS` 주석에 있다. 값을 손볼 때 이 검사가 먼저 터진다.
+   */
+  it('구간 간격이 뒤로 갈수록 넓어진다 — 앞에서 첫 승급이 빨리 와야 한다', () => {
+    const mins = [...RANK_THRESHOLDS].reverse().map((t) => t.min) // F부터 오름차순
+    const gaps = mins.slice(1).map((m, i) => m - mins[i])
+    // 마지막 칸(S→SS)만 예외다: SS는 '거의 만점'이라 일부러 좁다.
+    const rising = gaps.slice(0, -1)
+    for (let i = 1; i < rising.length; i++) {
+      expect(rising[i], `${i}번째 간격이 앞보다 좁다: ${gaps.join(',')}`).toBeGreaterThan(rising[i - 1])
+    }
   })
 
   it('최하 등급의 문턱은 0이다 — 0점짜리 스탯도 등급을 받는다', () => {
@@ -94,5 +118,67 @@ describe('다음 등급까지', () => {
         if (need !== undefined) expect(need).toBeGreaterThanOrEqual(1)
       }
     }
+  })
+})
+
+describe('등급 구간 진행도', () => {
+  it('등급이 막 바뀐 자리는 0이다 — 승급하면 막대가 비어 다시 시작한다', () => {
+    for (const key of GROWTH_STAT_KEYS) {
+      const cap = growthCap(key)
+      for (const { rank, min } of RANK_THRESHOLDS) {
+        if (rank === 'SS') continue
+        expect(rankProgress(key, Math.ceil(min * cap)), `${key} ${rank} 문턱`).toBeLessThan(0.1)
+      }
+    }
+  })
+
+  /**
+   * ⚠️ 이 게임에서 막대와 글자가 갈리면 거짓말이 된다: 다 찬 막대 옆에 "다음까지 30 남음"이
+   * 붙으면 어느 쪽을 믿어야 할지 답할 수 없다. 두 함수가 같은 것을 말하는지 순회로 지킨다.
+   */
+  it('`toNextRank`와 같은 것을 말한다 — 남은 게 없을 때만 막대가 다 찬다', () => {
+    for (const key of GROWTH_STAT_KEYS) {
+      const cap = growthCap(key)
+      for (let v = 0; v <= cap; v += Math.max(1, Math.floor(cap / 53))) {
+        const full = rankProgress(key, v) >= 1
+        expect(full, `${key} ${v}`).toBe(toNextRank(key, v) === undefined)
+      }
+    }
+  })
+
+  it('최고 등급은 1이다 — 다음 구간이 없어 나눌 것이 없다', () => {
+    expect(rankProgress('knowledge', growthCap('knowledge'))).toBe(1)
+  })
+
+  it('범위를 벗어난 값도 0~1 안에 있다', () => {
+    expect(rankProgress('knowledge', -50)).toBe(0)
+    expect(rankProgress('knowledge', growthCap('knowledge') * 3)).toBe(1)
+  })
+})
+
+describe('승급 판정', () => {
+  const at = (over: Partial<Stats>): Stats => ({ ...INITIAL_STATS, ...over })
+
+  it('오른 것만 잡는다 — 내려간 스탯은 알릴 것이 없다', () => {
+    const before = at({ knowledge: 500, charm: 500 })
+    const after = at({ knowledge: 760, charm: 0 })
+    expect(rankUps(before, after)).toEqual([{ key: 'knowledge', from: 'A', to: 'S' }])
+  })
+
+  it('값이 늘어도 등급이 그대로면 잡지 않는다 — 매 턴 뜨면 연출이 아니라 통행세다', () => {
+    expect(rankUps(at({ knowledge: 500 }), at({ knowledge: 520 }))).toEqual([])
+  })
+
+  it('두 칸을 한 번에 뛰어도 한 줄이다 — 도착한 등급만 말한다', () => {
+    expect(rankUps(at({ knowledge: 0 }), at({ knowledge: 500 }))).toEqual([
+      { key: 'knowledge', from: 'F', to: 'A' },
+    ])
+  })
+
+  /** 상한이 다른 스탯이 섞여도 같은 기준으로 읽혀야 한다 — 랭크의 존재 이유 그 자체다. */
+  it('상한 100짜리(평판)와 999짜리(지식)를 함께 잡는다', () => {
+    const ups = rankUps(at({}), at({ knowledge: 300, reputation: 30 }))
+    expect(ups.map((u) => u.key)).toEqual(['knowledge', 'reputation'])
+    expect(ups.every((u) => u.to === 'B')).toBe(true)
   })
 })
