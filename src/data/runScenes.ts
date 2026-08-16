@@ -35,12 +35,19 @@ export interface RunScene {
   /**
    * 판의 생김새. 생략 = 기본(어두운 작업 화면 + 막대 몇 개).
    *
-   * ⚠️ **`'paper'` 하나가 세 가지를 함께 바꾼다**: 밝은 종이 판 · 책장 넘기는 그림 ·
-   * 닫기 버튼 없는 시스템 팝업(2026-08-09 설계자 지시). 셋을 따로 두면 "밝은데 코드 줄이
-   * 흐르는" 같은 조합이 생기고, 어느 조합이 옳은지 아무도 답할 수 없다. **공부가 도구처럼
-   * 보이던 것이 이 필드가 생긴 이유다.**
+   * ⚠️ **값 하나가 조합 하나를 가리킨다**(스위치 셋이 아니다). 셋을 따로 두면 "밝은데 코드
+   * 줄이 흐르는" 같은 조합이 생기고, 어느 조합이 옳은지 아무도 답할 수 없다.
+   * **공부가 도구처럼 보이던 것이 이 필드가 생긴 이유다.**
+   *
+   * - `'paper'` — 밝은 종이 판 · 책장 넘기는 그림 · **닫기 버튼 없는 시스템 팝업**
+   *   (2026-08-09 설계자 지시).
+   * - `'road'` — 어두운 판 그대로 · **창밖 풍경이 흐르는 그림** · 보통 창(2026-08-16).
+   *   ⚠️ **판을 밝히지 않은 것이 의도다**: 여행은 떠나는 새벽·밤 기차 쪽이 그림이 되고,
+   *   밝은 판을 하나 더 만들면 종이 판과 뜻이 겹친다(공부인지 여행인지 색으로 구분이 안 된다).
+   *   ⚠️ **팝업도 아니다** — 시스템이 알리는 것이 아니라 플레이어가 떠나는 장면이라
+   *   최소화·닫기가 있는 보통 창이 맞다.
    */
-  look?: 'paper'
+  look?: 'paper' | 'road'
 }
 
 /**
@@ -74,10 +81,18 @@ const WORK_STEPS: Record<string, string[]> = {
     '문제를 풀리는 중',
     '숙제를 내주는 중',
   ],
+  /* ⚠️ **여행 둘은 일이 아니지만 같은 판을 쓴다**(공부와 같은 판단) — 떠나는 데 걸리는
+     시간이 이 장면의 전부다. 문구가 **가는 방법**을 가른다: 장거리는 비행기, 근거리는
+     기차다(`data/trips.ts`의 상품 설명과 같은 갈래). 값·턴은 활동이 갖는다. */
+  travel: ['짐을 싸는 중', '공항으로 가는 중', '탑승 수속을 밟는 중', '이륙을 기다리는 중'],
+  'travel-near': ['배낭을 꾸리는 중', '역으로 가는 중', '기차에 오르는 중', '창밖이 바뀌는 중'],
 }
 
 /** 종이 판으로 그리는 활동. **공부 둘뿐이다** — 알바는 책상에 앉는 일이 아니다. */
 const PAPER_IDS = new Set(['study', 'writing'])
+
+/** 창밖 풍경으로 그리는 활동. **여행 둘뿐이다** — 나머지는 떠나지 않는다. */
+const ROAD_IDS = new Set(['travel', 'travel-near'])
 
 /** 알바 장면의 액센트. 넷이 서로 달라야 "다른 일"로 읽힌다. */
 const WORK_ACCENT: Record<string, string> = {
@@ -87,6 +102,10 @@ const WORK_ACCENT: Record<string, string> = {
   'work-cafe': 'cafe',
   'work-logistics': 'depot',
   'work-tutor': 'desk',
+  /* ⚠️ 장거리는 먼바다투어의 청록을 이어받고, 근거리는 밤 기차 쪽 연보라다 —
+     둘이 갈려야 "어디까지 가는가"가 색으로도 읽힌다(알바 넷과 같은 규칙). */
+  travel: 'far',
+  'travel-near': 'near',
 }
 
 /**
@@ -109,7 +128,7 @@ export function runSceneOf(activity: Activity): RunScene | undefined {
     icon: activity.icon,
     accent: WORK_ACCENT[activity.id] ?? 'store',
     steps,
-    look: PAPER_IDS.has(activity.id) ? 'paper' : undefined,
+    look: PAPER_IDS.has(activity.id) ? 'paper' : ROAD_IDS.has(activity.id) ? 'road' : undefined,
   }
 }
 

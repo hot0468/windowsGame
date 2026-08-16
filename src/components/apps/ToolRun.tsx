@@ -172,6 +172,7 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
   const percent = Math.round((Math.min(step, steps.length) / steps.length) * 100)
 
   const paper = payload.look === 'paper'
+  const road = payload.look === 'road'
 
   return (
     <div
@@ -199,6 +200,28 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
                   className="tr-book-leaf"
                   style={{ animationDelay: `${i * 520}ms` }}
                 />
+              ))}
+            </span>
+          </div>
+        ) : road ? (
+          /*
+           * 창밖 풍경. ⚠️ **이미지가 아니라 상자 몇 개다**(책장과 같은 오프라인 규칙).
+           * 코드 줄이 흐르는 기본 판은 "떠나는 중"으로 안 읽힌다 — 지평선 하나와 그 위를
+           * 지나가는 것들이 방향을 만든다.
+           * ⚠️ **지나가는 것은 오른쪽에서 왼쪽으로 간다** — 우리가 오른쪽으로 가고 있다는 뜻이고,
+           * 반대로 두면 돌아오는 길처럼 보인다.
+           */
+          <div className="tr-canvas tr-road" aria-hidden="true">
+            <span className="tr-road-sky" />
+            <span className="tr-road-far">
+              {[0, 1, 2].map((i) => (
+                <span key={i} className="tr-hill" style={{ animationDelay: `${i * 1400}ms` }} />
+              ))}
+            </span>
+            <span className="tr-road-line" />
+            <span className="tr-road-near">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <span key={i} className="tr-pole" style={{ animationDelay: `${i * 300}ms` }} />
               ))}
             </span>
           </div>

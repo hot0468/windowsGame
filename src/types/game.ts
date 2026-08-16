@@ -161,8 +161,11 @@ export interface ToolRunPayload {
   steps: string[]
   /** CSS 액센트 갈래(`.tr-<accent>`). */
   accent: string
-  /** 판의 생김새(`RunScene.look`). `'paper'`면 밝은 판 + 책장 + 닫기 버튼 없는 팝업. */
-  look?: 'paper'
+  /**
+   * 판의 생김새(`RunScene.look`). 값 하나가 조합 하나를 가리킨다 — 사유는 그쪽 주석에 있다.
+   * `'paper'` = 밝은 판 + 책장 + 닫기 버튼 없는 팝업 / `'road'` = 어두운 판 + 창밖 풍경 + 보통 창.
+   */
+  look?: 'paper' | 'road'
   rows: { key: keyof Stats; value: number }[]
   mentalPenalty: number
   contract?: GigContract

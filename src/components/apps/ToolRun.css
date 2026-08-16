@@ -327,6 +327,138 @@
   }
 }
 
+.tr-far {
+  --tr-accent: #5eead4; /* 장거리 — 먼바다투어의 청록을 이어받는다 */
+}
+
+.tr-near {
+  --tr-accent: #818cf8; /* 근거리 — 밤 기차 쪽 연보라 */
+}
+
+/* ── 창밖 풍경 (여행) ────────────────────────────────────────
+ *
+ * ⚠️ **판은 어두운 그대로다**(`--tr-bg`) — 밝은 판을 하나 더 만들면 종이 판(공부)과 뜻이
+ * 겹쳐 색으로 구분이 안 된다. 새 색은 위 액센트 둘뿐이고 나머지는 기존 토큰이다.
+ * ⚠️ **폭·높이가 아니라 `transform`만 움직인다**(ux `transform-performance`, 작업 줄과 같은 규칙).
+ */
+.tr-road {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+}
+
+/* 하늘. 위가 어둡고 아래로 가면서 액센트가 옅게 번진다 — 새벽에 떠나는 쪽이다. */
+.tr-road-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    var(--tr-bg) 0%,
+    color-mix(in srgb, var(--tr-accent) 14%, var(--tr-bg)) 70%,
+    color-mix(in srgb, var(--tr-accent) 26%, var(--tr-bg)) 100%
+  );
+}
+
+/* 지평선. 이 한 줄이 나머지를 풍경으로 읽히게 한다. */
+.tr-road-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 62%;
+  height: 1px;
+  background: color-mix(in srgb, var(--tr-accent) 55%, transparent);
+}
+
+.tr-road-far,
+.tr-road-near {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: block;
+}
+
+/* 먼 산. 지평선 위에 앉아 천천히 지나간다. */
+.tr-road-far {
+  top: 0;
+  height: 62%;
+}
+
+/* 가까운 전봇대. 멀리 있는 것보다 **빨리** 지나가야 거리가 읽힌다. */
+.tr-road-near {
+  top: 62%;
+  bottom: 0;
+}
+
+.tr-hill {
+  position: absolute;
+  bottom: 0;
+  left: 100%;
+  width: 84px;
+  height: 34px;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  background: color-mix(in srgb, var(--tr-accent) 20%, var(--tr-bg));
+  animation: tr-pass 4200ms linear infinite;
+}
+
+.tr-pole {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: 2px;
+  height: 60%;
+  background: color-mix(in srgb, var(--tr-accent) 45%, transparent);
+  animation: tr-pass 1500ms linear infinite;
+}
+
+/* ⚠️ 오른쪽에서 왼쪽으로 — 우리가 오른쪽으로 가고 있다는 뜻이다(반대면 돌아오는 길이 된다). */
+@keyframes tr-pass {
+  to {
+    transform: translateX(calc(-100% - 120px));
+  }
+}
+
+/*
+ * ⚠️ 모션을 줄이면 **멈춘 풍경**을 보여 준다(애니메이션만 끄면 전부 화면 밖에 선다).
+ * ⚠️ **자리를 흩어야 풍경이 된다** — 전부 같은 left에 두면 산 셋과 전봇대 여섯이 한 자리에
+ * 겹쳐 서서 산 하나·기둥 하나로 보인다(실측으로 잡았다).
+ */
+@media (prefers-reduced-motion: reduce) {
+  .tr-hill,
+  .tr-pole {
+    animation: none;
+    transform: none;
+  }
+
+  .tr-hill:nth-child(1) {
+    left: 8%;
+  }
+  .tr-hill:nth-child(2) {
+    left: 42%;
+  }
+  .tr-hill:nth-child(3) {
+    left: 72%;
+  }
+
+  .tr-pole:nth-child(1) {
+    left: 6%;
+  }
+  .tr-pole:nth-child(2) {
+    left: 22%;
+  }
+  .tr-pole:nth-child(3) {
+    left: 38%;
+  }
+  .tr-pole:nth-child(4) {
+    left: 54%;
+  }
+  .tr-pole:nth-child(5) {
+    left: 70%;
+  }
+  .tr-pole:nth-child(6) {
+    left: 86%;
+  }
+}
+
 /* ── 종이 판 (공부) ──────────────────────────────────────────
  *
  * ⚠️ **어두운 판을 그대로 밝게 뒤집을 수 없다.** 밝은 액센트(#93C5FD·#FDA4AF)는 흰
