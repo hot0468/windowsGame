@@ -24,7 +24,7 @@
 
 | 날짜 | 변경 | 대상 |
 |------|------|------|
-| 2026-08-16 | 다녀온 곳 기념품 도감 — 여행을 가면 그 곳의 기념품이 남고 도감 `여행` 시트가 안 가 본 곳까지 보여 준다 | trips(systems+test 14 신규, data 기념품 10), types(`Souvenir`), ExcelApp(시트), TravelSite(`takeTrip`), gameStore |
+| 2026-08-16 | 다녀온 곳 기념품 도감 — 여행을 가면 그 곳의 기념품이 남고 도감 `여행` 시트가 안 가 본 곳까지 보여 준다 | trips(systems+test 14 신규, data 기념품 10), types(`Souvenir`), ExcelApp(시트), TravelSite(`takeTrip`), gameStore, achievements(3종+metric 2) |
 | 2026-08-16 | 스탯 마스터 — 등급 A에 닿으면 그 분야 스승이 **카톡으로 연락해 선물하기로** 가르침·멘탈·기념품을 준다 | masters(data+systems+test 29 신규), messages(방 파생·`threadVisible`+test), ChatApp(선물 카드)+css, items(기념품 14), types(`masters`), gameStore(`receiveMasterGift`·복원) |
 | 2026-08-15 | 등급이 오르는 순간 — 승급 전용 화면 + 성장 스탯 칸의 다음 등급 게이지 | rank(`rankProgress`·`rankUps`)+test 8, sceneStore 신규, RankUp(tsx+css 신규), Daybreak(장면 순서), layers(`RANKUP`), Desktop·MobileShell(마운트), StatPanel·MobileStatSheet+css 2 |
 | 2026-08-09 | 낮은 스탯의 대가(`below`+`afterDay`) · 요일의 질감(주말 알바 할증·`requiresWeek`) · 목돈 청구 4건 | rankEvents(data+systems+test 5), events(단발 4), calendar(`isWeekend`), economy(`WEEKEND_WAGE_BONUS`), types(`requiresWeek`·`paidBills`), turn·activityPreview, activities(3), bills(data+systems+test 10 신규), weekGate.test 신규, gameStore·MailApp |
