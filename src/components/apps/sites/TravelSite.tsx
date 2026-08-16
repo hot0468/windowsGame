@@ -47,6 +47,7 @@ function affordable(state: GameState, trip: Trip): boolean {
  */
 export function TravelSite({ site }: { site: Site }) {
   const state = useGameStore((s) => s.state)
+  const takeTrip = useGameStore((s) => s.takeTrip)
   const [region, setRegion] = useState<TripRegion | null>(null)
   const [pickedId, setPickedId] = useState<string | null>(null)
   /** 방금 예약한 상품. 목록이 그대로라 결과를 글자로 남긴다. */
@@ -212,6 +213,10 @@ export function TravelSite({ site }: { site: Site }) {
             { label: '일정', value: picked.schedule },
             { label: '포함', value: picked.includes.join(' · ') },
           ]}
+          /* ⚠️ **`doActivity`가 아니라 `takeTrip`이다**(시집이가 `watchFilm`을 타는 것과
+             같은 자리) — 어느 상품을 골랐는지는 활동이 모르는 사실이라, 기본 확정으로
+             넘기면 다녀온 곳이 기록되지 않는다. 값·턴은 여전히 활동 하나가 갖는다. */
+          onCommit={() => takeTrip(picked)}
           onCommitted={() => setBooked(picked.title)}
           onClose={() => setPickedId(null)}
         />

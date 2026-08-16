@@ -6,6 +6,7 @@ CLAUDE.md의 변경 이력 표에서 밀려난 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-08 | 경제 스탯 신설 + 모바일 도감의 사방 여백·높이 상한 제거 | types·statMeta·activities(`finance-study`), contests(모의주식 심사 `knowledge`→`finance`), MobileShell.css, measure.mjs(모바일 셸 셀렉터 오타) |
 | 2026-08-08 | 알바도 일하는 장면을 한 번 보여 주고 결과를 띄운다 — 도구 전용이던 실행 연출을 일반화 | runScenes(data 신규 + test 5건), types(`ToolRunPayload` 일반화), ToolRun(장면 주입·일감 줄 조건부·끝나면 상태 줄 제거), ToolRun.css(액센트 4), ExeApp·ActivityConfirm(통로 둘) |
 | 2026-08-08 | 음악 스탯 신설 + 공모전에 그림 아닌 대회 4종(백일장·데이터시각화·모의주식·음원), 콘테스트하다를 레퍼런스 판형으로 | types·statMeta·activities(`compose`), contests(`kind: 'stat'`·`judgedBy`·`category`·`CONTEST_POSTER`)+systems `statScore`, ContestSite(tsx+css 개편), 상금 하향(불변식), turn.test |
 | 2026-08-08 | 포털 가로 띠를 슬라이드로 — 배너 4장(코미콘·콘테스트하다 추가), 하단 소개 카드에서 행사·공모전·코미콘 제거 | banners(+2, `WIDE_ROTATE_MS`)+test, NeverPortal(`WideStrip` 캐러셀)+css, sites(promo 셋 제거)+test |

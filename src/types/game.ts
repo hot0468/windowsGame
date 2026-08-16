@@ -504,6 +504,23 @@ export interface Postcard {
   day: number
 }
 
+/**
+ * 여행에서 가져온 기념품.
+ *
+ * ⚠️ **상품의 사실을 복사하지 않고 id만 가리킨다**(포스트카드가 영화를 가리키는 것과 같은
+ * 규칙) — 목적지·기념품 이름의 단일 출처는 `data/trips.ts`의 `TRIPS`다.
+ * ⚠️ **같은 곳의 기념품은 하나뿐이다**(규칙은 `systems/trips.ts`) — 두 번 가면 둘이 되는
+ * 순간 기념품은 모으는 것이 아니라 방문 횟수 표시가 된다(포스트카드와 같은 판단).
+ * ⚠️ **인벤토리에는 안 들어간다.** 도감에만 남는 기록이라 팔 수 없다 — 여행은 이 게임에서
+ * 가장 비싼 멘탈 회복처(25만 원)인데 기념품이 팔리면 그 값이 부분 환불된다
+ * (포스트카드는 관람료 15,000원짜리라 되팔이가 밸런스를 못 흔든다 — 값이 다르면 규칙도 다르다).
+ */
+export interface Souvenir {
+  tripId: string
+  /** 다녀온 날. 턴이 넘어가기 **전**의 날짜다(포스트카드와 같다). */
+  day: number
+}
+
 /** 프로젝트 폴더의 `FolderId`. */
 export function projectFolderId(projectId: string): FolderId {
   return `project:${projectId}`
@@ -1236,6 +1253,11 @@ export interface GameState {
    * ⚠️ **돈도 스탯도 만들지 않는다** — 모으는 것 자체가 값어치인 유일한 상태다.
    */
   postcards?: Postcard[]
+  /**
+   * 여행에서 가져온 기념품. 도감 '여행' 시트가 이걸 읽는다.
+   * ⚠️ 옵셔널이라 구버전 세이브는 "아직 아무 데도 안 갔음"으로 읽힌다.
+   */
+  souvenirs?: Souvenir[]
   /**
    * 트위터 활동(업로드·팔로워·주간 정산). **옵셔널이다** — 올린 적 없으면 없다.
    *

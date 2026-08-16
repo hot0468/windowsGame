@@ -34,6 +34,17 @@ export interface Trip {
   /** 포함 사항. 실제 여행 상품 카드의 그 줄이다. */
   includes: string[]
   blurb: string
+  /**
+   * 다녀오면 남는 기념품의 이름.
+   *
+   * ⚠️ **인벤토리 아이템이 아니다** — 도감 '여행' 시트에만 남는 기록이라 팔 수 없다
+   * (사유는 `types/game.ts`의 `Souvenir` 주석: 여행은 25만 원짜리 회복처다).
+   * ⚠️ **비싼 물건을 만들지 않는다.** 공항 면세점에서 사 온 것이 아니라 **거기서 주운
+   * 것·받은 것**이다 — 값이 나가는 물건이면 "팔 수 없다"가 이상해진다.
+   */
+  souvenir: string
+  /** 기념품 한 줄. 도감의 수식 입력줄이 이걸 적는다. */
+  souvenirNote: string
 }
 
 /** 지역. 배열 순서가 곧 네비 순서다. */
@@ -51,6 +62,8 @@ export const TRIPS: Trip[] = [
     cover: 'linear-gradient(140deg, #0b3a53 0%, #14708c 55%, #0f6f6a 100%)',
     includes: ['왕복 항공', '수하물 20kg', '조식 4회', '스노클링 1회'],
     blurb: '배너에서 본 그 상품이다. 잔여 좌석은 늘 여섯 석이라고 적혀 있다.',
+    souvenir: '마른 산호 조각',
+    souvenirNote: '배 위에서 주웠다. 가져가도 되냐고 물으니 선장이 웃었다.',
   },
   {
     id: 'desert-night',
@@ -62,6 +75,8 @@ export const TRIPS: Trip[] = [
     cover: 'linear-gradient(140deg, #4a2410 0%, #a1541f 55%, #d9903f 100%)',
     includes: ['왕복 항공', '사막 캠프 1박', '별 관측 가이드'],
     blurb: '낮에는 아무것도 없고 밤에는 전부 있다.',
+    souvenir: '유리병에 담은 붉은 모래',
+    souvenirNote: '밤에는 검게 보였는데 가져와서 보니 붉다.',
   },
   {
     id: 'old-town',
@@ -73,6 +88,8 @@ export const TRIPS: Trip[] = [
     cover: 'linear-gradient(140deg, #3a2a4a 0%, #6b4a7a 55%, #b088c4 100%)',
     includes: ['왕복 항공', '시내 호텔 5박', '도보 투어 3회'],
     blurb: '골목마다 같은 간판이 걸려 있다. 그래도 하나도 안 지겹다.',
+    souvenir: '골목 이름이 적힌 타일 조각',
+    souvenirNote: '보수 공사에서 떼어 낸 것을 한 장 얻었다.',
   },
   {
     id: 'aurora-north',
@@ -84,6 +101,8 @@ export const TRIPS: Trip[] = [
     cover: 'linear-gradient(140deg, #0d1b3a 0%, #1f4a7a 55%, #4fc3a1 100%)',
     includes: ['왕복 항공', '방한복 대여', '오로라 알림 서비스'],
     blurb: '못 볼 수도 있다고 세 번쯤 적혀 있다.',
+    souvenir: '오로라를 본 날짜가 찍힌 종이표',
+    souvenirNote: '관측소에서 그날 본 사람에게만 준다고 했다.',
   },
   {
     id: 'north-onsen',
@@ -95,6 +114,8 @@ export const TRIPS: Trip[] = [
     cover: 'linear-gradient(140deg, #24303f 0%, #4a6076 55%, #8aa2b8 100%)',
     includes: ['왕복 기차', '료칸 2박', '조·석식', '온천 무제한'],
     blurb: '눈 오는 노천탕 사진 한 장으로 다 팔린다는 상품.',
+    souvenir: '온천 수건',
+    souvenirNote: '가져가라고 해서 가져왔다. 아직도 유황 냄새가 조금 난다.',
   },
   {
     id: 'island-hop',
@@ -106,6 +127,8 @@ export const TRIPS: Trip[] = [
     cover: 'linear-gradient(140deg, #14532d 0%, #2f7d4f 55%, #6bab7d 100%)',
     includes: ['배편 3구간', '게스트하우스 3박', '자유 일정'],
     blurb: '가장 싼 축이지만 이 게임에서 싼 여행이란 없다.',
+    souvenir: '배표 세 장',
+    souvenirNote: '섬을 옮길 때마다 한 장씩 나왔다. 버리지 못했다.',
   },
   {
     id: 'lantern-city',
@@ -117,6 +140,8 @@ export const TRIPS: Trip[] = [
     cover: 'linear-gradient(140deg, #4a1a10 0%, #a8451f 55%, #e8a35a 100%)',
     includes: ['왕복 항공', '시내 호텔 2박', '야시장 가이드'],
     blurb: '축제 기간에만 뜨는 상품. 사람이 정말 많다.',
+    souvenir: '접힌 등불 한 장',
+    souvenirNote: '축제가 끝나고 걷는 걸 도와줬더니 하나 주었다.',
   },
   {
     id: 'harbor-walk',
@@ -128,6 +153,8 @@ export const TRIPS: Trip[] = [
     cover: 'linear-gradient(140deg, #123a4a 0%, #2a7a8c 55%, #7ec4cc 100%)',
     includes: ['KTX 왕복', '항구 호텔 1박', '회센터 식사권'],
     blurb: '기차에서 내리면 바로 바다다. 그게 전부이자 장점이다.',
+    souvenir: '시장 어물전 명함',
+    souvenirNote: '다음에 오면 더 준다고 했다. 그럴 일이 있을지는 모르겠다.',
   },
   {
     id: 'temple-stay',
@@ -139,6 +166,8 @@ export const TRIPS: Trip[] = [
     cover: 'linear-gradient(140deg, #1e3a24 0%, #3f6b42 55%, #8ab08a 100%)',
     includes: ['템플스테이 1박', '공양 3식', '새벽 예불'],
     blurb: '새벽 네 시에 깨운다는 말이 굵게 적혀 있다.',
+    souvenir: '나무 염주 한 알',
+    souvenirNote: '줄이 끊어진 것을 알에 하나씩 나눠 주고 있었다.',
   },
   {
     id: 'olle-walk',
@@ -150,6 +179,8 @@ export const TRIPS: Trip[] = [
     cover: 'linear-gradient(140deg, #2a3a1e 0%, #5e7a34 55%, #a8c471 100%)',
     includes: ['왕복 항공', '게스트하우스 2박', '코스 지도'],
     blurb: '하루에 15km씩 걷는다. 다녀오면 다리가 굵어져 있다.',
+    souvenir: '둘레길 도장 수첩',
+    souvenirNote: '스물두 칸 중 아홉 칸이 찍혔다. 나머지는 다음에.',
   },
 ]
 

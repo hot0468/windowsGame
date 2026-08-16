@@ -24,6 +24,7 @@
 
 | 날짜 | 변경 | 대상 |
 |------|------|------|
+| 2026-08-16 | 다녀온 곳 기념품 도감 — 여행을 가면 그 곳의 기념품이 남고 도감 `여행` 시트가 안 가 본 곳까지 보여 준다 | trips(systems+test 14 신규, data 기념품 10), types(`Souvenir`), ExcelApp(시트), TravelSite(`takeTrip`), gameStore |
 | 2026-08-16 | 스탯 마스터 — 등급 A에 닿으면 그 분야 스승이 **카톡으로 연락해 선물하기로** 가르침·멘탈·기념품을 준다 | masters(data+systems+test 29 신규), messages(방 파생·`threadVisible`+test), ChatApp(선물 카드)+css, items(기념품 14), types(`masters`), gameStore(`receiveMasterGift`·복원) |
 | 2026-08-15 | 등급이 오르는 순간 — 승급 전용 화면 + 성장 스탯 칸의 다음 등급 게이지 | rank(`rankProgress`·`rankUps`)+test 8, sceneStore 신규, RankUp(tsx+css 신규), Daybreak(장면 순서), layers(`RANKUP`), Desktop·MobileShell(마운트), StatPanel·MobileStatSheet+css 2 |
 | 2026-08-09 | 낮은 스탯의 대가(`below`+`afterDay`) · 요일의 질감(주말 알바 할증·`requiresWeek`) · 목돈 청구 4건 | rankEvents(data+systems+test 5), events(단발 4), calendar(`isWeekend`), economy(`WEEKEND_WAGE_BONUS`), types(`requiresWeek`·`paidBills`), turn·activityPreview, activities(3), bills(data+systems+test 10 신규), weekGate.test 신규, gameStore·MailApp |
@@ -33,4 +34,3 @@
 | 2026-08-08 | 랭크 이벤트 6종 추가 — 친화력 C·경제 B가 방을 열고(집들이·투자 스터디), 예의범절 A·운동 S·지식 A·창의력 A는 단발 | rankEvents(data+systems 첫 마디), events(단발 4), messages(방 2), activities(`housewarming`·`study-talk`), rankEvents.test(스탯 전수 커버 불변식 2건) |
 | 2026-08-08 | 음악 스탯에 쓸 곳 셋 — 오디션 도구·그몽 음악 일감 3종 + 음악 A가 여는 밴드(숙련도로 공연·앨범 해제) | types(`ToolId: audition`·`BandState`·`requiresBandSkill`/`buildsBandSkill`), band(data+systems+test 12건), turn(게이트·숙련·보수), gigs·activities·desktopItems·messages·rankEvents, StatPanel·MobileStatSheet·ToolRun |
 | 2026-08-08 | 슬롯 제약(오전/오후 전용 활동 5종) · 장비 고장(사용 횟수, 무작위 없음) · 경제 스탯이 여는 주식 변동성 예보 | types(`requiresSlot`·`SLOT_NAMES`·`gear`/`broken`), turn(`canRun`·`wearGear`), gear(data+systems+test), delivery(되사기 자물쇠), stocks(예보)·StockSite, activityPreview, ExplorerApp, slotGate.test |
-| 2026-08-08 | 경제 스탯 신설 + 모바일 도감의 사방 여백·높이 상한 제거 | types·statMeta·activities(`finance-study`), contests(모의주식 심사 `knowledge`→`finance`), MobileShell.css, measure.mjs(모바일 셸 셀렉터 오타) |

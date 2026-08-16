@@ -61,6 +61,7 @@ import { reviveGear } from '../systems/gear'
 import { playGame as playGameOf } from '../systems/steam'
 import { renameChannel as renameChannelOf, startStream as startStreamOf } from '../systems/channel'
 import { watchFilm as watchFilmOf } from '../systems/cinema'
+import { takeTrip as takeTripOf, reviveSouvenirs } from '../systems/trips'
 import { sellItem as sellItemOf, sellPostcard as sellPostcardOf } from '../systems/resale'
 import { advanceCertification, takeExam as takeExamOf } from '../systems/certification'
 import { findHousing } from '../data/housing'
@@ -76,6 +77,7 @@ import { AUTO_STEP_MS } from '../data/autoAdvance'
 import { findCareer } from '../data/careers'
 import type { AutoRun, AutoStop, StopContext } from '../systems/autoAdvance'
 import type { Career } from '../data/careers'
+import type { Trip } from '../data/trips'
 import type { Cert } from '../data/certs'
 import type { Course } from '../data/courses'
 import type { SteamGame } from '../data/steam'
@@ -544,6 +546,9 @@ function reviveState(raw: unknown): GameState | null {
           (p) => p && typeof p.filmId === 'string' && Number.isFinite(p.day),
         ) as Postcard[])
       : undefined,
+    /* ⚠️ 기념품은 포스트카드와 달리 **팔 수도 없어서** 돈에 닿을 길이 아예 없다 —
+       그래도 없는 상품을 가리키는 기록은 버린다(도감의 "몇 곳 중 몇 곳"이 흔들린다). */
+    souvenirs: reviveSouvenirs(saved.souvenirs),
     twitter: reviveTwitter(saved),
     stocks: reviveStocks(saved),
     subscriptions: reviveSubscriptions(saved),
@@ -845,6 +850,8 @@ interface GameStore {
    * 모르는 사실이라, 활동만 실행하면 사라진다.
    */
   watchFilm: (film: Film) => void
+  /** 여행을 간다 — 상품이 가리키는 활동을 실행하고 그 곳의 기념품을 남긴다. */
+  takeTrip: (trip: Trip) => void
   /**
    * 방송 채널 이름을 짓는다. **턴을 쓰지 않는다** — 그래서 `afterTurn`도 부르지 않는다
    * (은행 창구·쇼핑 주문과 같은 통로: 상태만 바꾸고 하루는 흐르지 않는다).
@@ -1229,6 +1236,15 @@ export const useGameStore = create<GameStore>()(
           if (!current) return
           // `watchFilm`이 조건(행동력·관람료)을 다 보고 안 되면 상태를 그대로 돌려준다.
           const next = watchFilmOf(current, film)
+          if (next !== current) set(afterTurn(next))
+        },
+
+        /* ⚠️ `watchFilm`과 같은 자리·같은 모양이다 — 고른 것(영화/상품)은 활동이 모르는
+           사실이라 스토어가 그것을 함께 넘긴다. 턴을 쓰므로 `afterTurn`을 탄다. */
+        takeTrip: (trip) => {
+          const current = get().state
+          if (!current) return
+          const next = takeTripOf(current, trip)
           if (next !== current) set(afterTurn(next))
         },
 
