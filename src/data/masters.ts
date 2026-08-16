@@ -4,11 +4,12 @@ import type { StatRank } from '../systems/rank'
 import type { IconName } from '../types/game'
 
 /**
- * 스탯 마스터 — **그 분야를 오래 한 사람이 찾아와 선물을 준다**(설계자 지시, 프린세스메이커).
+ * 스탯 마스터 — **그 분야를 오래 한 사람이 카톡으로 연락해 선물을 보낸다**
+ * (설계자 지시, 프린세스메이커).
  *
  * ## 왜 랭크 이벤트가 아니라 따로인가
  * `data/rankEvents.ts`와 문턱 판정은 같지만(둘 다 `rankOf`) **성격이 다르다**:
- * 랭크 이벤트는 *무엇이 열리는가*(방·선택지·창)이고 여기는 *누가 찾아오는가*다.
+ * 랭크 이벤트는 *무엇이 열리는가*(방·선택지·창)이고 여기는 *누가 연락해 오는가*다.
  * 한 배열에 섞으면 `RankEvent`가 이름·칭호·인사말·선물까지 지게 되고, 그 필드들은
  * 나머지 이벤트 전부에서 `undefined`로 남는다. 축을 갈라 두면 각자 자기 모양만 갖는다.
  *
@@ -27,7 +28,7 @@ import type { IconName } from '../types/game'
  * 랭크 이벤트가 14종을 다 덮는 것과 같은 규칙이다.
  */
 export interface Master {
-  /** `master-<스탯>`. 창 id와 세이브 기록이 이 문자열을 쓴다. */
+  /** `master-<스탯>`. **카톡 방 id이자 세이브 기록**이 이 문자열 하나를 쓴다. */
   id: string
   key: GrowthStatKey
   /** 찾아오는 문턱. **전부 A다** — 갈라 두면 "왜 이 스승만 늦게 오나"에 답할 수 없다. */
@@ -35,7 +36,10 @@ export interface Master {
   name: string
   /** 뭘 하는 사람인가. 이름만으로는 왜 이 스탯의 스승인지 안 읽힌다. */
   title: string
-  /** 찾아와서 하는 말. **선물 이야기를 먼저 하지 않는다** — 알아본 사람의 인사가 먼저다. */
+  /**
+   * 카톡으로 보내오는 첫 마디. **선물 이야기를 먼저 하지 않는다** — 알아본 사람의
+   * 인사가 먼저다(선물은 아래 카드가 따로 진다).
+   */
   line: string
   /** 주고 가는 물건(`SHOP_ITEMS`의 id). */
   gift: string
@@ -201,6 +205,26 @@ export const MASTERS: Master[] = [
     icon: STAT_META.finance.icon,
   },
 ]
+
+/**
+ * 스승의 카톡 방.
+ *
+ * ⚠️ **`THREADS`에 손으로 적지 않고 여기서 파생시킨다**("관계는 한 방향으로만 적고
+ * 반대쪽은 파생시킨다"는 규칙) — 열넷을 두 곳에 적으면 스승을 하나 고칠 때 방 이름과
+ * 갈리고, 한쪽만 고쳐도 아무 테스트가 안 터진다.
+ *
+ * ⚠️ **방 id = 스승 id다.** 대화창이 방 id 하나로 어느 스승인지 되찾을 수 있어야
+ * 선물 카드를 그릴 수 있다(`findMaster(thread.id)`).
+ *
+ * ⚠️ **오픈채팅이 아니다**(`open` 없음) — 아는 사람이 개인적으로 연락해 온 것이고,
+ * 오픈채팅에는 조건을 걸지 않는다는 규칙과도 부딪히지 않는다.
+ */
+export const MASTER_THREADS = MASTERS.map((m) => ({
+  id: m.id,
+  app: 'kakao' as const,
+  name: m.name,
+  members: 1,
+}))
 
 /** id로 찾는다. 모르는 id는 `undefined` — 세이브 보정이 이걸로 거른다. */
 export function findMaster(id: string): Master | undefined {

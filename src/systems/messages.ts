@@ -1,6 +1,7 @@
 import { MESSAGE_SCHEDULE, THREAD_LIMIT, THREADS, threadsOf } from '../data/messages'
 import type { ChatAppId, Message, Thread } from '../data/messages'
 import { threadUnlockedByRank } from './rankEvents'
+import { threadUnlockedByMaster } from './masters'
 import type { GameState, Slot, Stats } from '../types/game'
 
 /**
@@ -62,6 +63,10 @@ export function threadVisible(thread: Thread, state: GameState): boolean {
      아니다"이므로 그때만 통과시킨다. */
   const byRank = threadUnlockedByRank(state, thread.id)
   if (byRank === false) return false
+  /* ⚠️ **스승의 방도 같은 판형이다**(문턱은 `data/masters.ts` 한 곳, 판정은
+     `threadUnlockedByMaster` 하나) — `undefined`는 "스승의 방이 아니다"라 그때만 통과한다. */
+  const byMaster = threadUnlockedByMaster(state, thread.id)
+  if (byMaster === false) return false
   for (const [key, need] of Object.entries(thread.requires ?? {})) {
     if (state.stats[key as keyof Stats] < need) return false
   }

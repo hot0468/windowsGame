@@ -8,7 +8,7 @@ import { findItem } from '../../data/items'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
 import { canOrder, owns } from '../../systems/delivery'
-import { canRun } from '../../systems/turn'
+import { canRun, growthCap } from '../../systems/turn'
 import {
   channelVisible,
   lastMessage,
@@ -20,6 +20,7 @@ import { weekendCallMessages } from '../../systems/drive'
 import { rankEventMessages } from '../../systems/rankEvents'
 import { webtoonReviewMessages } from '../../systems/webtoon'
 import { offerUnlockedByRank } from '../../systems/rankEvents'
+import { findMaster, giftAmount, seenMaster, masterMessages, MASTER_MENTAL } from '../../systems/masters'
 import { STAT_NAMES } from '../../types/game'
 import type { GameState, Stats } from '../../types/game'
 import './ChatApp.css'
@@ -77,7 +78,12 @@ const RAIL_ICONS = {
  * 말이 생긴다. 원천을 늘릴 자리는 여기 하나다.
  */
 function derivedMessages(state: GameState) {
-  return [...weekendCallMessages(state), ...webtoonReviewMessages(state), ...rankEventMessages(state)]
+  return [
+    ...weekendCallMessages(state),
+    ...webtoonReviewMessages(state),
+    ...rankEventMessages(state),
+    ...masterMessages(state),
+  ]
 }
 
 export function ChatListApp({ appId }: { appId: string }) {
@@ -321,7 +327,11 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
      이 줄과 관계 데이터가 갈라지고, 한쪽만 고쳐도 아무 테스트가 안 터진다. */
   const person = personOfThread(threadId)
   const meetup = person ? findActivity(person.activityId) : undefined
+  /* ⚠️ **방 id가 곧 스승 id다**(`MASTER_THREADS`가 그렇게 파생된다) — 그래서 방 목록을
+     여기서 다시 나열하지 않고 한 번 물어보는 것으로 끝난다. */
+  const master = findMaster(threadId)
   const acceptOffer = useGameStore((s) => s.acceptOffer)
+  const receiveMasterGift = useGameStore((s) => s.receiveMasterGift)
 
   if (!state || !thread) return null
 
@@ -336,6 +346,14 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
   const canMeet = meetup ? canRun(state, meetup) : false
   const affection = person ? affectionOf(state, person.id) : 0
   const tone = findChatApp(thread.app)?.tone ?? 'warm'
+  const gift = master ? findItem(master.gift) : undefined
+  const got = master ? seenMaster(state, master.id) : false
+  /* ⚠️ **상한에서 잘리는 몫까지 반영한다** — A에 닿은 스탯이라 상한 근처면 실제로 잘리고,
+     그 사실을 안 적으면 카드가 거짓 숫자를 말한다(별똥별 미리보기와 같은 규칙). */
+  const giftGain = master
+    ? Math.min(growthCap(master.key), state.stats[master.key] + giftAmount(master.key)) -
+      state.stats[master.key]
+    : 0
 
   return (
     <div className={`chat chat-tone-${tone}`}>
@@ -421,6 +439,38 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
               </button>
             )
           })}
+        </div>
+      )}
+
+      {/*
+        카톡 선물하기. **스승의 방에만 뜬다.**
+        ⚠️ **받기 전과 받은 뒤 둘 다 그린다** — 받고 나면 사라지게 두면 "무엇을 받았더라"에
+        답할 자리가 없어진다(실제 카톡 선물함도 받은 뒤 기록이 남는다).
+        ⚠️ **무엇이 오르는지 미리 다 적는다.** 숨긴 채 [받기]만 두면 그 버튼이 도박이 된다.
+      */}
+      {master && gift && (
+        <div className="chat-action">
+          <div className="chat-gift">
+            <AppIcon name={master.icon} size={34} />
+            <span className="chat-gift-body">
+              <span className="chat-gift-label">선물이 도착했습니다</span>
+              <span className="chat-gift-name">{gift.name}</span>
+              <span className="chat-gift-desc">{gift.desc}</span>
+            </span>
+          </div>
+          {got ? (
+            /* 받은 뒤. 버튼이 아니라 사실이라 `role="status"`로 남긴다. */
+            <p className="chat-gift-done" role="status">
+              선물을 받았습니다 · {STAT_NAMES[master.key]} +{giftGain} · 멘탈 +{MASTER_MENTAL}
+            </p>
+          ) : (
+            <button className="chat-offer" onClick={() => receiveMasterGift(master.id)}>
+              <span className="chat-offer-label">선물 받기</span>
+              <span className="chat-offer-desc">
+                {STAT_NAMES[master.key]} +{giftGain} · 멘탈 +{MASTER_MENTAL} · {gift.name}
+              </span>
+            </button>
+          )}
         </div>
       )}
 

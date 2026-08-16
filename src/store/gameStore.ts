@@ -24,7 +24,7 @@ import {
   reviveRankEvents,
   settleRankEvents,
 } from '../systems/rankEvents'
-import { dueMasters, receiveGift, reviveMasters } from '../systems/masters'
+import { receiveGift, reviveMasters } from '../systems/masters'
 import { useWindowStore } from './windowStore'
 import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../systems/bank'
 import { moveTo } from '../systems/housing'
@@ -656,7 +656,6 @@ function afterTurn(next: GameState, chain?: number) {
      결과가 같다 — 그래도 "기록 → 파생" 방향을 지켜 둔다(나중에 얽히면 이 순서가 답이다). */
   const evented = settleRankEvents(job.state)
   openRankEventWindows(evented)
-  openMasterWindows(evented)
   return {
     state: evented,
     skippedPlans: ran.skipped,
@@ -736,33 +735,6 @@ function openRankEventWindows(next: GameState) {
   }
 }
 
-/**
- * 등급이 문턱을 넘은 스승의 방문 창을 띄운다.
- *
- * ⚠️ **`openRankEventWindows`와 같은 자리·같은 이유다** — 랭크는 스케줄러 예약·자동
- * 진행으로도 오르므로, 손으로 누른 자리에만 붙이면 자동으로 넘긴 판에서 스승이 통째로
- * 안 온다. 그래서 모든 턴 통로가 지나는 `afterTurn` 끝에 붙는다.
- *
- * ⚠️ **여기서는 아무것도 기록하지 않는다.** 기록은 선물을 받을 때 찍히고(`receiveGift`),
- * 그래서 창을 닫기만 하면 다음 밤에 다시 온다(별똥별과 같은 규칙).
- *
- * ⚠️ **여럿이 같은 밤에 오면 조금씩 어긋나게 놓는다** — 정확히 겹치면 뒤의 창이 앞의 창에
- * 완전히 가려 두 번째 스승이 온 것을 알 수 없다.
- */
-function openMasterWindows(next: GameState) {
-  dueMasters(next).forEach((master, i) => {
-    useWindowStore.getState().open({
-      id: master.id,
-      kind: 'master',
-      masterId: master.id,
-      title: `${master.name} (${master.title})`,
-      icon: master.icon,
-      x: 200 + i * 28,
-      y: 108 + i * 28,
-      width: 480,
-    })
-  })
-}
 
 interface GameStore {
   state: GameState | null

@@ -18,9 +18,9 @@ import type { GameState, GrowthStatKey } from '../types/game'
  * 영영 안 온다(`rankEvents.ts`가 같은 함정을 같은 방식으로 피한다).
  *
  * ## ⚠️ 기록은 **받을 때** 찍는다
- * 창이 열리는 것은 아무것도 기록하지 않는다 — 즉 닫아도 다음 밤에 다시 찾아온다.
- * 창을 여는 자리에서 찍으면 **닫기만 한 사람이 선물을 통째로 잃는다**(별똥별과 같은 규칙,
- * `settleRankEvents`가 `kind: 'window'`를 건너뛰는 것과 같은 판단).
+ * 방이 열리는 것은 아무것도 기록하지 않는다 — 그래서 안 받고 두면 선물이 방에 그대로
+ * 남는다(카톡 선물함과 같다). 방이 열릴 때 찍으면 **읽기만 한 사람이 선물을 통째로
+ * 잃는다**(별똥별이 창을 열 때 안 찍는 것과 같은 판단).
  */
 
 /** 이미 선물을 받은 스승인가. */
@@ -35,14 +35,69 @@ export function masterReached(state: GameState, master: Master): boolean {
 }
 
 /**
- * 지금 찾아와야 하는 스승들. **아직 안 받았고 문턱을 넘은 것 전부.**
+ * 그 스승의 카톡 방이 보이는가.
+ *
+ * ⚠️ **한 번 열리면 계속 보인다**(랭크 이벤트 방과 같은 규칙): 등급이 나중에 내려가도
+ * 선물을 이미 받았다면 방은 남는다 — 대화가 있었던 사람이 연락처에서 사라지지 않는다.
+ */
+export function masterArrived(state: GameState, master: Master): boolean {
+  return seenMaster(state, master.id) || masterReached(state, master)
+}
+
+/**
+ * 지금 카톡에 연락이 와 있는 스승들.
  *
  * ⚠️ 목록을 돌려주는 이유는 `dueRankEvents`와 같다: 자동 진행으로 며칠이 한 번에 흐르면
- * 두 스승이 같은 밤에 함께 올 수 있고, 하나만 돌려주면 나머지가 다음 밤까지 밀린다.
+ * 둘이 같은 밤에 함께 연락할 수 있고, 하나만 돌려주면 나머지가 다음 밤까지 밀린다.
+ */
+export function arrivedMasters(state: GameState): Master[] {
+  if (state.gameOver) return []
+  return MASTERS.filter((m) => masterArrived(state, m))
+}
+
+/**
+ * **선물이 아직 방에 남아 있는 스승들.** 연락은 왔는데 아직 안 받은 것.
+ *
+ * ⚠️ 안 받고 두면 사라지지 않는다 — 카톡 선물함과 같다. 그래서 "기회를 놓쳤다"가 없다.
  */
 export function dueMasters(state: GameState): Master[] {
   if (state.gameOver) return []
   return MASTERS.filter((m) => !seenMaster(state, m.id) && masterReached(state, m))
+}
+
+/**
+ * 그 방이 스승의 방인가, 열렸는가.
+ *
+ * ⚠️ **`threadUnlockedByRank`와 같은 모양·같은 이유다** — 조건을 `Thread`에 적지 않는다
+ * (문턱은 `data/masters.ts` 한 곳). `undefined`는 "스승의 방이 아니다"이므로 그때만
+ * 통과시킨다(조건 없는 기존 방이 사라지면 안 된다).
+ */
+export function threadUnlockedByMaster(state: GameState, threadId: string): boolean | undefined {
+  const master = findMaster(threadId)
+  if (!master) return undefined
+  return masterArrived(state, master)
+}
+
+/**
+ * 스승이 카톡으로 보내온 첫 마디.
+ *
+ * ⚠️ **편성표(`MESSAGE_SCHEDULE`)에 넣을 수 없다** — 편성표는 (날짜, 슬롯)으로 색인되는데
+ * 이 연락이 오는 날은 플레이어가 언제 등급에 닿느냐에 달렸다. 그래서
+ * `rankEventMessages`·`weekendCallMessages`와 같은 **파생 메시지**다: 저장하지 않고
+ * 매번 만든다(`ChatApp`의 `derivedMessages`가 합친다).
+ *
+ * ⚠️ **말이 없으면 방만 뜬다** — 그것은 "연락이 왔다"가 아니라 "방이 생겼다"이고,
+ * 화면에는 "아직 대화가 없습니다"만 남는다(랭크 이벤트 방에서 실제로 났던 버그).
+ */
+export function masterMessages(
+  state: GameState,
+): { id: string; channel: string; from: string; text: string }[] {
+  return arrivedMasters(state).map((m) => ({
+    id: `master-${m.id}`,
+    channel: m.id,
+    from: m.name,
+    text: m.line,
+  }))
 }
 
 /**
@@ -62,7 +117,7 @@ export function giftAmount(key: GrowthStatKey): number {
  *
  * ⚠️ **턴을 쓰지 않는다**(찾아온 것은 플레이어가 고른 행동이 아니다 — 별똥별과 같다).
  * ⚠️ **한 번만 된다**: 기록이 곧 사용권이라 여기서 함께 찍는다.
- * ⚠️ **문턱을 여기서 다시 본다.** "아직 안 받았나"만 보면 창을 열지 않고도 이 함수를
+ * ⚠️ **문턱을 여기서 다시 본다.** "아직 안 받았나"만 보면 방을 거치지 않고 이 함수를
  * 부르는 통로 하나가 게이트를 통째로 지나간다(`grantWish`가 같은 이유로 같은 검사를 한다).
  * ⚠️ **상한은 `clampStats`가 자른다** — 이미 A에 닿은 스탯이라 999 근처면 잘릴 수 있고,
  * 그때는 멘탈과 기념품만 남는다(그래도 받은 것이 있으므로 빈손이 아니다).

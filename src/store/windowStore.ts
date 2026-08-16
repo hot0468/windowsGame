@@ -64,8 +64,6 @@ export interface OpenWindow {
   threadId?: string
   /** kind가 'folder'일 때 어느 폴더를 열지. */
   folderId?: FolderId
-  /** kind가 'master'일 때 어느 스승이 왔는지(`data/masters.ts`의 id). */
-  masterId?: string
   /**
    * kind가 'tool'일 때 무엇을 그릴지(`ToolRunPayload`).
    * ⚠️ **실행 직전에 찍은 사실이라 창이 들고 있어야 한다** — 창이 열릴 때는 이미 턴이

@@ -1,5 +1,6 @@
 import { EDITOR_NAME } from './webtoon'
 import type { IconName, Stats } from '../types/game'
+import { MASTER_THREADS } from './masters'
 
 /**
  * 메신저 앱. 앱 하나가 **채팅방 여러 개**를 담는다(레퍼런스: 카톡 PC).
@@ -369,6 +370,12 @@ export const THREADS: Thread[] = [
   { id: 'webtoon-editor', app: 'kakao', name: EDITOR_NAME, members: 1, requiresWebtoon: true },
   { id: 'boss', app: 'nateon', name: '팀장님', members: 1, requiresEmployment: true },
   { id: 'devteam', app: 'nateon', name: '개발 2팀', members: 7, requiresEmployment: true },
+  /*
+   * ⚠️ **스탯 마스터의 방 14개는 `data/masters.ts`에서 파생된다** — 여기 손으로 적지
+   * 않는다(스승과 방 이름이 갈린다). 보이는 조건은 `Thread`가 아니라 등급이 정하고
+   * 판정은 `threadUnlockedByMaster` 하나다(랭크 이벤트 방과 완전히 같은 판형).
+   */
+  ...MASTER_THREADS
 ]
 
 /** 메일 사서함. 채팅이 아니므로 앱 목록과 따로 둔다. */

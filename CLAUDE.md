@@ -24,7 +24,7 @@
 
 | 날짜 | 변경 | 대상 |
 |------|------|------|
-| 2026-08-16 | 스탯 마스터 — 등급 A에 닿으면 그 분야 스승이 찾아와 가르침·멘탈·기념품을 주고 간다 | masters(data+systems+test 22 신규), MasterVisit(tsx+css 신규), items(기념품 14), types(`masters`·`WindowKind`), windowStore(`masterId`), gameStore(`openMasterWindows`·`receiveMasterGift`·복원), appForWindow+test |
+| 2026-08-16 | 스탯 마스터 — 등급 A에 닿으면 그 분야 스승이 **카톡으로 연락해 선물하기로** 가르침·멘탈·기념품을 준다 | masters(data+systems+test 29 신규), messages(방 파생·`threadVisible`+test), ChatApp(선물 카드)+css, items(기념품 14), types(`masters`), gameStore(`receiveMasterGift`·복원) |
 | 2026-08-15 | 등급이 오르는 순간 — 승급 전용 화면 + 성장 스탯 칸의 다음 등급 게이지 | rank(`rankProgress`·`rankUps`)+test 8, sceneStore 신규, RankUp(tsx+css 신규), Daybreak(장면 순서), layers(`RANKUP`), Desktop·MobileShell(마운트), StatPanel·MobileStatSheet+css 2 |
 | 2026-08-09 | 낮은 스탯의 대가(`below`+`afterDay`) · 요일의 질감(주말 알바 할증·`requiresWeek`) · 목돈 청구 4건 | rankEvents(data+systems+test 5), events(단발 4), calendar(`isWeekend`), economy(`WEEKEND_WAGE_BONUS`), types(`requiresWeek`·`paidBills`), turn·activityPreview, activities(3), bills(data+systems+test 10 신규), weekGate.test 신규, gameStore·MailApp |
 | 2026-08-09 | 공부 팝업 — 종이 판 · 책장 그림 · 헤더 없는 시스템 팝업 + 전체 화면 딤, 날 밝음은 [확인] 뒤로 밀린다 | runScenes(`look`), types, windowStore(`popup`·`Z_STEP`), Window(tsx+css `win-popup`/`win-scrim`), WindowManager, appForWindow, ToolRun(tsx+css), Daybreak(`pending`), runScenes.test(+2) |
