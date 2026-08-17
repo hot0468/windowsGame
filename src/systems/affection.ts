@@ -5,6 +5,8 @@ import {
   AFFECTION_FOR_ENDING,
   AFFECTION_GRACE_DAYS,
   AFFECTION_PER_MEET,
+  CLOSE_BEATS,
+  CLOSE_BEAT_DAYS,
   CLOSE_MENTAL_BONUS,
   PEOPLE,
   STAGE_LINES,
@@ -140,6 +142,23 @@ export function stageMessages(
   const out: { id: string; channel: string; from: string; text: string }[] = []
   for (const person of PEOPLE) {
     const stage = stageOf(state, person.id)
+    /* `close`는 한 마디가 아니라 **서사 비트의 회전**이다(2026-08-17) — 첫 마디 뒤로
+       그 사람의 이야기가 며칠에 하나씩 이어져야 관계가 게이지가 아니라 사람으로 읽힌다.
+       회전은 날짜의 순수 함수다(무작위면 새로 고칠 때마다 다른 말이 된다). */
+    if (stage === 'close') {
+      const beats = [STAGE_LINES[person.id]?.close, ...(CLOSE_BEATS[person.id] ?? [])].filter(
+        (b): b is string => !!b,
+      )
+      if (!beats.length) continue
+      const idx = Math.floor(state.day / CLOSE_BEAT_DAYS) % beats.length
+      out.push({
+        id: `stage-${person.id}-close-${idx}`,
+        channel: person.threadId,
+        from: person.name,
+        text: beats[idx],
+      })
+      continue
+    }
     const text = STAGE_LINES[person.id]?.[stage]
     if (!text) continue
     /* ⚠️ id에 단계를 섞는다 — 안 섞으면 가까워져 말이 바뀌어도 토스트 중복 제거에

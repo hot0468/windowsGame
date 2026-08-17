@@ -33,6 +33,8 @@ export const UI_ICONS = {
    * "다시 그리기"가 아니라 "옮긴 기록을 버리고 기본 배치로 돌아가기"다.
    */
   resetIcons: 'mdi-light:undo-variant',
+  /** 시작 메뉴 [새 게임] — 셸 크롬이라 라인 글리프다. 판을 다시 돌린다는 뜻의 refresh. */
+  newGame: 'mdi-light:refresh',
   /**
    * 작업 표시줄 시작 버튼 — 4분할 라운드 격자(윈도우 11 4창 로고의 실루엣).
    *

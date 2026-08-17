@@ -184,7 +184,9 @@ export const ACTIVITIES: Activity[] = [
     description: '아무 생각 없이 논다. 멘탈이 회복된다.',
     // 게임을 하는데 '게임' 스탯이 안 오르던 것을 고쳤다(2026-08-04).
     // 멘탈 회복이 주목적인 활동이라 상승폭은 랭크 게임(+7)보다 낮게 둔다.
-    effects: { mental: 18, gaming: 4, stamina: -5, knowledge: -1 },
+    // ⚠️ 반발 넷(2026-08-17, 설계자 지시: 친화력·경제·운동): 방에 혼자 앉아 노는 날의 값.
+    //    전부 -1이다 — 주 멘탈 회복처라 더 깎으면 회복이 벌칙이 된다(balance.verify가 이 활동을 쓴다).
+    effects: { mental: 18, gaming: 4, stamina: -5, knowledge: -1, sociability: -1, finance: -1, athletics: -1 },
     requires: { stamina: 5 },
   },
   {
@@ -453,8 +455,11 @@ export const ACTIVITIES: Activity[] = [
     category: 'living',
     description: '동작하는 데까지 두 시간, 이해하는 데까지는 아직이다.',
     /* ⚠️ **IT의 주 공급원이다**(예술을 `draw` 하나가 올리는 것과 같은 부류). 지식은
-       배운 것이라 여기서는 곁가지로만 오른다 — 둘을 같은 몫으로 주면 스탯을 가른 이유가 없다. */
-    effects: { tech: 5, knowledge: 2, creativity: 2, stamina: -20, mental: -6 },
+       배운 것이라 여기서는 곁가지로만 오른다 — 둘을 같은 몫으로 주면 스탯을 가른 이유가 없다.
+       ⚠️ **IT는 대가를 치른다**(2026-08-17, 설계자 지시): `tech`를 올리는 활동은 전부
+       매력·감수성을 조금 깎는다(화면만 보는 날들의 값). 큰 공급원(5~6)은 -2, 곁가지(2~4)는
+       -1 — 다섯 곳(vscode·coding-study·sw-contract·maintenance·ai-study)이 같은 규칙이다. */
+    effects: { tech: 5, knowledge: 2, creativity: 2, charm: -2, sensitivity: -2, stamina: -20, mental: -6 },
     requires: { stamina: 20 },
     toolId: 'vscode',
     burnoutKey: 'gig',
@@ -591,8 +596,22 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:code-24',
     category: 'study',
     description: '예제를 그대로 쳤는데 안 된다. 오타 하나를 찾는 데 사십 분이 갔다.',
-    effects: { tech: 6, knowledge: 2, stamina: -12, mental: -5 },
+    effects: { tech: 6, knowledge: 2, charm: -2, sensitivity: -2, stamina: -12, mental: -5 },
     requires: { stamina: 12 },
+  },
+  {
+    /*
+     * AI 입문 강의(`ai-basic`) 전용(2026-08-17) — 강의가 `study`를 가리키던 시절에는
+     * 제목에 AI가 있는데 IT가 안 올랐다. 배우는 것이 반, 시켜 보는 것이 반이라 지식이
+     * 주고 IT는 곁가지다(코드를 치는 `coding-study`보다 IT가 작아야 초급을 들을 이유가 남는다).
+     */
+    id: 'ai-study',
+    label: 'AI 공부',
+    icon: 'fluent-color:bot-sparkle-24',
+    category: 'study',
+    description: '시키는 대로 하면 되는데, 왜 되는지는 아직 모른다.',
+    effects: { knowledge: 4, tech: 2, charm: -1, sensitivity: -1, stamina: -14, mental: -5 },
+    requires: { stamina: 14 },
   },
   {
     /* 어휘력의 주 공급원. 공부보다 싸고 지식도 조금 붙지만, 대신 지식 자체는 느리다. */
@@ -986,7 +1005,7 @@ export const ACTIVITIES: Activity[] = [
    * 낮게 둔다: 생활 등급은 이미 "다 올렸다"는 뜻이라 돈까지 더 주면 그쪽이 정답이 된다.
    */
   {
-    /* 생활 등급 C. 15종 평균 10%라 고루 올린 판이 대략 90일쯤에 닿는다. */
+    /* 생활 등급 C. 상위 12종 평균 10%라 고루 올린 판이 대략 90일쯤에 닿는다. */
     id: 'mentor-meet',
     label: '건너건너 모임',
     icon: 'fluent-color:people-community-24',
@@ -1005,7 +1024,7 @@ export const ACTIVITIES: Activity[] = [
     burnoutKey: 'meet',
   },
   {
-    /* 생활 등급 B(15종 평균 30%). 두루 올린 사람만 쓸 수 있는 글이라 문턱이 여기다. */
+    /* 생활 등급 B(상위 12종 평균 30%). 두루 올린 사람만 쓸 수 있는 글이라 문턱이 여기다. */
     id: 'column-write',
     label: '칼럼 기고',
     icon: 'fluent-color:document-24',
@@ -1020,6 +1039,80 @@ export const ACTIVITIES: Activity[] = [
       mental: -6,
     },
     requires: { stamina: 20 },
+    burnoutKey: 'gig',
+  },
+  {
+    /*
+     * 생활 등급 A(상위 12종 평균 50%). 칼럼(생활 B)의 윗칸 — 같은 이야기가 책이 된다.
+     * ⚠️ **돈은 S 일감(380~520k) 아래**다(이 구역 머리말의 규칙): 생활 등급의 보상은
+     * 돈이 아니라 폭이고, 그래서 올리는 스탯이 넷이다.
+     */
+    id: 'essay-write',
+    label: '에세이 원고',
+    icon: 'fluent-color:book-star-24',
+    category: 'living',
+    description: '칼럼으로 쓰던 이야기를 책 한 권 분량으로 늘린다. 목차만 사흘을 잡았다.',
+    effects: {
+      money: 300000,
+      vocabulary: 4,
+      sensitivity: 2,
+      creativity: 3,
+      reputation: 3,
+      stamina: -24,
+      mental: -8,
+    },
+    requires: { stamina: 24 },
+    burnoutKey: 'gig',
+  },
+  /*
+   * ── 사치 소비 2종 — 후반 돈 싱크의 능동 갈래 (2026-08-17) ────────────
+   *
+   * ⚠️ **돈을 스탯·회복으로 환전하는 반복 소비다**(고정비 싱크는 사치 집 —
+   * `data/housing.ts` 사치 구역). 값의 근거: 공짜 회복처(게임 멘탈 18)가 있으므로
+   * 이쪽의 몫은 멘탈이 아니라 **취침 밖에서는 희소한 체력 회복**이다 — 멘탈만 크게
+   * 주면 가격이 문턱인 상위 호환이 되어 회복처 넷이 죽는다.
+   * ⚠️ **`burnoutKey: 'resort'`를 둘이 나눠 쓴다** — 번갈아 다니며 무한 회복을
+   * 사는 것을 막는다(알바 넷이 `work` 하나를 쓰는 것과 같은 규칙).
+   */
+  {
+    id: 'spa-day',
+    label: '스파 데이',
+    icon: 'fluent-color:person-heart-24',
+    category: 'leisure',
+    description: '더운 물에 한 시간. 나올 때는 어깨가 한 뼘 내려가 있다.',
+    effects: { mental: 10, stamina: 12, charm: 2, money: -120000 },
+    requires: { money: 120000 },
+    burnoutKey: 'resort',
+  },
+  {
+    id: 'hocance',
+    label: '호캉스',
+    icon: 'fluent-color:weather-sunny-low-24',
+    category: 'leisure',
+    description: '체크인하고 아무 데도 안 간다. 창밖 도시가 남의 일처럼 흘러간다.',
+    effects: { mental: 18, stamina: 25, sensitivity: 2, money: -300000 },
+    requires: { money: 300000 },
+    burnoutKey: 'resort',
+  },
+  {
+    /* 생활 등급 S(상위 12종 평균 75%). 무대에서 삶 전체를 말한다 — 어느 한 스탯이 아니라
+       살아온 순서가 자격인 일이라 이 축의 끝쪽에 있다. */
+    id: 'stage-talk',
+    label: '강연 무대',
+    icon: 'fluent-color:mic-24',
+    category: 'living',
+    description: '조명 아래에서 사십 분. 무엇을 잘하느냐가 아니라 어떻게 살았느냐를 물어 왔다.',
+    effects: {
+      money: 340000,
+      vocabulary: 3,
+      charm: 3,
+      sociability: 3,
+      reputation: 4,
+      manners: 2,
+      stamina: -26,
+      mental: -8,
+    },
+    requires: { stamina: 26 },
     burnoutKey: 'gig',
   },
   /*
@@ -1065,7 +1158,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:code-24',
     category: 'living',
     description: '이번엔 남의 코드를 고치는 게 아니라 빈 폴더에서 시작한다. 견적서에 내 이름이 있다.',
-    effects: { money: 520000, tech: 5, knowledge: 2, stamina: -32, mental: -12 },
+    effects: { money: 520000, tech: 5, knowledge: 2, charm: -2, sensitivity: -2, stamina: -32, mental: -12 },
     requires: { stamina: 32 },
     burnoutKey: 'gig',
   },
@@ -1109,7 +1202,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:code-24',
     category: 'living',
     description: '남이 짠 코드를 연다. 고칠 곳은 세 줄인데 이해하는 데 두 시간이 걸린다.',
-    effects: { money: 90000, tech: 4, knowledge: 1, stamina: -20, mental: -7 },
+    effects: { money: 90000, tech: 4, knowledge: 1, charm: -1, sensitivity: -1, stamina: -20, mental: -7 },
     requires: { stamina: 20 },
     burnoutKey: 'gig',
   },

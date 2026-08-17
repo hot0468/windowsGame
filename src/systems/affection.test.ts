@@ -216,6 +216,18 @@ describe('친해지면 다른 말을 한다', () => {
     expect(line(AFFECTION_FLOOR + 1)).not.toBe(line(AFFECTION_FOR_ENDING))
   })
 
+  /* close의 말은 날짜에 따라 돌아간다(서사 비트) — 안 돌면 60을 채운 뒤 방이 박제된다. */
+  it('가까운 사람의 말은 날짜가 흐르면 바뀐다', () => {
+    const at = (day: number) =>
+      stageMessages({
+        ...createInitialState('비트'),
+        day,
+        affection: { minji: AFFECTION_FOR_ENDING },
+      }).find((m) => m.channel === 'minji')?.text
+    const seen = new Set([at(1), at(6), at(11), at(16)])
+    expect(seen.size).toBeGreaterThan(1)
+  })
+
   it('가리키는 방이 실재한다 — 없는 방의 말은 아무 데도 안 뜬다', () => {
     const s: GameState = {
       ...createInitialState('말'),

@@ -1,10 +1,24 @@
 import { describe, expect, it } from 'vitest'
-import { COURSES, CERTIFICATE_SESSIONS, courseForCertificate, findCourse } from '../data/courses'
+import {
+  COURSES,
+  COURSE_LEVELS,
+  CERTIFICATE_SESSIONS,
+  courseForCertificate,
+  findCourse,
+  levelRank,
+} from '../data/courses'
 import { findActivity } from '../data/activities'
 import { gigsRequiring } from '../data/gigs'
 import { canTake as canTakeGig } from './gigs'
 import { SHOP_ITEMS, BUYABLE_ITEMS, findItem } from '../data/items'
-import { blockReason, canTake, isCompleted, sessionsOf, takeCourse } from './courses'
+import {
+  blockReason,
+  canTake,
+  isCompleted,
+  levelUnlocked,
+  sessionsOf,
+  takeCourse,
+} from './courses'
 import { createInitialState, owns } from './turn'
 import type { GameState, Stats } from '../types/game'
 
@@ -21,6 +35,19 @@ function state(over: Omit<Partial<GameState>, 'stats'> & { stats?: Partial<Stats
 describe('강의 데이터', () => {
   it('id가 겹치지 않는다', () => {
     expect(new Set(COURSES.map((c) => c.id)).size).toBe(COURSES.length)
+  })
+
+  /* ⚠️ 난이도가 목록에 없으면 `levelRank`가 -1을 돌려주고 그 강의는 **잠금을 통째로
+     빠져나간다**(모르는 값은 열어 주는 쪽으로 넘어지게 해 뒀다) — 진도 축이 조용히
+     새는 자리라 데이터에서 막는다. */
+  it('모든 강의의 난이도가 해금 순서 목록에 있다', () => {
+    for (const c of COURSES) expect(levelRank(c.level), c.id).toBeGreaterThanOrEqual(0)
+  })
+
+  /* ⚠️ 첫 단계에 강의가 하나도 없으면 **아무것도 열리지 않아 판이 잠긴다**(다음 단계를
+     여는 유일한 열쇠가 앞 단계 수료다). 난이도를 손볼 때 여기서 터진다. */
+  it('첫 단계에 강의가 있다 — 아니면 아무도 시작할 수 없다', () => {
+    expect(COURSES.some((c) => c.level === COURSE_LEVELS[0])).toBe(true)
   })
 
   it('가리키는 활동이 실제로 있다', () => {
@@ -55,6 +82,40 @@ describe('강의 데이터', () => {
   })
 })
 
+describe('진도 잠금 (입문 → 고급)', () => {
+  const beginner = COURSES.find((c) => c.level === COURSE_LEVELS[0])!
+  const second = COURSES.find((c) => c.level === COURSE_LEVELS[1])!
+
+  it('첫 단계는 처음부터 열려 있다', () => {
+    expect(levelUnlocked(state(), COURSE_LEVELS[0])).toBe(true)
+  })
+
+  it('앞 단계를 수료하기 전에는 다음 단계가 잠긴다', () => {
+    expect(levelUnlocked(state(), COURSE_LEVELS[1])).toBe(false)
+  })
+
+  /* ⚠️ **한 번 들은 것으로는 안 열린다.** 여기가 느슨해지면 가장 싼 입문을 한 번 듣고
+     고급까지 직행할 수 있어 "차례대로"가 뜻을 잃는다 — 규칙을 뒤집어 증명한다. */
+  it('앞 단계를 수료해야(1회로는 안 된다) 다음 단계가 열린다', () => {
+    let s = state({ courses: { [beginner.id]: 1 } })
+    expect(levelUnlocked(s, COURSE_LEVELS[1])).toBe(false)
+
+    s = state({ courses: { [beginner.id]: CERTIFICATE_SESSIONS } })
+    expect(levelUnlocked(s, COURSE_LEVELS[1])).toBe(true)
+  })
+
+  it('잠긴 강의는 사유가 돈이 아니라 앞 단계를 가리킨다', () => {
+    // 돈은 넉넉한 판이다 — 그런데도 "수강료 부족"이 나오면 순서가 뒤집힌 것이다.
+    const reason = blockReason(state({ stats: { money: 9_000_000 } }), second)
+    expect(reason).toContain(COURSE_LEVELS[0])
+  })
+
+  it('잠긴 강의는 실제로 수강되지 않는다', () => {
+    const before = state({ stats: { money: 9_000_000 } })
+    expect(takeCourse(before, second)).toBe(before)
+  })
+})
+
 describe('수강 조건', () => {
   it('수강료가 모자라면 못 듣고, 사유에 금액이 적힌다', () => {
     const course = findCourse('ai-basic')!
@@ -63,13 +124,21 @@ describe('수강 조건', () => {
     expect(blockReason(poor, course)).toContain('수강료')
   })
 
+  /* ⚠️ **진도 잠금을 먼저 푼 판으로 잰다**(2026-08-15). 잠긴 강의는 스탯을 보기 전에
+     "앞 단계를 먼저 수료하라"에서 걸리므로, 잠긴 채로 재면 이 테스트는 스탯 사유가
+     사라져도 통과한다 — 그러면 지키는 것이 없어진다. */
   it('스탯 조건이 모자라면 사유에 필요 수치와 현재 수치가 함께 적힌다', () => {
-    const course = findCourse('money-advanced')! // 지식 45
-    const dull = state({ stats: { money: 500000, knowledge: 10 } })
+    const course = COURSES.find((c) => c.level === COURSE_LEVELS[1] && c.requires?.knowledge)!
+    const need = course.requires!.knowledge!
+    const beginner = COURSES.find((c) => c.level === COURSE_LEVELS[0])!
+    const dull = state({
+      stats: { money: 500000, knowledge: need - 1 },
+      courses: { [beginner.id]: CERTIFICATE_SESSIONS },
+    })
     expect(canTake(dull, course)).toBe(false)
     const why = blockReason(dull, course)!
-    expect(why).toContain('45')
-    expect(why).toContain('10')
+    expect(why).toContain(String(need))
+    expect(why).toContain(String(need - 1))
   })
 
   it('행동력이 모자라면 못 듣는다', () => {

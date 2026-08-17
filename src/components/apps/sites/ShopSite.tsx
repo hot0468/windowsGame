@@ -2,10 +2,17 @@ import { useState } from 'react'
 import { activitiesUnlockedBy } from '../../../data/activities'
 import { buyableFor } from '../../../data/items'
 import { LOTTERY_NAME, LOTTERY_PRIZES, MAX_TICKETS_PER_BUY, TICKET_PRICE } from '../../../data/lottery'
+import { COUPON_MAX_DISCOUNT } from '../../../data/messages'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
-import { canOrder, owns } from '../../../systems/delivery'
-import { affordableTickets, canBuyTickets, lotteryOf, payoutRatio } from '../../../systems/lottery'
+import { canOrder, couponDay, couponDiscount, owns, priceOf } from '../../../systems/delivery'
+import {
+  affordableTickets,
+  canBuyTickets,
+  lotteryOf,
+  nextDrawDay,
+  payoutRatio,
+} from '../../../systems/lottery'
 import { STAT_NAMES } from '../../../types/game'
 import type { ShopItem } from '../../../data/items'
 import './ShopSite.css'
@@ -48,8 +55,10 @@ function LotteryCounter() {
   const lot = lotteryOf(state)
   const max = affordableTickets(state)
   const ok = canBuyTickets(state, count)
-  /** 아직 정산되지 않은 표(= 오늘 산 것). 최신이 앞에 있다. */
+  /** 최근에 산 표. 최신이 앞에 있다. */
   const recent = lot.tickets.slice(0, 5)
+  /** 지금 사면 굴러갈 날. **`systems/lottery.ts`에 물어본다** — 화면이 요일을 세지 않는다. */
+  const draw = nextDrawDay(state.day)
 
   return (
     <section className="shop-lotto" aria-labelledby="shop-lotto-title">
@@ -60,7 +69,7 @@ function LotteryCounter() {
             {LOTTERY_NAME}
           </h2>
           <p className="shop-lotto-sub">
-            한 장 {won(TICKET_PRICE)} · 당첨금은 <strong>그날 밤</strong> 들어옵니다
+            한 장 {won(TICKET_PRICE)} · 추첨은 <strong>매주 토요일</strong>({draw}일차) 밤입니다
           </p>
         </div>
         <p className="shop-lotto-ev">
@@ -111,10 +120,18 @@ function LotteryCounter() {
           <ul>
             {recent.map((t) => (
               <li key={t.id}>
-                <span>{t.day}일차</span>
-                {/* ux `color-not-only`: 당첨은 색만이 아니라 등수 글자가 함께 말한다. */}
-                <span className={t.prize ? 'shop-lotto-win' : 'shop-lotto-lose'}>
-                  {t.prize ? `${t.prize} ${won(t.amount)}` : '꽝'}
+                <span>{t.day}일차 구매</span>
+                {/* ux `color-not-only`: 당첨도 대기도 색만이 아니라 글자가 함께 말한다. */}
+                <span
+                  className={
+                    !t.drawn ? 'shop-lotto-wait' : t.prize ? 'shop-lotto-win' : 'shop-lotto-lose'
+                  }
+                >
+                  {!t.drawn
+                    ? `${t.drawDay}일차 추첨`
+                    : t.prize
+                      ? `${t.prize} ${won(t.amount)}`
+                      : '꽝'}
                 </span>
               </li>
             ))}
@@ -146,6 +163,8 @@ export function ShopSite() {
 
   if (!state) return null
   const shipping = (state.deliveries ?? []).map((d) => d.itemId)
+  /* 쿠폰이 오늘 왔고 아직 안 썼는가. 조건을 여기서 다시 적지 않는다(`couponDiscount`와 같은 두 줄). */
+  const couponLeft = couponDay(state.day) && state.couponUsedDay !== state.day
 
   return (
     <div className="shop">
@@ -156,6 +175,18 @@ export function ShopSite() {
           소지금 <strong>{state.stats.money.toLocaleString()}</strong>원
         </p>
       </header>
+
+      {/* 쿠폰이 살아 있는 동안만 뜬다 — 쓰고 나면 사라지므로 "남았는가"를 이 줄이 말한다.
+          아래 가격이 이미 깎인 값이라(`priceOf`) 여기서 "한 건"을 함께 적지 않으면
+          다음 주문부터 값이 도로 오르는 이유를 알 길이 없다.
+          판형은 주문 안내(`shop-receipt`)를 그대로 쓴다 — 같은 자리에 뜨는 같은 성격의
+          알림이라 상자를 하나 더 만들 이유가 없다. */}
+      {couponLeft && (
+        <p className="shop-receipt" role="status">
+          오늘 온 반값 쿠폰이 남아 있습니다 — <strong>주문 한 건</strong>에 최대{' '}
+          {won(COUPON_MAX_DISCOUNT)}까지 깎입니다.
+        </p>
+      )}
 
       {justOrdered && (
         <p className="shop-receipt" role="status">
@@ -190,6 +221,7 @@ export function ShopSite() {
                 const isOwned = owns(state, item.id)
                 const isShipping = shipping.includes(item.id)
                 const buyable = canOrder(state, item)
+                const off = couponDiscount(state, item)
                 return (
                   <li key={item.id} className="shop-card">
                     <span className="shop-thumb">
@@ -215,7 +247,12 @@ export function ShopSite() {
                       </p>
                     </div>
                     <div className="shop-buy">
-                      <span className="shop-price">{item.price.toLocaleString()}원</span>
+                      {/* 깎인 값이 큰 글씨다 — 실제로 내는 돈이 그쪽이다.
+                          정가는 옆에 작게 남긴다(중고마켓의 '정가 …원'과 같은 판형). */}
+                      <span className="shop-price">{won(priceOf(state, item))}</span>
+                      {off > 0 && (
+                        <span className="shop-coupon-off">쿠폰 −{won(off)} · 정가 {won(item.price)}</span>
+                      )}
                       <button
                         type="button"
                         className="shop-btn"

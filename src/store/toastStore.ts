@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { playSound } from '../sound'
 import type { Message } from '../data/messages'
 
 /**
@@ -31,6 +32,8 @@ export const useToastStore = create<ToastStore>((set, get) => ({
     const existing = new Set(get().toasts.map((t) => t.id))
     const fresh = messages.filter((m) => !existing.has(m.id)).map((m) => ({ id: m.id, message: m }))
     if (!fresh.length) return
+    /* 소리는 **배치당 한 번**이다 — 카드마다 울리면 한 턴에 세 번 겹쳐 시끄럽다. */
+    playSound('toast')
     set({ toasts: [...get().toasts, ...fresh].slice(-MAX_TOASTS) })
   },
 

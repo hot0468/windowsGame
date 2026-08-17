@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { LAYERS } from '../data/layers'
 import { DESKTOP_ITEMS } from '../data/desktopItems'
+import { playSound } from '../sound'
 import type { FolderId, IconName, ToolRunPayload, WindowKind } from '../types/game'
 
 /** 최대화 이전의 좌표·크기. 복원할 때 이 값으로 되돌린다. */
@@ -162,10 +163,16 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       restore: { x: win.x, y: win.y, width: win.width },
       zIndex,
     }
+    /* 이미 열린 창을 앞으로 가져올 때는 위에서 반환됐다 — **정말 새로 열릴 때만** 소리. */
+    playSound('open')
     set({ windows: [...get().windows, opened], topZ: zIndex })
   },
 
-  close: (id) => set({ windows: get().windows.filter((w) => w.id !== id) }),
+  close: (id) => {
+    if (!get().windows.some((w) => w.id === id)) return
+    playSound('close')
+    set({ windows: get().windows.filter((w) => w.id !== id) })
+  },
 
   focus: (id) => {
     const zIndex = get().topZ + Z_STEP

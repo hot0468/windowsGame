@@ -3,10 +3,13 @@ import { AdwareApp } from '../apps/AdwareApp'
 import { BrowserApp } from '../apps/BrowserApp'
 import { CallCenterApp } from '../apps/CallCenterApp'
 import { WishApp } from '../apps/WishApp'
+import { CatApp } from '../apps/CatApp'
+import { DilemmaApp } from '../apps/DilemmaApp'
 import { DriveApp } from '../apps/DriveApp'
 import { ChatListApp, ChatThreadApp } from '../apps/ChatApp'
 import { MailApp } from '../apps/MailApp'
-import { CommandPromptApp, SaveApp, TaskManagerApp } from '../apps/SystemApps'
+import { CommandPromptApp, SaveApp } from '../apps/SystemApps'
+import { TaskMgrApp } from '../apps/TaskMgrApp'
 import { SchedulerApp } from '../apps/SchedulerApp'
 import { ExplorerApp } from '../apps/ExplorerApp'
 import { AutoLogApp } from '../apps/AutoLogApp'
@@ -15,6 +18,7 @@ import { ExeApp } from '../apps/ExeApp'
 import { SettingsApp } from '../apps/SettingsApp'
 import { PaintApp } from '../apps/PaintApp'
 import { SolitaireApp } from '../apps/SolitaireApp'
+import { MinesweeperApp } from '../apps/MinesweeperApp'
 import { SteamApp } from '../apps/SteamApp'
 import { ToolRun } from '../apps/ToolRun'
 import { ClipStudioApp } from '../apps/ClipStudioApp'
@@ -59,10 +63,13 @@ export const WINDOW_APP_KINDS = [
   'browser',
   'solitaire',
   'paint',
+  'minesweeper',
   'steam',
   'settings',
   'callcenter',
   'wish',
+  'cat',
+  'dilemma',
   'drive',
   'tool',
   'clipstudio',
@@ -107,8 +114,9 @@ export function appForWindow(w: OpenWindow, { onClose }: AppSlots): ReactNode {
       return <MailApp />
     case 'save':
       return <SaveApp />
+    /* 내 상태를 프로세스 목록으로 보여 주는 진단 창. 읽기 전용이다(도감과 같은 규칙). */
     case 'taskmgr':
-      return <TaskManagerApp />
+      return <TaskMgrApp />
     case 'cmd':
       return <CommandPromptApp />
     case 'scheduler':
@@ -129,12 +137,21 @@ export function appForWindow(w: OpenWindow, { onClose }: AppSlots): ReactNode {
     /* 그림판도 같다 — 그린 것은 캔버스에만 살고 창을 닫으면 사라진다(저장할 곳이 없다). */
     case 'paint':
       return <PaintApp />
+    /* 지뢰찾기. 활동 `game`을 직접 실행해야 뜨고, 승패는 게임 상태에 아무것도 안 쓴다. */
+    case 'minesweeper':
+      return <MinesweeperApp />
     /* 라이브러리 한 화면. 게임을 켜는 것은 활동 `game` 1턴이다. */
     case 'steam':
       return <SteamApp />
     /* 랭크 이벤트(감수성 A)가 여는 창. 턴을 쓰지 않고 소원 하나를 고른다. */
     case 'wish':
       return <WishApp onClose={onClose} />
+    /* 길고양이 만남. 시드가 정한 날 밤에만 저절로 뜬다 — 소원 창과 같은 부류다. */
+    case 'cat':
+      return <CatApp onClose={onClose} />
+    /* 아침 딜레마. 돌발 사건이 정한 날 아침에만 저절로 뜬다 — 고양이 만남과 같은 부류다. */
+    case 'dilemma':
+      return <DilemmaApp onClose={onClose} />
     /* 출근이 여는 사내 프로그램. 턴은 이미 지나갔고 여기서 버는 것은 보너스뿐이다. */
     case 'callcenter':
       return <CallCenterApp onClose={onClose} />

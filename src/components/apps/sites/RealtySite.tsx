@@ -44,7 +44,8 @@ export function RealtySite({ site }: { site: Site }) {
         <AppIcon name={site.icon} size={30} />
         <div>
           <h1 className="rt-title">{REALTY_NAME}</h1>
-          <p className="rt-sub">매일 나가는 돈을 줄이는 가장 확실한 방법</p>
+          {/* 사치 칸(생활비를 올리는 집)이 생기며 "줄이는 방법"은 반쪽 거짓이 됐다. */}
+          <p className="rt-sub">매일 나가는 돈이 여기서 정해집니다</p>
         </div>
         <p className="rt-money">
           소지금 <strong>{won(state.stats.money)}</strong>
@@ -118,7 +119,9 @@ export function RealtySite({ site }: { site: Site }) {
                 <dl className="rt-figs">
                   <div>
                     <dt>하루 생활비</dt>
-                    <dd className="rt-num rt-good">{won(rowLiving)}</dd>
+                    {/* 사치 칸은 생활비가 오르므로 초록을 무조건 칠하면 거짓이 된다 —
+                        의미는 아래 '지금보다' 줄의 부호가 지고 여기는 싸질 때만 거든다. */}
+                    <dd className={`rt-num${saved > 0 ? ' rt-good' : ''}`}>{won(rowLiving)}</dd>
                   </div>
                   <div>
                     <dt>지금보다</dt>
@@ -138,9 +141,13 @@ export function RealtySite({ site }: { site: Site }) {
                 </dl>
 
                 {/* ⚠️ **대가를 감추지 않는다.** 싼 방일수록 밤마다 멘탈이 깎이는데
-                    그것을 안 적으면 플레이어는 왜 멘탈이 줄어드는지 영영 모른다. */}
+                    그것을 안 적으면 플레이어는 왜 멘탈이 줄어드는지 영영 모른다.
+                    음수는 사치 칸의 밤 보너스다 — 같은 자리에서 반대 문장으로 적는다. */}
                 {h.mentalPerNight > 0 && (
                   <p className="rt-cost">잠자리가 편치 않습니다 — 매일 밤 멘탈 -{h.mentalPerNight}</p>
+                )}
+                {h.mentalPerNight < 0 && (
+                  <p className="rt-cost">잠자리가 몸에 붙습니다 — 매일 밤 멘탈 +{-h.mentalPerNight}</p>
                 )}
 
                 <div className="rt-buy">
@@ -189,7 +196,11 @@ export function RealtySite({ site }: { site: Site }) {
             </p>
             <p className="rt-dlg-body">
               오늘 생활비가 <strong>{won(living)}</strong> →{' '}
-              <strong className="rt-good">{won(Math.round(base * confirming.rate))}</strong>이 됩니다.
+              {/* 사치 칸은 생활비가 오른다 — 초록은 내려갈 때만(카드의 색 규칙과 같다). */}
+              <strong className={Math.round(base * confirming.rate) < living ? 'rt-good' : ''}>
+                {won(Math.round(base * confirming.rate))}
+              </strong>
+              이 됩니다.
             </p>
             <div className="rt-dlg-btns">
               <button

@@ -1,4 +1,4 @@
-import { CERTIFICATE_SESSIONS, findCourse } from '../data/courses'
+import { CERTIFICATE_SESSIONS, COURSES, COURSE_LEVELS, findCourse, levelRank } from '../data/courses'
 import { findActivity } from '../data/activities'
 import { findItem } from '../data/items'
 import { canRun, owns, runActivity } from './turn'
@@ -29,6 +29,28 @@ export function isCompleted(state: GameState, courseId: string): boolean {
 }
 
 /**
+ * 이 난이도가 열려 있는가 — **진도 잠금**(2026-08-15, 설계자 지시:
+ * "입문부터 횟수 채우면 차례대로 열리게").
+ *
+ * ⚠️ **앞 단계에서 아무거나 하나만 수료하면 열린다**(전부 수료가 아니다). 입문이 셋인데
+ * 전부 요구하면 고급에 닿기까지 수강만 스물일곱 턴이라, 잠금이 진도가 아니라 통행세가 된다.
+ * 한 단계당 `CERTIFICATE_SESSIONS`회 = 3턴 + 수강료 3번이 지금의 값이다.
+ *
+ * ⚠️ **수료(3회)를 기준으로 삼는 것이 규칙이다** — "한 번이라도 들었으면"으로 낮추면
+ * 가장 싼 입문 하나를 한 번 듣고 고급까지 직행할 수 있어 순서가 뜻을 잃는다.
+ *
+ * ⚠️ **첫 단계는 언제나 열려 있다.** 시작하자마자 아무것도 못 듣는 판을 만들지 말 것.
+ * ⚠️ 모르는 난이도(`levelRank`가 -1)는 **열어 준다** — 데이터가 어긋났을 때 잠기는 쪽으로
+ * 넘어지면 강의가 통째로 사라진 것처럼 보인다(`courses.test.ts`가 그 어긋남을 잡는다).
+ */
+export function levelUnlocked(state: GameState, level: string): boolean {
+  const rank = levelRank(level)
+  if (rank <= 0) return true
+  const previous = COURSE_LEVELS[rank - 1]
+  return COURSES.some((c) => c.level === previous && isCompleted(state, c.id))
+}
+
+/**
  * 수강료를 포함해 이 강의를 지금 들을 수 있는가.
  *
  * ⚠️ **활동 조건은 `canRun`에게 묻는다** — 행동력·번아웃·게임오버 판정을 여기서 다시
@@ -46,7 +68,14 @@ export function blockReason(state: GameState, course: Course): string | null {
   if (state.recovery) return '게임이 끝났습니다.'
   const activity = findActivity(course.activityId)
   if (!activity) return '강의 정보를 불러오지 못했습니다.'
-  // 수강료를 먼저 본다 — 활동 자체의 돈 조건보다 이쪽이 항상 크고 구체적이다.
+  /* ⚠️ **진도 잠금이 돈·스탯보다 먼저다.** 돈이 없어서 못 듣는 것과 아직 열리지 않은 것은
+     플레이어가 할 일이 다르다(벌어 오기 vs 앞 단계 수료하기) — 순서를 뒤집으면 잠긴 고급
+     강의가 "수강료가 부족합니다"라고 말해 엉뚱한 곳으로 보낸다. */
+  if (!levelUnlocked(state, course.level)) {
+    const previous = COURSE_LEVELS[levelRank(course.level) - 1]
+    return `${previous} 강의를 먼저 수료해야 합니다 — ${previous} 아무거나 ${CERTIFICATE_SESSIONS}회`
+  }
+  // 수강료를 본다 — 활동 자체의 돈 조건보다 이쪽이 항상 크고 구체적이다.
   if (state.stats.money < course.price) {
     return `수강료 ${course.price.toLocaleString()}원이 부족합니다 — 현재 ${state.stats.money.toLocaleString()}원`
   }

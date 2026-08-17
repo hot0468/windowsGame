@@ -6,6 +6,7 @@ import { useWindowStore } from '../../store/windowStore'
 import { daysToBilling, subscriptionsOf } from '../../systems/subscription'
 import { subscribed } from '../../systems/turn'
 import { useShell } from '../../hooks/useShell'
+import { useMetaStore } from '../../store/metaStore'
 import type { Subscription } from '../../data/subscriptions'
 import type { GameState } from '../../types/game'
 import './SettingsApp.css'
@@ -40,6 +41,8 @@ export function SettingsApp() {
   const unsubscribeFrom = useGameStore((s) => s.unsubscribeFrom)
   const startTour = useGameStore((s) => s.startTour)
   const openSite = useWindowStore((s) => s.openSite)
+  const soundOn = useMetaStore((s) => s.soundOn)
+  const toggleSound = useMetaStore((s) => s.toggleSound)
   const mobile = useShell() === 'mobile'
 
   if (!state) return null
@@ -87,6 +90,27 @@ export function SettingsApp() {
           요금은 가입한 날로부터 {BILLING_INTERVAL_DAYS}일마다 청구됩니다. 잔액이 모자라면
           그날로 해지되고, 밀린 요금이 쌓이지는 않습니다.
         </p>
+      </section>
+
+      {/* 소리(2026-08-17). 판이 아니라 플레이어의 설정이라 metaStore에 산다. */}
+      <section className="set-sec" aria-label="소리">
+        <div className="set-sec-head">
+          <h2 className="set-sec-title">소리</h2>
+        </div>
+        <article className="set-row">
+          <span className="set-row-body">
+            <span className="set-row-name">효과음</span>
+            {/* 상태를 색·버튼 모양만으로 알리지 않는다(color-not-only) — 글자가 뜻을 진다. */}
+            <span className="set-row-state">
+              {soundOn ? '켬 · 창을 열고 닫을 때, 알림이 올 때 소리가 납니다.' : '끔'}
+            </span>
+          </span>
+          <span className="set-row-act">
+            <button type="button" className="set-btn" onClick={toggleSound} aria-pressed={soundOn}>
+              {soundOn ? '끄기' : '켜기'}
+            </button>
+          </span>
+        </article>
       </section>
 
       {/* ⚠️ **한 번 보고 끝이면 안 된다** — 첫 판 안내는 새로고침 한 번이면 사라지는데,

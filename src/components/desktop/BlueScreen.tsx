@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { findActivity } from '../../data/activities'
+import { playSound } from '../../sound'
 import { EFFICIENCY_FLOOR, getBurnoutPenalty } from '../../systems/burnout'
 import { useGameStore } from '../../store/gameStore'
 import './BlueScreen.css'
@@ -55,6 +56,7 @@ export function BlueScreen() {
     const id = recent[recent.length - 1]
     if (!id) return
     if (getBurnoutPenalty(recent, id).efficiency > EFFICIENCY_FLOOR) return
+    playSound('error')
     setFailed(id)
     const timer = setTimeout(() => setFailed(null), SHOW_MS)
     return () => clearTimeout(timer)

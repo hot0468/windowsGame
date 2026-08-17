@@ -1,0 +1,144 @@
+/*
+ * 지뢰찾기 — 클래식 윈도우 회색 베벨.
+ *
+ * ⚠️ **색은 이 파일 안에 가둔다**(솔리테어와 같은 규칙 — 전역 `--os-*`에 새 색을 더하지
+ * 않는다). 간격·글자 크기만 전역 토큰을 쓴다.
+ *
+ * 숫자 색은 클래식 배색이되 #c0c0c0 판 위 대비 4.5:1을 넘도록 낮춰 잡았다(계산으로
+ * 충분하다 — 합성 없는 단색 위다): 2 초록 #005c00 4.6 · 3 빨강 #a00000 4.6 ·
+ * 6 청록 #005555 4.8 · 8 회색 #404040 5.7. 원색 #008000·#ff0000·#008080·#808080은
+ * 2~2.8:1이라 탈락. 1·4·5·7은 원색 그대로 4.5를 넘는다.
+ */
+
+/* 회색 판이 창 가장자리까지 깔린다(솔리테어의 펠트와 같은 판단). */
+.win-body:has(> .ms) {
+  padding: 0;
+}
+
+.ms {
+  --ms-face: #c0c0c0;
+  --ms-hi: #ffffff;
+  --ms-lo: #808080;
+  --ms-grid: #9a9a9a;
+  --ms-led-bg: #000000;
+  --ms-led: #ff2020;
+  --ms-boom: #a00000;
+  --ms-n1: #0000ff;
+  --ms-n2: #005c00;
+  --ms-n3: #a00000;
+  --ms-n4: #000080;
+  --ms-n5: #800000;
+  --ms-n6: #005555;
+  --ms-n7: #000000;
+  --ms-n8: #404040;
+  /* 칸 한 변. 클래식 16px는 요즘 포인터에 너무 작다 — 9칸 판이 창 폭 안에 들어오는 상한. */
+  --ms-cell: 32px;
+
+  display: flex;
+  justify-content: center;
+  background: var(--ms-face);
+  padding: var(--sp-3);
+  color: var(--ms-n7);
+}
+
+/* 바깥 판 — 클래식의 돋은 베벨 프레임. */
+.ms-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  background: var(--ms-face);
+  border: 3px solid;
+  border-color: var(--ms-hi) var(--ms-lo) var(--ms-lo) var(--ms-hi);
+  padding: var(--sp-3);
+}
+
+/* 카운터·리셋 줄 — 파인 베벨 홈. */
+.ms-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 2px solid;
+  border-color: var(--ms-lo) var(--ms-hi) var(--ms-hi) var(--ms-lo);
+  padding: var(--sp-2);
+}
+
+/* LED 계기판. 흰 글자가 아니라 클래식 빨강 — 검정 위 5.5:1로 AA를 넘는다. */
+.ms-led {
+  font-family: 'Consolas', monospace;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ms-led);
+  background: var(--ms-led-bg);
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid;
+  border-color: var(--ms-lo) var(--ms-hi) var(--ms-hi) var(--ms-lo);
+}
+
+.ms-face {
+  display: grid;
+  place-items: center;
+  width: calc(var(--ms-cell) + 2px);
+  height: calc(var(--ms-cell) + 2px);
+  background: var(--ms-face);
+  border: 3px solid;
+  border-color: var(--ms-hi) var(--ms-lo) var(--ms-lo) var(--ms-hi);
+  cursor: pointer;
+  color: inherit;
+}
+
+.ms-face:active {
+  border-color: var(--ms-lo) var(--ms-hi) var(--ms-hi) var(--ms-lo);
+}
+
+/* 지뢰밭 — 파인 베벨 안의 9열 격자. */
+.ms-grid {
+  display: grid;
+  grid-template-columns: repeat(9, var(--ms-cell));
+  border: 3px solid;
+  border-color: var(--ms-lo) var(--ms-hi) var(--ms-hi) var(--ms-lo);
+  width: max-content;
+}
+
+.ms-cell {
+  box-sizing: border-box;
+  width: var(--ms-cell);
+  height: var(--ms-cell);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: var(--ms-face);
+  border: 3px solid;
+  border-color: var(--ms-hi) var(--ms-lo) var(--ms-lo) var(--ms-hi);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* 연 칸 — 도드라진 베벨이 사라지고 얇은 격자선만 남는다. */
+.ms-cell.ms-open {
+  border: 1px solid var(--ms-grid);
+  border-width: 1px 0 0 1px;
+  cursor: default;
+}
+
+/* 밟은 지뢰만 빨갛다 — 진 원인이 한눈에 갈린다(색만이 아니라 유일하게 열린 지뢰라는 형태로도). */
+.ms-cell.ms-boom {
+  background: var(--ms-boom);
+  color: var(--ms-hi);
+}
+
+.ms-flag {
+  color: var(--ms-boom);
+}
+
+.ms-cell.ms-n1 { color: var(--ms-n1); }
+.ms-cell.ms-n2 { color: var(--ms-n2); }
+.ms-cell.ms-n3 { color: var(--ms-n3); }
+.ms-cell.ms-n4 { color: var(--ms-n4); }
+.ms-cell.ms-n5 { color: var(--ms-n5); }
+.ms-cell.ms-n6 { color: var(--ms-n6); }
+.ms-cell.ms-n7 { color: var(--ms-n7); }
+.ms-cell.ms-n8 { color: var(--ms-n8); }

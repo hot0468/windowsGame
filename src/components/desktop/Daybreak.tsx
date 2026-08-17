@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatGameDate, weekdayOf } from '../../data/calendar'
 import { useGameStore } from '../../store/gameStore'
-import { useWindowStore } from '../../store/windowStore'
+import { useResultOpen } from './shownTime'
 import type { Slot } from '../../types/game'
 import './Daybreak.css'
 
@@ -62,14 +62,11 @@ export function Daybreak() {
   const slot = useGameStore((s) => s.state?.slot)
   const recovery = useGameStore((s) => s.state?.recovery)
   const autoRunning = useGameStore((s) => s.autoRunning)
-  /* ⚠️ **창 종류로 본다**(창 id가 아니라) — 실행 연출은 활동마다 id가 다르고, 앞으로
-     장면이 붙는 활동이 늘어도 이 줄은 그대로여야 한다. */
-  /* ⚠️ **기다리는 대상이 둘이다**: 실행 연출(`kind: 'tool'`)과 **시스템 팝업 전부**
-     (`popup` — 등급 상승 알림이 그쪽이다). 팝업은 [확인]을 눌러야 넘어가는 창이라
-     그 위를 해가 덮으면 두 알림이 한 화면에서 다툰다. */
-  const runOpen = useWindowStore((s) =>
-    s.windows.some((w) => !w.minimized && (w.kind === 'tool' || w.popup)),
-  )
+  /* ⚠️ **판정은 `useResultOpen` 하나가 진다** — 화면이 적는 시각(`useShownTime`)도 같은
+     것을 기다리므로, 여기에 조건을 따로 적으면 시계가 넘어가는 시점과 이 알림이 뜨는
+     시점이 갈린다(팝업은 [확인]을 눌러야 넘어가는 창이라 그 위를 해가 덮으면 두 알림이
+     한 화면에서 다툰다). */
+  const runOpen = useResultOpen()
 
   /**
    * 마지막으로 알린 날. **ref인 이유는 ToastHost와 같다** — 이 값이 바뀐다고 다시 그릴

@@ -5,6 +5,7 @@ import { lifeRankOf } from './lifeRank'
 import { clampStats } from './turn'
 import { recordEvent } from './delivery'
 import type { RankEvent } from '../data/rankEvents'
+import type { StatRank } from './rank'
 import type { GameState, GrowthStatKey } from '../types/game'
 
 /**
@@ -52,7 +53,7 @@ export function seenRankEvent(state: GameState, id: string): boolean {
  */
 export function rankReached(state: GameState, event: RankEvent): boolean {
   if (event.afterDay !== undefined && state.day < event.afterDay) return false
-  /* ⚠️ **`key`가 없으면 생활 등급을 본다**(성장 스탯 15종의 평균). 스탯 하나로는
+  /* ⚠️ **`key`가 없으면 생활 등급을 본다**(성장 스탯 상위 12종 평균). 스탯 하나로는
      답할 수 없는 "두루 올렸는가"가 조건인 이벤트가 그쪽이다 — 판정을 `lifeRankOf`
      하나에게 맡기는 것은 `rankOf`에 맡기는 것과 같은 이유다(문턱을 두 곳에 적지 않는다). */
   const rank = event.key ? rankOf(event.key, state.stats[event.key]) : lifeRankOf(state.stats).rank
@@ -190,6 +191,14 @@ export function rankEventMessages(
       from: '편집자 지우',
       text: '한 가지만 파신 분들 글은 많은데, 여러 곳을 지나오신 분 글이 필요합니다. 살아오신 이야기로 한 편 써 주시겠어요? 분량은 자유입니다.',
     },
+    'essay-press': {
+      from: '길눈 편집부 민영',
+      text: '월간 물음표에 쓰신 칼럼을 처음부터 다 읽었습니다. 이 이야기는 한 권으로 묶여야 합니다. 목차부터 같이 잡아 보시죠.',
+    },
+    'stage-hall': {
+      from: '온스테이지 김피디',
+      text: '무대에서 사십 분, 살아오신 이야기를 그대로 들려주시면 됩니다. 대본은 저희가 같이 다듬고요. 이번 시즌 마지막 자리를 비워 뒀습니다.',
+    },
     /* S 등급이 여는 방 다섯. ⚠️ **말투가 앞의 방들과 다르다** — 오픈채팅 권유가
        아니라 **일을 맡기는 연락**이라, 자기소개보다 용건이 먼저 온다. */
     'univ-office': {
@@ -253,6 +262,21 @@ export function rankEventMessages(
     from: lines[e.target].from,
     text: lines[e.target].text,
   }))
+}
+
+/**
+ * 스탯창이 적는 **다음 생활 목표** — 아직 안 겪은 생활 등급 이벤트 중 가장 낮은 문턱.
+ *
+ * ⚠️ 게이지는 "얼마나 남았나"만 말한다. **"올라서 무엇이 오나"를 이 한 줄이 말한다** —
+ * 이것이 없던 동안 생활 등급은 아무 데도 끌고 가지 않는 숫자였다(2026-08-16).
+ * 문구의 단일 출처는 `RankEvent.teaser`다(방 이름·활동명을 여기서 다시 적으면
+ * 같은 사실의 두 번째 출처가 된다). 사다리를 다 오르면 `undefined` — 그때는 게이지만 남는다.
+ */
+export function nextLifeGoal(state: GameState): { rank: StatRank; teaser: string } | undefined {
+  const next = RANK_EVENTS.filter((e) => !e.key && e.teaser && !seenRankEvent(state, e.id)).sort(
+    (a, b) => RANK_ORDER.indexOf(a.rank) - RANK_ORDER.indexOf(b.rank),
+  )[0]
+  return next ? { rank: next.rank, teaser: next.teaser! } : undefined
 }
 
 /**

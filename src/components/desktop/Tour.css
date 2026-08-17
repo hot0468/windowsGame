@@ -57,13 +57,6 @@
   outline-offset: 2px;
 }
 
-/* 물어보는 팝업은 어느 것도 가리키지 않으므로 화면 한가운데다. */
-.tour-ask {
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
 .tour-step {
   margin: 0 0 var(--sp-1);
   font-size: var(--fs-xs);

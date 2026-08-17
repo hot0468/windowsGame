@@ -3,7 +3,7 @@ import { COURSES, COURSE_CATEGORIES, COURSE_LEVELS, CERTIFICATE_SESSIONS } from 
 import { findActivity } from '../../../data/activities'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
-import { blockReason, sessionsOf, isCompleted } from '../../../systems/courses'
+import { blockReason, sessionsOf, isCompleted, levelUnlocked } from '../../../systems/courses'
 import type { Course } from '../../../data/courses'
 import type { Site } from '../../../data/sites'
 import { ActivityConfirm } from '../ActivityConfirm'
@@ -151,6 +151,7 @@ export function CampusSite({ site }: { site: Site }) {
                     picked={c.id === pickedId}
                     sessions={sessionsOf(state, c.id)}
                     done={isCompleted(state, c.id)}
+                    locked={!levelUnlocked(state, c.level)}
                     onPick={pick}
                   />
                 ))}
@@ -174,6 +175,7 @@ export function CampusSite({ site }: { site: Site }) {
                     picked={c.id === pickedId}
                     sessions={sessionsOf(state, c.id)}
                     done={isCompleted(state, c.id)}
+                    locked={!levelUnlocked(state, c.level)}
                     onPick={pick}
                   />
                 ))}
@@ -233,6 +235,7 @@ function CourseCard({
   picked,
   sessions,
   done,
+  locked,
   onPick,
 }: {
   course: Course
@@ -240,18 +243,27 @@ function CourseCard({
   picked: boolean
   sessions: number
   done: boolean
+  /**
+   * 앞 단계를 아직 수료하지 않아 잠긴 강의인가(`levelUnlocked`).
+   * ⚠️ **감추지 않는다** — 무엇이 기다리고 있는지 보여야 앞 단계를 들을 이유가 생긴다
+   * (스탯 미달 강의를 감추지 않는 것과 같은 규칙). 누르면 확인창이 사유를 적는다.
+   */
+  locked: boolean
   onPick: (id: string) => void
 }) {
   return (
     <button
       type="button"
-      className={`cam-card${picked ? ' cam-card-on' : ''}`}
+      className={`cam-card${picked ? ' cam-card-on' : ''}${locked ? ' cam-card-locked' : ''}`}
       aria-pressed={picked}
       onClick={() => onPick(course.id)}
     >
       <span className="cam-thumb" style={{ background: course.gradient }}>
         <AppIcon name={course.icon} size={38} />
         {done && <span className="cam-badge">수료</span>}
+        {/* ⚠️ 색이 아니라 **글자**가 잠금을 말한다(ux `color-not-only`). 수료 배지와 같은
+            자리를 쓰되 둘이 함께 뜰 일은 없다 — 수료했으면 그 난이도는 이미 열려 있다. */}
+        {locked && !done && <span className="cam-badge">잠김</span>}
       </span>
       <span className="cam-card-body">
         {rank !== undefined && <span className="cam-rank-no">{rank}</span>}

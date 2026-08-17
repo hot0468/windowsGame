@@ -11,6 +11,7 @@ import { findActivity } from '../../data/activities'
 import { EPISODE_PAY, SERIES_TITLE, STUDIO_NAME, WEEKLY_PAGES, webtoonLevel } from '../../systems/webtoon'
 import { useGameStore } from '../../store/gameStore'
 import { useMetaStore } from '../../store/metaStore'
+import type { PastLife } from '../../store/metaStore'
 import type { Ending } from '../../data/endings'
 import type { GameState } from '../../types/game'
 import './ExcelApp.css'
@@ -44,7 +45,7 @@ import './ExcelApp.css'
  * ⚠️ **읽기 전용 창이다.** `gameStore`를 읽기만 하고 턴·스탯을 건드리지 않는다.
  */
 
-type SheetId = 'career' | 'ending' | 'achievement' | 'relation'
+type SheetId = 'career' | 'ending' | 'achievement' | 'relation' | 'life'
 
 /** 표 한 줄. 시트가 둘이지만 그리는 코드는 하나다 — 열 이름만 시트가 갖는다. */
 interface Row {
@@ -70,6 +71,7 @@ export function ExcelApp() {
   const unlockedEndings = useMetaStore((s) => s.unlockedEndings)
   const unlockedRelations = useMetaStore((s) => s.unlockedRelations)
   const unlockedCareers = useMetaStore((s) => s.unlockedCareers)
+  const pastLives = useMetaStore((s) => s.pastLives)
   const [sheetId, setSheetId] = useState<SheetId>('career')
   /** 고른 행. 엑셀에서 셀 하나를 고른 것과 같고, 수식 입력줄이 그 값을 적는다. */
   const [picked, setPicked] = useState<string | null>(null)
@@ -84,6 +86,7 @@ export function ExcelApp() {
     endingSheet(seenEndings),
     achievementSheet(state, seenEndings),
     relationSheet(state, unlockedRelations),
+    lifeSheet(pastLives),
   ]
   const sheet = sheets.find((s) => s.id === sheetId) ?? sheets[0]
   const doneCount = sheet.rows.filter((r) => r.done).length
@@ -367,6 +370,43 @@ function relationSheet(state: GameState, unlocked: string[]): Sheet {
       }
     }),
     countLabel: (done, total) => `관계 ${total}명 중 ${done}명`,
+  }
+}
+
+/**
+ * 지난 삶 시트(2026-08-17). **판이 끝나지 않는 게임에 회차 개념을 여는 자리다** —
+ * 시작 메뉴 [새 게임]으로 판을 접으면 `metaStore.pastLives`에 남고 여기 그려진다
+ * (사유는 `metaStore.PastLife` 주석).
+ *
+ * ⚠️ **전부 검정(done)이다** — 이 시트는 해금 목록이 아니라 지나온 사실의 기록이라
+ * 회색(미달성)이 있을 수 없다. 행 번호가 곧 회차라 회차 열을 따로 두지 않는다.
+ * ⚠️ 빈 시트는 행을 지어내지 않는다(죽은 컨트롤 금지) — 상태 표시줄이 길을 알린다.
+ */
+function lifeSheet(pastLives: PastLife[]): Sheet {
+  return {
+    id: 'life',
+    label: '지난 삶',
+    columns: ['이름', '산 날', '생활 등급', '최고 직장'],
+    rows: pastLives.map((life, i) => {
+      const career = CAREERS.find((c) => c.id === life.peakCareerId)
+      return {
+        key: `life-${i}`,
+        done: true,
+        cells: [
+          life.name,
+          `${life.days}일`,
+          life.lifeRank,
+          career ? career.company : '무직',
+        ],
+        detail:
+          `${i + 1}번째 삶 — ${life.name}. ${life.days}일을 살았고 생활 등급 ${life.lifeRank}에 닿았습니다.` +
+          (career ? ` 직장은 ${career.company} ${career.title}까지 갔습니다.` : ' 어디에도 매이지 않고 살았습니다.'),
+      }
+    }),
+    countLabel: (_done, total) =>
+      total === 0
+        ? '아직 접은 삶이 없습니다 — 시작 메뉴 [새 게임]으로 이번 삶을 접으면 여기 남습니다'
+        : `지난 삶 ${total}번 · 지금은 ${total + 1}번째 삶`,
   }
 }
 

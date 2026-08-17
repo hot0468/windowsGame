@@ -326,6 +326,12 @@ export type WindowKind =
    * ⚠️ 활동 `draw`(클립스튜디오)와 무관하다 — 그림을 갤러리에 남기지 않는다.
    */
   | 'paint'
+  /**
+   * 지뢰찾기 — 솔리테어·그림판과 같은 부류의 장난감이되 **여는 자리가 다르다**:
+   * 활동 `game`을 직접 실행해야 `doActivity`가 띄운다(콜센터가 출근에 붙는 규칙 —
+   * 스케줄러·자동 진행으로 지나간 실행은 창이 안 뜬다). 승패는 게임 상태에 아무것도 안 쓴다.
+   */
+  | 'minesweeper'
   /** 설정 — 지금은 구독 관리 한 구역뿐이다(`SettingsApp`). */
   | 'settings'
   /** 아이템 인벤토리·이벤트 도감. 파일 탐색기 UI로 그린다. */
@@ -354,6 +360,17 @@ export type WindowKind =
    * 바탕화면 아이콘도 시작 메뉴 항목도 없다: 아무 때나 켤 수 있으면 "일어난 일"이 아니다.
    */
   | 'wish'
+  /**
+   * 길고양이 만남 창. **별똥별(`wish`)과 같은 부류다** — 바탕화면 아이콘도 시작 메뉴
+   * 항목도 없다: 시드가 정한 날 밤에만 저절로 뜬다(아무 때나 켤 수 있으면 "일어난 일"이
+   * 아니다). 결정은 스토어 액션이 `systems/cat.ts`를 불러 처리하고 창은 읽기만 한다.
+   */
+  | 'cat'
+  /**
+   * 아침 딜레마 창(돌발 사건 세 번째 부류). **길고양이 만남과 같은 부류다** — 아이콘도
+   * 메뉴 항목도 없고 `afterTurn`이 열며, 결정 커서(`dilemmaDecidedDay`)만 기록을 찍는다.
+   */
+  | 'dilemma'
   /**
    * 사내 드라이브(너드라이브). **사무직 출근(`commute`)이 여는 창이고 바탕화면 아이콘이
    * 없다** — 콜센터와 같은 규칙이다(회사 자리에 앉아야 뜨는 사내 프로그램).
@@ -782,10 +799,17 @@ export interface HousingState {
 export interface LotteryTicket {
   /** 렌더 키. 구매 일련번호가 들어 있어 절대 겹치지 않는다. */
   id: string
+  /** 굴림의 시드. **표마다 다르고 세이브에 남는다**(`LotteryState.serial` 참조). */
+  serial: number
+  /** 산 날. */
   day: number
-  /** 당첨 등수 라벨. 꽝이면 undefined. */
+  /** 추첨일(= 산 날 다음 토요일). 그날 밤 `advanceLottery`가 굴린다. */
+  drawDay: number
+  /** 추첨했는가. ⚠️ **꽝도 `prize`가 없으므로 이 값이 따로 있어야 한다.** */
+  drawn: boolean
+  /** 당첨 등수 라벨. 미추첨·꽝이면 undefined. */
   prize?: string
-  /** 상금. 꽝이면 0. */
+  /** 상금. 미추첨·꽝이면 0. */
   amount: number
 }
 
@@ -803,13 +827,16 @@ export interface LotteryState {
   spent: number
   /** 지금까지 받은 상금. */
   won: number
-  /** 최근 구매 기록. 오래된 것부터 잘라 낸다. */
+  /**
+   * 구매 기록. 오래된 것부터 잘라 낸다.
+   * ⚠️ **미추첨 표는 자르지 않는다**(`systems/lottery.ts`) — 자르면 안 굴린 표가 사라진다.
+   */
   tickets: LotteryTicket[]
   /**
    * **오늘 밤 소지금으로 들어올 상금.**
    *
-   * ⚠️ 이 필드가 `turn.ts`의 `nightPayoutPending`에 물리는 지점이다. 오후에 산 표가
-   * 당첨됐는데 그날 밤 생활비를 못 내면, 상금을 손에 쥔 채 굶어 죽는 판정이 난다 —
+   * ⚠️ 이 필드가 `turn.ts`의 `nightPayoutPending`에 물리는 지점이다. 추첨일 밤에 당첨된
+   * 표가 있는데 그날 생활비를 못 내면, 상금을 손에 쥔 채 굶어 죽는 판정이 난다 —
    * 급여·정기예금 만기에서 이미 두 번 터진 것과 **같은 형태의 버그**다.
    * 밤 정산(`advanceLottery`)이 소지금에 넣고 이 값을 0으로 되돌린다.
    */
@@ -1130,8 +1157,36 @@ export interface WebtoonState {
   earned: number
 }
 
+/**
+ * 길고양이. **옵셔널이다** — 만난 적 없으면 없다(구세이브도 "만난 적 없음"으로 읽힌다).
+ *
+ * 수치는 `data/cat.ts`, 규칙은 `systems/cat.ts`에 있다 — 여기에는 **모양만** 적는다
+ * (`Plan`·`BandState`와 같은 이유). 방문일은 저장하지 않는다(판 시드의 순수 함수다).
+ */
+export interface CatState {
+  /** 사료를 준 횟수. `CAT_FEEDS_TO_ADOPT`에 닿으면 들일 수 있다. */
+  fed: number
+  /** 모른 척한 횟수. 한 번도 안 먹이고 쌓이면 다시 오지 않는다. */
+  ignored: number
+  /** 마지막으로 결정을 내린 방문일. 같은 날 창이 두 번 묻는 것을 막는 커서다(`adBonusDay` 판형). */
+  decidedDay?: number
+  /** 들일 때 지어 준 이름. 없으면 기본 이름(`CAT_DEFAULT_NAME`)으로 읽는다. */
+  name?: string
+  /** 집에 들인 날. **이 필드의 존재가 곧 "입양됨"이다.** */
+  adoptedDay?: number
+  /** 마지막으로 쓰다듬은 날. 하루 한 번의 근거다(`adBonusDay`와 같은 날짜 커서). */
+  lastPetDay?: number
+}
+
 export interface GameState {
   playerName: string
+  /**
+   * 판의 시드(2026-08-17 돌발 사건). 새 판을 만들 때 store가 **한 번만** 굴려 박고,
+   * 이후의 모든 돌발 굴림은 이 값과 날짜의 순수 함수다(`systems/chance.ts`) —
+   * 예측도 재굴림도 안 된다(복권 일련번호와 같은 부류).
+   * ⚠️ 옵셔널이다 — 없던 세이브는 `reviveState`가 이름 해시로 결정적으로 메운다.
+   */
+  seed?: number
   day: number
   slot: Slot
   stats: Stats
@@ -1186,6 +1241,13 @@ export interface GameState {
   inventory?: EventLog[]
   /** 아직 오지 않은 주문. */
   deliveries?: Delivery[]
+  /**
+   * 반값 쿠폰을 쓴 날. **옵셔널이다**(쓴 적 없으면 없다).
+   *
+   * 쿠폰이 **오는 날**은 편성표에서 파생되므로 저장하지 않는다(`systems/delivery.ts`의
+   * `couponDay`) — 여기 남기는 사실은 "오늘 이미 썼는가" 하나뿐이다.
+   */
+  couponUsedDay?: number
   /**
    * 중고마켓에 **한 번이라도 팔아 본** 물건 id. **옵셔널이다**(판 적 없으면 없다).
    *
@@ -1377,17 +1439,9 @@ export interface GameState {
    * 날로 친다(`decayAffection`이 그렇게 읽는다).
    */
   lastMet?: Record<string, number>
-  /**
-   * **첫 실행 안내 투어를 이미 물어봤는가**(`components/desktop/Tour.tsx`).
-   *
-   * ⚠️ **판정은 이 값 하나다.** "설명을 들었다"가 아니라 "물어봤다"이므로 [설명 듣기]든
-   * [바로 시작]이든 켜지고, 그래서 같은 판에서 두 번 묻는 일이 없다.
-   * ⚠️ **옵셔널이다** — 필드가 없는 옛 세이브는 "아직 안 물어봄"으로 읽힌다.
-   * ⚠️ **세이브에 둔다**(`metaStore`가 아니라). 안내는 "이 판을 어떻게 시작하는가"이지
-   * 도감처럼 모으는 것이 아니고, 새 판을 여는 사람은 대개 오랜만에 돌아온 사람이라
-   * 다시 묻는 편이 낫다. 언제든 되찾는 길은 설정의 [게임 설명 다시 보기]다.
-   */
-  tourSeen?: boolean
+  /* ⚠️ **투어를 봤는지 세이브에 적지 않는다**(2026-08-16). 새 판은 무조건 투어로
+     시작하고(`gameStore.startGame`) 그 외에는 설정의 [다시 보기]로만 뜨므로, "이미
+     봤는가"가 어떤 판단에도 쓰이지 않는다. 되살리면 죽은 값이 하나 늘 뿐이다. */
   /**
    * 이미 겪은 **랭크 이벤트** id(`data/rankEvents.ts`). 겪은 적 없으면 필드가 없다.
    *
@@ -1395,6 +1449,16 @@ export interface GameState {
    * 받을 수 있고, 그중 하나가 스탯 +100(소원)이다. 규칙은 `systems/rankEvents.ts`.
    */
   rankEvents?: string[]
+  /**
+   * 길고양이. **옵셔널이다** — 만난 적 없으면 없다(`courses`와 같은 규칙 —
+   * 마이그레이션 불필요). 규칙은 `systems/cat.ts`.
+   */
+  cat?: CatState
+  /**
+   * 아침 딜레마의 결정 커서(2026-08-17). 이 값이 오늘이면 창이 다시 묻지 않는다 —
+   * `CatState.decidedDay`와 같은 판형이고 규칙은 `systems/chance.ts`(`dilemmaDue`).
+   */
+  dilemmaDecidedDay?: number
 }
 
 /**

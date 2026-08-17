@@ -1,4 +1,5 @@
 import { burnoutKeyOf, getBurnoutPenalty } from '../../systems/burnout'
+import { chanceEfficiency, chanceMoneyBack } from '../../systems/chance'
 import { meetMentalBonus } from '../../systems/affection'
 import { illnessEfficiency, isIll } from '../../systems/illness'
 import { ILLNESS_DAYS, ILL_EFFICIENCY, ILL_STAMINA_FLOOR } from '../../data/illness'
@@ -79,9 +80,14 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
 
   /* ⚠️ **날씨·아픔도 실행과 같은 함수로 뽑아 곱한다**(`runActivity`와 같은 자리).
      여기서 빠뜨리면 확인창이 "예술 +12"라고 적어 놓고 비 오는 날 실제로는 10만 오른다.
+     "오늘만 기회"(`chanceEfficiency`)도 같은 자리·같은 규칙이다.
      ⚠️ **`efficiency`에 합치지 않는 것이 규칙이다** — 아래 `isBurnedOut`이 그 값을 보므로
      합치면 비만 와도 번아웃 경고가 뜬다(둘은 서로 다른 사실이다). */
-  const applied = efficiency * weatherEfficiency(state.day, activity.id) * illnessEfficiency(state)
+  const applied =
+    efficiency *
+    weatherEfficiency(state.day, activity.id) *
+    illnessEfficiency(state) *
+    chanceEfficiency(state, activity.id)
 
   const rows = Object.entries(activity.effects).map(([key, raw]) => {
     const statKey = key as keyof Stats
@@ -110,6 +116,15 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
     const mental = rows.find((r) => r.key === 'mental')
     if (mental) mental.value += meetBonus
     else rows.push({ key: 'mental', value: meetBonus })
+  }
+
+  /* ⚠️ **"오늘만 기회"의 비용 할인도 실행과 같은 함수로 더한다**(`turn.ts`의
+     `chanceMoneyBack`) — 빠뜨리면 확인창이 할인 전 금액을 적어 거짓이 된다. */
+  const moneyBack = chanceMoneyBack(state, activity)
+  if (moneyBack > 0) {
+    const money = rows.find((r) => r.key === 'money')
+    if (money) money.value += moneyBack
+    else rows.push({ key: 'money', value: moneyBack })
   }
 
   return { rows, efficiency, mentalPenalty, isBurnedOut: efficiency < 1, outfit: outfit?.name }

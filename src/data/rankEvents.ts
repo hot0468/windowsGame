@@ -29,7 +29,7 @@ import type { StatRank } from '../systems/rank'
 export interface RankEvent {
   id: string
   /**
-   * 이 스탯이. **생략하면 생활 등급**(`systems/lifeRank.ts` — 성장 스탯 15종의 평균)을 본다.
+   * 이 스탯이. **생략하면 생활 등급**(`systems/lifeRank.ts` — 성장 스탯 상위 12종 평균)을 본다.
    *
    * ⚠️ **한 우물만 판 사람은 못 보는 자리다**(2026-08-14 신설). 스탯 하나가 여는 것은
    * 특화의 보상이고, 이쪽은 **두루 올린 것의 보상**이다 — 둘이 같으면 생활 등급이
@@ -79,6 +79,16 @@ export interface RankEvent {
    * `event`면 `data/events.ts`의 `GameEvent.id`.
    */
   target: string
+  /**
+   * **닿기 전에** 스탯창이 다음 목표로 미리 적는 한 줄. **생활 등급 이벤트(`key` 없음)
+   * 전용이다**(2026-08-16, `rankEvents.test.ts`가 전수 보유를 지킨다).
+   *
+   * ⚠️ 등급이 판을 이끌려면 게이지("얼마나 남았나")만으로는 안 되고 **올라서 무엇이
+   * 오는지**가 보여야 한다 — 이것이 없던 동안 생활 등급은 숫자만 바뀌는 장식이었다.
+   * ⚠️ 스탯 이벤트에는 적지 않는다: 열다섯 스탯이 각자 다음 칸을 외치면 HUD가
+   * 광고판이 된다. 읽는 곳은 `nextLifeGoal`(`systems/rankEvents.ts`) 하나다.
+   */
+  teaser?: string
 }
 
 /**
@@ -90,26 +100,57 @@ export interface RankEvent {
  */
 export const RANK_EVENTS: RankEvent[] = [
   /*
-   * ── 생활 등급이 여는 방 2개 (2026-08-14) ──────────────────────
+   * ── 생활 등급 사다리 (2026-08-14 C·B → 2026-08-16 A·S·SS까지) ──────────
    *
-   * ⚠️ **`key`가 없다 — 생활 등급(15종 평균)을 본다**(`rankReached`). 스탯 하나가 여는
-   * 자리는 특화의 보상이고, 이 둘은 **두루 올린 것**의 보상이다.
+   * ⚠️ **`key`가 없다 — 생활 등급(상위 12종 평균)을 본다**(`rankReached`). 스탯 하나가 여는
+   * 자리는 특화의 보상이고, 이쪽은 **두루 올린 것**의 보상이다.
    *
-   * 문턱이 C·B인 것은 평균이 그만큼 무겁기 때문이다: 고루 올려도 C가 90일, B가 266일쯤이다
-   * (스탯 하나의 C는 며칠이면 닿는다 — 같은 글자라도 뜻이 다르다). **무한 플레이가 된
-   * 지금이라야 성립하는 문턱**이고, 판이 88일에 끝나던 시절이라면 B는 아무도 못 봤다.
+   * ⚠️ **C부터 SS까지 등급마다 하나는 열어야 한다**(`rankEvents.test.ts`가 지킨다).
+   * 게임오버를 없앤 자리를 생활 등급이 이어받았는데(`systems/lifeRank.ts`), 오르는데
+   * 아무것도 안 열리는 구간이 있으면 그 구간 내내 다시 "숫자만 바뀌는 장식"이 된다.
+   *
+   * 문턱의 무게: 고루 올려도 C가 90일, B가 266일쯤이고 A·S는 그 곱절 너머다(스탯
+   * 하나의 C는 며칠이면 닿는다 — 같은 글자라도 뜻이 다르다). **무한 플레이라야 성립하는
+   * 사다리**이고, 위 칸은 몇 판을 산 사람의 몫이다. SS(평균 95%)는 사실상 지평선이라
+   * 여는 것 없는 단발(`event`)을 얹는다 — 거기 일감을 걸면 아무도 못 받는 보수가 된다.
    */
   {
     id: 'mentor-circle',
     rank: 'C',
     kind: 'thread',
     target: 'mentor-circle',
+    teaser: '건너건너 모임의 초대',
   },
   {
     id: 'column-desk',
     rank: 'B',
     kind: 'thread',
     target: 'column-desk',
+    teaser: '칼럼 기고 제안',
+  },
+  {
+    /* 칼럼(B)의 윗칸 — 같은 이야기가 책 한 권이 된다. */
+    id: 'essay-press',
+    rank: 'A',
+    kind: 'thread',
+    target: 'essay-press',
+    teaser: '에세이 출간 제안',
+  },
+  {
+    /* 무대에서 삶 전체를 말하는 자리 — 폭이 곧 자격인 일이라 이 축의 끝쪽에 있다. */
+    id: 'stage-hall',
+    rank: 'S',
+    kind: 'thread',
+    target: 'stage-hall',
+    teaser: '강연 무대 제안',
+  },
+  {
+    /* 지평선의 칸. 문구·아이콘은 `data/events.ts`가 갖는다(단발 이벤트 공통 규칙). */
+    id: 'life-portrait',
+    rank: 'SS',
+    kind: 'event',
+    target: 'life-portrait',
+    teaser: '삶을 묻는 인터뷰',
   },
   /*
    * ── S 등급이 여는 방 5개 (2026-08-14) ───────────────────────────

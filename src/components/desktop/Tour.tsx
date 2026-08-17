@@ -18,7 +18,7 @@ import './Tour.css'
  * 모바일 셸에서는 가리킬 것이 아예 없다(`BlueScreen`과 같은 규칙).
  *
  * ## ⚠️ 게임 상태를 바꾸지 않는다
- * 이 화면이 만지는 값은 `tourSeen` 하나뿐이다. 턴·스탯·돈은 건드리지 않는다.
+ * 세이브에 아무것도 쓰지 않는다 — 돌고 있는가(`tourRunning`)는 휘발이다.
  *
  * ## ⚠️ "여기를 누르세요"를 시키지 않는다
  * 대상을 눌러야 넘어가는 방식이 아니라 **쭉 읽고 지나가는** 안내다(설계자 지시).
@@ -174,11 +174,18 @@ function TourRun({ onClose }: { onClose: () => void }) {
   )
 }
 
-/** 물어보는 팝업. ⚠️ **`window.confirm` 금지** — 기본 초점은 덜 개입하는 [바로 시작]이다. */
-function TourAsk({ onYes, onNo }: { onYes: () => void; onNo: () => void }) {
-  const noRef = useRef<HTMLButtonElement>(null)
+/**
+ * 새 판은 먼저 **"튜토리얼 보시겠습니까?"를 묻는다**(`startGame`이 `tourAsk`를 켠다).
+ * ⚠️ 기본 초점은 [보기]다 — 예전에 이 팝업을 없앴던 이유가 기본 초점이 닫는 쪽이라
+ * 새 판을 여는 손짓 그대로 안내가 사라졌던 것이다(사유는 `gameStore.startGame`).
+ * 설정의 [다시 보기]는 묻지 않고 `tourRunning`을 바로 켠다.
+ */
+function TourAsk() {
+  const answerTour = useGameStore((s) => s.answerTour)
+  const yesRef = useRef<HTMLButtonElement>(null)
+
   useEffect(() => {
-    noRef.current?.focus()
+    yesRef.current?.focus()
   }, [])
 
   return (
@@ -186,32 +193,35 @@ function TourAsk({ onYes, onNo }: { onYes: () => void; onNo: () => void }) {
       className="tour"
       style={{ zIndex: LAYERS.TOUR }}
       onKeyDown={(e) => {
-        // Esc는 덜 개입하는 쪽과 같은 뜻이다 — 어느 쪽이든 다시 묻지 않는다.
-        if (e.key !== 'Escape') return
-        e.stopPropagation()
-        onNo()
+        if (e.key === 'Escape') {
+          e.stopPropagation()
+          answerTour(false)
+        }
       }}
     >
       <div className="tour-dim" aria-hidden="true" />
       <div
-        className="tour-card tour-ask"
-        role="alertdialog"
+        className="tour-card"
+        style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
+        role="dialog"
         aria-modal="true"
         aria-labelledby="tour-ask-title"
-        aria-describedby="tour-ask-text"
       >
         <h2 className="tour-title" id="tour-ask-title">
-          게임 설명을 들으시겠습니까?
+          튜토리얼 보시겠습니까?
         </h2>
-        <p className="tour-text" id="tour-ask-text">
-          화면을 하나씩 짚어 가며 일곱 가지를 알려 드립니다. 나중에 설정에서 다시 볼 수 있습니다.
-        </p>
+        <p className="tour-text">이 컴퓨터를 쓰는 법을 일곱 걸음으로 안내합니다.</p>
         <div className="tour-foot">
-          <button type="button" className="tour-btn" onClick={onYes}>
-            설명 듣기
+          <button type="button" className="tour-btn" onClick={() => answerTour(false)}>
+            건너뛰기
           </button>
-          <button type="button" className="tour-btn tour-btn-main" onClick={onNo} ref={noRef}>
-            바로 시작
+          <button
+            type="button"
+            className="tour-btn tour-btn-main"
+            onClick={() => answerTour(true)}
+            ref={yesRef}
+          >
+            보기
           </button>
         </div>
       </div>
@@ -220,16 +230,10 @@ function TourAsk({ onYes, onNo }: { onYes: () => void; onNo: () => void }) {
 }
 
 export function Tour() {
-  const started = useGameStore((s) => Boolean(s.state))
-  const seen = useGameStore((s) => Boolean(s.state?.tourSeen))
+  const asking = useGameStore((s) => s.tourAsk)
   const running = useGameStore((s) => s.tourRunning)
-  const startTour = useGameStore((s) => s.startTour)
   const endTour = useGameStore((s) => s.endTour)
-  const markTourSeen = useGameStore((s) => s.markTourSeen)
 
-  if (running) return <TourRun onClose={endTour} />
-  /* ⚠️ 판정은 `tourSeen` 하나다 — 게임오버도 회복도 보지 않는다. 이것은 **새 판 1일차**의
-     문제이고, 조건을 늘리면 "왜 안 뜨지"를 다음 사람이 다섯 군데에서 찾게 된다. */
-  if (started && !seen) return <TourAsk onYes={startTour} onNo={markTourSeen} />
-  return null
+  if (asking) return <TourAsk />
+  return running ? <TourRun onClose={endTour} /> : null
 }

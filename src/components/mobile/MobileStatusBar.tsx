@@ -2,6 +2,7 @@ import { MOBILE_ICONS } from '../../data/icons'
 import { formatGameDate } from '../../data/calendar'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
+import { useShownTime } from '../desktop/shownTime'
 
 /**
  * 상단 상태바 — 폰의 시계·배터리 자리에 **게임의 시계**가 앉는다.
@@ -16,9 +17,13 @@ import { useGameStore } from '../../store/gameStore'
  */
 export function MobileStatusBar({ onOpenStats }: { onOpenStats: () => void }) {
   const state = useGameStore((s) => s.state)
+  /* 시계는 데스크톱 날짜칸과 **같은 규칙**으로 미룬다(사유는 `desktop/shownTime.ts`). */
+  const shown = useShownTime()
   if (!state) return null
 
-  const { stats, day, slot } = state
+  const { stats } = state
+  const day = shown.day ?? state.day
+  const slot = shown.slot ?? state.slot
 
   return (
     <button type="button" className="mo-status" onClick={onOpenStats}>

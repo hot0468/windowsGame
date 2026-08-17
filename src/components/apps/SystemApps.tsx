@@ -1,10 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AppIcon } from '../../icons/AppIcon'
 import { ACTIVITIES } from '../../data/activities'
 import { useGameStore } from '../../store/gameStore'
-import { useWindowStore } from '../../store/windowStore'
-import { getBurnoutPenalty } from '../../systems/burnout'
-import { getLivingCost, getWageMultiplier } from '../../systems/economy'
 import { cleanBlocker } from '../../systems/malware'
 import { GROWTH_STAT_KEYS, STAT_NAMES } from '../../types/game'
 import './SystemApps.css'
@@ -77,70 +74,9 @@ export function SaveApp() {
   )
 }
 
-/**
- * 작업 관리자. 실제 윈도우처럼 "지금 무엇이 돌고 있나"를 보여 준다 —
- * 다만 프로세스가 아니라 **열린 창과 게임의 부하**다. 가짜 CPU 그래프를 그리는 대신
- * 실제로 읽을 값을 둔다(포털 지표와 같은 판단).
- */
-export function TaskManagerApp() {
-  const windows = useWindowStore((s) => s.windows)
-  const close = useWindowStore((s) => s.close)
-  const state = useGameStore((s) => s.state)
-  if (!state) return null
-
-  /* 번아웃은 활동별로 재는 값이라 "마지막으로 한 활동"을 기준으로 본다 —
-     그게 지금 플레이어가 실제로 물고 있는 페널티다. */
-  const lastId = state.recentActivities[state.recentActivities.length - 1]
-  const burnout = lastId ? getBurnoutPenalty(state.recentActivities, lastId) : null
-
-  return (
-    <div className="sys">
-      <table className="sys-table">
-        <thead>
-          <tr>
-            <th>열린 창</th>
-            <th>상태</th>
-            <th aria-label="작업" />
-          </tr>
-        </thead>
-        <tbody>
-          {windows.length === 0 && (
-            <tr>
-              <td colSpan={3} className="sys-empty">
-                열린 창이 없습니다.
-              </td>
-            </tr>
-          )}
-          {windows.map((w) => (
-            <tr key={w.id}>
-              <td>{w.title}</td>
-              <td>{w.minimized ? '최소화' : '실행 중'}</td>
-              <td>
-                <button className="sys-kill" onClick={() => close(w.id)}>
-                  작업 끝내기
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <h4 className="sys-head">시스템 부하</h4>
-      <dl className="sys-defs">
-        <dt>번아웃 누적</dt>
-        <dd>
-          {burnout && burnout.efficiency < 1
-            ? `효율 ${Math.round(burnout.efficiency * 100)}% · 멘탈 -${burnout.mentalPenalty}`
-            : '없음'}
-        </dd>
-        <dt>오늘 생활비</dt>
-        <dd>{getLivingCost(state).toLocaleString('ko-KR')}원</dd>
-        <dt>알바비 배율</dt>
-        <dd>×{getWageMultiplier(state.day).toFixed(2)}</dd>
-      </dl>
-    </div>
-  )
-}
+/* 구 작업 관리자(열린 창 목록 + 작업 끝내기)는 2026-08-17에 진짜 프로세스 판형의
+   `TaskMgrApp`으로 대체되어 삭제됐다. 되살리지 말 것 — [작업 끝내기]가 창을 닫는 것은
+   이 게임에 대응 동작이 없는 죽은 힘이었다. */
 
 /**
  * 명령 프롬프트. **동작하는 명령만** 둔다 — 셸을 흉내 내려고 아무 문자열이나 받고
@@ -148,7 +84,7 @@ export function TaskManagerApp() {
  * 게임 상태를 바꾸는 명령은 넣지 않는다: 여기서 스탯을 고칠 수 있으면 게임이 아니게 된다.
  */
 const COMMANDS: Record<string, (ctx: { day: number; slot: string }) => string[]> = {
-  help: () => ['사용할 수 있는 명령: help, date, stats, activities, scan, clean, ver, cls'],
+  help: () => ['사용할 수 있는 명령: help, date, stats, activities, scan, clean, defrag, ver, cls'],
   date: (c) => [`${c.day}일차 ${c.slot === 'afternoon' ? '오후' : '오전'}`],
   activities: () => ACTIVITIES.map((a) => `${a.id.padEnd(10)} ${a.label} — ${a.description}`),
   /* ⚠️ 배너와 **같은 한 줄**을 쓴다 — 버전을 두 곳에 적으면 반드시 어긋난다. */
@@ -165,6 +101,35 @@ const OS_VERSION = '네이놈 OS [버전 10.0.26200.8875]'
 /** 배너. 실제 cmd의 첫 두 줄 자리다. */
 const CMD_BANNER = [OS_VERSION, '(c) 네이놈. All rights reserved.', '']
 
+/*
+ * ── 조각 모음 (2026-08-17) ──────────────────────────────────────────────
+ * 옛 윈도우 디스크 조각 모음의 블록 판을 문자(█▒·)로 돌리는 **순수 장난감**이다 —
+ * "스탯을 고치는 명령을 넣지 않는다"는 이 파일의 규칙 그대로, 끝나도 기분만 좋아진다.
+ * 보고 있으면 멍해지는 그 감성이 존재 이유의 전부라 결과 보상을 붙이지 않는다.
+ */
+const DEFRAG_ROWS = 4
+const DEFRAG_COLS = 30
+const DEFRAG_TICKS = 18
+const DEFRAG_TICK_MS = 280
+
+/**
+ * `progress`(0~1)만큼 정리된 판. ⚠️ 정리 전 무늬는 셀 색인의 결정적 해시다 —
+ * 장식이지만 같은 판이 매번 같은 그림을 그려야 "다시 굴리기"가 아예 없는 이 게임의
+ * 결에 맞는다(고전 LCG 상수 — 게임 굴림 상수들과 무관한 순수 장식이다).
+ */
+function defragFrame(progress: number): string[] {
+  const cells = DEFRAG_ROWS * DEFRAG_COLS
+  const sorted = Math.floor(cells * progress)
+  return Array.from({ length: DEFRAG_ROWS }, (_, r) =>
+    Array.from({ length: DEFRAG_COLS }, (_, c) => {
+      const i = r * DEFRAG_COLS + c
+      if (i < sorted) return '█'
+      const h = (i * 1103515245 + 12345) >>> 0
+      return h % 5 === 0 ? '·' : h % 3 === 0 ? '█' : '▒'
+    }).join(''),
+  )
+}
+
 export function CommandPromptApp() {
   const state = useGameStore((s) => s.state)
   /*
@@ -176,6 +141,14 @@ export function CommandPromptApp() {
   const cleanMalware = useGameStore((s) => s.cleanMalware)
   const [lines, setLines] = useState<string[]>(CMD_BANNER)
   const [input, setInput] = useState('')
+  /* 조각 모음 타이머. 창을 닫으면 정리한다 — 안 하면 닫힌 창의 setLines가 계속 돈다. */
+  const defragTimer = useRef<number | null>(null)
+  useEffect(
+    () => () => {
+      if (defragTimer.current !== null) window.clearInterval(defragTimer.current)
+    },
+    [],
+  )
   if (!state) return null
 
   /** 실제 cmd처럼 경로가 프롬프트에 들어간다. 사용자 이름은 플레이어 이름이다. */
@@ -184,6 +157,9 @@ export function CommandPromptApp() {
   const run = (raw: string) => {
     const cmd = raw.trim().toLowerCase()
     if (!cmd) return
+    /* ⚠️ 조각 모음이 도는 동안은 입력을 통째로 무시한다(실제 콘솔이 그렇다) —
+       중간에 줄이 끼면 판을 제자리에서 다시 그리는 slice가 엉뚱한 줄을 먹는다. */
+    if (defragTimer.current !== null) return
     if (cmd === 'cls') {
       setLines([])
       return
@@ -209,6 +185,35 @@ export function CommandPromptApp() {
             ]
           : ['검사를 마쳤습니다. 위협이 없습니다.']),
       ])
+      return
+    }
+    if (cmd === 'defrag') {
+      const header = [echo, '드라이브 C: 의 조각 모음을 시작합니다...']
+      const done = ['조각 모음이 완료되었습니다. 빨라진 것은 기분뿐이지만, 그거면 됐다.']
+      /* 모션을 줄인 사람에게는 과정을 흘리지 않고 결과만 준다(Daybreak의 모션 감소 규칙). */
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        setLines((l) => [...l, ...header, ...defragFrame(1), ...done])
+        return
+      }
+      let tick = 0
+      setLines((l) => [...l, ...header, ...defragFrame(0), '진행 0%'])
+      defragTimer.current = window.setInterval(() => {
+        tick += 1
+        const p = Math.min(1, tick / DEFRAG_TICKS)
+        const finished = tick >= DEFRAG_TICKS
+        /* 판 + 진행 줄(ROWS+1)만 제자리에서 갈아 끼운다 — 로그를 늘리며 그리면
+           다 끝났을 때 화면이 판 열여덟 장으로 도배된다. */
+        setLines((l) => [
+          ...l.slice(0, -(DEFRAG_ROWS + 1)),
+          ...defragFrame(p),
+          `진행 ${Math.round(p * 100)}%`,
+          ...(finished ? done : []),
+        ])
+        if (finished) {
+          window.clearInterval(defragTimer.current!)
+          defragTimer.current = null
+        }
+      }, DEFRAG_TICK_MS)
       return
     }
     if (cmd === 'clean') {

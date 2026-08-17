@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SHOP_ITEMS, buyableFor, findItem, storeNameOf } from '../data/items'
-import { canOrder, collect, order, recordEvent } from './delivery'
+import { COUPON_MAX_DISCOUNT, COUPON_RATE } from '../data/messages'
+import { canOrder, collect, couponDay, couponDiscount, order, recordEvent } from './delivery'
 import { canRun, createInitialState, skipSlot } from './turn'
 import { findActivity } from '../data/activities'
 import type { GameState } from '../types/game'
@@ -71,6 +72,42 @@ describe('collect', () => {
     const next = skipSlot(skipSlot(order(rich(), item)))
     const got = collect(next).state
     expect(got.events?.map((e) => e.id)).toContain('first-delivery')
+  })
+})
+
+/**
+ * 반값 쿠폰(2026-08-17).
+ *
+ * ⚠️ **광고 메일이 지키지 못할 말을 하는 것**이 여기서 막는 사고다: 쿠폰이 오는 날과
+ * 실제로 깎이는 날이 어긋나거나, "한 건"이라 해 놓고 그날 내내 깎이면 메일이 거짓이 된다.
+ */
+describe('반값 쿠폰', () => {
+  /** 쿠폰 메일이 오는 첫날. 편성표에서 파생시킨다 — 날짜를 손으로 적지 않는다. */
+  const dayWithCoupon = [1, 2, 3, 4, 5, 6, 7, 8].find((d) => couponDay(d))!
+  const couponRich = (): GameState => ({ ...rich(), day: dayWithCoupon })
+
+  it('쿠폰 날에는 반값만큼, 상한까지만 깎인다', () => {
+    const s = couponRich()
+    const expected = Math.min(Math.floor(item.price * COUPON_RATE), COUPON_MAX_DISCOUNT)
+    expect(couponDiscount(s, item)).toBe(expected)
+    expect(order(s, item).stats.money).toBe(s.stats.money - item.price + expected)
+  })
+
+  it('쿠폰이 없는 날에는 정가다', () => {
+    const plain = { ...rich(), day: dayWithCoupon + 1 }
+    expect(couponDay(plain.day)).toBe(false)
+    expect(order(plain, item).stats.money).toBe(plain.stats.money - item.price)
+  })
+
+  it('하루에 한 건뿐이다 — 두 번째 주문은 정가로 나간다', () => {
+    const first = order(couponRich(), item)
+    const other = SHOP_ITEMS.find((i) => (i.store ?? 'shop') === 'shop' && i.id !== item.id)!
+    expect(couponDiscount(first, other)).toBe(0)
+    expect(order(first, other).stats.money).toBe(first.stats.money - other.price)
+  })
+
+  it('다른 가게(하이마루) 물건에는 안 붙는다 — 메일을 보낸 곳은 컬리엔마트다', () => {
+    expect(couponDiscount(couponRich(), findItem('laptop')!)).toBe(0)
   })
 })
 

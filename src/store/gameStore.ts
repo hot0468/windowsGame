@@ -19,8 +19,18 @@ import { creditPerformance, revivePerformance, worksAtOffice } from '../systems/
 import { healIllness, reviveIllness } from '../systems/illness'
 import { reviveRecovery } from '../systems/recovery'
 import { brokenRecords } from '../systems/records'
+import {
+  chanceToday,
+  dilemmaDue,
+  dilemmaToday,
+  nameSeed,
+  noticeTextOf,
+  resolveDilemma as resolveDilemmaOf,
+} from '../systems/chance'
 import { innerLine } from '../systems/inner'
 import { useMetaStore } from './metaStore'
+import { lifeRankOf } from '../systems/lifeRank'
+import type { PastLife } from './metaStore'
 import {
   buyVaccine as buyVaccineOf,
   clean as cleanOf,
@@ -28,6 +38,15 @@ import {
   isInfected,
 } from '../systems/malware'
 import { creditAffection, reviveAffection } from '../systems/affection'
+import {
+  adoptCat as adoptCatOf,
+  catEncounterDue,
+  catName,
+  feedCat as feedCatOf,
+  ignoreCat as ignoreCatOf,
+  petCat as petCatOf,
+  reviveCat,
+} from '../systems/cat'
 import {
   dueRankEvents,
   grantWish,
@@ -67,7 +86,7 @@ import { reviveBand } from '../systems/band'
 import { advancePhoneBill } from '../systems/phone'
 import { advanceBills, revivePaidBills } from '../systems/bills'
 import { reviveGear } from '../systems/gear'
-import { playGame as playGameOf } from '../systems/steam'
+import { STEAM_ACTIVITY_ID, playGame as playGameOf } from '../systems/steam'
 import { renameChannel as renameChannelOf, startStream as startStreamOf } from '../systems/channel'
 import { watchFilm as watchFilmOf } from '../systems/cinema'
 import { sellItem as sellItemOf, sellPostcard as sellPostcardOf } from '../systems/resale'
@@ -304,10 +323,20 @@ function reviveLottery(saved: Partial<GameState>): LotteryState | undefined {
     spent: Number(l.spent),
     won: Number(l.won),
     pending: Number(l.pending),
-    tickets: (Array.isArray(l.tickets) ? l.tickets : []).filter(
-      (t): t is LotteryTicket =>
-        !!t && typeof t.id === 'string' && Number.isFinite(t.day) && Number.isFinite(t.amount),
-    ),
+    tickets: (Array.isArray(l.tickets) ? l.tickets : [])
+      .filter(
+        (t): t is LotteryTicket =>
+          !!t && typeof t.id === 'string' && Number.isFinite(t.day) && Number.isFinite(t.amount),
+      )
+      /* ⚠️ **주 1회 추첨(2026-08-17) 이전 표는 이미 굴러간 것이다** — 그때는 사는 즉시
+         굴렸으므로 `drawn: true`가 사실이다. 안 채우면 옛 표가 미추첨으로 읽혀 **한 번 더**
+         굴러가고, 상금이 두 번 들어온다(마이그레이션이 필요한 유일한 자리다). */
+      .map((t) => ({
+        ...t,
+        serial: Number.isFinite(t.serial) ? t.serial : 0,
+        drawDay: Number.isFinite(t.drawDay) ? t.drawDay : t.day,
+        drawn: t.drawn ?? true,
+      })),
   }
 }
 
@@ -492,9 +521,16 @@ function reviveState(raw: unknown): GameState | null {
       ? saved.seenEndingIds.filter((id): id is string => typeof id === 'string')
       : [],
     recovery: reviveRecovery(saved.recovery),
+    /* 판 시드. 없던 세이브는 이름 해시로 **결정적으로** 메운다(`nameSeed`) —
+       여기서 무작위로 메우면 불러올 때마다 사건이 다시 굴러 세이브 스커밍이 열린다. */
+    seed: Number.isFinite(saved.seed) ? Number(saved.seed) : nameSeed(defaults.playerName),
     // 옵셔널 필드는 형태만 확인하고 통과시킨다. 여기서 빠뜨리면 세이브를 되돌릴 때마다
     // 예약·배송·도감이 조용히 사라진다(값 검증은 각 시스템이 이미 하고 있다).
     adBonusDay: Number.isFinite(saved.adBonusDay) ? Number(saved.adBonusDay) : undefined,
+    /* 딜레마 결정 커서. 숫자가 아니면 버린다(옵셔널 필드 관례 — `adBonusDay`와 같은 수준). */
+    dilemmaDecidedDay: Number.isFinite(saved.dilemmaDecidedDay)
+      ? Number(saved.dilemmaDecidedDay)
+      : undefined,
     // 감염 상태. 없으면 안 걸린 것이므로 형태만 본다(`adBonusDay`와 같은 수준).
     malware:
       saved.malware && Number.isFinite(saved.malware.day)
@@ -566,8 +602,8 @@ function reviveState(raw: unknown): GameState | null {
     illness: reviveIllness(saved.illness),
     affection: reviveAffection(saved.affection),
     rankEvents: reviveRankEvents(saved.rankEvents),
-    // 투어를 물어봤는가. 불리언 하나라 형태만 본다 — 값이 이상하면 다시 묻는 쪽이 안전하다.
-    tourSeen: saved.tourSeen === true ? true : undefined,
+    /* 길고양이. 돈을 만드는 상태가 아니라 검증은 가볍다(`courses` 수준). */
+    cat: reviveCat(saved.cat),
     // ⚠️ 응시 기록은 **돈을 만들지 않으므로** 검증이 은행·정규직만큼 빡빡할 필요가 없다
     //    (합격해도 나오는 것은 아이템 하나다). 날짜만 유한하면 통과시키고, 없는 종목을
     //    가리키는 기록은 `advanceCertification`이 조용히 닫는다.
@@ -648,6 +684,23 @@ function feedbackFor(before: GameState, after: GameState, activity: Activity): M
   return out
 }
 
+/**
+ * 새 아침이 밝았고 오늘 돌발 사건이 있으면 토스트 한 장(`systems/chance.ts`).
+ *
+ * ⚠️ **채널 수법은 기록·감상과 같다** — `Message`를 재사용하고 채널(`chance`)로만 가른다.
+ * 새 토스트 타입을 만들면 겹침 제한·중복 제거를 두 벌로 관리하게 된다(`ToastHost`).
+ * 날이 안 바뀐 턴(오전→오후)에는 안 띄운다 — 아침에 이미 말했다.
+ */
+function chanceNotice(before: GameState, after: GameState): Message[] {
+  if (after.day === before.day) return []
+  const event = chanceToday(after)
+  if (!event) return []
+  /* ⚠️ 딜레마는 토스트를 안 띄운다 — 창 자체가 알림이다(`openDilemmaWindow`).
+     둘 다 내보내면 같은 사건이 두 창구에서 말해 소음이 된다. */
+  if (event.kind === 'dilemma') return []
+  return [{ id: `chance-${after.day}`, channel: 'chance', from: event.title, text: noticeTextOf(event) }]
+}
+
 function afterTurn(next: GameState, chain?: number) {
   const ran = runPlans(next, chain)
   const got = collect(ran.state)
@@ -709,6 +762,12 @@ function afterTurn(next: GameState, chain?: number) {
      결과가 같다 — 그래도 "기록 → 파생" 방향을 지켜 둔다(나중에 얽히면 이 순서가 답이다). */
   const evented = settleRankEvents(job.state)
   openRankEventWindows(evented)
+  /* ⚠️ **길고양이 만남 창도 같은 자리다**(소원 창과 같은 판형·같은 이유) — 자동 진행·
+     스케줄러로 넘긴 밤에도 방문일이면 창이 뜨고, 결정 없이 닫으면 그날 안에는 다시 뜬다. */
+  openCatWindow(evented)
+  /* ⚠️ **아침 딜레마 창도 같은 자리다**(고양이와 같은 판형·같은 이유) — 결정 커서가
+     없으면 그날 안에는 다시 뜬다. 토스트는 없다(`chanceNotice`가 딜레마를 제외한다). */
+  openDilemmaWindow(evented)
   /* ⚠️ **광고 팝업도 `afterTurn`에 붙는다**(랭크 이벤트 창과 같은 자리·같은 이유) —
      감염의 대가 절반이 성가심인데, 손으로 누른 자리에만 붙이면 자동 진행으로 넘긴 판에서
      통째로 사라진다. */
@@ -750,6 +809,30 @@ function openCallCenterIfWorking(before: GameState, activityId: string) {
     x: 96,
     y: 64,
     width: 900,
+  })
+}
+
+/**
+ * 게임 활동을 직접 실행했으면 지뢰찾기를 띄운다.
+ *
+ * ⚠️ **`doActivity`에만 붙는다**(콜센터와 같은 규칙) — 스케줄러 예약·자동 진행으로 지나간
+ * 실행은 창이 안 뜬다. 멘탈·gaming 증감은 창이 열리기 전에 이미 확정됐고 창은 순수
+ * 장난감이다(`MinesweeperApp` 머리말 참조).
+ * ⚠️ **같은 kind의 낡은 창을 먼저 닫는다**(`openToolWindow`와 같은 이유 —
+ * `windowStore.open`은 id가 같으면 앞으로 가져오기만 해서 지난 판이 다시 보인다).
+ */
+function openMinesweeperIfPlaying(activityId: string) {
+  if (activityId !== 'game') return
+  const store = useWindowStore.getState()
+  store.close('minesweeper')
+  store.open({
+    id: 'minesweeper',
+    kind: 'minesweeper',
+    title: '지뢰찾기',
+    icon: 'mdi:mine',
+    x: 220,
+    y: 88,
+    width: 360,
   })
 }
 
@@ -802,6 +885,43 @@ function openRankEventWindows(next: GameState) {
 }
 
 /**
+ * 방문일이면 길고양이 만남 창을 띄우고, **그 사실을 기록하지는 않는다.**
+ *
+ * ⚠️ 기록(`decidedDay`)은 창 안에서 실제로 결정했을 때만 찍힌다(`feedCat` 등) —
+ * `openRankEventWindows`와 같은 규칙이다: 여기서 찍으면 창을 닫기만 한 사람이
+ * 그날의 만남을 잃는다.
+ */
+function openCatWindow(next: GameState) {
+  if (!catEncounterDue(next)) return
+  useWindowStore.getState().open({
+    id: 'cat-visit',
+    kind: 'cat',
+    title: '창밖의 손님',
+    icon: 'fluent-color:paw-24',
+    x: 200,
+    y: 110,
+    width: 440,
+  })
+}
+
+/**
+ * 딜레마 날 아침이면 갈림길 창을 띄운다 — `openCatWindow`와 같은 규칙: 기록
+ * (`dilemmaDecidedDay`)은 창 안에서 실제로 골랐을 때만(`resolveDilemma`) 찍힌다.
+ */
+function openDilemmaWindow(next: GameState) {
+  if (!dilemmaDue(next)) return
+  useWindowStore.getState().open({
+    id: 'dilemma',
+    kind: 'dilemma',
+    title: dilemmaToday(next)?.title ?? '갈림길',
+    icon: 'fluent-color:question-circle-24',
+    x: 220,
+    y: 120,
+    width: 440,
+  })
+}
+
+/**
  * 감염 중이면 광고 팝업을 하나 띄운다.
  *
  * ⚠️ **id에 날짜·슬롯을 섞는다** — `windowStore.open`은 id가 같으면 새로 열지 않고 앞으로
@@ -829,6 +949,21 @@ function closeAdwareWindows() {
   for (const w of store.windows) if (w.kind === 'adware') store.close(w.id)
 }
 
+/**
+ * 접는 판의 기록(도감 '지난 삶'). ⚠️ **1일차 판은 남기지 않는다** — 이름만 짓고 버린
+ * 판까지 남기면 '지난 삶'이 삶이 아니라 시도 목록이 된다. export는 테스트용이다
+ * (`migrateSave`와 같은 부류의 순수 헬퍼).
+ */
+export function pastLifeOf(state: GameState): PastLife | null {
+  if (state.day <= 1) return null
+  return {
+    name: state.playerName,
+    days: state.day,
+    lifeRank: lifeRankOf(state.stats).label,
+    peakCareerId: state.peakCareerId,
+  }
+}
+
 interface GameStore {
   state: GameState | null
   /** 잠금화면을 통과했는지. 저장하지 않아 새로고침 시 잠금화면부터 시작한다. */
@@ -839,6 +974,17 @@ interface GameStore {
   doActivity: (activity: Activity) => void
   /** 별똥별 소원 — 고른 성장 스탯을 올린다. 한 번만 된다. */
   makeWish: (key: GrowthStatKey) => void
+  /**
+   * 길고양이 셋. **셋 다 턴을 쓰지 않는다**(만남은 일어난 일이다 — 소원과 같은 부류).
+   * 판정·금액·기록은 전부 `systems/cat.ts`가 갖고 여기서는 부르기만 한다.
+   */
+  feedCat: () => void
+  ignoreCat: () => void
+  adoptCat: (name: string) => void
+  /** 데스크톱 펫 쓰다듬기 — 하루 한 번 멘탈 +1, 턴 소모 없음(광고 보상과 같은 판형). */
+  petCat: () => void
+  /** 아침 딜레마에서 하나를 고른다. 턴을 쓰지 않는다(고양이와 같은 통로). */
+  resolveDilemma: (choiceIndex: number) => void
   doSkip: () => void
   /** 콜센터 미니게임에서 콜 한 건을 마쳤다. 인자는 그 콜의 보너스(원). */
   finishCall: (won: number) => void
@@ -914,11 +1060,13 @@ interface GameStore {
    * 새로고침 도중 끊긴 투어를 되살릴 이유가 없고, 되찾는 길은 설정에 있다.
    */
   tourRunning: boolean
-  /** 투어를 **처음부터** 돌린다. 물어본 기록(`tourSeen`)도 함께 남긴다. */
+  /** 새 판 직후 "튜토리얼 보시겠습니까?"를 묻는 중인가. `tourRunning`처럼 휘발이다. */
+  tourAsk: boolean
+  /** 물음에 답한다 — 예면 투어가 돌고, 아니오면 그냥 닫힌다. */
+  answerTour: (yes: boolean) => void
+  /** 투어를 **처음부터** 돌린다(설정의 [다시 보기]). 새 판은 `startGame`이 묻고 켠다. */
   startTour: () => void
   endTour: () => void
-  /** 물어보기만 하고 넘어갔다 — [바로 시작]이 이 자리다. 다시 묻지 않는다. */
-  markTourSeen: () => void
   /**
    * 정규직 공고에 지원한다. **1턴을 쓴다**(`job-apply` 활동이 비용을 갖는다).
    *
@@ -993,7 +1141,7 @@ interface GameStore {
    */
   moveHouse: (target: Housing) => void
   /**
-   * 복권 구매. **턴을 소모하지 않는다.** 표 값은 즉시 나가고 **상금은 그날 밤** 들어온다
+   * 복권 구매. **턴을 소모하지 않는다.** 표 값은 즉시 나가고 **추첨은 다음 토요일 밤**이다
    * (`nightPayoutPending` → `advanceLottery`). 굴림은 `systems/lottery.ts`의 시드
    * PRNG가 하고 여기서는 부르기만 한다.
    */
@@ -1175,15 +1323,30 @@ export const useGameStore = create<GameStore>()(
           finishAuto(AUTO_STOPPED_BY_PLAYER)
         },
 
-        /** 새 게임: 기존 세이브를 버리고 새로 만든다. */
+        /**
+         * 새 게임: 기존 세이브를 버리고 새로 만든다.
+         *
+         * ⚠️ **투어는 묻고 돌린다**(2026-08-17 설계자 지시로 물음 복원). 한 번 없앴던
+         * 이유는 팝업의 기본 초점이 [바로 시작]이라 새 판을 여는 손짓 그대로 안내가
+         * 닫혔던 것 — 그래서 이번에는 **기본 초점이 [보기]다**(`Tour.tsx`).
+         */
         startGame: (name) => {
           clearAutoTimer()
+          /* 버려지는 세이브를 **도감의 '지난 삶'으로 남긴다** — 새 판이 손실이 아니라
+             회차가 되는 자리다(사유는 `metaStore.PastLife` 주석). */
+          const prev = get().state
+          const past = prev && pastLifeOf(prev)
+          if (past) useMetaStore.getState().recordLife(past)
           set({
-            state: createInitialState(name),
+            /* ⚠️ 판 시드는 여기(store 층)서 **한 번만** 굴려 저장한다 — `systems/`의
+               Math.random 금지는 그대로다(복권 일련번호와 같은 부류: 이후의 모든 돌발
+               굴림은 이 값의 순수 함수라 새로 고침해도 다시 구르지 않는다). */
+            state: { ...createInitialState(name), seed: Math.floor(Math.random() * 2 ** 31) },
             loggedIn: true,
             autoRunning: false,
             autoSlots: 0,
             autoRun: null,
+            tourAsk: true,
           })
         },
 
@@ -1210,22 +1373,16 @@ export const useGameStore = create<GameStore>()(
         clearFeedback: () => set({ feedback: [] }),
 
         tourRunning: false,
-        /* ⚠️ 시작할 때 물어본 기록을 함께 남긴다 — 중간에 [건너뛰기]로 나가도 다시 묻지
-           않아야 하고, 판정을 `tourSeen` 하나로 유지하는 것이 그 규칙의 전부다.
-           ⚠️ **열린 창을 먼저 닫는다** — 투어가 가리키는 것은 전부 바탕화면 요소인데,
+        tourAsk: false,
+        answerTour: (yes) => set({ tourAsk: false, tourRunning: yes }),
+        /* ⚠️ **열린 창을 먼저 닫는다** — 투어가 가리키는 것은 전부 바탕화면 요소인데,
            설정 창에서 [다시 보기]를 누른 판이라면 그 창이 대상 위를 덮고 있다.
            구멍은 좌표를 뚫을 뿐이라 **그 자리에 있는 창이 그대로 보인다.** */
         startTour: () => {
           useWindowStore.getState().closeAll()
-          get().markTourSeen()
           set({ tourRunning: true })
         },
         endTour: () => set({ tourRunning: false }),
-        markTourSeen: () => {
-          const current = get().state
-          if (!current || current.tourSeen) return
-          set({ state: { ...current, tourSeen: true } })
-        },
 
         jobNotices: [],
         clearJobNotices: () => set({ jobNotices: [] }),
@@ -1257,7 +1414,12 @@ export const useGameStore = create<GameStore>()(
           // `playGame`이 조건을 다 보고 안 되면 상태를 그대로 돌려준다(반쪽 상태 금지).
           // 턴을 쓰므로 `afterTurn`으로 예약·택배·정산을 마저 돌린다.
           const next = playGameOf(current, game)
-          if (next !== current) set(afterTurn(next))
+          if (next !== current) {
+            set(afterTurn(next))
+            /* ⚠️ 증기도 **직접 실행**이다 — `doActivity`를 안 지나므로 여기서도 연다.
+               빠뜨리면 `game`의 주 실행 통로에서만 지뢰찾기가 안 뜬다. */
+            openMinesweeperIfPlaying(STEAM_ACTIVITY_ID)
+          }
         },
 
         createProject: () => {
@@ -1335,6 +1497,73 @@ export const useGameStore = create<GameStore>()(
           if (!current) return
           const next = grantWish(current, key)
           if (next !== current) set({ state: next })
+        },
+
+        /*
+         * 길고양이 셋 + 쓰다듬기. **턴을 안 쓰므로 `afterTurn`을 부르지 않는다**
+         * (소원·광고 보상과 같은 통로). 판정과 금액은 전부 `systems/cat.ts`가 갖는다.
+         */
+        feedCat: () => {
+          const current = get().state
+          if (!current) return
+          const next = feedCatOf(current)
+          if (next !== current) set({ state: next })
+        },
+
+        ignoreCat: () => {
+          const current = get().state
+          if (!current) return
+          const next = ignoreCatOf(current)
+          if (next !== current) set({ state: next })
+        },
+
+        /* 아침 딜레마 결정. 판정·클램프·커서는 전부 `systems/chance.ts`가 갖는다. */
+        resolveDilemma: (choiceIndex) => {
+          const current = get().state
+          if (!current) return
+          const next = resolveDilemmaOf(current, choiceIndex)
+          if (next !== current) set({ state: next })
+        },
+
+        adoptCat: (name) => {
+          const current = get().state
+          if (!current) return
+          const next = adoptCatOf(current, name)
+          if (next === current) return
+          set({
+            /* 입양은 이벤트 도감에 한 줄 남는다 — `systems/cat.ts`가 `recordEvent`를 직접
+               부르면 `turn → cat → delivery → turn` 순환이라 여기서 찍는다(`claimAdBonus`의
+               `first-ad`와 같은 자리). */
+            state: recordEvent(next, 'cat-adopted'),
+            feedback: [
+              {
+                id: `cat-adopt-${next.day}`,
+                channel: 'cat',
+                from: catName(next),
+                text: '집에 들였다. 이제 밤마다 사료값이 들고, 가끔 바탕화면을 걸어다닌다.',
+              },
+            ],
+          })
+        },
+
+        petCat: () => {
+          const current = get().state
+          if (!current) return
+          const next = petCatOf(current)
+          if (next === current) return
+          /* 멘탈이 이미 상한이면 +1이 실제로는 0이다 — 숫자는 오른 만큼만 적는다(거짓 금지). */
+          const gained = next.stats.mental - current.stats.mental
+          set({
+            state: next,
+            feedback: [
+              {
+                id: `cat-pet-${next.day}`,
+                channel: 'cat',
+                from: catName(next),
+                text: `기분 좋게 그르릉거린다.${gained > 0 ? ` 멘탈 +${gained}` : ''}`,
+              },
+            ],
+          })
         },
 
         postArtwork: (artworkId) => {
@@ -1490,10 +1719,15 @@ export const useGameStore = create<GameStore>()(
              빠진 뒤라야 "잔고 기록"이 실제와 맞는다. */
           set({
             ...result,
-            feedback: feedbackFor(current, result.state, activity),
+            /* 사건 알림이 먼저다 — "오늘 무슨 날인가"가 방금 행동의 감상보다 먼저 읽혀야 한다. */
+            feedback: [
+              ...chanceNotice(current, result.state),
+              ...feedbackFor(current, result.state, activity),
+            ],
           })
           openCallCenterIfWorking(current, activity.id)
           openDriveIfWorking(current, activity.id)
+          openMinesweeperIfPlaying(activity.id)
         },
 
         /**
@@ -1580,7 +1814,9 @@ export const useGameStore = create<GameStore>()(
         doSkip: () => {
           const current = get().state
           if (!current) return
-          set(afterTurn(skipSlot(current)))
+          const result = afterTurn(skipSlot(current))
+          /* 건너뛴 아침에도 돌발 사건은 알린다 — `doActivity`와 같은 자리·같은 이유. */
+          set({ ...result, feedback: chanceNotice(current, result.state) })
         },
 
         /**

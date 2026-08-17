@@ -3,6 +3,7 @@ import { HudPanel } from './HudPanel'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
+import { useShownTime } from './shownTime'
 import { HUD_ICONS } from '../../data/icons'
 import { CALENDAR_PANEL_LAYOUT, formatGameDate } from '../../data/calendar'
 import { weatherOf } from '../../systems/weather'
@@ -49,6 +50,10 @@ export function CalendarPanel() {
   /* ⚠️ `useCallback`이 필수다 — 매 렌더 새 함수를 넘기면 `HudPanel`의 effect가 매번
      `ResizeObserver`를 끊었다 다시 건다(무한 루프는 아니지만 순수한 낭비다). */
   const reportHeight = useCallback((h: number) => setHeight('calendar', h), [setHeight])
+  /* ⚠️ **날짜·슬롯은 `state`가 아니라 여기서 읽는다** — 결과 창이 떠 있는 동안은 행동
+     직전의 시각에 머문다(사유는 `shownTime.ts`). `lagging`이면 턴을 미는 버튼 둘을
+     잠근다: 화면이 오전이라고 적는 동안 [오전 건너뛰기]가 오후를 태우면 안 된다. */
+  const { day: shownDay, slot: shownSlot, lagging } = useShownTime()
 
   const { width, gap, top } = CALENDAR_PANEL_LAYOUT
   /** 스탯창 바로 왼쪽에 고정한다. 드래그로 옮길 수 없으므로 상태로 들고 있지 않는다. */
@@ -59,9 +64,11 @@ export function CalendarPanel() {
 
   if (!state || !visible) return null
 
-  const isMorning = state.slot === 'morning'
+  /* 판이 선 뒤에는 `useShownTime`이 늘 값을 주지만, 타입상 옵셔널이라 실값으로 받친다. */
+  const day = shownDay ?? state.day
+  const isMorning = (shownSlot ?? state.slot) === 'morning'
   const slotIcon = isMorning ? HUD_ICONS.slotMorning : HUD_ICONS.slotAfternoon
-  const weather = weatherOf(state.day)
+  const weather = weatherOf(day)
 
   return (
     <HudPanel
@@ -78,9 +85,9 @@ export function CalendarPanel() {
       {/* 날짜는 이 패널의 주인공이다 — 타입 스케일 최상단(24px) + tabular 숫자로
           한눈에 잡히게 한다(ux `visual-hierarchy`: 크기로 위계를 만든다).
           n일차와 슬롯 칩은 그 아래로 한 단계씩 물러난다. */}
-      <div className="cal-date">{formatGameDate(state.day)}</div>
+      <div className="cal-date">{formatGameDate(day)}</div>
       <div className="cal-meta">
-        <span className="cal-day">{state.day}일차</span>
+        <span className="cal-day">{day}일차</span>
         <span className="cal-slot">
           <AppIcon name={slotIcon} size={13} />
           {isMorning ? '오전' : '오후'}
@@ -108,11 +115,13 @@ export function CalendarPanel() {
       <button
         className="cal-skip"
         onClick={doSkip}
-        disabled={autoRunning}
+        disabled={autoRunning || lagging}
         title={
-          state.recovery
-            ? '주저앉은 동안에는 이것만 할 수 있습니다. 넘길수록 회복이 가까워집니다'
-            : '이 슬롯을 아무것도 하지 않고 넘깁니다'
+          lagging
+            ? '결과 창을 확인하면 시간이 넘어갑니다'
+            : state.recovery
+              ? '주저앉은 동안에는 이것만 할 수 있습니다. 넘길수록 회복이 가까워집니다'
+              : '이 슬롯을 아무것도 하지 않고 넘깁니다'
         }
       >
         <AppIcon name={HUD_ICONS.skipTurn} size={14} />
@@ -128,11 +137,13 @@ export function CalendarPanel() {
         onClick={autoRunning ? stopAuto : startAuto}
         /* 자동 진행은 회복 중에 막는다 — 모르는 사이 회복이 지나가면 무슨 일이
            있었는지 못 본다(`autoAdvance.ts`의 첫 정지 규칙과 같은 판단). */
-        disabled={state.recovery !== null}
+        disabled={state.recovery !== null || lagging}
         title={
-          autoRunning
-            ? '지금 슬롯까지만 진행하고 멈춥니다'
-            : '예약해 둔 계획을 따라 계속 진행합니다. 결정이 필요한 일이 생기면 스스로 멈춥니다'
+          lagging
+            ? '결과 창을 확인하면 시간이 넘어갑니다'
+            : autoRunning
+              ? '지금 슬롯까지만 진행하고 멈춥니다'
+              : '예약해 둔 계획을 따라 계속 진행합니다. 결정이 필요한 일이 생기면 스스로 멈춥니다'
         }
       >
         <AppIcon name={autoRunning ? HUD_ICONS.autoStop : HUD_ICONS.autoRun} size={14} />
@@ -148,7 +159,7 @@ export function CalendarPanel() {
        */}
       {autoRunning ? (
         <p className="cal-auto-note">
-          {state.day}일차 {isMorning ? '오전' : '오후'} · {autoSlots}슬롯 진행 중
+          {day}일차 {isMorning ? '오전' : '오후'} · {autoSlots}슬롯 진행 중
         </p>
       ) : (
         autoRun?.stop && (

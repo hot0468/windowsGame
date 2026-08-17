@@ -1,0 +1,110 @@
+/*
+ * 데스크톱 펫(길고양이).
+ *
+ * ⚠️ **색은 이 파일에 가둔다**(ToolRun이 자기 팔레트를 가두는 규칙) — 검은 실루엣과
+ * 호박색 눈은 다른 어디에도 쓰이지 않아 전역 토큰을 만들 자리가 아니다.
+ * ⚠️ **걷기는 CSS 애니메이션이고 방향·멈추는 자리는 TSX가 턴에서 파생해 변수로 넣는다**
+ * (무작위 금지). `prefers-reduced-motion`이면 걷지 않고 구석에 앉아 있는다(Daybreak의
+ * 모션 감소 규칙 — 정보(고양이가 있다·쓰다듬을 수 있다)는 그대로 전해진다).
+ */
+.catpet {
+  --catpet-ink: #16121c;
+  --catpet-eye: #ffc94d;
+  position: fixed;
+  /* 작업 표시줄 높이(44px) 바로 위 — Desktop.css의 .taskbar와 같은 값이다. */
+  bottom: 44px;
+  left: 0;
+  /* 화면 밖에서 걸어 들어와 턴이 정한 자리(--catpet-rest)에 멈춘다. */
+  animation: catpet-cross 14s ease-in-out forwards;
+}
+
+/* 홀수 턴은 오른쪽에서 걸어온다. 실루엣도 진행 방향을 본다. */
+.catpet-rtl {
+  animation-name: catpet-cross-rtl;
+}
+
+.catpet-rtl .catpet-art {
+  transform: scaleX(-1);
+}
+
+.catpet-body {
+  /* 버튼 리셋 — 고양이 자체가 컨트롤이다. */
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: block;
+}
+
+/* 이미 쓰다듬은 날은 장식이다 — 흐려지지 않고 손만 거둔다(사유는 title이 말한다). */
+.catpet-body:disabled {
+  cursor: default;
+}
+
+.catpet-art {
+  width: 64px;
+  height: 40px;
+  display: block;
+  /* 걷는 동안의 발걸음 — steps(2)로 뒤뚱거린다. 28회 = 이동 시간(14s)과 같이 끝나
+     도착하면 멈춰 앉는다(무한 반복이면 서 있는 채로 영원히 들썩인다). */
+  animation: catpet-bob 0.5s steps(2) 28;
+}
+
+.catpet-ink {
+  fill: var(--catpet-ink);
+}
+
+.catpet-eye {
+  fill: var(--catpet-eye);
+}
+
+@keyframes catpet-cross {
+  from {
+    transform: translateX(-72px);
+  }
+  to {
+    transform: translateX(var(--catpet-rest));
+  }
+}
+
+@keyframes catpet-cross-rtl {
+  from {
+    transform: translateX(100vw);
+  }
+  to {
+    transform: translateX(var(--catpet-rest));
+  }
+}
+
+@keyframes catpet-bob {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-3px);
+  }
+}
+
+/*
+ * 모션을 줄인 환경 — 걷지 않고 **왼쪽 구석에 앉아 있는다.**
+ * ⚠️ 애니메이션만 끄면 시작 프레임(화면 밖)에 멈춰 고양이가 통째로 사라진다(Daybreak와
+ * 같은 함정) — 최종 자리를 명시적으로 다시 적는다.
+ * ⚠️ **오른쪽 구석이 아니다** — 거기는 토스트가 쌓이는 자리라 실측에서 고양이가
+ * 알림 카드에 통째로 가렸다.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .catpet,
+  .catpet-rtl {
+    animation: none;
+    left: 16px;
+    transform: none;
+  }
+
+  .catpet-art,
+  .catpet-rtl .catpet-art {
+    animation: none;
+    /* 구석에 앉은 고양이는 화면 안쪽(오른쪽)을 본다. */
+    transform: none;
+  }
+}

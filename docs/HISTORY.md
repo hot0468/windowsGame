@@ -6,6 +6,21 @@ CLAUDE.md의 변경 이력 표에서 밀려난 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-17 | 지난 삶 도감 — [새 게임]으로 판을 접으면 이름·일수·생활 등급·최고 직장이 회차로 남는다(무한 판에 회차 개념을 연다) | metaStore(`pastLives`), gameStore(`pastLifeOf`+test), ExcelApp(다섯째 시트) | |
+| 2026-08-17 | 생활 등급이 특화를 벌하지 않는다 — 15종 전부 평균 → **상위 12종 평균**(덤프 3종 면제, 1/12 < C 문턱이라 한 우물 치즈는 막힘) | lifeRank(`LIFE_STAT_COUNT`·`lifeRatio`+test 묶음), StatPanel(라벨), 주석 치환 5파일 | |
+| 2026-08-17 | 생활 등급 사다리 완성 — A(에세이)·S(강연)·SS(단발)를 채우고 스탯창이 "다음 등급이 여는 것"(`teaser`)을 상시 적는다 | rankEvents(data `teaser`+3 · systems `nextLifeGoal`+권유 2 · test 3), activities(2), messages(방 2), events(1), StatPanel | |
+| 2026-08-16 | 투어를 묻지 않고 새 판마다 바로 돈다(`tourSeen` 삭제) + 시작 메뉴 [새 게임](확인 한 단계 → 잠금화면) | gameStore(startGame·startTour), Tour(tsx 팝업 삭제·css), types(`tourSeen` 삭제), StartMenu(tsx+css), icons(`newGame`) | |
+| 2026-08-15 | 강의 진도 잠금 — 입문부터 차례대로. 앞 단계 아무거나 수료(3회)해야 다음 난이도가 열린다 | courses(data `levelRank`, systems `levelUnlocked` + `blockReason` 첫 관문, test 5), CampusSite(tsx `잠김` 배지 + css) | |
+| 2026-08-14 | 오후 알림 — `Daybreak`에 `dusk` 갈래를 붙여 오전→오후에도 해가 기우는 화면이 1.8초 뜬다(한 컴포넌트가 둘을 진다) | Daybreak(tsx 갈래 분기·css `.db-dusk` + 키프레임 2) | |
+| 2026-08-14 | 첫 실행 안내 투어(딤+스포트라이트 7단계) — 안내 메일 넷을 걷어내고 실제 화면을 가리켜 설명한다 | tour(data+test 신규), Tour(tsx+css 신규), layers(`TOUR`), index.css(`--os-scrim`), types(`guides`→`tourSeen`), gameStore(투어 액션 3), Desktop·HudPanel·Taskbar(`data-tour`), SettingsApp(다시 보기), guide 3파일 삭제 |
+| 2026-08-14 | 지갑칸 분리 — 스탯 15종에 밀려 잘리던 소지금·생활비를 날짜칸 아래 세 번째 HUD 패널로 뗐다 | WalletPanel 신규, StatPanel(생계 구역 제거·`ResourceRow` 공개), HudPanel(`onHeight`), desktopPanelStore(`wallet`·`heights`), calendar(폭 240), CalendarPanel·Taskbar·Desktop·icons |
+| 2026-08-14 | 실행 연출을 관계·S 일감으로 넓힘(10→29/71) — 같은 커밋의 안내 메일 넷은 투어로 대체되어 사라졌다 | runScenes(문구 8·`table` 신규), ToolRun(tsx+css), gameStore(afterTurn→feedback), MailApp |
+| 2026-08-14 | 관계 깊이 — 안 만나면 멀어지고(유예 5일·바닥 30), 친해지면 방의 말이 바뀌고, 가까우면 만남이 멘탈을 더 준다 | relations(상수 4+`STAGE_LINES`), affection(`decayAffection`·`stageOf`·`stageMessages`·`meetMentalBonus`·`isCooling`), types(`lastMet`), turn(`withRecovery`), ChatApp(+css), activityPreview |
+| 2026-08-14 | 활동별 실행 그림 8종 — `RunScene.art`를 `look`에서 갈라내 달리기·붓질·파형·코드·차트·무대조명·손·김을 그린다 | runScenes(`art`+배정), types(`ToolRunPayload.art`), ToolRun(tsx 그림 5+css), UiGallery(payload 누락 수정), runScenes.test |
+| 2026-08-14 | 행동 피드백 — 기록 갱신·내면 감상 토스트 + 육성 활동 7종에 실행 연출(그전엔 71개 중 10개만 있었다) | records·inner(systems+data+test 신규), gameStore(`feedback`), ToastHost(채널 2+정적 카드), runScenes(7)·ToolRun.css(액센트 3) |
+| 2026-08-14 | 랭크 이벤트의 윗칸 — S가 여는 고수익 일감 5종 + **생활 등급이 여는 방 2개**(`RankEvent.key`가 옵셔널이 되어 15종 평균을 본다) | activities(7), messages(방 7), rankEvents(data 7 + systems 권유 7 + `rankReached`), rankEvents.test(생활 등급 묶음 신규) |
+| 2026-08-14 | 육성물 전환 — 게임오버를 없애고(파산·번아웃은 며칠짜리 `Recovery`) 무한 생활 등급이 판을 이끈다. 직업·실패 엔딩 11종은 도감 콜렉션으로 | economy(상승률 동률), recovery(data+systems+test 신규), lifeRank(+test 신규), types(`Recovery`), turn·store·가드 15곳, endings(15→4), metaStore(`unlockedCareers`), StatPanel·ExcelApp·EndingModal·CalendarPanel·MobileStatSheet, balance.verify(전제 반전) |
+| 2026-08-14 | 육성 복리 — 스탯 등급 한 단계당 상승분 +15%(`masteryBonusFor`) + 첫 보상이 B·A뿐이던 스탯에 C 단발 첫 칸 7종 | turn(`statBonusFor`), rankScale 신규(rank가 재수출), activityPreview, mastery.test 신규, rankEvents·events(각 7) |
 | 2026-08-14 | 악성코드 감염 — 포털 스캠 배너를 누르면 매 턴 광고 팝업 + 밤마다 3,000원이 새고, 백신 결제나 IT B의 `clean`이 끊는다 | malware(data+systems+test 신규), AdwareApp(tsx+css 신규), types(`malware`·`WindowKind: adware`), turn(취침), gameStore(액션 3+afterTurn), appForWindow(+test), banners(`scam`), NeverPortal, SystemApps(`scan`·`clean`·`ver`) |
 | 2026-08-14 | 블루스크린 — 번아웃 효율이 하한에 닿으면 화면이 3초 뻗는다(연출뿐, 상태 불변) | BlueScreen(tsx+css 신규), burnout(`EFFICIENCY_FLOOR` 공개), layers(`BLUESCREEN`), Desktop |
 | 2026-08-14 | 그림판 — 시작 메뉴의 낙서 장난감(색 8·굵기 3·지우개·전체 지우기). 창을 닫으면 그림이 사라진다 | paint(data 신규), PaintApp(tsx+css 신규), types(`WindowKind: paint`), appForWindow(+test), startMenu |

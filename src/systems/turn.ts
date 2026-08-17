@@ -7,6 +7,8 @@ import { wearGear } from './gear'
 import { illnessEfficiency, illnessRecoveryRatio, nextIllness } from './illness'
 import { settleRecovery, tickRecovery } from './recovery'
 import { decayAffection, meetMentalBonus } from './affection'
+import { chanceEfficiency, chanceMoneyBack, chanceNightDelta } from './chance'
+import { catNightDelta } from './cat'
 import { malwareLoss } from './malware'
 /* ⚠️ `rank.ts`가 아니라 `rankScale.ts`다 — rank.ts는 `growthCap` 때문에 이 파일을
    부르고 있어 그쪽을 import하면 순환이 된다. 눈금만 leaf 모듈에서 직접 읽는다. */
@@ -353,11 +355,26 @@ function sleep(stats: Stats, state: GameState, ill: Illness | undefined): Stats 
      감염이 파산을 직접 만들면 "판은 물가로 끝난다"가 흐려진다 — 랭크 이벤트 `below`와
      같은 판단이고, 그 규칙은 `malware.ts` 하나가 갖는다(여기서 다시 자르지 않는다). */
   const afterLiving = stats.money - getLivingCost(state)
+  const afterMalware = afterLiving - malwareLoss(state, afterLiving)
+  /* ⚠️ **소소한 돌발 사건은 취침 정산 이 자리 하나에서만 반영한다**(`systems/chance.ts`) —
+     턴을 넘기는 통로가 넷이라 밖에 두면 샌다. 돈을 잃는 사건은 그쪽 규칙이 잔액 1원을
+     남기고 자른다(악성코드와 같은 판단 — 여기서 다시 자르지 않는다). */
+  /* ⚠️ **고양이 사료비·멘탈도 취침 정산 이 자리 하나다**(돌발 사건과 같은 자리·같은 이유).
+     잔액 1원을 남기고 자르는 규칙은 `cat.ts`가 갖고 여기서는 부르기만 한다.
+     ⚠️ 밤 멘탈 가산의 합(사치 집 최대 +3 + 고양이 +1 = 4)이 취침 회복(5)을 넘지 않는다는
+     근거는 `catNightDelta` 주석에 있다. */
+  const cat = catNightDelta(state, afterMalware)
+  const chance = chanceNightDelta(state, afterMalware + cat.money)
   return {
     ...stats,
-    stamina: stats.stamina + SLEEP_RECOVERY * recovery,
-    mental: stats.mental + SLEEP_MENTAL_RECOVERY * recovery - housingMentalCost(state),
-    money: afterLiving - malwareLoss(state, afterLiving),
+    stamina: stats.stamina + SLEEP_RECOVERY * recovery + chance.stamina,
+    mental:
+      stats.mental +
+      SLEEP_MENTAL_RECOVERY * recovery -
+      housingMentalCost(state) +
+      cat.mental +
+      chance.mental,
+    money: afterMalware + cat.money + chance.money,
   }
 }
 
@@ -449,6 +466,11 @@ export function nightPayoutPending(state: GameState): boolean {
   const job = state.employment
   if (job && state.day >= job.paydayDay) return true
   if ((state.lottery?.pending ?? 0) > 0) return true
+  /* ⚠️ **오늘 밤 추첨이 있으면 금액을 모른 채로 미룬다**(2026-08-17 주 1회 추첨). 굴리기
+     전이라 `pending`이 0이므로 위 줄에 안 잡힌다 — 정기예금 만기·공모전 발표와 같이
+     **날짜**를 본다. 전부 꽝일 수도 있지만, 그때는 `advanceLottery`가 그 자리에서
+     확정하므로 미루는 쪽이 안전하다. */
+  if ((state.lottery?.tickets ?? []).some((t) => !t.drawn && state.day >= t.drawDay)) return true
   const twitter = state.twitter
   if (twitter && state.day - twitter.paidDay >= PAYOUT_INTERVAL_DAYS) return true
   /* ⚠️ **공모전 상금** — 발표일 밤에 `advanceContests`가 넣는다. 안 보면 상금이 들어오기
@@ -614,13 +636,17 @@ export function runActivity(state: GameState, activity: Activity): GameState {
   const { efficiency, mentalPenalty } = getBurnoutPenalty(state.recentActivities, key)
   /* ⚠️ **날씨와 아픔이 번아웃 효율과 정확히 같은 자리에 곱해진다** — 곧 긍정 효과에만
      붙고 소모량은 안 건드린다. 새 계수를 여기 말고 `applyEffects` 안에 넣지 말 것:
-     그러면 활동 미리보기(`activityPreview.ts`)가 못 보는 두 번째 출처가 생긴다. */
+     그러면 활동 미리보기(`activityPreview.ts`)가 못 보는 두 번째 출처가 생긴다.
+     "오늘만 기회"(`chanceEfficiency`)도 같은 자리·같은 규칙이다. */
   const withEffects = applyEffects(
     state,
     state.stats,
     activity,
     state.day,
-    efficiency * weatherEfficiency(state.day, activity.id) * illnessEfficiency(state),
+    efficiency *
+      weatherEfficiency(state.day, activity.id) *
+      illnessEfficiency(state) *
+      chanceEfficiency(state, activity.id),
     outfitBonusFor(state, activity.id),
   )
   withEffects.mental -= mentalPenalty
@@ -630,6 +656,9 @@ export function runActivity(state: GameState, activity: Activity): GameState {
      ⚠️ **미리보기(`activityPreview.ts`)도 같은 함수를 부른다** — 여기만 고치면
      확인창이 실제보다 적게 적는다(위 주석의 규칙). */
   withEffects.mental += meetMentalBonus(state, activity.id)
+  /* ⚠️ **"오늘만 기회"의 비용 할인도 덧셈이다**(`chanceMoneyBack`) — 효율 배율은 의도적으로
+     손해(음수)에 안 곱으므로 거기 섞을 수 없다. 미리보기가 같은 함수를 더한다(위 규칙). */
+  withEffects.money += chanceMoneyBack(state, activity)
   /* ⚠️ **밴드 보수는 숙련도의 함수라 활동 데이터에 없다**(`data/band.ts`) — 활동 효과가
      끝난 자리에서 얹는다. 물가 배율을 타지 않는 것은 그몽 보수·월급과 같은 규칙이다:
      타면 후반에 밴드만으로 버틸 수 있게 되어 "판은 반드시 끝난다"가 무너진다. */

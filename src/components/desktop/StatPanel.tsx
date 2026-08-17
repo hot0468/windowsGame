@@ -5,7 +5,8 @@ import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { STAMINA_CAP, growthCap } from '../../systems/turn'
 import { rankOf, rankRose, toNextRank } from '../../systems/rank'
-import { lifeProgress, lifeRankOf } from '../../systems/lifeRank'
+import { LIFE_STAT_COUNT, lifeProgress, lifeRankOf } from '../../systems/lifeRank'
+import { nextLifeGoal } from '../../systems/rankEvents'
 import { isIll } from '../../systems/illness'
 import { skillLabel } from '../../data/band'
 import { ILL_EFFICIENCY } from '../../data/illness'
@@ -207,6 +208,7 @@ export function StatPanel() {
   const ill = isIll(state)
   const life = lifeRankOf(stats)
   const lifePct = Math.round(lifeProgress(stats) * 100)
+  const lifeGoal = nextLifeGoal(state)
 
   return (
     <HudPanel
@@ -250,7 +252,9 @@ export function StatPanel() {
        */}
       <div className="stat-life">
         <div className="stat-life-head">
-          <span className="stat-life-label">생활 등급</span>
+          {/* ⚠️ "상위 12종"을 라벨이 직접 진다 — 하위 스탯을 올려도 이 게이지는 안
+              움직이는데(면제 규칙, `lifeRank.ts`), 규칙이 안 보이면 버그로 읽힌다. */}
+          <span className="stat-life-label">생활 등급(상위 {LIFE_STAT_COUNT}종)</span>
           <span className="stat-life-rank">{life.label}</span>
         </div>
         <div
@@ -266,6 +270,16 @@ export function StatPanel() {
           <span className="stat-fill" style={{ transform: `scaleX(${lifePct / 100})` }} />
         </div>
         <p className="stat-life-note">다음 등급까지 {lifePct}%</p>
+        {/*
+         * **올라서 무엇이 오는가.** 게이지가 "얼마나 남았나"를 말한다면 이 줄이 등급을
+         * 목표로 만든다(2026-08-16) — 문구·문턱의 단일 출처는 `nextLifeGoal` 하나다.
+         * ⚠️ 사다리를 다 오르면 아예 그리지 않는다(빈 자리를 남기지 않는다 — 앓는 배지 규칙).
+         */}
+        {lifeGoal && (
+          <p className="stat-life-note">
+            {lifeGoal.rank}에 닿으면 · {lifeGoal.teaser}
+          </p>
+        )}
       </div>
 
       {/*

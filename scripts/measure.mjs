@@ -152,6 +152,22 @@ const dblClickJs = (sel) => `(() => {
 })()`
 
 /**
+ * 오른쪽 클릭(= `contextmenu` 이벤트). 더블클릭과 같은 사정 — 해당하는 메서드가 없어
+ * 이벤트를 직접 쏜다. **좌표는 요소 한가운데를 실어 보낸다**: 컨텍스트 메뉴가
+ * `clientX/Y`로 뜨는 자리를 정하므로 0,0이면 화면 구석에 열려 다음 --click이 못 찾는다.
+ */
+const rightClickJs = (sel) => `(() => {
+  const e = document.querySelector(${JSON.stringify(sel)})
+  if (!e) return false
+  const r = e.getBoundingClientRect()
+  e.dispatchEvent(new MouseEvent('contextmenu', {
+    bubbles: true, cancelable: true, view: window,
+    clientX: r.left + r.width / 2, clientY: r.top + r.height / 2,
+  }))
+  return true
+})()`
+
+/**
  * ⚠️ **진짜 마우스**를 요소 한가운데에 눌렀다 뗀다(CDP `Input`, 신뢰된 이벤트).
  * `--click`(=`el.click()`)으로는 **볼 수 없는 버그가 있다**: pointerdown이 리렌더를 일으켜
  * 그 버튼 DOM이 갈아 끼워지면 mouseup이 다른 노드에 떨어져 **click 자체가 안 난다**
@@ -277,6 +293,7 @@ CDP 실측 하네스 — 헤드리스 크롬으로 찍고 합성 픽셀로 대�
   --mouse <셀>       **진짜 마우스**로 누른다(신뢰된 pointerdown→mouseup).
                      --click이 못 보는 버그(누르는 순간 리렌더로 버튼이 갈아 끼워져
                      click이 안 나는 것)를 재현하려면 이쪽
+  --rightclick <셀>  오른쪽 클릭(contextmenu). 우클릭 메뉴(작업 표시줄·스케줄러)를 열 때
   --wait <ms>        --click 사이 대기(기본 400)
   --shot <파일>      스크린샷을 저장한다
   --contrast <셀>    그 셀렉터에 걸리는 요소의 합성 대비를 잰다(기본 검사 대상 없음)
@@ -307,6 +324,7 @@ function parseArgs(argv) {
     else if (a === '--click') o.clicks.push({ sel: next(), dbl: false })
     else if (a === '--dblclick') o.clicks.push({ sel: next(), dbl: true })
     else if (a === '--mouse') o.clicks.push({ sel: next(), real: true })
+    else if (a === '--rightclick') o.clicks.push({ sel: next(), ctx: true })
     else if (a === '--wait') o.wait = Number(next())
     else if (a === '--shot') o.shot = next()
     else if (a === '--contrast') o.contrast = next()
@@ -360,11 +378,13 @@ async function main() {
     await sleep(500)
     await login(d, o.name)
 
-    for (const { sel, dbl, real } of o.clicks) {
+    for (const { sel, dbl, real, ctx } of o.clicks) {
       const ok = real
         ? await realClick(d, sel)
-        : await d.evalJs(dbl ? dblClickJs(sel) : clickJs(sel))
-      console.log(`${real ? '실마우스' : dbl ? '더블클릭' : '클릭'} ${sel}: ${ok ? 'ok' : '없음'}`)
+        : await d.evalJs(ctx ? rightClickJs(sel) : dbl ? dblClickJs(sel) : clickJs(sel))
+      console.log(
+        `${real ? '실마우스' : ctx ? '우클릭' : dbl ? '더블클릭' : '클릭'} ${sel}: ${ok ? 'ok' : '없음'}`,
+      )
       await sleep(o.wait)
     }
 

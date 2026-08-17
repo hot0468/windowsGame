@@ -14,7 +14,11 @@ import type { IconName } from '../types/game'
 export interface GameEvent {
   id: string
   name: string
-  /** 아직 겪지 않았을 때 보여 줄 힌트. 내용을 미리 다 알려 주면 도감을 채울 이유가 없다. */
+  /**
+   * 아직 겪지 않았을 때 보여 줄 힌트.
+   * ⚠️ **지금은 읽는 곳이 없다**(2026-08-17, 사진첩이 겪은 것만 싣게 됐다). 안 채운 칸을
+   * 다시 그리기로 하면 그때 쓸 자리라 남겨 둔다 — 35줄을 다시 쓰는 것이 더 비싸다.
+   */
   hint: string
   /** 겪은 뒤에 보여 줄 기록. */
   desc: string
@@ -184,6 +188,15 @@ export const EVENTS: GameEvent[] = [
     ext: '.evt',
   },
   {
+    /* 생활 등급 SS(평균 95%) — 사다리의 지평선. 문턱은 `data/rankEvents.ts`가 정한다. */
+    id: 'life-portrait',
+    name: '어떻게 살아왔느냐는 질문',
+    hint: '무엇 하나가 아니라 전부가 쌓인다.',
+    desc: '인터뷰어는 직업을 묻지 않았다. 하루를 어떻게 보내는지 물었고, 나는 한참을 대답했다.',
+    icon: 'fluent-color:person-starburst-24',
+    ext: '.evt',
+  },
+  {
     id: 'merged-pr',
     name: '머지된 한 줄',
     hint: '남의 코드에 손을 대 본다.',
@@ -296,6 +309,15 @@ export const EVENTS: GameEvent[] = [
     hint: '돈이 움직이는 것이 보이기 시작한다.',
     desc: '뉴스의 금리 이야기를 끝까지 알아들었다. 작년의 나는 채널을 돌렸었다.',
     icon: 'fluent-color:chart-multiple-24',
+    ext: '.evt',
+  },
+  {
+    /* 길고양이 입양(`systems/cat.ts`). 방문일 규칙은 그쪽이 갖고 여기는 문구·아이콘만. */
+    id: 'cat-adopted',
+    name: '창밖의 손님',
+    hint: '자꾸 오는 것을 세 번 모른 척하지 않는다.',
+    desc: '문을 열어 두고 한참을 기다렸다. 들어온 것은 고양이였고, 나간 것은 혼자라는 말이었다.',
+    icon: 'fluent-color:paw-24',
     ext: '.evt',
   },
   {

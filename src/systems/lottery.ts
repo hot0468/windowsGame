@@ -1,14 +1,16 @@
 import {
+  DRAW_WEEKDAY,
   LOTTERY_LOG_LIMIT,
   LOTTERY_PRIZES,
   MAX_TICKETS_PER_BUY,
   TICKET_PRICE,
 } from '../data/lottery'
+import { weekdayOf } from '../data/calendar'
 import { clampStats, settleRecovery } from './turn'
 import type { GameState, LotteryState, LotteryTicket } from '../types/game'
 
 /**
- * 복권 — **살 때마다 새로 굴린다.**
+ * 복권 — **표마다 따로 굴리고, 결과는 주 1회 추첨일(토요일 밤)에 열린다.**
  *
  * ## ⚠️ `Math.random` 금지 — 그런데 복권은 무작위여야 한다
  * 이 프로젝트는 결정성을 규칙으로 못 박았다(테스트 전체와 새로 고침 동작이 거기 달려
@@ -24,10 +26,16 @@ import type { GameState, LotteryState, LotteryTicket } from '../types/game'
  * 상금표의 기대값(2,750원)이 표 값(10,000원)보다 낮다는 것을 `lottery.test.ts`가
  * **데이터에서 직접 계산해** 지킨다 — 은행의 이율 부등식과 같은 장치다.
  *
- * ## ⚠️ 상금은 밤에 들어온다 — `nightPayoutPending`의 세 번째 원천
- * 오후에 산 표가 당첨됐는데 그날 밤 생활비를 못 내면 **상금을 손에 쥔 채 굶어 죽는다** —
+ * ## ⚠️ 상금은 추첨일 밤에 들어온다 — `nightPayoutPending`의 세 번째 원천
+ * 추첨일 밤에 당첨됐는데 그날 생활비를 못 내면 **상금을 손에 쥔 채 굶어 죽는다** —
  * 급여·정기예금 만기에서 이미 두 번 터진 것과 **완전히 같은 버그**다. 그래서
- * `LotteryState.pending`에 담아 두고 밤 정산(`advanceLottery`)이 소지금에 넣는다.
+ * `turn.ts`는 **미추첨 표의 추첨일**(날짜 하나 — 정기예금 만기와 같은 형태)을 보고
+ * 판정을 미루고, `advanceLottery`가 굴린 뒤 소지금에 넣고 마지막에 확정한다.
+ *
+ * ## ⚠️ 주 1회 추첨(2026-08-17 설계자 지시)
+ * 산 표는 `drawDay`(다음 토요일)까지 미추첨으로 기다린다. **굴림 자체는 안 바뀌었다** —
+ * 시드는 여전히 일련번호뿐이라 언제 굴려도 같은 답이 나온다. 바뀐 것은 **결과가 열리는
+ * 시각**뿐이고, 그래서 세이브 스커밍 차단도 그대로 성립한다.
  *
  * ## 의존 방향
  * ⚠️ `turn.ts`를 부르지만 **그 반대는 없다**. `turn.ts`가 보는 것은 세이브에 이미 있는
@@ -82,6 +90,32 @@ export function prizeForRoll(roll: number) {
   return LOTTERY_PRIZES.find((p) => roll < 1 / p.odds)
 }
 
+/* ── 추첨일 ───────────────────────────────────────────────────────────── */
+
+/**
+ * 그날 산 표가 굴러갈 날 = **다음 토요일**.
+ *
+ * ⚠️ **오늘이 토요일이면 다음 주다**(`|| 7`) — 실제 로또도 추첨 전에 판매를 닫는다.
+ * 같은 날 추첨까지 되면 "사자마자 결과"가 되어 주 1회로 묶은 뜻이 사라진다.
+ */
+export function nextDrawDay(day: number): number {
+  return day + (DRAW_WEEKDAY - weekdayOf(day) || 7)
+}
+
+/** 그 표가 오늘 굴러가야 하는가. `turn.ts`가 보는 것과 **같은 물음**이다. */
+const isDue = (t: LotteryTicket, day: number) => !t.drawn && day >= t.drawDay
+
+/**
+ * 로그 상한을 적용한다. ⚠️ **미추첨 표는 자르지 않는다** — 자르면 아직 안 굴린 표가
+ * 사라지고, 그건 화면 문제가 아니라 **낸 돈을 삼키는** 버그다(추첨을 못 받는다).
+ */
+function trim(tickets: LotteryTicket[]): LotteryTicket[] {
+  return [
+    ...tickets.filter((t) => !t.drawn),
+    ...tickets.filter((t) => t.drawn).slice(0, LOTTERY_LOG_LIMIT),
+  ]
+}
+
 /* ── 읽기 ─────────────────────────────────────────────────────────────── */
 
 /** 산 적 없는 사람의 복권 상태. 구버전 세이브를 이걸로 읽는다. */
@@ -110,6 +144,10 @@ export function canBuyTickets(state: GameState, count: number): boolean {
  * ⚠️ 이 함수가 `turn.ts`의 `nightPayoutPending`에 물리는 지점이다(급여·정기예금 만기와
  * 나란히). 밤 정산은 생활비를 먼저 빼고 상금은 그 뒤 `advanceLottery`가 넣으므로,
  * 그 중간에서 파산을 확정하면 **당첨금을 쥔 채 굶어 죽는다.**
+ *
+ * ⚠️ **오늘 추첨할 표는 여기에 안 잡힌다** — 아직 굴리지 않아 금액을 모른다. 그쪽은
+ * `turn.ts`가 **날짜**(`drawDay`)로 본다(정기예금 만기·공모전 발표와 같은 형태이고,
+ * 그래서 `turn.ts`는 여전히 이 파일을 import하지 않는다 — 의존은 한 방향이다).
  */
 export function lotteryNightCredit(state: GameState): number {
   return state.lottery?.pending ?? 0
@@ -120,29 +158,25 @@ export function lotteryNightCredit(state: GameState): number {
 /**
  * 복권을 산다. **턴을 쓰지 않는다**(은행 거래·쇼핑 주문과 같은 규칙).
  *
- * 표 값은 **즉시** 나가고 상금은 **그날 밤** 들어온다. 이 시차가 의도다 —
+ * 표 값은 **즉시** 나가고 결과는 **다음 토요일 밤**에 열린다. 이 시차가 의도다 —
  * 당첨금이 즉시 들어오면 "복권으로 오늘 생활비를 낸다"가 되어 복권이 생계 수단이 된다.
- * 하루를 기다려야 하므로 복권은 여전히 **오늘을 갉아 내일에 거는 일**이다.
+ * 일주일을 기다려야 하므로 복권은 여전히 **오늘을 갉아 내일에 거는 일**이다.
+ *
+ * ⚠️ **여기서 굴리지 않는다.** 굴림은 추첨일 밤(`advanceLottery`)의 몫이고, 결과를
+ * 미리 세이브에 적어 두면 개발자 도구로 열어 보는 것이 최적 전략이 된다.
  *
  * 조건이 안 되면 상태를 **그대로** 돌려준다(호출부에서 막지 않아도 안전).
  */
 export function buyTickets(state: GameState, count: number): GameState {
   if (!canBuyTickets(state, count)) return state
   const lot = lotteryOf(state)
+  const drawDay = nextDrawDay(state.day)
 
   const bought: LotteryTicket[] = []
-  let won = 0
   for (let i = 0; i < count; i++) {
     // ⚠️ **일련번호는 장마다 1씩 올라간다** — 그것이 곧 독립 시행이다.
     const serial = lot.serial + i + 1
-    const prize = prizeForRoll(ticketRoll(serial))
-    won += prize?.amount ?? 0
-    bought.push({
-      id: `ticket-${serial}`,
-      day: state.day,
-      prize: prize?.label,
-      amount: prize?.amount ?? 0,
-    })
+    bought.push({ id: `ticket-${serial}`, serial, day: state.day, drawDay, drawn: false, amount: 0 })
   }
 
   const spent = count * TICKET_PRICE
@@ -151,13 +185,11 @@ export function buyTickets(state: GameState, count: number): GameState {
     ...state,
     stats: clampStats({ ...state.stats, money: state.stats.money - spent }),
     lottery: {
+      ...lot,
       serial: lot.serial + count,
       spent: lot.spent + spent,
-      won: lot.won + won,
       // 최신이 앞에 오게 쌓는다 — 화면이 정렬을 다시 하지 않는다.
-      tickets: [...bought.reverse(), ...lot.tickets].slice(0, LOTTERY_LOG_LIMIT),
-      // ⚠️ 상금은 **오늘 밤** 들어온다(위 주석). 여기서 소지금에 바로 넣지 않는다.
-      pending: lot.pending + won,
+      tickets: trim([...bought.reverse(), ...lot.tickets]),
     },
   }
 }
@@ -165,23 +197,44 @@ export function buyTickets(state: GameState, count: number): GameState {
 /* ── 밤 정산 ──────────────────────────────────────────────────────────── */
 
 /**
- * **턴이 넘어간 뒤** 당첨금을 소지금에 넣는다(`gameStore.afterTurn`이 부른다).
+ * **턴이 넘어간 뒤** 추첨일이 된 표를 굴리고 당첨금을 소지금에 넣는다
+ * (`gameStore.afterTurn`이 부른다).
  *
  * ⚠️ **맨 마지막에 딱 한 번** 게임오버를 확정한다(`advanceBank`·`advanceEmployment`와
  * 같은 규칙). 상금이 소지금에 들어간 **뒤에** 판정해야 "받을 돈이 있는데 그 전에
- * 죽었다"가 나오지 않는다.
+ * 죽었다"가 나오지 않는다. ⚠️ **전부 꽝이어도 여기까지 와야 한다** — 그 밤의 판정은
+ * 추첨을 기다리느라 이미 미뤄져 있고(`nightPayoutPending`), 여기서 안 확정하면
+ * 소지금이 음수인 채로 다음 날이 시작된다.
  *
  * ⚠️ **산 적이 없으면 아무것도 하지 않는다** — 빈 복권 상태를 세이브에 얹으면
  * 복권을 사 본 적 없는 사람의 세이브가 커진다(`advanceBank`와 같은 규칙).
  */
 export function advanceLottery(state: GameState): GameState {
   const lot = state.lottery
-  if (!lot || lot.pending <= 0) return state
+  if (!lot) return state
+  const drawn = draw(lot, state.day)
+  if (drawn === lot && lot.pending <= 0) return state
   return settleRecovery({
     ...state,
-    stats: clampStats({ ...state.stats, money: state.stats.money + lot.pending }),
-    lottery: { ...lot, pending: 0 },
+    stats: clampStats({ ...state.stats, money: state.stats.money + drawn.pending }),
+    lottery: { ...drawn, pending: 0 },
   })
+}
+
+/**
+ * 추첨일이 지난 표를 굴려 상금을 `pending`에 담는다. 굴릴 표가 없으면 **받은 것을
+ * 그대로 돌려준다**(호출부가 참조 비교로 "할 일 없음"을 안다).
+ */
+function draw(lot: LotteryState, day: number): LotteryState {
+  if (!lot.tickets.some((t) => isDue(t, day))) return lot
+  let won = 0
+  const tickets = lot.tickets.map((t) => {
+    if (!isDue(t, day)) return t
+    const prize = prizeForRoll(ticketRoll(t.serial))
+    won += prize?.amount ?? 0
+    return { ...t, drawn: true, prize: prize?.label, amount: prize?.amount ?? 0 }
+  })
+  return { ...lot, tickets: trim(tickets), won: lot.won + won, pending: lot.pending + won }
 }
 
 /* ── 화면이 묻는 것들 ──────────────────────────────────────────────────── */

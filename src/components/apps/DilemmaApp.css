@@ -1,0 +1,61 @@
+/*
+ * 아침 딜레마 창. **길고양이 만남 창(CatApp.css)과 같은 판형이다.**
+ *
+ * ⚠️ **확정 토큰만 쓴다**(`--os-*`·`--sp-*`·`--fs-*`·`--r-*`). 장면은 글자가 만들고
+ * 글리프 하나만 얹는다(소원·고양이 창과 같은 판단).
+ * ⚠️ **어느 버튼에도 액센트(primary)를 주지 않는다** — 돈 쪽이든 도덕 쪽이든 게임이
+ * 한쪽을 권하는 순간 딜레마가 아니다(고양이 창과 갈리는 유일한 지점).
+ */
+.dl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--os-surface);
+  color: var(--os-text);
+}
+
+.dl-lead {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-lg);
+  line-height: 1.6;
+}
+
+/* 선택지 둘은 세로로 쌓는다 — 라벨 + 효과 두 줄이라 가로로 두면 글자가 접힌다. */
+.dl-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.dl-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--os-fill);
+  color: var(--os-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.dl-btn:hover {
+  border-color: var(--os-accent);
+}
+
+.dl-btn-label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+/* 효과는 증감 칩 판형의 원칙(숨은 비용 금지)대로 버튼 안에 글자로 적힌다. */
+.dl-btn-effect {
+  font-size: var(--fs-xs);
+  color: var(--os-text-2);
+}

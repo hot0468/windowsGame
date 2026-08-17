@@ -49,8 +49,24 @@ export const CERTIFICATE_SESSIONS = 3
 /** 좌측 필터. **컴포넌트가 분류를 나열하지 않는다**(`ACTIVITY_CATEGORIES`와 같은 규칙). */
 export const COURSE_CATEGORIES = ['전체', 'AI 스킬업', '창업·부업', '금융·재테크', '디자인'] as const
 
-/** 난이도 필터. 배열 순서가 곧 표시 순서다. */
+/**
+ * 난이도 필터. **배열 순서가 곧 표시 순서이자 해금 순서다**(2026-08-15).
+ *
+ * ⚠️ 이 배열이 **진도 축의 단일 출처**다 — 앞 단계를 수료해야 다음 단계가 열린다
+ * (판정은 `systems/courses.ts`의 `levelUnlocked` 하나). 순서를 바꾸면 해금 순서가
+ * 그대로 바뀌므로, 필터 칩 순서를 손보려고 여기를 건드리지 말 것.
+ */
 export const COURSE_LEVELS = ['입문', '초급', '중급', '고급'] as const
+
+/**
+ * 난이도의 순번(0부터). 모르는 값이면 -1.
+ *
+ * ⚠️ **`COURSE_LEVELS`에서 파생시킨다** — 강의마다 숫자를 적어 두면 순서가 두 곳이 되고
+ * 한쪽만 낡는다(`courses.test.ts`가 모든 강의의 난이도가 이 배열에 있음을 지킨다).
+ */
+export function levelRank(level: string): number {
+  return (COURSE_LEVELS as readonly string[]).indexOf(level)
+}
 
 export const COURSES: Course[] = [
   {
@@ -62,7 +78,9 @@ export const COURSES: Course[] = [
     id: 'ai-basic',
     title: '처음부터 차근차근 배우는 실무 AI 입문',
     creator: '마소캠퍼스',
-    activityId: 'study',
+    /* ⚠️ `study`가 아니다(2026-08-17) — 제목에 AI가 있는데 IT가 안 오르면 거짓말이 된다.
+       전용 활동이 지식 주 + IT 곁가지로 가른다(수치는 저쪽, `data/activities.ts`). */
+    activityId: 'ai-study',
     price: 45000,
     category: 'AI 스킬업',
     level: '입문',

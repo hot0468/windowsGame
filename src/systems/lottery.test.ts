@@ -6,17 +6,37 @@ import {
   canBuyTickets,
   expectedValue,
   lotteryNightCredit,
+  nextDrawDay,
   payoutRatio,
   prizeForRoll,
   ticketRoll,
 } from './lottery'
-import { LOTTERY_PRIZES, MAX_TICKETS_PER_BUY, TICKET_PRICE } from '../data/lottery'
+import {
+  DRAW_WEEKDAY,
+  LOTTERY_LOG_LIMIT,
+  LOTTERY_PRIZES,
+  MAX_TICKETS_PER_BUY,
+  TICKET_PRICE,
+} from '../data/lottery'
+import { weekdayOf } from '../data/calendar'
 import { createInitialState, nightPayoutPending } from './turn'
 import type { GameState } from '../types/game'
 
 function rich(over: Partial<GameState> = {}): GameState {
   const s = createInitialState('복권')
   return { ...s, stats: { ...s.stats, money: 10_000_000 }, ...over }
+}
+
+/** 반드시 당첨되는 일련번호. 상금표가 바뀌어도 데이터에서 다시 찾는다. */
+function winningSerial(): number {
+  for (let i = 1; i < 100_000; i++) if (prizeForRoll(ticketRoll(i))) return i
+  throw new Error('당첨되는 표가 없다 — 상금표가 비었는가?')
+}
+
+/** 반드시 꽝인 일련번호. */
+function losingSerial(): number {
+  for (let i = 1; i < 100_000; i++) if (!prizeForRoll(ticketRoll(i))) return i
+  throw new Error('꽝인 표가 없다 — 상금표가 전부 당첨인가?')
 }
 
 /* ── 기대값 ───────────────────────────────────────────────────────────────
@@ -79,11 +99,11 @@ describe('한 장 한 장이 새로 굴러간다', () => {
     expect(rolls.size).toBe(500)
   })
 
-  it('한 번에 다섯 장을 사면 다섯 번 따로 굴린다', () => {
+  it('한 번에 다섯 장을 사면 다섯 장이 각자 다른 일련번호를 받는다', () => {
     const s = buyTickets(rich(), 5)
-    const ids = (s.lottery?.tickets ?? []).map((t) => t.id)
-    expect(ids.length).toBe(5)
-    expect(new Set(ids).size).toBe(5)
+    const serials = (s.lottery?.tickets ?? []).map((t) => t.serial)
+    expect(serials.length).toBe(5)
+    expect(new Set(serials).size).toBe(5)
     expect(s.lottery?.serial).toBe(5)
   })
 
@@ -168,18 +188,11 @@ describe('구매', () => {
  * "당첨금을 손에 쥔 채 굶어 죽는" 버그가 그대로 재현된다.
  */
 describe('⚠️ 당첨금은 밤에 들어온다 — 그 전에 죽지 않는다', () => {
-  /** 반드시 당첨되는 일련번호를 찾아 그 직전 상태를 만든다. */
-  function winningSerial(): number {
-    for (let i = 1; i < 100_000; i++) if (prizeForRoll(ticketRoll(i))) return i
-    throw new Error('당첨되는 표가 없다 — 상금표가 비었는가?')
-  }
-
-  it('당첨금은 즉시가 아니라 pending에 담긴다', () => {
-    const serial = winningSerial() - 1
-    const before = { ...rich(), lottery: { serial, spent: 0, won: 0, tickets: [], pending: 0 } }
+  it('산 표는 그 자리에서 굴러가지 않는다 — 소지금은 표 값만큼 줄기만 한다', () => {
+    const before = rich()
     const after = buyTickets(before, 1)
-    expect(after.lottery!.pending).toBeGreaterThan(0)
-    // 소지금은 표 값만큼 **줄어 있다** — 상금은 아직 안 들어왔다.
+    expect(after.lottery!.pending).toBe(0)
+    expect(after.lottery!.tickets[0].drawn).toBe(false)
     expect(after.stats.money).toBe(before.stats.money - TICKET_PRICE)
   })
 
@@ -229,5 +242,94 @@ describe('⚠️ 당첨금은 밤에 들어온다 — 그 전에 죽지 않는�
     const s = rich()
     expect(advanceLottery(s)).toBe(s)
     expect(s.lottery).toBeUndefined()
+  })
+})
+
+/* ── 주 1회 추첨 (2026-08-17 설계자 지시: "로또처럼 일주일에 한 번") ───────────
+ *
+ * ⚠️ 이 묶음이 지키는 것 셋: ①추첨일 전에는 안 굴러간다 ②**두 번 굴러가지 않는다**
+ * (한 슬롯이 아니라 하루에 두 번 `advanceLottery`가 돈다 — 오전→오후, 오후→밤)
+ * ③미추첨 표가 로그 상한에 잘려 사라지지 않는다(낸 돈을 삼킨다).
+ */
+describe('일주일에 한 번 추첨한다', () => {
+  /** 그날 산 표가 굴러갈 날. */
+  const drawOf = (day: number) => nextDrawDay(day)
+
+  it('추첨일은 다음 토요일이다 — 산 날이 토요일이면 그다음 주다', () => {
+    for (let day = 1; day <= 30; day++) {
+      const draw = drawOf(day)
+      expect(weekdayOf(draw)).toBe(DRAW_WEEKDAY)
+      expect(draw).toBeGreaterThan(day)
+      expect(draw - day).toBeLessThanOrEqual(7)
+    }
+  })
+
+  it('추첨일 전에는 굴러가지 않는다 — 하루가 지나도 결과가 없다', () => {
+    const bought = buyTickets(rich(), 1)
+    const draw = bought.lottery!.tickets[0].drawDay
+    for (let day = bought.day; day < draw; day++) {
+      const after = advanceLottery({ ...bought, day })
+      expect(after.lottery!.tickets[0].drawn).toBe(false)
+      expect(after.stats.money).toBe(bought.stats.money)
+    }
+  })
+
+  it('추첨일 밤에 굴러가고 당첨금이 소지금으로 들어온다', () => {
+    const serial = winningSerial() - 1
+    const before = buyTickets(
+      { ...rich(), lottery: { serial, spent: 0, won: 0, tickets: [], pending: 0 } },
+      1,
+    )
+    const after = advanceLottery({ ...before, day: before.lottery!.tickets[0].drawDay })
+    expect(after.lottery!.tickets[0].drawn).toBe(true)
+    expect(after.lottery!.won).toBeGreaterThan(0)
+    expect(after.stats.money).toBe(before.stats.money + after.lottery!.won)
+  })
+
+  /** ⚠️ 하루에 두 번 도는 정산(오전→오후, 오후→밤)이 상금을 두 번 주면 안 된다. */
+  it('⚠️ 같은 표를 두 번 굴리지 않는다 — 정산이 하루에 두 번 돌아도 상금은 한 번이다', () => {
+    const serial = winningSerial() - 1
+    const bought = buyTickets(
+      { ...rich(), lottery: { serial, spent: 0, won: 0, tickets: [], pending: 0 } },
+      1,
+    )
+    const day = bought.lottery!.tickets[0].drawDay
+    const once = advanceLottery({ ...bought, day })
+    const twice = advanceLottery(once)
+    expect(twice.stats.money).toBe(once.stats.money)
+    expect(twice.lottery!.won).toBe(once.lottery!.won)
+  })
+
+  it('⚠️ 추첨을 기다리는 표는 로그 상한에 잘리지 않는다 — 잘리면 낸 돈이 사라진다', () => {
+    let s = rich()
+    for (let i = 0; i < LOTTERY_LOG_LIMIT + 5; i++) s = buyTickets(s, 1)
+    const tickets = s.lottery!.tickets
+    expect(tickets.length).toBe(LOTTERY_LOG_LIMIT + 5)
+    expect(tickets.every((t) => !t.drawn)).toBe(true)
+  })
+
+  /** ⚠️ 급여·만기와 같은 자리 — 굴리기 전이라 금액을 모르므로 **날짜**로 미룬다. */
+  it('⚠️ 추첨이 남은 밤에는 파산 판정을 미룬다', () => {
+    const bought = buyTickets(rich(), 1)
+    const draw = bought.lottery!.tickets[0].drawDay
+    expect(nightPayoutPending({ ...bought, day: draw })).toBe(true)
+    expect(nightPayoutPending({ ...bought, day: draw - 1 })).toBe(false)
+  })
+
+  /** 미룬 판정은 반드시 그 밤에 확정돼야 한다 — 전부 꽝이어도 마찬가지다. */
+  it('전부 꽝이면 그 밤에 파산이 확정된다 — 미룬 판정이 공중에 뜨지 않는다', () => {
+    const bought = buyTickets(rich(), 1)
+    const day = bought.lottery!.tickets[0].drawDay
+    const broke = {
+      ...bought,
+      day,
+      stats: { ...bought.stats, money: -1_000 },
+      // 굴림 결과가 꽝인 일련번호로 갈아 끼운다(당첨되면 이 시나리오가 아니다).
+      lottery: {
+        ...bought.lottery!,
+        tickets: bought.lottery!.tickets.map((t) => ({ ...t, serial: losingSerial() })),
+      },
+    }
+    expect(advanceLottery(broke).recovery?.kind).toBe('bankrupt')
   })
 })

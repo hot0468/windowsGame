@@ -1,0 +1,53 @@
+/* 작업 관리자. OS 시스템 도구라 --os-* 토큰만 쓴다(고유 팔레트 없음 — --tm-* 불필요).
+   판형은 실제 윈도우 11 '프로세스' 화면: 열 제목 줄 + 그룹 머리글 + 들여 쓴 자식 행. */
+.tm {
+  display: flex;
+  flex-direction: column;
+}
+
+.tm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-md);
+}
+
+/* 실제 작업 관리자의 열 제목은 본문보다 흐린 보통 굵기다. 정렬 기능은 없으므로
+   버튼이 아니라 글자다(죽은 컨트롤 금지). */
+.tm-table th {
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--os-border);
+  text-align: left;
+  font-weight: 400;
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+}
+
+.tm-table td {
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--os-border);
+  color: var(--os-text);
+}
+
+/* 숫자 열은 우측 정렬 + 등폭 숫자 — 값이 세로로 견줘진다(HUD와 같은 규칙).
+   ⚠️ th를 셀렉터에 함께 적는 이유: 위 `.tm-table th`(0-1-1)가 `.tm-num`(0-1-0)을 이겨
+   열 제목만 왼쪽에 남는다(실측 스크린샷으로 잡았다). */
+.tm-num,
+.tm-table th.tm-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 그룹 머리글(앱 / 백그라운드 프로세스 / 시스템 프로세스). 실제 화면처럼 위 여백을 둔다. */
+.tm-group td {
+  padding-top: var(--sp-4);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+}
+
+/* 생활비 서비스의 자식 행 — 실제 svchost 자식처럼 이름만 들여 쓰고 색을 한 단 낮춘다. */
+.tm-child td:first-child {
+  padding-left: var(--sp-6);
+  color: var(--os-text-2);
+}

@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { START_MENU_ITEMS } from '../../data/startMenu'
-import { MOBILE_ICONS } from '../../data/icons'
+import { MOBILE_ICONS, UI_ICONS } from '../../data/icons'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useShellStore } from '../../store/shellStore'
@@ -18,7 +19,13 @@ import './StartMenu.css'
 export function StartMenu({ onClose }: { onClose: () => void }) {
   const open = useWindowStore((s) => s.open)
   const playerName = useGameStore((s) => s.state?.playerName ?? '사용자')
+  const day = useGameStore((s) => s.state?.day ?? 1)
+  const reset = useGameStore((s) => s.reset)
   const setOverride = useShellStore((s) => s.setOverride)
+  /* [새 게임]은 세이브를 지운다. 메뉴 항목은 스치듯 눌리는 자리라 확인을 한 단계 둔다
+     (ux `confirmation-dialogs`). 두 번 누르게 하는 방식은 쓰지 않는다 — 메뉴에서
+     더블클릭은 흔한 사고다. */
+  const [confirming, setConfirming] = useState(false)
 
   return (
     <>
@@ -86,6 +93,43 @@ export function StartMenu({ onClose }: { onClose: () => void }) {
           <AppIcon name={MOBILE_ICONS.phone} size={22} />
           휴대폰 모드
         </button>
+
+        {/*
+         * 새 게임. **잠금화면으로 돌려보내는 것이 전부다** — 이름을 다시 받아야 판이
+         * 시작되므로(`LockScreen`), 여기서 만드는 것은 없다. 안내 투어는 그때
+         * `startGame`이 켠다.
+         */}
+        {confirming ? (
+          <div className="start-confirm" role="alertdialog" aria-label="새 게임 확인">
+            <p className="start-confirm-text">
+              지금 판({day}일차)은 지워집니다. 새로 시작할까요?
+            </p>
+            <div className="start-confirm-btns">
+              <button type="button" className="start-confirm-btn" onClick={() => setConfirming(false)}>
+                취소
+              </button>
+              <button
+                type="button"
+                className="start-confirm-btn start-confirm-go"
+                onClick={() => {
+                  onClose()
+                  reset()
+                }}
+              >
+                새 게임
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            role="menuitem"
+            className="start-item"
+            onClick={() => setConfirming(true)}
+          >
+            <AppIcon name={UI_ICONS.newGame} size={22} />새 게임
+          </button>
+        )}
       </div>
     </>
   )

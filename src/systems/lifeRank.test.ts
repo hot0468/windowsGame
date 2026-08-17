@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { lifeProgress, lifeRankOf, lifeRankRose, lifeRatio } from './lifeRank'
+import { LIFE_STAT_COUNT, lifeProgress, lifeRankOf, lifeRankRose, lifeRatio } from './lifeRank'
+import { RANK_THRESHOLDS } from './rank'
 import { growthCap } from './turn'
 import { GROWTH_STAT_KEYS, INITIAL_STATS } from '../types/game'
 import type { Stats } from '../types/game'
@@ -26,6 +27,35 @@ describe('생활 등급', () => {
     const rich = { ...filled(0.5), money: 99_999_999, stamina: 100, mental: 100 }
     const poor = { ...filled(0.5), money: 0, stamina: 1, mental: 1 }
     expect(lifeRatio(rich)).toBeCloseTo(lifeRatio(poor), 10)
+  })
+})
+
+describe('특화를 벌하지 않는다 — 하위 3종 면제 (2026-08-17)', () => {
+  it('낮은 스탯 셋은 등급을 깎지 않는다 — 페르소나 판의 덤프 스탯이 벌이 되면 안 된다', () => {
+    const stats = filled(1)
+    stats.manners = 0
+    stats.morality = 0
+    stats.gaming = 0
+    expect(lifeRatio(stats)).toBe(1)
+  })
+
+  it('넷째부터는 깎는다 — 면제는 셋까지다', () => {
+    const stats = filled(1)
+    stats.manners = 0
+    stats.morality = 0
+    stats.gaming = 0
+    stats.athletics = 0
+    expect(lifeRatio(stats)).toBeLessThan(1)
+  })
+
+  /* ⚠️ 한 우물 하나로 "두루의 보상"(생활 이벤트)이 열리면 이 축이 특화 보상과 겹쳐
+     따로 둔 이유가 사라진다 — `rankEvents.test.ts`의 '한 우물' 시나리오와 같은 불변식을
+     여기서는 **관계식**으로 지킨다: 면제 수를 늘리다 이 부등식이 깨지는 순간이 한계다. */
+  it('한 스탯 만점으로는 C에 못 닿는다 — 1/LIFE_STAT_COUNT < C 문턱이 근거다', () => {
+    const solo = filled(0)
+    solo.knowledge = growthCap('knowledge')
+    expect(lifeRankOf(solo).rank).toBe('F')
+    expect(1 / LIFE_STAT_COUNT).toBeLessThan(RANK_THRESHOLDS.find((t) => t.rank === 'C')!.min)
   })
 })
 

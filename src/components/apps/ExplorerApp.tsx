@@ -14,6 +14,7 @@ import { postcardsOf } from '../../systems/cinema'
 import { findProject, openProjects, pagesOf } from '../../systems/projects'
 import { RANK_ORDER } from '../../systems/rank'
 import { TRASH_FILES } from '../../data/trash'
+import { HIDDEN_FILES } from '../../data/hidden'
 import { folderProjectId, projectFolderId } from '../../types/game'
 import type { Artwork, FolderId, GameState, IconName } from '../../types/game'
 import { ContextMenu } from '../ContextMenu'
@@ -62,7 +63,7 @@ const FOLDERS: Record<FixedFolderId, FolderMeta> = {
   codex: {
     label: '사진첩',
     icon: 'fluent-color:image-24',
-    empty: '아직 담긴 사진이 없습니다.',
+    empty: '아직 담긴 사진이 없습니다. 겪은 일이 한 장씩 여기에 쌓입니다.',
   },
   gallery: {
     label: '갤러리',
@@ -129,6 +130,8 @@ interface Entry {
   day?: number
   desc: string
   owned: boolean
+  /** 숨김 파일인가. [보기] > 숨긴 항목을 켜야 목록에 들어오고, 실제 탐색기처럼 흐리게 그린다. */
+  hidden?: boolean
 }
 
 /**
@@ -165,11 +168,38 @@ function artworkRow(work: Artwork): Entry {
   }
 }
 
+/**
+ * 그 폴더의 파일 목록. `showHidden`이면 숨김 파일(`data/hidden.ts`)이 뒤에 붙는다 —
+ * 실제 탐색기의 [숨긴 항목] 토글과 같은 동작이고, 끈 상태가 기본이라 찾는 재미가 남는다.
+ */
 export function entriesOf(
   folder: FolderId,
   state: ReturnType<typeof useGameStore.getState>['state'],
+  showHidden = false,
 ): Entry[] {
   if (!state) return []
+  const base = baseEntriesOf(folder, state)
+  if (!showHidden) return base
+  return [
+    ...base,
+    ...HIDDEN_FILES.filter((f) => f.folder === folder).map((f) => ({
+      id: f.id,
+      name: f.name,
+      ext: f.ext,
+      icon: f.icon,
+      size: f.size,
+      bytes: bytesOf(f.size),
+      desc: f.desc,
+      owned: true,
+      hidden: true,
+    })),
+  ]
+}
+
+function baseEntriesOf(
+  folder: FolderId,
+  state: NonNullable<ReturnType<typeof useGameStore.getState>['state']>,
+): Entry[] {
 
   /*
    * 휴지통. ⚠️ **새 상태를 만들지 않는다** — 다 쓰고 고장 난 장비(`broken`)가 지금까지
@@ -292,9 +322,14 @@ export function entriesOf(
     return artworksOf(state).map(artworkRow)
   }
 
-  // 도감은 **안 겪은 것도 자리를 남긴다** — 빈 칸이 있어야 채울 마음이 생긴다.
+  /*
+   * 사진첩은 인벤토리·갤러리와 같은 부류다 — **겪은 것만** 들어온다(설계자 지시 2026-08-17).
+   * ⚠️ **안 겪은 칸을 빈 자리로 늘어놓지 않는다**: 잠긴 줄의 표시는 글자색 한 단(`.ex-file-locked`)
+   * 뿐이라 겪은 칸과 구분이 안 됐고, 사진첩이 "안 한 일까지 한 것처럼" 읽혔다. 안 채운 칸을
+   * 되살리려면 표시부터 새로 만들어야 한다.
+   */
   const log = new Map((state.events ?? []).map((e) => [e.id, e.day]))
-  return EVENTS.map((e) => ({
+  return EVENTS.filter((e) => log.has(e.id)).map((e) => ({
     id: e.id,
     name: e.name,
     ext: e.ext,
@@ -302,8 +337,8 @@ export function entriesOf(
     size: '1 KB',
     bytes: 1024,
     day: log.get(e.id),
-    desc: log.has(e.id) ? e.desc : e.hint,
-    owned: log.has(e.id),
+    desc: e.desc,
+    owned: true,
   }))
 }
 
@@ -342,6 +377,8 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
   const open = useWindowStore((s) => s.open)
   /** 보기 방식. 실제 탐색기의 [보기] 메뉴와 같은 역할이고 **실제로 동작한다**. */
   const [view, setView] = useState<'icons' | 'details'>('icons')
+  /** [보기] > 숨긴 항목. 기본 꺼짐 — 켜야 숨김 파일(`data/hidden.ts`)이 보인다. */
+  const [showHidden, setShowHidden] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
   /** 검색어. 실제 탐색기의 우상단 검색 상자와 같이 **목록을 거른다**. */
   const [query, setQuery] = useState('')
@@ -380,7 +417,7 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
   }, [state, folderId])
 
   const meta = metaOf(folderId, state)
-  const all = entriesOf(folderId, state)
+  const all = entriesOf(folderId, state, showHidden)
   const q = query.trim()
   const entries = all
     .filter((e) => (q ? (e.name + e.ext).includes(q) : true))
@@ -527,7 +564,7 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
                     type="button"
                     className={`ex-file${selected === e.id ? ' ex-file-on' : ''}${
                       e.owned ? '' : ' ex-file-locked'
-                    }`}
+                    }${e.hidden ? ' ex-dim' : ''}`}
                     title={e.desc}
                     onClick={(ev) => {
                       ev.stopPropagation()
@@ -551,7 +588,7 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
                     type="button"
                     className={`ex-row${selected === e.id ? ' ex-row-on' : ''}${
                       e.owned ? '' : ' ex-row-locked'
-                    }`}
+                    }${e.hidden ? ' ex-dim' : ''}`}
                     title={e.desc}
                     onClick={(ev) => {
                       ev.stopPropagation()
@@ -617,6 +654,12 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
                     id: 'details',
                     label: view === 'details' ? '자세히 (지금)' : '자세히',
                     onSelect: () => setView('details'),
+                  },
+                  {
+                    /* 실제 탐색기의 [보기] > [표시] > 숨긴 항목. 켠 상태를 글자로 적는다. */
+                    id: 'hidden',
+                    label: showHidden ? '숨긴 항목 (표시 중)' : '숨긴 항목',
+                    onSelect: () => setShowHidden((v) => !v),
                   },
                 ]
           }

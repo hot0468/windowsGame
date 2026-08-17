@@ -1,0 +1,88 @@
+/*
+ * 길고양이 만남 창. **별똥별 소원 창(WishApp.css)과 같은 판형이다.**
+ *
+ * ⚠️ **확정 토큰만 쓴다**(`--os-*`·`--sp-*`·`--fs-*`·`--r-*`). 밤 골목 판을 그리지
+ * 않은 것도 소원 창과 같은 판단이다 — 장면은 글자가 만들고 글리프 하나만 얹는다.
+ */
+.cat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--os-surface);
+  color: var(--os-text);
+}
+
+.cat-lead {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-lg);
+  line-height: 1.6;
+}
+
+.cat-sub {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: var(--os-text-2);
+}
+
+/* 이름 입력. 잠금화면 이름 입력과 같은 감각 — 빈 값이면 placeholder(기본 이름)가 된다. */
+.cat-name {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+}
+
+.cat-name input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--sp-2);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--os-fill);
+  color: var(--os-text);
+  font-size: var(--fs-sm);
+}
+
+.cat-actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.cat-btn {
+  flex: 1;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--os-fill);
+  color: var(--os-text);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.cat-btn-primary {
+  border-color: transparent;
+  background: var(--os-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.cat-btn-primary:hover {
+  background: var(--os-accent-hover);
+}
+
+.cat-btn:disabled {
+  /* 0.2 아래로 내리지 않는다(ux `opacity-threshold`). 사유는 아래 `.cat-block`이 말한다. */
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cat-block {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--os-text-2);
+}

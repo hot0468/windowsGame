@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { UI_ICONS } from '../../data/icons'
 import { AppIcon } from '../../icons/AppIcon'
+import { playSound } from '../../sound'
 import { useGameStore } from '../../store/gameStore'
 import './LockScreen.css'
 
@@ -22,6 +23,7 @@ export function LockScreen() {
   const handleStart = () => {
     const trimmed = name.trim()
     if (!trimmed) return
+    playSound('boot')
     startGame(trimmed)
   }
 
@@ -58,7 +60,13 @@ export function LockScreen() {
       ) : (
         <>
           <div className="lock-name">{saved.playerName}</div>
-          <button className="lock-btn" onClick={continueGame}>
+          <button
+            className="lock-btn"
+            onClick={() => {
+              playSound('boot')
+              continueGame()
+            }}
+          >
             이어하기 ({saved.day}일차)
           </button>
           <button

@@ -1,6 +1,7 @@
 import { findActivity } from '../data/activities'
 import { AUTO_MAX_SLOTS, MONEY_DANGER_DAYS } from '../data/autoAdvance'
 import { MAILBOX, MESSAGE_SCHEDULE } from '../data/messages'
+import { chanceToday, noticeTextOf } from './chance'
 import { getLivingCost } from './economy'
 import { checkAchievementEnding } from './ending'
 import { turnIndex } from './messages'
@@ -39,6 +40,8 @@ export type AutoStopId =
   | 'job'
   | 'money'
   | 'delivery'
+  | 'chance'
+  | 'dilemma'
   | 'mail'
   | 'plan-failed'
   | 'limit'
@@ -188,6 +191,36 @@ export const STOP_RULES: StopRule[] = [
       c.arrivals.length
         ? `택배가 도착했습니다 — ${c.arrivals.map((i) => i.name).join(' · ')}.`
         : null,
+  },
+  {
+    id: 'chance',
+    bad: false,
+    /**
+     * **"오늘만 기회"가 뜬 아침에만 멈춘다** — 그날만 좋아지는 활동을 자동으로 흘려보내면
+     * 기회가 통째로 사라진다. 소소한 사건은 안 멈춘다(밤 정산에 흡수되고 요약에 남는다).
+     * 날이 바뀐 순간만 보는 것은 `money` 규칙과 같은 이유다 — 상태만 보면 그날 내내
+     * 첫 점검에서 멈춰 한 슬롯도 못 간다.
+     */
+    test: (c) => {
+      if (!c.before || c.before.day === c.state.day) return null
+      const event = chanceToday(c.state)
+      if (!event || event.kind !== 'boost') return null
+      return `오늘만 기회 — ${noticeTextOf(event)}`
+    },
+  },
+  {
+    id: 'dilemma',
+    bad: false,
+    /**
+     * **딜레마가 뜬 아침에만 멈춘다**(기회일 정지와 같은 판형·같은 날-바뀜 판정) —
+     * 창이 떠서 선택을 기다리는데 자동으로 흘려보내면 고르지 못한 채 날이 간다.
+     */
+    test: (c) => {
+      if (!c.before || c.before.day === c.state.day) return null
+      const event = chanceToday(c.state)
+      if (event?.kind !== 'dilemma') return null
+      return `갈림길 — ${event.title}. 창에서 하나를 골라야 합니다.`
+    },
   },
   {
     id: 'mail',

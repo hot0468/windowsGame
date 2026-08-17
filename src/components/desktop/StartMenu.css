@@ -119,3 +119,40 @@
   border-top: 1px solid var(--os-border);
   border-radius: 0 0 var(--r-md) var(--r-md);
 }
+
+/* 새 게임 확인. 메뉴 항목 자리를 그대로 차지해 메뉴 높이가 튀지 않는다. */
+.start-confirm {
+  padding: var(--sp-3);
+  background: var(--os-fill);
+  border-radius: var(--r-md);
+}
+
+.start-confirm-text {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+}
+
+.start-confirm-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+}
+
+.start-confirm-btn {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--os-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--os-text);
+  cursor: pointer;
+}
+
+/* 지우는 쪽이라 주된 버튼이 아니라 경고색이다 — 기본 손짓은 [취소]여야 한다. */
+.start-confirm-go {
+  color: #fff;
+  background: var(--os-danger);
+  border-color: var(--os-danger);
+}

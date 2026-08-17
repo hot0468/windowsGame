@@ -233,6 +233,37 @@ export const THREADS: Thread[] = [
   },
   {
     /*
+     * 네 번째 오픈채팅 — 사치 소비(2026-08-17, 후반 돈 싱크의 능동 갈래).
+     * ⚠️ **조건이 없다**(오픈채팅 규칙) — 문턱은 스탯이 아니라 가격이다. 초반에도
+     * 보이지만 살 수 없고, 그 보임이 곧 "언젠가 저기 간다"는 목표가 된다.
+     * ⚠️ **정기권이 없다** — 헬스장·미용실은 서비스라 정기권이 서지만 사치가 구독이
+     * 되면 싱크가 아니라 고정비가 되어 집(사치 칸)과 역할이 겹친다.
+     */
+    id: 'hotel-lounge',
+    app: 'kakao',
+    name: '호텔 스텔라 라운지',
+    members: 87,
+    open: true,
+    offer: {
+      question: '오늘 하루, 비워 드릴까요?',
+      options: [
+        {
+          id: 'spa-once',
+          label: '스파만 받을게요',
+          desc: '스파 데이 120,000원 · 1턴 소모',
+          activityId: 'spa-day',
+        },
+        {
+          id: 'hocance-stay',
+          label: '하루 묵을게요',
+          desc: '호캉스 300,000원 · 1턴 소모',
+          activityId: 'hocance',
+        },
+      ],
+    },
+  },
+  {
+    /*
      * 게임 C가 여는 방(`data/rankEvents.ts`의 `raid-party`). **1:1 지인 방이 아니라
      * 길드 단톡이다** — 같이 하자는 말은 아는 사람이 아니라 같이 하던 사람에게서 온다.
      * ⚠️ 예약 요일이 목(헬스장)·토(미용실)·수(러닝크루)와 겹치지 않게 **화요일**이다.
@@ -367,7 +398,7 @@ export const THREADS: Thread[] = [
   /*
    * ── 생활 등급이 여는 방 2개 (2026-08-14) ───────────────────────
    *
-   * ⚠️ **스탯 하나가 아니라 15종의 평균이 연다**(`systems/lifeRank.ts`). 아래 S 방들이
+   * ⚠️ **스탯 하나가 아니라 상위 12종 평균이 연다**(`systems/lifeRank.ts`). 아래 S 방들이
    * "한 우물을 깊게 판 사람"의 자리라면 여기는 **"두루 올린 사람"**의 자리다 — 둘이
    * 같으면 생활 등급이 화면에 숫자만 띄우고 아무것도 안 여는 장식으로 남는다.
    *
@@ -405,6 +436,47 @@ export const THREADS: Thread[] = [
           label: '써 보겠습니다',
           desc: '원고료 260,000원 · 1턴 소모',
           activityId: 'column-write',
+        },
+      ],
+    },
+  },
+  /*
+   * ── 생활 등급 사다리의 윗칸 2개 (2026-08-16) ─────────────────────
+   * 위 두 방과 같은 축(생활 등급이 연다)이고 형태는 학원·S 방들과 같다
+   * (1:1 방 + 제안 하나 + 주간 예약 없음 + `requires` 없음 — 문턱은 `rankEvents.ts` 한 곳).
+   */
+  {
+    /* 생활 등급 A. 칼럼 방(B)의 윗칸 — 같은 이야기가 책이 된다. */
+    id: 'essay-press',
+    app: 'kakao',
+    name: '도서출판 길눈',
+    members: 1,
+    offer: {
+      question: '칼럼 잘 읽고 있습니다. 이 이야기, 책으로 묶어 보시죠.',
+      options: [
+        {
+          id: 'essay-take',
+          label: '써 보겠습니다',
+          desc: '원고료 300,000원 · 1턴 소모',
+          activityId: 'essay-write',
+        },
+      ],
+    },
+  },
+  {
+    /* 생활 등급 S. */
+    id: 'stage-hall',
+    app: 'kakao',
+    name: '온스테이지 기획팀',
+    members: 1,
+    offer: {
+      question: '이번 시즌 연사로 모시고 싶습니다. 주제는 살아오신 이야기 그대로면 됩니다.',
+      options: [
+        {
+          id: 'stage-take',
+          label: '서 보겠습니다',
+          desc: '출연료 340,000원 · 1턴 소모',
+          activityId: 'stage-talk',
         },
       ],
     },
@@ -584,6 +656,26 @@ export interface Message {
  * 아닌 채널은 늘 통과시킨다). 편성표 메일은 그래서 **언제나 참인 것만** 적는다.
  * `messages.test.ts`가 정규직 절차 어휘로 이 규칙을 지킨다.
  */
+/**
+ * 반값 쿠폰 메일.
+ *
+ * ⚠️ **광고 문구가 곧 규칙이다** — 아래 두 상수를 본문이 그대로 적고
+ * `systems/delivery.ts`가 같은 값으로 깎는다. 한쪽만 고치면 메일이 거짓말이 된다.
+ * ⚠️ **쿠폰이 유효한 날을 따로 적지 않는다**: "이 메일이 온 날"이 곧 그날이고,
+ * 판정은 편성표에서 이 id의 자리를 찾아 되돌린다(`delivery.ts`의 `couponDay`).
+ */
+export const COUPON_MAIL_ID = 'o2'
+
+/** 깎이는 비율. 문구가 "반값"이라 0.5다. */
+export const COUPON_RATE = 0.5
+
+/**
+ * 한 건에 깎이는 최대 금액(원). 반값이 이 값을 넘으면 여기서 잘린다 —
+ * 상한이 없으면 정기권(15만원) 같은 목돈이 통째로 반값이 되어 "물건은 목돈을
+ * 성장으로 바꾸는 선택지"라는 값이 흔들린다. 만원짜리 생활잡화에서 가장 크게 체감된다.
+ */
+export const COUPON_MAX_DISCOUNT = 5000
+
 export const MESSAGE_SCHEDULE: Message[][] = [
   // 턴 0 — 1일차 오전
   [
@@ -623,11 +715,11 @@ export const MESSAGE_SCHEDULE: Message[][] = [
     { id: 'k2', channel: 'minji', from: '민지', text: '너 요즘 연락이 없다 ㅠㅠ 바빠?' },
     { id: 'c1', channel: 'club', from: '정주', text: 'ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ' },
     {
-      id: 'o2',
+      id: COUPON_MAIL_ID,
       channel: 'outlook',
-      from: '네이놈 고객센터',
-      subject: '[광고] 이번 주 반값 쿠폰이 도착했습니다',
-      text: '첫 구매 고객 대상 최대 5천원 할인. 수신 거부는 하단 링크를 이용해 주세요.',
+      from: '컬리엔마트',
+      subject: '[광고] 오늘 하루 쓰는 반값 쿠폰이 도착했습니다',
+      text: `오늘 컬리엔마트 주문 한 건이 반값입니다(최대 ${COUPON_MAX_DISCOUNT.toLocaleString()}원 할인). 내일이면 사라집니다. 수신 거부는 하단 링크를 이용해 주세요.`,
     },
   ],
   // 턴 5

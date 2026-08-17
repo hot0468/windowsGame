@@ -10,9 +10,10 @@ import {
   threadUnlockedByRank,
   offerUnlockedByRank,
   rankEventMessages,
+  nextLifeGoal,
 } from './rankEvents'
 import { RANK_EVENTS, WISH_AMOUNT, findRankEvent } from '../data/rankEvents'
-import { RANK_THRESHOLDS } from './rank'
+import { RANK_THRESHOLDS, RANK_ORDER } from './rank'
 import { createInitialState, growthCap } from './turn'
 import { rankOf } from './rank'
 import { ACTIVITIES } from '../data/activities'
@@ -88,7 +89,7 @@ describe('이벤트 정의', () => {
   it('⚠️ 아무도 볼 수 없는 이벤트가 없다 — 문턱까지 실제로 올릴 활동이 있어야 한다', () => {
     for (const e of RANK_EVENTS) {
       /* ⚠️ **생활 등급 이벤트(`key` 없음)는 이 잣대로 못 잰다** — 한 활동이 올리는
-         것이 아니라 15종의 평균이라 "주 공급원 하나로 며칠"이라는 물음이 성립하지 않는다.
+         것이 아니라 상위 12종 평균이라 "주 공급원 하나로 며칠"이라는 물음이 성립하지 않는다.
          그쪽 도달성은 아래 '생활 등급 이벤트' 묶음이 따로 지킨다. */
       if (!e.key) continue
       const key = e.key
@@ -274,6 +275,34 @@ describe('생활 등급 이벤트 — 두루 올린 것의 보상', () => {
       expect(threads, e.id).toContain(e.target)
       expect(channels, `${e.target} 방에 첫 마디가 없다`).toContain(e.target)
     }
+  })
+
+  /* ⚠️ **사다리에 빈 등급이 없다**(2026-08-16). 게임오버가 없는 판을 생활 등급이
+     이끄는데, 오르는데 아무것도 안 열리는 구간이 생기면 그 구간 내내 등급이 다시
+     "숫자만 바뀌는 장식"이 된다 — 이 축을 만든 이유의 반대다. */
+  it('C부터 SS까지 등급마다 여는 것이 하나는 있다', () => {
+    for (const rank of RANK_ORDER.filter((r) => r !== 'F')) {
+      expect(
+        lifeEvents.some((e) => e.rank === rank),
+        `생활 ${rank}이 여는 것이 없다`,
+      ).toBe(true)
+    }
+  })
+
+  it('전부 다음 목표 문구(teaser)를 갖는다 — 스탯창이 이것으로 다음 칸을 알린다', () => {
+    for (const e of lifeEvents) {
+      expect(e.teaser, `${e.id}에 teaser가 없다`).toBeTruthy()
+    }
+  })
+
+  it('nextLifeGoal은 안 겪은 가장 낮은 문턱을 가리키고, 겪으면 다음으로 넘어간다', () => {
+    let s = createInitialState('목표')
+    expect(nextLifeGoal(s)!.rank).toBe('C')
+    s = markRankEvent(s, 'mentor-circle')
+    expect(nextLifeGoal(s)!.rank).toBe('B')
+    // 사다리를 다 오르면 목표 줄이 사라진다 — undefined가 그 근거다.
+    s = { ...s, rankEvents: RANK_EVENTS.filter((e) => !e.key).map((e) => e.id) }
+    expect(nextLifeGoal(s)).toBeUndefined()
   })
 })
 

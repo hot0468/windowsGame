@@ -1,4 +1,10 @@
 import { findItem } from '../data/items'
+import {
+  COUPON_MAIL_ID,
+  COUPON_MAX_DISCOUNT,
+  COUPON_RATE,
+  MESSAGE_SCHEDULE,
+} from '../data/messages'
 import { clampStats, inventoryOf, owns } from './turn'
 import type { GameState, Stats } from '../types/game'
 import type { ShopItem } from '../data/items'
@@ -24,10 +30,51 @@ export { inventoryOf, owns }
 /** 주문한 다음 날 도착한다. */
 const DELIVERY_DAYS = 1
 
+/**
+ * 반값 쿠폰 메일이 오는 날인가.
+ *
+ * ⚠️ **주기를 숫자로 적지 않는다** — 편성표에서 그 메일이 앉은 턴을 찾아 되돌린다.
+ * 적어 두면 메일을 다른 턴으로 옮기는 순간 "메일은 안 왔는데 쿠폰은 되는 날"이 생긴다.
+ * 편성표는 순환하므로(`systems/messages.ts`의 `scheduleAt`) 쿠폰도 그 주기로 돌아온다.
+ *
+ * ⚠️ **`systems/messages.ts`를 부르지 않는다**: 그쪽은 `rankEvents` → 이 파일로 돌아와
+ * 순환이 된다. 필요한 것은 턴 번호 하나뿐이라 편성표를 직접 본다.
+ */
+export function couponDay(day: number): boolean {
+  const at = MESSAGE_SCHEDULE.findIndex((ms) => ms.some((m) => m.id === COUPON_MAIL_ID))
+  if (at < 0) return false
+  const morning = (day - 1) * 2
+  return morning % MESSAGE_SCHEDULE.length === at || (morning + 1) % MESSAGE_SCHEDULE.length === at
+}
+
+/**
+ * 이 물건에 지금 붙는 쿠폰 할인액(원). 쿠폰이 없는 날·이미 쓴 날이면 0.
+ *
+ * ⚠️ **컬리엔마트(`store` 생략 = 'shop') 물건에만 붙는다** — 메일을 보낸 곳이 거기다.
+ * 그래서 하이마루·무진장 화면은 이 함수를 몰라도 되고 값도 안 변한다.
+ * ⚠️ **헬스장·미용실 오픈채팅의 정기권도 컬리엔마트 물건이라 쿠폰이 붙는다**(같은
+ * `order`를 지난다) — 통로를 갈라 두 번 적느니 "컬리엔마트에서 파는 것"이라는 한 가지
+ * 사실로 두는 쪽이 맞다.
+ */
+export function couponDiscount(state: GameState, item: ShopItem): number {
+  if ((item.store ?? 'shop') !== 'shop') return 0
+  if (!couponDay(state.day)) return 0
+  if (state.couponUsedDay === state.day) return 0
+  return Math.min(Math.floor(item.price * COUPON_RATE), COUPON_MAX_DISCOUNT)
+}
+
+/**
+ * 지금 실제로 내는 값. **잔액 판정·화면·결제가 전부 이 함수를 지난다** —
+ * 한 곳이라도 `item.price`를 그대로 쓰면 진열대와 계산대가 다른 값을 말한다.
+ */
+export function priceOf(state: GameState, item: ShopItem): number {
+  return item.price - couponDiscount(state, item)
+}
+
 /** 살 수 있는지. 게임오버·잔액 부족·이미 보유·이미 배송 중이면 못 산다. */
 export function canOrder(state: GameState, item: ShopItem): boolean {
   if (state.recovery) return false
-  if (state.stats.money < item.price) return false
+  if (state.stats.money < priceOf(state, item)) return false
   // 같은 물건을 두 개 사도 효과는 한 번뿐이라(도감 형식) 아예 막는다 —
   // 살 수는 있는데 아무 일도 안 일어나는 게 제일 나쁘다.
   if (owns(state, item.id)) return false
@@ -44,10 +91,14 @@ export function recordEvent(state: GameState, id: string): GameState {
 /** 주문한다. 조건이 안 되면 상태를 그대로 돌려준다(호출부에서 막지 않아도 안전). */
 export function order(state: GameState, item: ShopItem): GameState {
   if (!canOrder(state, item)) return state
+  const discount = couponDiscount(state, item)
   const next: GameState = {
     ...state,
-    stats: clampStats({ ...state.stats, money: state.stats.money - item.price }),
+    stats: clampStats({ ...state.stats, money: state.stats.money - (item.price - discount) }),
     deliveries: [...(state.deliveries ?? []), { itemId: item.id, day: state.day + DELIVERY_DAYS }],
+    // 쿠폰은 하루 한 건이다. 깎인 주문에만 도장을 찍는다 — 할인 0원인 주문이
+    // 쿠폰을 태워 버리면 "안 쓴 셈 치고 아무거나 먼저 사면 손해"가 된다.
+    couponUsedDay: discount > 0 ? state.day : state.couponUsedDay,
   }
   return recordEvent(next, 'first-order')
 }

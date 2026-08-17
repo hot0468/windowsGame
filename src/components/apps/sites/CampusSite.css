@@ -301,6 +301,12 @@
   font-size: var(--fs-xs);
   font-weight: 700;
 }
+/* 잠긴 강의. **글자(잠김 배지)가 사실을 지고 여기서는 거들기만 한다** — 썸네일만
+   회색으로 죽여 한눈에 걸러지게 하되, 제목·가격은 그대로 읽혀야 무엇이 기다리는지 보인다.
+   ⚠️ 카드 전체에 `opacity`를 걸지 말 것(글자 대비가 함께 무너진다). */
+.cam-card-locked .cam-thumb {
+  filter: grayscale(1);
+}
 .cam-card-body {
   display: flex;
   flex-direction: column;

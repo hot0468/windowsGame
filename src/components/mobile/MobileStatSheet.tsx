@@ -4,6 +4,7 @@ import { MOBILE_ICONS } from '../../data/icons'
 import { GROWTH_STAT_ORDER, STAT_META } from '../../data/statMeta'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
+import { useShownTime } from '../desktop/shownTime'
 import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
 import { skillLabel } from '../../data/band'
 import { rankOf, toNextRank } from '../../systems/rank'
@@ -34,6 +35,8 @@ export function MobileStatSheet({ onClose }: { onClose: () => void }) {
   const startAuto = useGameStore((s) => s.startAuto)
   const stopAuto = useGameStore((s) => s.stopAuto)
   const titleId = useId()
+  /* 데스크톱 날짜칸과 **같은 규칙**이다(사유는 `desktop/shownTime.ts`). */
+  const shown = useShownTime()
 
   /* ux `escape-routes`. 바깥(scrim) 탭으로도 닫힌다. */
   useEffect(() => {
@@ -47,7 +50,10 @@ export function MobileStatSheet({ onClose }: { onClose: () => void }) {
   if (!state) return null
 
   const { stats, day, slot } = state
-  const isMorning = slot === 'morning'
+  /* ⚠️ **미루는 것은 화면이 적는 시각뿐이다** — 생활비 인상까지 남은 날(`getNextTier`)은
+     실제 날짜를 그대로 본다. 돈 계산이 2.5초 동안 옛 날짜를 쓰면 그건 연출이 아니라 오답이다. */
+  const shownDay = shown.day ?? day
+  const isMorning = (shown.slot ?? slot) === 'morning'
   const nextTier = getNextTier(day)
 
   return (
@@ -60,7 +66,7 @@ export function MobileStatSheet({ onClose }: { onClose: () => void }) {
               {state.playerName}
             </h2>
             <p className="mo-sheet-sub">
-              {formatGameDate(day)} · {day}일차 {isMorning ? '오전' : '오후'}
+              {formatGameDate(shownDay)} · {shownDay}일차 {isMorning ? '오전' : '오후'}
             </p>
           </div>
           <button type="button" className="mo-sheet-close" onClick={onClose} aria-label="닫기">
@@ -133,7 +139,9 @@ export function MobileStatSheet({ onClose }: { onClose: () => void }) {
               type="button"
               className="mo-btn"
               onClick={doSkip}
-              disabled={autoRunning}
+              /* ⚠️ 화면이 아직 못 따라온 동안은 잠근다 — 데스크톱 날짜칸과 같은 이유
+                 (이미 써 버린 슬롯의 이름으로 남은 슬롯을 태우게 된다). */
+              disabled={autoRunning || shown.lagging}
             >
               {isMorning ? '오전' : '오후'} 건너뛰기
             </button>
@@ -141,7 +149,7 @@ export function MobileStatSheet({ onClose }: { onClose: () => void }) {
               type="button"
               className={`mo-btn${autoRunning ? ' mo-btn-on' : ''}`}
               onClick={autoRunning ? stopAuto : startAuto}
-              disabled={state.recovery !== null}
+              disabled={state.recovery !== null || shown.lagging}
             >
               {autoRunning ? '멈추기' : '자동 진행'}
             </button>

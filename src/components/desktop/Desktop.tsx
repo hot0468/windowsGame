@@ -26,10 +26,12 @@ import { WindowManager } from '../window/WindowManager'
 import { ActivityConfirm } from '../apps/ActivityConfirm'
 import { EndingModal } from '../apps/EndingModal'
 import { CalendarPanel } from './CalendarPanel'
+import { CatPet } from './CatPet'
 import { StatPanel } from './StatPanel'
 import { WalletPanel } from './WalletPanel'
 import { Taskbar } from './Taskbar'
 import { Daybreak } from './Daybreak'
+import { useShownTime } from './shownTime'
 import { BlueScreen } from './BlueScreen'
 import { Tour } from './Tour'
 import { ToastHost } from './ToastHost'
@@ -61,8 +63,11 @@ export function Desktop() {
    * 오전은 낮 하늘, 오후는 해 질 녘 — 게임에서 밤은 자동 취침이라 화면에 없으므로
    * "하루가 저물어 간다"는 신호를 오후 배경이 대신 진다. 색은 CSS가 정하고
    * 여기서는 어느 쪽인지만 알린다.
+   *
+   * ⚠️ **게임 상태가 아니라 `useShownTime`을 본다** — 행동한 그 순간 하늘이 기울면
+   * 결과 창을 읽기도 전에 화면이 다음 슬롯으로 가 있다. 사유는 그 파일 주석.
    */
-  const slot = useGameStore((s) => s.state?.slot)
+  const { slot } = useShownTime()
 
   /*
    * 자동 진행이 끝나면 요약 창을 **스스로** 띄운다.
@@ -355,6 +360,9 @@ export function Desktop() {
             아래로 자라므로, **아이콘 판 안의 어떤 고정 자리도 언젠가는 가려진다.**
             되돌리기 버튼을 다시 바탕화면에 놓지 말 것. */}
       </div>
+
+      {/* 입양한 길고양이. 바탕화면 하단을 이따금 걸어간다 — 아이콘 위·창 아래(`LAYERS.CAT_PET`). */}
+      <CatPet />
 
       {/* 스탯창·날짜칸은 바탕화면 요소다 — 일반 창에 가려지는 것이 정상이며,
           작업 표시줄의 패널 버튼으로 다시 앞으로 가져온다. */}

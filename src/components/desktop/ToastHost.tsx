@@ -33,10 +33,28 @@ const DELIVERY_CHANNEL = 'delivery'
 const RECORD_CHANNEL = 'record'
 const INNER_CHANNEL = 'inner'
 
+/**
+ * 돌발 사건 토스트의 채널(2026-08-17). 기록·감상과 같은 수법이고 **누를 데가 없다** —
+ * 소소한 사건은 밤 정산에 흡수되고, 기회는 그 활동을 여는 길이 여럿이라 목적지를 못 고른다.
+ */
+const CHANCE_CHANNEL = 'chance'
+
+/**
+ * 길고양이 토스트의 채널(입양·쓰다듬기). 기록·감상과 같은 수법이고 **누를 데가 없다** —
+ * 고양이는 이미 화면(데스크톱 펫)에 있어 열어 줄 창이 없다. `from`이 고양이 이름을 진다.
+ */
+const CAT_CHANNEL = 'cat'
+
 /** 기록 갱신 토스트 아이콘. 트로피가 아니라 **올라가는 그래프**다 — 기록은 거울이지 상이 아니다. */
 const RECORD_ICON = 'fluent-color:arrow-trending-lines-24'
 /** 내면 감상 아이콘. 혼잣말이라 말풍선 하나. */
 const INNER_ICON = 'fluent-color:chat-bubbles-question-24'
+
+/** 돌발 사건 아이콘. 예고 없이 울리는 종. */
+const CHANCE_ICON = 'fluent-color:alert-24'
+
+/** 길고양이 아이콘. 만남 창·이벤트 도감과 같은 발자국이다. */
+const CAT_ICON = 'fluent-color:paw-24'
 
 /** 택배 알림·인벤토리 폴더 공용 아이콘. */
 const DELIVERY_ICON = 'fluent-color:document-folder-24'
@@ -137,15 +155,17 @@ export function ToastHost() {
     <div className="toasts" role="region" aria-live="polite" aria-label="알림">
       {toasts.map((t) => {
         const delivery = t.message.channel === DELIVERY_CHANNEL
-        /* 누를 데가 없는 두 종류. 위 채널 주석 참고. */
+        /* 누를 데가 없는 세 종류. 위 채널 주석 참고. */
         const record = t.message.channel === RECORD_CHANNEL
         const inner = t.message.channel === INNER_CHANNEL
-        if (record || inner) {
+        const chance = t.message.channel === CHANCE_CHANNEL
+        const cat = t.message.channel === CAT_CHANNEL
+        if (record || inner || chance || cat) {
           return (
             <ToastCard
               key={t.id}
-              title={record ? '기록 갱신' : '문득'}
-              icon={record ? RECORD_ICON : INNER_ICON}
+              title={cat ? '고양이' : chance ? '오늘의 사건' : record ? '기록 갱신' : '문득'}
+              icon={cat ? CAT_ICON : chance ? CHANCE_ICON : record ? RECORD_ICON : INNER_ICON}
               from={t.message.from}
               text={t.message.text}
               onDismiss={() => dismiss(t.id)}

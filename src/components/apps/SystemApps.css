@@ -67,70 +67,7 @@
   color: var(--os-text-3);
 }
 
-/* ── 작업 관리자 ── */
-.sys-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs-md);
-}
-
-.sys-table th {
-  padding: var(--sp-2);
-  border-bottom: 1px solid var(--os-border);
-  text-align: left;
-  font-weight: 600;
-  color: var(--os-text-3);
-}
-
-.sys-table td {
-  padding: var(--sp-2);
-  border-bottom: 1px solid var(--os-border);
-  color: var(--os-text);
-}
-
-.sys-empty {
-  color: var(--os-text-3);
-}
-
-.sys-kill {
-  padding: var(--sp-1) var(--sp-3);
-  border: 1px solid var(--os-border-strong);
-  border-radius: var(--r-sm);
-  background: var(--os-surface);
-  font: inherit;
-  font-size: var(--fs-sm);
-  color: var(--os-danger);
-  cursor: pointer;
-}
-
-.sys-kill:hover {
-  background: var(--os-fill);
-}
-
-.sys-head {
-  margin: var(--sp-2) 0 0;
-  font-size: var(--fs-base);
-  color: var(--os-text);
-}
-
-/* 라벨/값 두 열. dt·dd를 그리드로 묶으면 값이 세로로 정렬된다. */
-.sys-defs {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: var(--sp-1) var(--sp-4);
-  margin: 0;
-  font-size: var(--fs-md);
-}
-
-.sys-defs dt {
-  color: var(--os-text-3);
-}
-
-.sys-defs dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-  color: var(--os-text);
-}
+/* 구 작업 관리자 스타일(.sys-table 등)은 컴포넌트와 함께 삭제됐다(TaskMgrApp.css가 대체). */
 
 /* ── 명령 프롬프트 ──
    레퍼런스는 **어두운 탭 바 + 검은 콘솔**이다. 창 크롬도 어두워야 하므로

@@ -39,11 +39,36 @@ describe('매물 정의', () => {
    * ⚠️ **이 방향이 뒤집히면 이사가 첫날의 공짜 이득이 된다.** 보증금은 돌려주는 돈이라,
    * 싼 방의 보증금이 더 싸면 내려가는 것만으로 현금이 늘어난다 — 그러면 모두가
    * 1일차에 고시원으로 가고 이사는 판단이 아니라 절차가 된다.
+   *
+   * ⚠️ **생활비 방향(rate)은 할인 사다리(rate ≤ 1)에만 건다**(2026-08-17) — 사치 칸은
+   * 정의상 rate가 올라간다. **보증금 오름차순은 배열 전체다**: 사치 칸의 보증금이
+   * 사다리보다 작으면 위 공짜 이득이 그쪽에서 다시 열린다.
    */
-  it('⚠️ 아래로 갈수록 생활비는 싸지고 보증금은 비싸진다', () => {
+  it('⚠️ 아래로 갈수록 생활비는 싸지고, 보증금은 전 목록에서 비싸진다', () => {
+    const ladder = HOUSINGS.filter((h) => h.rate <= 1)
+    for (let i = 1; i < ladder.length; i++) {
+      expect(ladder[i].rate).toBeLessThan(ladder[i - 1].rate)
+    }
     for (let i = 1; i < HOUSINGS.length; i++) {
-      expect(HOUSINGS[i].rate).toBeLessThan(HOUSINGS[i - 1].rate)
       expect(HOUSINGS[i].deposit).toBeGreaterThan(HOUSINGS[i - 1].deposit)
+    }
+  })
+
+  /**
+   * ⚠️ **사치 칸의 규칙**(2026-08-17): 후반 돈 싱크라 배율이 1보다 커야 하고(그것이
+   * 싱크의 본체), 밤 보너스는 취침 회복(5)을 넘보면 안 된다 — 집이 회복 활동 네 곳을
+   * 대체하면 사치가 아니라 정답이 된다.
+   */
+  it('⚠️ 사치 칸은 배율이 1보다 크고 밤 보너스는 3을 넘지 않는다', () => {
+    const luxury = HOUSINGS.filter((h) => h.rate > 1)
+    expect(luxury.length).toBeGreaterThan(0)
+    for (const h of luxury) {
+      expect(h.mentalPerNight).toBeLessThanOrEqual(0)
+      expect(h.mentalPerNight).toBeGreaterThanOrEqual(-3)
+      // 사다리 순서와 같은 규칙: 비싼 삶일수록 배율도 보너스도 크다.
+    }
+    for (let i = 1; i < luxury.length; i++) {
+      expect(luxury[i].rate).toBeGreaterThan(luxury[i - 1].rate)
     }
   })
 
@@ -54,11 +79,13 @@ describe('매물 정의', () => {
 
   /**
    * ⚠️ **싼 방이 순수한 이득이면 이사는 판단이 아니라 절차가 된다.**
-   * 생활비를 크게 깎는 방일수록 밤마다의 멘탈 대가가 커야 한다.
+   * 생활비를 크게 깎는 방일수록 밤마다의 멘탈 대가가 커야 한다(할인 사다리만 —
+   * 사치 칸의 음수 보너스는 위 전용 묶음이 지킨다).
    */
   it('⚠️ 싼 방일수록 대가가 크다 — 공짜 이득이 없다', () => {
-    for (let i = 1; i < HOUSINGS.length; i++) {
-      expect(HOUSINGS[i].mentalPerNight).toBeGreaterThanOrEqual(HOUSINGS[i - 1].mentalPerNight)
+    const ladder = HOUSINGS.filter((h) => h.rate <= 1)
+    for (let i = 1; i < ladder.length; i++) {
+      expect(ladder[i].mentalPerNight).toBeGreaterThanOrEqual(ladder[i - 1].mentalPerNight)
     }
     expect(gosiwon.mentalPerNight).toBeGreaterThan(0)
   })
@@ -187,6 +214,16 @@ describe('밤마다 치르는 대가', () => {
     const plainNight = skipSlot({ ...base, stats: { ...base.stats, mental: 50 } })
     const cheapNight = skipSlot({ ...cheap, stats: { ...cheap.stats, mental: 50 } })
     expect(cheapNight.stats.mental).toBe(plainNight.stats.mental - gosiwon.mentalPerNight)
+  })
+
+  it('⚠️ 사치 칸은 밤마다 멘탈을 더한다 — 음수 대가가 실제 보너스다', () => {
+    const luxury = HOUSINGS.find((h) => h.rate > 1)!
+    const base = withMoney(9_000_000, { slot: 'afternoon' })
+    const rich = moveTo(base, luxury)
+    expect(rich).not.toBe(base) // 이사가 실제로 됐는지부터 — 안 되면 아래 비교가 헛돈다.
+    const plainNight = skipSlot({ ...base, stats: { ...base.stats, mental: 50 } })
+    const richNight = skipSlot({ ...rich, stats: { ...rich.stats, mental: 50 } })
+    expect(richNight.stats.mental).toBe(plainNight.stats.mental - luxury.mentalPerNight)
   })
 
   it('그래도 하룻밤 순회복은 양수다 — 시간 자체가 사형선고면 안 된다', () => {

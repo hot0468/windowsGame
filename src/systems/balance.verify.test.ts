@@ -21,7 +21,7 @@ import { advanceEmployment, applyTo, passes } from './employment'
 import { advanceBank, bankOf, bankedTotal, borrow, loanRoom, openDeposit, withdraw } from './bank'
 import { DEPOSIT_MIN, LOAN_LIMIT_BASE } from '../data/bank'
 import { canMove, moveTo } from './housing'
-import { HOUSINGS } from '../data/housing'
+import { CHEAPEST_HOUSING } from '../data/housing'
 import { advanceLottery, affordableTickets, buyTickets } from './lottery'
 import { TICKET_PRICE } from '../data/lottery'
 import type { Activity, GameState } from '../types/game'
@@ -546,7 +546,8 @@ describe('은행 — 쓰는 이유가 있는 장치인가', () => {
  * ⚠️ **기존 알바·정규직·은행 시뮬레이션을 약화시키지 않는다**(정규직·은행 때와 같은 원칙).
  */
 
-const cheapest = HOUSINGS[HOUSINGS.length - 1]
+// 사치 칸이 뒤에 붙어 배열 끝은 가장 비싼 집이다 — 정본 셀렉터를 쓴다(data/housing.ts).
+const cheapest = CHEAPEST_HOUSING
 
 /**
  * **가장 싼 집으로 옮기고 복권을 계속 사는 플레이.**

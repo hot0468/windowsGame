@@ -8,7 +8,7 @@ import {
   livingCostForDay,
   tierCostFor,
 } from './economy'
-import { HOUSINGS } from '../data/housing'
+import { CHEAPEST_HOUSING, HOUSINGS } from '../data/housing'
 import { createInitialState } from './turn'
 import { moveTo } from './housing'
 
@@ -109,7 +109,8 @@ describe('getWageMultiplier', () => {
  * 그대로 얹힌다**(싼 방에 살아도 인플레는 같은 비율로 맞는다).
  */
 describe('생활비 = 물가 구간 × 집 배율', () => {
-  const gosiwon = HOUSINGS[HOUSINGS.length - 1]
+  // 사치 칸이 뒤에 붙어 배열 끝은 가장 비싼 집이다 — 정본 셀렉터를 쓴다(data/housing.ts).
+  const gosiwon = CHEAPEST_HOUSING
 
   /** 그 집으로 옮긴 상태(돈은 넉넉히 준다 — 여기서 재는 것은 이사 조건이 아니다). */
   function living(day: number, housingId?: string) {

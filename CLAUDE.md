@@ -24,13 +24,13 @@
 
 | 날짜 | 변경 | 대상 |
 |------|------|------|
-| 2026-08-14 | 오후 알림 — `Daybreak`에 `dusk` 갈래를 붙여 오전→오후에도 해가 기우는 화면이 1.8초 뜬다(한 컴포넌트가 둘을 진다) | Daybreak(tsx 갈래 분기·css `.db-dusk` + 키프레임 2) |
-| 2026-08-14 | 첫 실행 안내 투어(딤+스포트라이트 7단계) — 안내 메일 넷을 걷어내고 실제 화면을 가리켜 설명한다 | tour(data+test 신규), Tour(tsx+css 신규), layers(`TOUR`), index.css(`--os-scrim`), types(`guides`→`tourSeen`), gameStore(투어 액션 3), Desktop·HudPanel·Taskbar(`data-tour`), SettingsApp(다시 보기), guide 3파일 삭제 |
-| 2026-08-14 | 지갑칸 분리 — 스탯 15종에 밀려 잘리던 소지금·생활비를 날짜칸 아래 세 번째 HUD 패널로 뗐다 | WalletPanel 신규, StatPanel(생계 구역 제거·`ResourceRow` 공개), HudPanel(`onHeight`), desktopPanelStore(`wallet`·`heights`), calendar(폭 240), CalendarPanel·Taskbar·Desktop·icons |
-| 2026-08-14 | 실행 연출을 관계·S 일감으로 넓힘(10→29/71) — 같은 커밋의 안내 메일 넷은 투어로 대체되어 사라졌다 | runScenes(문구 8·`table` 신규), ToolRun(tsx+css), gameStore(afterTurn→feedback), MailApp |
-| 2026-08-14 | 관계 깊이 — 안 만나면 멀어지고(유예 5일·바닥 30), 친해지면 방의 말이 바뀌고, 가까우면 만남이 멘탈을 더 준다 | relations(상수 4+`STAGE_LINES`), affection(`decayAffection`·`stageOf`·`stageMessages`·`meetMentalBonus`·`isCooling`), types(`lastMet`), turn(`withRecovery`), ChatApp(+css), activityPreview |
-| 2026-08-14 | 활동별 실행 그림 8종 — `RunScene.art`를 `look`에서 갈라내 달리기·붓질·파형·코드·차트·무대조명·손·김을 그린다 | runScenes(`art`+배정), types(`ToolRunPayload.art`), ToolRun(tsx 그림 5+css), UiGallery(payload 누락 수정), runScenes.test |
-| 2026-08-14 | 행동 피드백 — 기록 갱신·내면 감상 토스트 + 육성 활동 7종에 실행 연출(그전엔 71개 중 10개만 있었다) | records·inner(systems+data+test 신규), gameStore(`feedback`), ToastHost(채널 2+정적 카드), runScenes(7)·ToolRun.css(액센트 3) |
-| 2026-08-14 | 랭크 이벤트의 윗칸 — S가 여는 고수익 일감 5종 + **생활 등급이 여는 방 2개**(`RankEvent.key`가 옵셔널이 되어 15종 평균을 본다) | activities(7), messages(방 7), rankEvents(data 7 + systems 권유 7 + `rankReached`), rankEvents.test(생활 등급 묶음 신규) |
-| 2026-08-14 | 육성물 전환 — 게임오버를 없애고(파산·번아웃은 며칠짜리 `Recovery`) 무한 생활 등급이 판을 이끈다. 직업·실패 엔딩 11종은 도감 콜렉션으로 | economy(상승률 동률), recovery(data+systems+test 신규), lifeRank(+test 신규), types(`Recovery`), turn·store·가드 15곳, endings(15→4), metaStore(`unlockedCareers`), StatPanel·ExcelApp·EndingModal·CalendarPanel·MobileStatSheet, balance.verify(전제 반전) |
-| 2026-08-14 | 육성 복리 — 스탯 등급 한 단계당 상승분 +15%(`masteryBonusFor`) + 첫 보상이 B·A뿐이던 스탯에 C 단발 첫 칸 7종 | turn(`statBonusFor`), rankScale 신규(rank가 재수출), activityPreview, mastery.test 신규, rankEvents·events(각 7) |
+| 2026-08-17 | 재미 4종 — 효과음(WebAudio 합성·설정 토글) · 지뢰찾기(`game` 실행이 여는 순수 장난감) · 돌발 사건 셋째 부류 딜레마(아침 창, 돈 vs 도덕) · 관계 서사 비트(`close` 말 5일 회전) + 새 판 투어 물음 복원(`tourAsk`, 기본 초점 [보기]) | sound(신규)·metaStore·toastStore·windowStore·LockScreen·BlueScreen·SettingsApp, MinesweeperApp(tsx+css+test 신규)·DilemmaApp(tsx+css 신규)·appForWindow(+test)·types·gameStore, chance(data+systems+test)·autoAdvance, relations·affection(+test), Tour |
+| 2026-08-17 | 시간대는 **결과 창을 닫을 때** 넘어간다 — 행동 직후가 아니라 [확인]·`Daybreak` 팝업과 같은 순간에 풍경·날짜칸·시계가 함께 바뀐다(게임 상태는 그대로 즉시 확정) | shownTime(신규 — 표시 시각 단일 출처), Daybreak, Desktop, CalendarPanel, Taskbar, MobileStatusBar, MobileStatSheet |
+| 2026-08-17 | 활동에 **반발 스탯** — IT를 올리는 다섯은 매력·감수성을, 게임은 친화력·경제·운동을 깎는다 + AI 입문 강의 전용 활동(`ai-study`: 지식 주 + IT 곁가지) | activities(반발 6곳·`ai-study` 신규), courses(`ai-basic` 연결 교체), runScenes(장면 1) |
+| 2026-08-17 | 반값 쿠폰이 실제로 쓰인다 — 광고 메일이 온 날 컬리엔마트 주문 **한 건**이 반값(최대 5,000원) | messages(data 쿠폰 상수 3 + 메일 문구), delivery(`couponDay`·`couponDiscount`·`priceOf` + test 묶음), types(`couponUsedDay`), ShopSite(안내 줄·쿠폰가 + css 1) |
+| 2026-08-17 | 복권을 로또처럼 — 산 표는 **다음 토요일 밤**에 한꺼번에 추첨한다(구매 시 굴리지 않는다) | lottery(data `DRAW_WEEKDAY`·systems `nextDrawDay`/`draw`+test 묶음), types(`LotteryTicket`), turn(`nightPayoutPending` 날짜 판정), gameStore(옛 표 `drawn: true` 이관), ShopSite(+css) |
+| 2026-08-17 | 사진첩은 **겪은 것만** 싣는다(안 겪은 빈 칸 삭제 — 잠긴 줄 표시가 겪은 줄과 구분이 안 됐다) | ExplorerApp(codex 갈래+test), events(`hint` 사용처 없음 표시) |
+| 2026-08-17 | 실제 윈도우 소품 3종 — 작업 관리자(프로세스 판형 진단 창 · 우클릭/Ctrl+Shift+Esc, 구판 삭제) · 탐색기 숨김 파일 · cmd `defrag` | TaskMgrApp(tsx+css 신규), appForWindow, Taskbar(우클릭·단축키), hidden(data 신규), ExplorerApp(+css·test), SystemApps(defrag·구판 삭제+css), measure(`--rightclick`) |
+| 2026-08-17 | 길고양이 — 시드가 정한 밤에 창밖에 오고(8~14일차, 재방문 3~5일), 세 번 먹이면 들여서 바탕화면을 걷는 펫이 된다(사료 1,500/밤·쓰다듬기 1/일) | cat(data+systems+test 신규), CatApp(tsx+css), CatPet(tsx+css), types(`CatState`·`WindowKind`), turn(취침), gameStore(창+액션 4), appForWindow(+test), Desktop·layers·ToastHost·events |
+| 2026-08-17 | 후반 돈 싱크 — 사치 집 2종(`rate>1`, 밤 멘탈 보너스) + 호텔 오픈채팅(스파·호캉스). "가장 싼 집"의 정본은 `CHEAPEST_HOUSING` | housing(data 2+`CHEAPEST_HOUSING`·test 갈래), activities(2), messages(방 1), RealtySite(색·문구), economy·balance.verify(셀렉터 교체) |
+| 2026-08-17 | 돌발 사건 — 판 시드(재굴림 불가)로 4~7일에 한 번 소소한 사건·**오늘만 기회**(활동 하나 ×1.5/반값)가 뜨고, 기회일엔 자동 진행이 멈춘다 | chance(data+systems+test 신규), types(`seed`), turn(취침+배율), activityPreview, autoAdvance(정지 1), gameStore(시드·토스트), ToastHost |

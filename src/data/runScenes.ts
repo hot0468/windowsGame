@@ -103,6 +103,7 @@ const WORK_STEPS: Record<string, string[]> = {
   draw: ['캔버스를 여는 중', '밑그림을 잡는 중', '선을 정리하는 중', '색을 얹는 중'],
   compose: ['건반을 켜는 중', '네 마디를 잡는 중', '코드를 갈아 보는 중', '다시 들어 보는 중'],
   'coding-study': ['예제를 여는 중', '따라 치는 중', '에러를 읽는 중', '고쳐 돌려 보는 중'],
+  'ai-study': ['강의를 재생하는 중', '프롬프트를 따라 치는 중', '다르게 다시 시키는 중', '결과를 견줘 보는 중'],
   /* 마주 앉는 일 셋. ⚠️ **문구가 서로 달라야 한다** — 같은 그림을 쓰므로 문구까지
      같으면 세 활동이 한 활동으로 읽힌다. */
   social: ['약속 장소로 가는 중', '근황을 묻는 중', '이야기가 길어지는 중', '다음을 기약하는 중'],
@@ -152,6 +153,7 @@ const WORK_ACCENT: Record<string, string> = {
   draw: 'make',
   compose: 'make',
   'coding-study': 'make',
+  'ai-study': 'study',
   reading: 'read',
   'finance-study': 'read',
   /* 보는 일·주는 일·먹는 일. 셋 다 앞의 것들과 갈려야 "다른 종류"로 읽힌다. */
@@ -190,6 +192,7 @@ const ART: Record<string, RunScene['art']> = {
   compose: 'wave',
   /* 코드 — 들여쓰기가 있는 줄이 쌓인다. */
   'coding-study': 'code',
+  'ai-study': 'code',
   'tool-vscode': 'code',
   /* 숫자를 읽는 일 — 막대가 오르내린다. */
   'finance-study': 'chart',

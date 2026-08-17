@@ -1,9 +1,25 @@
 import { describe, it, expect } from 'vitest'
-import { migrateSave, selectPersistedState } from './gameStore'
+import { migrateSave, pastLifeOf, selectPersistedState } from './gameStore'
 import { createInitialState } from '../systems/turn'
 import { INITIAL_STATS } from '../types/game'
 
 const validSave = () => ({ state: createInitialState('테스터') })
+
+describe('pastLifeOf — 지난 삶 기록', () => {
+  it('진행된 판은 이름·일수·생활 등급·최고 직장을 남긴다', () => {
+    const s = { ...createInitialState('회차'), day: 42, peakCareerId: 'call-center' }
+    expect(pastLifeOf(s)).toMatchObject({
+      name: '회차',
+      days: 42,
+      lifeRank: 'F',
+      peakCareerId: 'call-center',
+    })
+  })
+
+  it('⚠️ 1일차 판은 남기지 않는다 — 이름만 짓고 버린 판이 도감을 채우면 안 된다', () => {
+    expect(pastLifeOf(createInitialState('t'))).toBeNull()
+  })
+})
 
 describe('migrateSave — 정상 세이브', () => {
   it('진행 중 세이브를 그대로 복원한다', () => {
