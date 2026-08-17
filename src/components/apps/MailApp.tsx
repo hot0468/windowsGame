@@ -5,6 +5,7 @@ import { useGameStore } from '../../store/gameStore'
 import { examMessages } from '../../systems/certification'
 import { contestMessages } from '../../systems/contests'
 import { gearMessages } from '../../systems/gear'
+import { holidayMessages } from '../../systems/holidays'
 import { phoneMessages } from '../../systems/phone'
 import { billMessages } from '../../systems/bills'
 import { webtoonMessages } from '../../systems/webtoon'
@@ -74,6 +75,10 @@ export function MailApp() {
     ...phoneMessages(state).map((m) => ({ ...m, time: '방금', turn: Number.MAX_SAFE_INTEGER })),
     ...billMessages(state).map((m) => ({ ...m, time: '방금', turn: Number.MAX_SAFE_INTEGER })),
     ...webtoonMessages(state),
+    /* 명절 메일. 그날 하루만 뜨는 파생이라 시각은 '방금'이다(장비 고장과 같은 자리). */
+    ...holidayMessages(state)
+      .filter((m) => m.channel === MAILBOX.id)
+      .map((m) => ({ ...m, time: '방금', turn: Number.MAX_SAFE_INTEGER })),
   ].sort((a, b) => b.turn - a.turn)
   const mails = all.filter((m) => (folder === 'ad' ? isAd(m) : !isAd(m)))
   /*

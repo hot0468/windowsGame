@@ -62,6 +62,7 @@ import { playGame as playGameOf } from '../systems/steam'
 import { renameChannel as renameChannelOf, startStream as startStreamOf } from '../systems/channel'
 import { watchFilm as watchFilmOf } from '../systems/cinema'
 import { takeTrip as takeTripOf, reviveSouvenirs } from '../systems/trips'
+import { advanceHolidays } from '../systems/holidays'
 import { sellItem as sellItemOf, sellPostcard as sellPostcardOf } from '../systems/resale'
 import { advanceCertification, takeExam as takeExamOf } from '../systems/certification'
 import { findHousing } from '../data/housing'
@@ -558,6 +559,11 @@ function reviveState(raw: unknown): GameState | null {
     affection: reviveAffection(saved.affection),
     rankEvents: reviveRankEvents(saved.rankEvents),
     masters: reviveMasters(saved.masters),
+    /* ⚠️ 커서가 미래를 가리키면(손댄 세이브) 다가올 기념일이 통째로 건너뛰어진다 — 버린다. */
+    holidayDay:
+      Number.isFinite(saved.holidayDay) && (saved.holidayDay as number) <= (Number(saved.day) || 1)
+        ? Number(saved.holidayDay)
+        : undefined,
     // ⚠️ 응시 기록은 **돈을 만들지 않으므로** 검증이 은행·정규직만큼 빡빡할 필요가 없다
     //    (합격해도 나오는 것은 아이템 하나다). 날짜만 유한하면 통과시키고, 없는 종목을
     //    가리키는 기록은 `advanceCertification`이 조용히 닫는다.
@@ -608,6 +614,10 @@ function afterTurn(next: GameState, chain?: number) {
   //    택배 바로 뒤인 것은 둘 다 **아이템이 인벤토리로 들어오는 일**이라 도착 알림을
   //    같은 배열(`arrivals`)로 내보내기 때문이다 — 새 알림 창구를 만들지 않는다.
   const exams = advanceCertification(got.state)
+  /* ⚠️ **기념일은 돈을 만지지 않는다**(멘탈 한 줌뿐) — 그래서 `nightPayoutPending`에
+     원천을 더할 필요가 없고 밤 정산 어디에 놓아도 파산 판정이 안 흔들린다(자격시험과
+     같은 부류). 날짜는 달력이 정하고 여기는 커서만 민다(`systems/holidays.ts`). */
+  const feasted = advanceHolidays(exams.state)
   // ⚠️ **은행 정산은 고용 정산보다 먼저 돈다.** 둘 다 마지막 줄에서 `settleGameOver`를
   //    부르므로 순서 자체가 판정을 바꾸지는 않지만(이미 확정된 사유는 되살아나지 않는다),
   //    만기 원리금이 급여보다 먼저 들어와야 급여 소식 메일에 적히는 잔액이 실제와 맞는다.
@@ -623,7 +633,7 @@ function afterTurn(next: GameState, chain?: number) {
   // ⚠️ **마감 감사는 돈을 안 만진다**(평판만 깎는다) — 그래서 `nightPayoutPending`에
   //    원천을 더할 필요가 없고 밤 정산 어디에 놓아도 파산 판정이 안 흔들린다
   //    (자격시험 발표와 같은 부류). 구독료보다 먼저인 것은 둘이 서로 무관하기 때문이다.
-  const gigged = advanceGigs(exams.state)
+  const gigged = advanceGigs(feasted)
   const billed = advanceSubscriptions(gigged)
   // ⚠️ **휴대폰 요금도 나가는 돈이라 구독료와 같은 자리다** — 못 내면 회선이 정지되고
   //    기기가 인벤토리에서 빠진다(외상을 만들지 않는다는 구독의 규칙 그대로).

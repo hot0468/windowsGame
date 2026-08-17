@@ -6,6 +6,7 @@ CLAUDE.md의 변경 이력 표에서 밀려난 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-08 | 랭크 이벤트 6종 추가 — 친화력 C·경제 B가 방을 열고(집들이·투자 스터디), 예의범절 A·운동 S·지식 A·창의력 A는 단발 | rankEvents(data+systems 첫 마디), events(단발 4), messages(방 2), activities(`housewarming`·`study-talk`), rankEvents.test(스탯 전수 커버 불변식 2건) |
 | 2026-08-08 | 음악 스탯에 쓸 곳 셋 — 오디션 도구·그몽 음악 일감 3종 + 음악 A가 여는 밴드(숙련도로 공연·앨범 해제) | types(`ToolId: audition`·`BandState`·`requiresBandSkill`/`buildsBandSkill`), band(data+systems+test 12건), turn(게이트·숙련·보수), gigs·activities·desktopItems·messages·rankEvents, StatPanel·MobileStatSheet·ToolRun |
 | 2026-08-08 | 슬롯 제약(오전/오후 전용 활동 5종) · 장비 고장(사용 횟수, 무작위 없음) · 경제 스탯이 여는 주식 변동성 예보 | types(`requiresSlot`·`SLOT_NAMES`·`gear`/`broken`), turn(`canRun`·`wearGear`), gear(data+systems+test), delivery(되사기 자물쇠), stocks(예보)·StockSite, activityPreview, ExplorerApp, slotGate.test |
 | 2026-08-08 | 경제 스탯 신설 + 모바일 도감의 사방 여백·높이 상한 제거 | types·statMeta·activities(`finance-study`), contests(모의주식 심사 `knowledge`→`finance`), MobileShell.css, measure.mjs(모바일 셸 셀렉터 오타) |

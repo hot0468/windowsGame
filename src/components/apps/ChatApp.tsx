@@ -21,6 +21,7 @@ import { rankEventMessages } from '../../systems/rankEvents'
 import { webtoonReviewMessages } from '../../systems/webtoon'
 import { offerUnlockedByRank } from '../../systems/rankEvents'
 import { findMaster, giftAmount, seenMaster, masterMessages, MASTER_MENTAL } from '../../systems/masters'
+import { holidayMessages } from '../../systems/holidays'
 import { STAT_NAMES } from '../../types/game'
 import type { GameState, Stats } from '../../types/game'
 import './ChatApp.css'
@@ -83,6 +84,8 @@ function derivedMessages(state: GameState) {
     ...webtoonReviewMessages(state),
     ...rankEventMessages(state),
     ...masterMessages(state),
+    /* 명절 카톡(가족방 등). 메일(`outlook`)로 가는 것은 어느 방 id와도 안 맞아 그냥 걸러진다. */
+    ...holidayMessages(state),
   ]
 }
 

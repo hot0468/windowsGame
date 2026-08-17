@@ -1325,6 +1325,12 @@ export interface GameState {
    * ⚠️ **등급이 내려가도 지우지 않는다** — 지우면 오르내리기로 같은 선물을 무한히 받는다.
    */
   masters?: string[]
+  /**
+   * 명절·기념일 정산 커서 — 여기까지의 기념일 멘탈을 정산했다는 날.
+   * ⚠️ 날짜 자체는 저장하지 않는다(`data/holidays.ts`가 달력에서 정한다).
+   * 규칙은 `systems/holidays.ts`. 없으면(구세이브) 어제부터 센다 — 소급 정산 금지.
+   */
+  holidayDay?: number
 }
 
 /**

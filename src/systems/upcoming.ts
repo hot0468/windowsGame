@@ -1,4 +1,5 @@
 import { EXPOS, daysUntilOpen } from '../data/expos'
+import { HOLIDAYS, dayOfHoliday } from '../data/holidays'
 import { dueSoonContests, pendingEntries } from './contests'
 import { findContest } from '../data/contests'
 import type { GameState } from '../types/game'
@@ -74,6 +75,12 @@ export function upcoming(state: GameState): UpcomingItem[] {
   for (const expo of EXPOS) {
     const inDays = daysUntilOpen(expo, state.day)
     if (inDays > 0) items.push({ id: `expo-${expo.id}`, inDays, label: `${expo.title} 개최` })
+  }
+
+  /* 명절·기념일. ⚠️ **오늘 것도 넣는다**("오늘 어린이날") — 행사와 달리 기념일은 하루뿐이라
+     오늘을 빼면 정작 그날 화면 어디에도 이름이 없다. */
+  for (const h of HOLIDAYS) {
+    items.push({ id: `holiday-${h.id}`, inDays: dayOfHoliday(h) - state.day, label: h.name })
   }
 
   return items
