@@ -12,6 +12,8 @@
  * 지어낸 상호를 쓰는 광고·가게와는 축이 다르다).
  */
 
+import type { IconName } from '../types/game'
+
 export interface Subscription {
   id: string
   name: string
@@ -23,6 +25,26 @@ export interface Subscription {
   /** 구독이 여는 것. 화면이 "이걸 왜 끊나"에 답하는 목록이고 **관계를 여기 적지 않는다** —
    *  실제 잠금은 `Activity.requiresSubscription`·`DesktopItem.requiresSubscription`이 진다. */
   perks: string[]
+  /**
+   * 가입 직후 흐르는 **설치 연출**. 없으면 아무 창도 안 뜬다.
+   *
+   * ⚠️ **옵셔널인 것이 핵심이다** — 프로그램을 내려받는 구독에만 있다. 트위터 플러스가
+   * 파는 것은 배율 하나라 설치할 것이 없고, 그런데도 설치 창을 띄우면 거짓말이 된다.
+   *
+   * ⚠️ **연출이지 규칙이 아니다**(`data/runScenes.ts`와 같은 자리). 결제·잠금 해제는
+   * 창이 뜨기 전에 `subscribe`가 이미 끝냈고, 창을 닫든 말든 결과가 같다.
+   */
+  install?: {
+    /** 창 제목이자 완료 알림의 제목. */
+    title: string
+    icon: IconName
+    /** CSS 액센트 갈래(`.tr-<accent>` — `ToolRun.css`에 있는 이름만). */
+    accent: string
+    /** 상태 줄에 차례로 흐르는 문구. */
+    steps: string[]
+    /** 끝났을 때 한 줄로 알리는 것 — **무엇이 생겼는가.** */
+    note: string
+  }
 }
 
 /**
@@ -47,6 +69,25 @@ export const SUBSCRIPTIONS: Subscription[] = [
     monthlyFee: 10000,
     desc: '포토샵을 포함한 크리에이티브 도구 전체. 해지하면 다음 날부터 못 연다.',
     perks: ['바탕화면에 포토샵이 설치된다', '그몽의 디자인 일감을 받을 수 있다'],
+    /* ⚠️ **문구가 "설치"라고 말하는 유일한 자리다.** 실제로 잠금을 여는 것은
+       `DesktopItem.requiresSubscription`이고 여기는 그것을 눈으로 보여 줄 뿐이다 —
+       단계를 늘리거나 줄여도 아이콘이 생기는 시점은 안 바뀐다. */
+    install: {
+      title: '포토샵 설치',
+      /* ⚠️ **액센트는 `ToolRun.css`에 정의된 갈래 이름이라야 한다**(`.tr-photoshop`).
+         한때 'brush'를 넣었는데 그건 액센트가 아니라 **그림** 클래스(`.tr-brush`)여서,
+         `max-width: 220px`가 판 전체에 걸려 창의 오른쪽 절반이 흰 여백으로 남았다
+         (실측에서 잡혔다). 실행 창이 쓰는 것과 같은 이름을 쓴다. */
+      accent: 'photoshop',
+      icon: 'devicon:photoshop',
+      steps: [
+        '설치 관리자를 내려받는 중',
+        '구성 요소를 푸는 중',
+        '글꼴과 브러시를 등록하는 중',
+        '바탕화면에 바로 가기를 만드는 중',
+      ],
+      note: '바탕화면에 포토샵이 생겼습니다.',
+    },
   },
   {
     /*

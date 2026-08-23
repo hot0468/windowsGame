@@ -18,6 +18,8 @@ interface WindowProps {
   x: number
   y: number
   width: number
+  /** 창 높이(px). 없으면 내용이 정한다(크기를 한 번도 안 끈 창). */
+  height?: number
   zIndex: number
   /**
    * true면 작업 표시줄을 제외한 전체 화면으로 그린다.
@@ -51,6 +53,8 @@ interface WindowProps {
   onToggleMaximize?: () => void
   /** 지정하면 드래그 시 store의 move 대신 이 콜백을 호출한다 (스탯창처럼 store에 등록되지 않은 창용). */
   onMove?: (x: number, y: number) => void
+  /** 크기 조절 콜백. 없으면 모서리 손잡이를 안 그린다(고정 크기 창). */
+  onResize?: (width: number, height: number) => void
   /**
    * 지정하면 창을 누를 때 windowStore.focus 대신 이 콜백을 호출한다.
    * 스토어에 등록되지 않은 창(스탯창·날짜칸)은 focus(id)가 아무것도 갱신하지 못하고
@@ -91,6 +95,7 @@ export function Window({
   x,
   y,
   width,
+  height,
   zIndex,
   maximized = false,
   fixed = false,
@@ -99,6 +104,7 @@ export function Window({
   onMinimize,
   onToggleMaximize,
   onMove,
+  onResize,
   onActivate,
   ornament = false,
   bareTitle = false,
@@ -196,6 +202,36 @@ export function Window({
   /** 전체 화면 창과 고정 패널은 위치가 정해져 있어 드래그하지 않는다. */
   const immovable = maximized || fixed || popup
 
+  /**
+   * **크기 조절**(2026-08-22 설계자 지시). 오른쪽 아래 모서리 하나만 잡는다 —
+   * 네 변·네 모서리를 다 만들면 핸들 여덟 개가 타이틀 바·스크롤바와 서로 먹는다.
+   *
+   * ⚠️ **최소 크기는 스토어가 지킨다**(`MIN_WINDOW`) — 화면이 따로 자르면 두 곳이
+   * 서로 다른 바닥을 갖게 된다. 여기서는 커서와의 차이만 계산해 넘긴다.
+   * ⚠️ 전체 화면·고정 패널·팝업에는 안 붙인다(크기가 그것들의 정체다).
+   */
+  const resizeStart = useRef({ w: 0, h: 0, x: 0, y: 0 })
+  const resizable = !maximized && !fixed && !popup && !!onResize
+
+  const handleResizeDown = (e: PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    activate()
+    const box = ref.current?.getBoundingClientRect()
+    resizeStart.current = {
+      w: box?.width ?? width,
+      h: box?.height ?? 0,
+      x: e.clientX,
+      y: e.clientY,
+    }
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+
+  const handleResizeMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
+    const start = resizeStart.current
+    onResize?.(start.w + (e.clientX - start.x), start.h + (e.clientY - start.y))
+  }
+
   /** 전체 화면이면 x/y/width 대신 뷰포트를 채우고, 작업 표시줄 높이만 아래로 비워 둔다. */
   const style: CSSProperties = maximized
     ? {
@@ -209,14 +245,14 @@ export function Window({
       ? /* 팝업은 x/y를 안 쓴다 — 위치는 CSS가 화면 가운데로 잡는다(인라인 left/top을
            주면 CSS가 못 이긴다). 폭만 넘긴다. */
         { width, zIndex }
-      : { left: x, top: y, width, zIndex }
+      : { left: x, top: y, width, zIndex, ...(height ? { height } : {}) }
 
   return (
     <div
       ref={ref}
       className={`win${maximized ? ' win-max' : ''}${fixed ? ' win-fixed' : ''}${
         bareTitle ? ' win-bare' : ''
-      }${dark ? ' win-dark' : ''}${popup ? ' win-popup' : ''}`}
+      }${dark ? ' win-dark' : ''}${popup ? ' win-popup' : ''}${height ? ' win-sized' : ''}`}
       style={style}
       onPointerDown={activate}
     >
@@ -293,6 +329,18 @@ export function Window({
       {/* 장식은 타이틀 바를 비켜 본문만 감싼다 — 위치 규칙은 Window.css의 .win > .panel-ornament 참조. */}
       {ornament && <PanelOrnament />}
       <div className="win-body">{children}</div>
+
+      {/* 오른쪽 아래 모서리 손잡이. ⚠️ **표시 전용이 아니다** — 실제로 크기를 바꾼다.
+          스크린 리더에는 숨긴다(마우스 전용 장치이고, 크기는 내용을 안 바꾼다). */}
+      {resizable && (
+        <div
+          className="win-resize"
+          aria-hidden="true"
+          onPointerDown={handleResizeDown}
+          onPointerMove={handleResizeMove}
+          onPointerUp={(e) => e.currentTarget.releasePointerCapture(e.pointerId)}
+        />
+      )}
     </div>
   )
 }

@@ -11,7 +11,7 @@ import {
   settleRecovery,
   tickRecovery,
 } from './recovery'
-import { canRun, createInitialState, skipSlot } from './turn'
+import { canRun, createInitialState, skipSlot, sleepNow } from './turn'
 import { findActivity } from '../data/activities'
 import type { GameState } from '../types/game'
 
@@ -87,10 +87,11 @@ describe('빠져나올 수 있는가 — 되살아난 게임오버를 막는다'
     expect(s.recentActivities.length).toBe(before)
   })
 
-  it('실제 플레이로도 풀린다 — 슬롯을 넘기면 회복이 끝난다', () => {
+  it('실제 플레이로도 풀린다 — 자러 가면 회복이 끝난다', () => {
     let s = enterRecovery({ ...base(), stats: { ...base().stats, mental: 0 } }, 'burnout')
-    // 하루 2슬롯 × 회복일수 + 여유. 취침마다 하루씩 준다.
-    for (let i = 0; i < RECOVERY_DAYS * 2 + 2 && s.recovery; i++) s = skipSlot(s)
+    /* ⚠️ 2026-08-22 분 단위 전환: 회복은 **하루가 끝날 때** 하루씩 준다. 시계를 조금씩
+       미는 것으로는 안 줄어들므로, 자러 가기(`sleepNow`)가 유일한 탈출구다. */
+    for (let i = 0; i < RECOVERY_DAYS + 2 && s.recovery; i++) s = sleepNow(s)
     expect(s.recovery).toBeNull()
   })
 })

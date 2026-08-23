@@ -1,31 +1,39 @@
 import { describe, it, expect } from 'vitest'
-import { buildPriceRiseNotice, selectNews } from './news'
+import { buildPriceNotice, selectNews } from './news'
 import { NEWS_POOL, NEWS_VISIBLE_COUNT } from '../data/news'
-import { getNextTier } from './economy'
+import { activeShock, nextShock, shockIncoming } from './economy'
+import { SHOCK_NOTICE_DAYS } from '../data/economy'
 
-describe('buildPriceRiseNotice', () => {
-  it('다음 인상 구간의 생활비와 남은 일수를 문장에 담는다', () => {
-    const next = getNextTier(1)
-    const item = buildPriceRiseNotice(1)
+/*
+ * ⚠️ **평시에는 물가 뉴스가 없다**(2026-08-22). 예전에는 "N일 뒤 물가 인상"이 매일 첫 줄에
+ * 박혀 있었는데, 늘 떠 있는 경고는 진짜 사건이 왔을 때도 배경으로 읽힌다.
+ */
+describe('buildPriceNotice', () => {
+  it('조용한 날에는 물가 소식이 없다', () => {
+    const quiet = [1, 5, 10].filter((d) => !activeShock(d) && !shockIncoming(d))
+    expect(quiet.length).toBeGreaterThan(0)
+    for (const day of quiet) expect(buildPriceNotice(day)).toBeNull()
+  })
+
+  it('사건이 다가오면 남은 날을 적어 예고한다', () => {
+    const w = nextShock(1)
+    const item = buildPriceNotice(w.start - SHOCK_NOTICE_DAYS)!
     expect(item.kind).toBe('notice')
-    expect(item.headline).toContain(`${next.day - 1}일 뒤`)
-    expect(item.headline).toContain(next.living.toLocaleString('ko-KR'))
+    expect(item.headline).toContain(`${SHOCK_NOTICE_DAYS}일 뒤`)
+    expect(item.headline).toContain(w.shock.name)
   })
 
-  it('구간이 바뀌면 예고 내용도 바뀐다', () => {
-    // 1일차와 11일차는 서로 다른 다음 구간을 바라본다.
-    expect(buildPriceRiseNotice(1).headline).not.toBe(buildPriceRiseNotice(11).headline)
+  it('사건 중에는 진행 중인 사건과 남은 날을 적는다', () => {
+    const w = nextShock(1)
+    const item = buildPriceNotice(w.start)!
+    expect(item.headline).toContain(w.shock.headline)
+    expect(item.headline).toContain(`${w.shock.days}일 남음`)
   })
 
-  it('표를 넘어선 날짜에서도 예고가 사라지지 않는다', () => {
-    // getNextTier가 외삽으로 항상 값을 주므로 후반에도 압박이 유지되어야 한다.
-    const item = buildPriceRiseNotice(300)
-    expect(item.headline).toContain('물가 인상 예고')
-    expect(getNextTier(300).day).toBeGreaterThan(300)
-  })
-
-  it('인상 당일 직전에는 "1일 뒤"로 예고한다', () => {
-    expect(buildPriceRiseNotice(10).headline).toContain('1일 뒤')
+  it('끝난 다음 날에는 다시 조용해진다 — 사건은 지나간다', () => {
+    const w = nextShock(1)
+    const after = w.end + 1
+    if (!shockIncoming(after)) expect(buildPriceNotice(after)).toBeNull()
   })
 })
 
@@ -34,9 +42,11 @@ describe('selectNews', () => {
     expect(selectNews({ day: 1 })).toHaveLength(NEWS_VISIBLE_COUNT)
   })
 
-  it('첫 항목은 항상 게임 상태에서 파생된 예고다', () => {
+  it('물가 사건이 있는 날에만 첫 항목이 그 소식이다', () => {
     for (const day of [1, 7, 25, 88, 400]) {
-      expect(selectNews({ day }).at(0)!.kind).toBe('notice')
+      const first = selectNews({ day }).at(0)!
+      const noisy = !!buildPriceNotice(day)
+      expect(first.kind === 'notice' && !NEWS_POOL.some((n) => n.id === first.id)).toBe(noisy)
     }
   })
 
@@ -45,8 +55,8 @@ describe('selectNews', () => {
   })
 
   it('날짜가 바뀌면 분위기 기사 목록이 달라진다', () => {
-    const a = selectNews({ day: 3 }).slice(1).map((n) => n.id)
-    const b = selectNews({ day: 4 }).slice(1).map((n) => n.id)
+    const a = selectNews({ day: 3 }).map((n) => n.id)
+    const b = selectNews({ day: 4 }).map((n) => n.id)
     expect(a).not.toEqual(b)
   })
 
@@ -57,9 +67,11 @@ describe('selectNews', () => {
     }
   })
 
-  it('풀 항목만 회전한다 — 예고 외에는 데이터에 없는 기사가 끼어들지 않는다', () => {
+  it('풀 항목만 회전한다 — 물가 소식 외에는 데이터에 없는 기사가 끼어들지 않는다', () => {
     const poolIds = new Set(NEWS_POOL.map((n) => n.id))
-    for (const item of selectNews({ day: 42 }).slice(1)) {
+    const notice = buildPriceNotice(42)
+    for (const item of selectNews({ day: 42 })) {
+      if (notice && item.id === notice.id) continue
       expect(poolIds.has(item.id)).toBe(true)
     }
   })

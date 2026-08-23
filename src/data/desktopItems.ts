@@ -1,4 +1,5 @@
 import { ACTIVITIES, findActivity } from './activities'
+import { ZOOM_APP_ID } from './meetings'
 import { requiredItemIds } from './items'
 import { shortcutIdOf } from '../systems/shortcuts'
 import type { DesktopEntry, DesktopItem } from '../types/game'
@@ -132,6 +133,22 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
   },
   {
     /*
+     * 제어판. **설정 바로 옆이다** — 실제 윈도우처럼 둘이 나란히 있고, 이쪽은 시스템
+     * 도구(설정·작업 관리자·명령 프롬프트·세이브)를 한 자리에 모아 여는 통로다.
+     * ⚠️ **모아 보는 것이 아니므로 폴더 열(오른쪽)이 아니다** — 여는 것이 파일이 아니라
+     * 프로그램이라, 열을 가르는 기준(`COLLECTION_KINDS`)대로 프로그램 열에 선다.
+     * ⚠️ 조건이 없으므로 조건부 항목(포토샵·클립스튜디오)보다 앞이어야 한다.
+     */
+    id: 'controlpanel',
+    label: '제어판',
+    icon: 'fluent-color:toolbox-24',
+    kind: 'controlpanel',
+    // ⚠️ **탐색기와 같은 폭이다** — 창틀을 그대로 빌려 쓰므로(`.ex-*`) 탐색 창 200px이
+    // 들어갈 자리가 필요하다. 좁히면 본문이 눌려 타일이 한 줄에 두 칸만 선다.
+    width: 720,
+  },
+  {
+    /*
      * 포토샵. ⚠️ **어도비를 구독해야 나타난다**(설계자 지시) — 예전에는 항상 보이면서
      * "라이선스가 만료되었습니다"라고만 말하는 항목이었는데, 이제 그 문장이 **상태**가 됐다:
      * 구독 전에는 아이콘 자체가 없고, 끊으면 다시 사라진다.
@@ -144,10 +161,15 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
     id: 'photoshop',
     label: '포토샵',
     icon: 'devicon:photoshop',
-    kind: 'exe',
+    /* ⚠️ **`kind: 'exe'`에서 프로그램 창으로 승격했다**(2026-08-21, VS 코드와 같은 경로).
+       예전에는 활동 창이 뜨고 곧바로 `ToolRun`으로 넘어갔지만, 지금은 **프로그램 화면**이
+       먼저 뜨고 그 안의 ▶가 활동을 실행한다. `activityId`는 그대로 둔다 — 화면이 읽지는
+       않지만 "이 프로그램이 실행하는 활동"이라는 관계는 참이고 `desktopItems.test.ts`가
+       "도구 활동에는 실행 통로가 있다"를 그 한 줄로 지킨다(VS 코드와 같은 규칙). */
+    kind: 'photoshop',
     activityId: 'tool-photoshop',
-    /* ⚠️ 도구 셋은 같은 폭이다 — 켠 때 같은 작업 화면(`ToolRun`)이 뜼므로 폭이 갈리면 그 화면만 좀아진다. */
-    width: 420,
+    /* ⚠️ 어도비 셋은 같은 폭이다 — 같은 크롬을 쓰므로 폭이 갈리면 한 창만 좁아진다. */
+    width: 900,
     requiresSubscription: 'adobe',
   },
   {
@@ -159,10 +181,10 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
     id: 'premiere',
     label: '프리미어',
     icon: 'devicon:premierepro',
-    kind: 'exe',
+    /* 포토샵과 같은 승격 경로다(위 주석). */
+    kind: 'premiere',
     activityId: 'tool-premiere',
-    /* ⚠️ 도구 셋은 같은 폭이다 — 켠 때 같은 작업 화면(`ToolRun`)이 뜼므로 폭이 갈리면 그 화면만 좀아진다. */
-    width: 420,
+    width: 900,
     requiresSubscription: 'adobe',
   },
   {
@@ -175,9 +197,10 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
     id: 'audition',
     label: '오디션',
     icon: 'fluent-color:headphones-24',
-    kind: 'exe',
+    /* 포토샵과 같은 승격 경로다(위 주석). */
+    kind: 'audition',
     activityId: 'tool-audition',
-    width: 420,
+    width: 900,
     requiresSubscription: 'adobe',
   },
   {
@@ -202,6 +225,23 @@ const NON_ACTIVITY_ITEMS: DesktopItem[] = [
        `activityId`도 없다 — 실행할 활동은 화면에서 고른 것이 정한다. */
     width: 480,
     requiresItem: ['pen-tablet', 'lcd-tablet'],
+  },
+  {
+    /*
+     * 줌 — **내려받아야 생기는 유일한 프로그램이다**(`requiresInstall`). 사는 것도
+     * 구독하는 것도 아니라 그냥 받는 것이고, 그래서 한 번 생기면 사라지지 않는다
+     * (구독 셋이 해지로 사라지는 것과 갈리는 지점).
+     * ⚠️ **조건부이므로 프로그램 열의 맨 뒤여야 한다**(클립스튜디오와 같은 이유 —
+     * 가운데에 두면 받기 전까지 그 칸이 빈 자리로 남는다).
+     */
+    id: 'zoom',
+    label: '줌',
+    // ⚠️ 사이트와 **같은 글리프**다 — 내려받은 곳과 실행하는 것이 같은 프로그램이다.
+    icon: 'fluent-color:people-24',
+    kind: 'zoom',
+    // 참여자 타일 3열 + 채팅 패널(220)이 들어가는 폭. 좁으면 타일이 한 줄에 하나가 된다.
+    width: 720,
+    requiresInstall: ZOOM_APP_ID,
   },
   // ⚠️ 폴더는 바탕화면에서 **앱과 다른 열**에 놓인다(설계자 지시: 아웃룩 옆).
   // 열을 가르는 건 `Desktop.tsx`이고 여기서는 순서만 정한다 — 배열 끝이 곧 오른쪽 열이다.
@@ -314,13 +354,16 @@ export function desktopEntries(
   ownedItemIds: readonly string[] = [],
   employed = false,
   subscribedIds: readonly string[] = [],
+  installedIds: readonly string[] = [],
 ): DesktopEntry[] {
   const builtIn: DesktopEntry[] = DESKTOP_ITEMS.filter(
     (item) =>
       hasRequired(item.requiresItem, ownedItemIds) &&
       (!item.requiresEmployment || employed) &&
       // ⚠️ 구독은 **끊기면 다시 사라진다** — 그래서 아이템·재직과 같은 자리에서 함께 거른다.
-      (!item.requiresSubscription || subscribedIds.includes(item.requiresSubscription)),
+      (!item.requiresSubscription || subscribedIds.includes(item.requiresSubscription)) &&
+      // ⚠️ 내려받은 프로그램은 **다시 사라지지 않는다** — 그래서 조건 중 유일하게 단조롭다.
+      (!item.requiresInstall || installedIds.includes(item.requiresInstall)),
   ).map((item) => ({
     id: item.id,
     label: item.label,

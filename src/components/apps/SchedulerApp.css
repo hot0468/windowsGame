@@ -166,6 +166,20 @@
   white-space: nowrap;
 }
 
+/* 잡힌 화상회의. **예약 칩과 다른 색이 아니라 다른 자리다** — 회의는 슬롯을 쓰지 않으므로
+   예약 이름 뒤에 붙고, 뜻은 색이 아니라 "회의"라는 글자가 진다(ux `color-not-only`). */
+.sch-slot-meet {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  padding: 0 var(--sp-1);
+  border-radius: var(--r-sm);
+  background: var(--os-accent-wash);
+  font-size: var(--fs-xs);
+  color: var(--os-text-2);
+}
+
 /* ── 활동 고르기 ── */
 .sch-scrim {
   position: absolute;

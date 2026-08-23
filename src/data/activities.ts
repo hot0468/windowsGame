@@ -1,3 +1,4 @@
+import { DEFAULT_ACTIVITY_MIN } from './clock'
 import type { Activity, ActivityCategory } from '../types/game'
 
 /**
@@ -60,6 +61,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:briefcase-24',
     category: 'living',
     description: '편의점 야간 근무. 돈은 들어온다.',
+    minutes: 480,
     effects: { money: 60000, stamina: -25, mental: -8 },
     requires: { stamina: 25 },
     scalesWithWage: true,
@@ -76,6 +78,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:food-24',
     category: 'living',
     description: '주말 오전 홀 담당. 사람을 계속 마주치는 일이라 얼굴이 는다.',
+    minutes: 480,
     effects: { money: 45000, charm: 3, stamina: -18, mental: -3 },
     requires: { stamina: 18, charm: 12 },
     scalesWithWage: true,
@@ -95,6 +98,7 @@ export const ACTIVITIES: Activity[] = [
     /* ⚠️ **오전 전용**(2026-08-08). 설명이 "새벽"이라고 약속해 놓고 여태 아무 때나 됐다.
        ⚠️ 조건 없는 알바(편의점)에는 붙이지 않는다 — 첫날 돈 벌 길이 슬롯까지 좁아진다. */
     requiresSlot: 'morning',
+    minutes: 480,
     effects: { money: 95000, athletics: 2, stamina: -35, mental: -12 },
     requires: { stamina: 35, athletics: 25 },
     scalesWithWage: true,
@@ -110,6 +114,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:board-24',
     category: 'living',
     description: '중학생 수학 과외. 두 시간 앉아 있으면 편의점 하루치가 들어온다.',
+    minutes: 300,
     effects: { money: 105000, sociability: 2, vocabulary: 1, stamina: -20, mental: -6 },
     requires: { stamina: 20, knowledge: 60 },
     scalesWithWage: true,
@@ -163,6 +168,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:building-24',
     category: 'living',
     description: '회사에 간다. 하루가 통째로 지나가지만 급여일은 다가온다.',
+    minutes: 480,
     effects: { sociability: 1, stamina: -20, mental: -5 },
     requires: { stamina: 20 },
     requiresJobStage: 'employed',
@@ -259,6 +265,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:people-community-24',
     category: 'leisure',
     description: '부스에 앉아 하루 종일 회지를 판다. 몇 권이나 나갈지는 그려 놓은 것에 달렸다.',
+    minutes: 480,
     effects: { sociability: 3, sensitivity: 2, stamina: -22, mental: 2 },
     requires: { stamina: 22 },
   },
@@ -498,6 +505,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:form-24',
     category: 'study',
     description: '고사장에 앉는다. 결과는 며칠 뒤에 발표된다.',
+    minutes: 240,
     effects: { knowledge: 1, stamina: -20, mental: -6 },
     requires: { stamina: 20 },
     requiresPick: true,
@@ -561,6 +569,7 @@ export const ACTIVITIES: Activity[] = [
     description: '장비를 켜고 두 시간을 떠든다. 동시 접속자는 대체로 한 자릿수다.',
     /* ⚠️ **오후 전용** — 사람이 모이는 시간에 켠다. 오전 방송은 시청자가 없다. */
     requiresSlot: 'afternoon',
+    minutes: 180,
     effects: { money: 55000, reputation: 2, sociability: 3, stamina: -22, mental: -8 },
     requires: { stamina: 22 },
     requiresItem: 'streamkit',
@@ -641,6 +650,7 @@ export const ACTIVITIES: Activity[] = [
     /* ⚠️ **오전 전용** — 조조다. 시집이의 회차 선택과 어긋나지 않는다(회차는 표시이고
        실행 슬롯은 이 규칙이 정한다). */
     requiresSlot: 'morning',
+    minutes: 180,
     effects: { sensitivity: 6, creativity: 3, mental: 8, stamina: -15, money: -15000 },
     requires: { stamina: 15, money: 15000 },
   },
@@ -726,6 +736,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:patient-24',
     category: 'body',
     description: '접수하고 한참 기다린다. 주사 한 대와 이틀치 약을 받아 나온다.',
+    minutes: 90,
     effects: { mental: 4, stamina: -4, money: -25000 },
     requires: { money: 25000 },
   },
@@ -735,6 +746,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:food-24',
     category: 'leisure',
     description: '기름진 걸 시킨다. 먹는 동안은 확실히 행복하다.',
+    minutes: 60,
     effects: { mental: 12, charm: -2, stamina: -5, money: -12000 },
     requires: { stamina: 5, money: 12000 },
   },
@@ -748,6 +760,7 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:food-24',
     category: 'body',
     description: '채소가 반이다. 다 먹고 나면 뿌듯하긴 하다.',
+    minutes: 60,
     effects: { mental: 6, athletics: 2, stamina: -5, money: -18000 },
     requires: { stamina: 5, money: 18000 },
   },
@@ -776,6 +789,7 @@ export const ACTIVITIES: Activity[] = [
     requiresSlot: 'afternoon',
     /* ⚠️ 음악이 조금 붙는 것은 **듣는 쪽**이라 그렇다 — 만드는 쪽(`compose`)이 주 공급원이고
        여기는 부수 효과다(러닝과 물류센터의 관계와 같다). */
+    minutes: 180,
     effects: { mental: 14, sensitivity: 8, creativity: 3, music: 2, stamina: -18, money: -60000 },
     requires: { stamina: 18, money: 60000 },
   },
@@ -792,8 +806,12 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:beach-24',
     category: 'leisure',
     description: '멀리 간다. 돌아오면 통장은 가벼워지고 머리는 맑아진다.',
-    effects: { mental: 28, sensitivity: 12, creativity: 5, stamina: -30, money: -250000 },
-    requires: { stamina: 30, money: 250000 },
+    /* ⚠️ **하루치 값이다**(2026-08-22) — 실제로 적용되는 것은 `Trip.days`를 곱한 값이다.
+       5일 상품이면 값도 효과도 다섯 배가 된다. 여행 상품마다 값이 다른 이유가 여기 있고,
+       그래서 상품에 가격을 적지 않는다(두 번째 출처 금지). */
+    minutes: 600,
+    effects: { mental: 6, sensitivity: 2, creativity: 1, stamina: -7, money: -50000 },
+    requires: { stamina: 7, money: 50000 },
   },
   {
     /*
@@ -809,8 +827,31 @@ export const ACTIVITIES: Activity[] = [
     icon: 'fluent-color:beach-24',
     category: 'leisure',
     description: '기차나 배로 닿는 곳에 다녀온다. 돌아오는 길이 길지 않다.',
-    effects: { mental: 14, sensitivity: 6, stamina: -20, money: -90000 },
-    requires: { stamina: 20, money: 90000 },
+    /* ⚠️ 여기도 **하루치**다(장거리와 같은 규칙). */
+    minutes: 360,
+    effects: { mental: 5, sensitivity: 2, stamina: -5, money: -30000 },
+    requires: { stamina: 5, money: 30000 },
+  },
+  {
+    /*
+     * 취업 스터디(2026-08-22 설계자 지시 — 오픈채팅 다섯 번째 방).
+     *
+     * ⚠️ **`study`와 갈라 두는 것이 존재 이유다**: 혼자 하는 공부는 지식만 올리지만,
+     * 스터디는 **사람이 섞여서** 어휘력·친화력이 함께 오른다(모의 면접·발표). 대신
+     * 스터디카페 값이 들고 혼자 할 때보다 지식은 덜 오른다 — 값이 비례해서 좋기만 하면
+     * `study`를 고를 이유가 사라진다(근거리·장거리 여행과 같은 규칙).
+     * ⚠️ 번아웃 키를 `study`와 나눠 쓰지 않는다 — 나눠 쓰면 둘을 번갈아 해서 반복의
+     * 대가(추가 멘탈)를 피해 갈 수 있다... 가 아니라, **반대다**: 같은 키를 주면
+     * 공부와 스터디가 한 덩어리로 세어져 섞어 하는 플레이가 벌을 받는다. 갈라 둔다.
+     */
+    id: 'job-study',
+    label: '취업 스터디',
+    icon: 'fluent-color:people-team-24',
+    category: 'study',
+    description: '모르는 사람들과 모여 자소서를 고치고 모의 면접을 본다.',
+    minutes: 180,
+    effects: { knowledge: 3, vocabulary: 3, sociability: 2, stamina: -10, mental: -6, money: -8000 },
+    requires: { stamina: 10, money: 8000 },
   },
   {
     /* 창의력의 주 공급원. 돈은 안 들지만 행동력·멘탈을 가장 많이 먹는다. */
@@ -1355,4 +1396,28 @@ export function activitiesUnlockedBy(itemId: string): Activity[] {
   return ACTIVITIES.filter((a) =>
     Array.isArray(a.requiresItem) ? a.requiresItem.includes(itemId) : a.requiresItem === itemId,
   )
+}
+
+/**
+ * 묶음별 기본 소요 시간(분) — **하루는 08:00~24:00, 960분이다**(2026-08-22 분 단위 전환).
+ *
+ * ⚠️ **여기 적는 값이 곧 "하루에 몇 개를 할 수 있는가"이고, 그것이 이 게임의 밸런스 축이다.**
+ * 예전에는 하루가 슬롯 둘이라 무엇을 하든 반나절이었다 — 책 한 권과 알바 8시간이 같은
+ * 무게였고, 짧은 일을 여러 개 하는 플레이가 아예 없었다.
+ *
+ * ⚠️ **활동에 `minutes`가 적혀 있으면 그쪽이 이긴다**(`minutesOf`) — 알바·출근처럼
+ * 하루를 통째로 먹는 일이 그렇다.
+ */
+export const MINUTES_BY_CATEGORY: Record<ActivityCategory, number> = {
+  living: 240,
+  study: 180,
+  body: 120,
+  relation: 180,
+  leisure: 120,
+  giving: 90,
+}
+
+/** 그 활동에 걸리는 시간(분). 활동 → 묶음 → 기본값 순으로 찾는다. */
+export function minutesOf(activity: Activity): number {
+  return activity.minutes ?? MINUTES_BY_CATEGORY[activity.category] ?? DEFAULT_ACTIVITY_MIN
 }

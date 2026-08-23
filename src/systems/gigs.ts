@@ -1,7 +1,8 @@
 import { GIGS, MISS_REPUTATION_PENALTY, findGig } from '../data/gigs'
 import { clampStats, owns, settleRecovery } from './turn'
 import type { Gig } from '../data/gigs'
-import type { GameState, GigState } from '../types/game'
+import { meetsRank, worksForGig } from './works'
+import type { GameState, GigState, Work } from '../types/game'
 
 /**
  * 그몽 외주 — 수주 · 작업 · 납품 · 마감.
@@ -82,7 +83,7 @@ export function takeGig(state: GameState, gigId: string): GameState {
     ...state,
     gigs: {
       ...prev,
-      active: { gigId, takenDay: state.day, dueDay: state.day + gig.days, progress: 0 },
+      active: { gigId, takenDay: state.day, dueDay: state.day + gig.days },
     },
   }
 }
@@ -113,6 +114,66 @@ export function abandonGig(state: GameState): GameState {
  * 그래서 **함수는 아래 계층(turn)에 두고 규칙의 집은 여기로 남긴다.**
  */
 export { applyToolSession } from './turn'
+
+/**
+ * 지금 계약의 진행 — **몇 개가 요구 등급에 닿았는가**.
+ * 화면은 이 값만 읽는다(두 번째 판정을 만들지 않는다).
+ */
+export function gigProgress(state: GameState): { done: number; total: number; works: Work[] } {
+  const contract = activeContract(state)
+  const gig = contract ? findGig(contract.gigId) : undefined
+  if (!gig) return { done: 0, total: 0, works: [] }
+  const works = worksForGig(state, gig.id)
+  return {
+    done: works.filter((w) => meetsRank(w, gig.wants.rank)).length,
+    total: gig.wants.count,
+    works,
+  }
+}
+
+/** 지금 회신할 수 있는가. 못 하는 이유는 `deliverBlockers`가 글자로 만든다. */
+export function canDeliver(state: GameState): boolean {
+  return deliverBlockers(state).length === 0
+}
+
+export function deliverBlockers(state: GameState): string[] {
+  const contract = activeContract(state)
+  if (!contract) return ['받아 둔 일이 없습니다']
+  const gig = findGig(contract.gigId)
+  if (!gig) return ['없는 일감입니다']
+  const { done, total } = gigProgress(state)
+  if (done < total) {
+    return [`${gig.wants.rank}등급 ${total}개가 필요합니다 — 지금 ${done}개`]
+  }
+  return []
+}
+
+/**
+ * **클라이언트에게 회신한다** — 작업비가 그 자리에서 들어온다(2026-08-22 설계자 지시).
+ *
+ * ⚠️ **턴을 쓰지 않는다**(수주와 같은 부류 — 메일 한 통이다). 시간의 비용은 이미
+ * 작업물을 만들면서 다 치렀다.
+ * ⚠️ **자동으로 되지 않는다.** 조건을 채운 순간 돈이 들어오게 두면 "회신"이라는 동작이
+ * 장식이 되고, 더 올려 두고 낼지(등급을 더 올려도 보수는 같다) 지금 낼지 고르는 자리가
+ * 사라진다.
+ * ⚠️ **낸 작업물은 계약과 함께 남는다** — 지우면 "무엇을 만들어 줬는지"가 사라진다.
+ */
+export function deliverGig(state: GameState): GameState {
+  const contract = activeContract(state)
+  if (!contract || !canDeliver(state)) return state
+  const gig = findGig(contract.gigId)!
+  const prev = gigsOf(state)
+  return {
+    ...state,
+    stats: clampStats({ ...state.stats, money: state.stats.money + gig.pay }),
+    gigs: {
+      active: undefined,
+      done: [...prev.done, gig.id],
+      missed: prev.missed,
+      earned: prev.earned + gig.pay,
+    },
+  }
+}
 
 /**
  * 밤 정산 — **기한이 지난 계약을 실패로 닫는다.**

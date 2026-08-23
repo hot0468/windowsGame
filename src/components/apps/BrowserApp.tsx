@@ -11,12 +11,14 @@ import {
   closeTab,
   createTabs,
   navigateActive,
+  newTab,
   openTab,
   setActive,
   tabSiteId,
   updateActive,
 } from '../../systems/browserTabs'
 import { AdobeSite } from './sites/AdobeSite'
+import { ZoomSite } from './sites/ZoomSite'
 import { ContestSite } from './sites/ContestSite'
 import { ExpoSite } from './sites/ExpoSite'
 import { ComiconSite } from './sites/ComiconSite'
@@ -29,6 +31,7 @@ import { FleaSite } from './sites/FleaSite'
 import { GmongSite } from './sites/GmongSite'
 import { BankSite } from './sites/BankSite'
 import { LibrarySite } from './sites/LibrarySite'
+import { BlogSite } from './sites/BlogSite'
 import { NeverPortal } from './sites/NeverPortal'
 import { PublishSite } from './sites/PublishSite'
 import { RealtySite } from './sites/RealtySite'
@@ -96,8 +99,10 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
   }, [siteId])
 
   /**
-   * 사이트를 **탭으로 연다**(설계자 지시). 이미 열려 있으면 그 탭으로 옮겨 간다.
-   * 포털 카드·퀵메뉴·쇼핑 띠·즐겨찾기 줄이 전부 이 통로를 쓴다.
+   * 사이트를 **탭으로 연다**. 이미 열려 있으면 그 탭으로 옮겨 간다.
+   * ⚠️ 이제 이 통로를 쓰는 곳은 **밖에서 들어온 이동 요청** 하나뿐이다 —
+   * 창 안의 링크까지 여기로 보내면 탭마다 이력이 한 칸뿐이라
+   * 뒤로/앞으로가 영영 비활성인 죽은 컨트롤이 된다(`browserTabs.test.ts`가 그 증명이다).
    */
   const goToSite = (id: string) => setTabs((s) => openTab(s, id))
 
@@ -114,9 +119,9 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
     clearPendingSite()
   }, [pendingSite])
   /**
-   * ⚠️ **주소창만 현재 탭을 바꾼다**(새 탭을 열지 않는다). 실제 브라우저의 갈래를
-   * 그대로 가져온 것이고, 이 통로가 남아 있어야 **뒤로/앞으로가 죽은 컨트롤이 되지 않는다**
-   * (모든 이동이 새 탭이면 탭마다 이력이 한 칸뿐이라 두 버튼이 영영 비활성이 된다).
+   * **현재 탭을 바꾼다**(새 탭을 열지 않는다) — 주소창·포털 링크·즐겨찾기 줄이 이 통로다.
+   * ⚠️ 링크가 새 탭을 열면 그 탭의 이력은 한 칸뿐이라 뒤로/앞으로가 영영 비활성이 된다.
+   * 실제 크롬도 링크를 누르면 제자리에서 이동하고, 새 탭은 [+]나 밖에서 들어온 요청이 만든다.
    */
   const goInTab = (id: string) => setTabs((s) => navigateActive(s, id))
   /** 마지막 탭을 닫으면 창이 닫힌다(실제 크롬과 같다 — 규칙은 `closeTab`이 갖는다). */
@@ -191,7 +196,7 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         <button
           type="button"
           className="browser-tab-new"
-          onClick={() => goToSite(HOME_SITE_ID)}
+          onClick={() => setTabs((s) => newTab(s, HOME_SITE_ID))}
           aria-label="새 탭"
           title="새 탭"
         >
@@ -353,7 +358,7 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
               key={s.id}
               type="button"
               className={`browser-bookmark${s.id === siteId ? ' browser-bookmark-on' : ''}`}
-              onClick={() => goToSite(s.id)}
+              onClick={() => goInTab(s.id)}
               aria-current={s.id === siteId ? 'page' : undefined}
               title={s.url}
             >
@@ -395,7 +400,9 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
           이 게임의 사이트 로컬 상태는 칩 하나·검색어 하나라 잃어도 값이 싸다. */}
       <div className="browser-page" key={`${tabs.activeId}-${siteId}-${reloadCount}`}>
         {!site && <p className="browser-error">페이지를 찾을 수 없습니다.</p>}
-        {site?.render === 'portal' && <NeverPortal onNavigate={goToSite} />}
+        {site?.render === 'portal' && <NeverPortal site={site} onNavigate={goInTab} />}
+        {/* 블로그 글 한 편 = 사이트 하나(`blog:<글 id>`). 다른 사이트와 같은 통로로 돈다. */}
+        {site?.render === 'blog' && <BlogSite site={site} onNavigate={goInTab} />}
         {site?.render === 'shop' && <ShopSite />}
         {site?.render === 'tech' && <TechSite site={site} />}
         {site?.render === 'wear' && <WearSite site={site} />}
@@ -424,6 +431,8 @@ export function BrowserApp({ onClose }: { onClose?: () => void }) {
         {site?.render === 'contest' && <ContestSite site={site} />}
         {site?.render === 'comicon' && <ComiconSite site={site} />}
         {site?.render === 'adobe' && <AdobeSite site={site} />}
+        {/* 줌 — 내려받기 하나뿐이라 확정 패널이 없다(어도비와 같은 부류). */}
+        {site?.render === 'zoom' && <ZoomSite site={site} />}
         {site?.render === 'bank' && <BankSite site={site} />}
         {site?.render === 'stock' && <StockSite site={site} />}
         {site?.render === 'realty' && <RealtySite site={site} />}

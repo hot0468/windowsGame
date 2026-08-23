@@ -5,7 +5,7 @@ import { GROWTH_STAT_ORDER, STAT_META } from '../../data/statMeta'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useShownTime } from '../desktop/shownTime'
-import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
+import { activeShock, getLivingCost, nextShock, shockCostFor } from '../../systems/economy'
 import { skillLabel } from '../../data/band'
 import { rankOf, toNextRank } from '../../systems/rank'
 import { growthCap, STAMINA_CAP } from '../../systems/turn'
@@ -19,7 +19,7 @@ import type { GrowthStatKey, Stats } from '../../types/game'
  * 둘 다 `window.innerWidth` 기반 절대 좌표에 밝은 아크릴 카드라, 375px 어두운
  * 유리 셸 위에서는 자리도 색도 성립하지 않는다.
  * 재사용하는 것은 **데이터와 규칙**이다 — `STAT_META`(글리프)·`STAT_NAMES`(라벨)·
- * `rankOf`/`toNextRank`(등급)·`growthCap`(상한)·`getLivingCost`/`tierCostFor`(생활비).
+ * `rankOf`/`toNextRank`(등급)·`growthCap`(상한)·`getLivingCost`/`shockCostFor`(생활비).
  * 수치를 여기서 다시 계산하지 않으므로 데스크톱과 어긋날 수 없다.
  *
  * ⚠️ 데스크톱 스탯창의 "세로 스크롤바가 뜨면 안 된다"는 제약은 **여기 적용되지 않는다** —
@@ -50,11 +50,13 @@ export function MobileStatSheet({ onClose }: { onClose: () => void }) {
   if (!state) return null
 
   const { stats, day, slot } = state
-  /* ⚠️ **미루는 것은 화면이 적는 시각뿐이다** — 생활비 인상까지 남은 날(`getNextTier`)은
+  /* ⚠️ **미루는 것은 화면이 적는 시각뿐이다** — 다음 물가 급등까지 남은 날(`nextShock`)은
      실제 날짜를 그대로 본다. 돈 계산이 2.5초 동안 옛 날짜를 쓰면 그건 연출이 아니라 오답이다. */
   const shownDay = shown.day ?? day
   const isMorning = (shown.slot ?? slot) === 'morning'
-  const nextTier = getNextTier(day)
+  /* 데스크톱 지갑과 **같은 함수·같은 문구**다 — 물가는 평소 고정이고 가끔 며칠 흔들린다. */
+  const shock = activeShock(day)
+  const nextS = nextShock(day)
 
   return (
     <>
@@ -115,8 +117,12 @@ export function MobileStatSheet({ onClose }: { onClose: () => void }) {
               <dd>{getLivingCost(state).toLocaleString('ko-KR')}원</dd>
             </div>
             <div className="mo-note-row">
-              <dt>{nextTier.day - day}일 후 인상</dt>
-              <dd>{tierCostFor(state, nextTier).toLocaleString('ko-KR')}원</dd>
+              <dt>
+                {shock
+                  ? `${shock.shock.name} · ${shock.end - day + 1}일 남음`
+                  : `${nextS.start - day}일 뒤 ${nextS.shock.name}`}
+              </dt>
+              <dd>{shockCostFor(state, shock ?? nextS).toLocaleString('ko-KR')}원</dd>
             </div>
             {/* ⚠️ 데스크톱 HUD와 **같은 조건·같은 문구**다(밴드에 들어간 사람에게만). */}
             {state.band && (

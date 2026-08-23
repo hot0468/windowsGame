@@ -8,13 +8,20 @@ import {
   gigsOf,
   isDone,
   openGigs,
+  canDeliver,
+  deliverBlockers,
+  deliverGig,
+  gigProgress,
   takeBlockers,
   takeGig,
 } from './gigs'
 import { createInitialState, runActivity } from './turn'
-import { GIGS, MISS_REPUTATION_PENALTY, TOOL_STEPS, WORK_PER_SESSION, findGig } from '../data/gigs'
+import { GIGS, MISS_REPUTATION_PENALTY, TOOL_STEPS, findGig } from '../data/gigs'
 import { ACTIVITIES, findActivity } from '../data/activities'
-import { ECONOMY_TIERS } from '../data/economy'
+import { BASE_LIVING_COST, INCOME_CAP_RATIO } from '../data/economy'
+import { rankOfWork, worksOf } from './works'
+import { BASE_GAIN, SKILL_GAIN } from '../data/works'
+import { RANK_ORDER } from './rankScale'
 import type { GameState } from '../types/game'
 
 /**
@@ -35,7 +42,12 @@ function ready(day = 1): GameState {
 function work(state: GameState, n: number): GameState {
   let s = state
   for (let i = 0; i < n; i++) {
-    s = runActivity({ ...s, stats: { ...s.stats, stamina: 200 } }, TOOL)
+    /* ⚠️ 자원을 계속 채운다 — 30번을 켜면 15일이 지나 생활비로 파산하는데, 이 파일이
+       보려는 것은 생계가 아니라 **작업물과 납품**이다. */
+    s = runActivity(
+      { ...s, stats: { ...s.stats, stamina: 200, mental: 100, money: 5_000_000 } },
+      TOOL,
+    )
   }
   return s
 }
@@ -47,7 +59,8 @@ describe('수주', () => {
     const c = activeContract(after)!
     expect(c.gigId).toBe(FREE.id)
     expect(c.dueDay).toBe(before.day + FREE.days)
-    expect(c.progress).toBe(0)
+    /* ⚠️ 계약에 진척이 없다(2026-08-22) — 진척은 작업물이 갖는다. */
+    expect(gigProgress(after).done).toBe(0)
     // ⚠️ 계약은 시간을 쓰는 일이 아니다(은행 거래와 같은 규칙).
     expect(after.day).toBe(before.day)
     expect(after.slot).toBe(before.slot)
@@ -82,40 +95,66 @@ describe('수주', () => {
 })
 
 describe('작업과 납품', () => {
-  it('도구를 켤 때마다 업무량이 오른다', () => {
+  /* ⚠️ **도구를 켜면 작업물이 생기고 보강된다**(2026-08-22 재설계) — 예전에는 계약의
+     업무량 숫자만 올랐다. 스탯이 낮으면 게이지가 천천히 차므로 **횟수가 아니라 등급**이
+     끝을 정한다. */
+  it('도구를 켜면 그 일감의 작업물이 생긴다', () => {
     let s = takeGig(ready(), FREE.id)
     s = work(s, 1)
-    expect(activeContract(s)!.progress).toBe(WORK_PER_SESSION)
+    const works = gigProgress(s).works
+    expect(works).toHaveLength(1)
+    expect(works[0].gigId).toBe(FREE.id)
   })
 
-  it('⚠️ 다 채우면 그 자리에서 보수가 들어오고 계약이 닫힌다', () => {
-    const taken = takeGig(ready(), FREE.id)
-    const done = work(taken, FREE.workload)
-    expect(activeContract(done)).toBeUndefined()
-    expect(isDone(done, FREE.id)).toBe(true)
-    expect(gigsOf(done).earned).toBe(FREE.pay)
-    // 보수가 실제로 소지금에 들어왔는지는 "일 안 하고 같은 턴을 보낸 판"과 비교한다.
-    const idle = work({ ...taken, gigs: { done: [], missed: 0, earned: 0 } }, FREE.workload)
-    expect(done.stats.money - idle.stats.money).toBe(FREE.pay)
+  it('⚠️ 의뢰 작업물은 F에서 시작한다 — 남이 시킨 것은 처음부터 잘 나오지 않는다', () => {
+    const s = work(takeGig(ready(), FREE.id), 1)
+    expect(rankOfWork(gigProgress(s).works[0])).toBe('F')
   })
 
-  it('다른 도구로는 안 채워진다', () => {
+  it('계속 켜면 등급이 올라 요구 등급에 닿는다', () => {
+    let s = takeGig(ready(), FREE.id)
+    s = work(s, 30)
+    expect(gigProgress(s).done).toBe(FREE.wants.count)
+    expect(canDeliver(s)).toBe(true)
+  })
+
+  it('⚠️ 다 채워도 회신 전에는 돈이 안 들어온다 — 회신이 장식이 되면 안 된다', () => {
+    const filled = work(takeGig(ready(), FREE.id), 30)
+    /* 회신 전에는 계약이 살아 있고 번 것이 0이다 — 도구를 아무리 켜도 돈은 안 들어온다. */
+    expect(activeContract(filled)).toBeDefined()
+    expect(gigsOf(filled).earned).toBe(0)
+    const paid = deliverGig(filled)
+    expect(paid.stats.money - filled.stats.money).toBe(FREE.pay)
+    expect(activeContract(paid)).toBeUndefined()
+    expect(isDone(paid, FREE.id)).toBe(true)
+    expect(gigsOf(paid).earned).toBe(FREE.pay)
+  })
+
+  it('모자란 채로 회신하면 아무 일도 없고 사유가 나온다', () => {
+    const half = work(takeGig(ready(), FREE.id), 1)
+    expect(canDeliver(half)).toBe(false)
+    expect(deliverBlockers(half)[0]).toContain(FREE.wants.rank)
+    expect(deliverGig(half)).toBe(half)
+  })
+
+  it('다른 도구로는 그 일감이 안 채워진다', () => {
     const other = ACTIVITIES.find((a) => a.toolId && a.toolId !== FREE.tool)!
     const taken = takeGig(ready(), FREE.id)
-    // ⚠️ 구독 잠금은 `canRun`이 보고 여기서는 반영만 본다 — `runActivity`는 판정을 안 한다.
     const after = runActivity(taken, other)
-    expect(activeContract(after)!.progress).toBe(0)
+    expect(gigProgress(after).done).toBe(0)
+    expect(gigProgress(after).works).toHaveLength(0)
   })
 
-  it('받아 둔 일이 없어도 도구는 켤 수 있다 (스탯만 오르는 연습)', () => {
+  it('받아 둔 일이 없어도 도구는 켤 수 있다 — 개인 작업물이 남는다', () => {
     const s = ready()
     const after = runActivity(s, TOOL)
     expect(after.gigs).toBeUndefined()
-    expect(after.day + (after.slot === 'afternoon' ? 0 : 1)).toBeGreaterThanOrEqual(s.day)
+    expect(worksOf(after)).toHaveLength(1)
+    expect(worksOf(after)[0].gigId).toBeUndefined()
   })
 
   it('같은 일감을 두 번 받을 수 없다', () => {
-    const done = work(takeGig(ready(), FREE.id), FREE.workload)
+    const done = deliverGig(work(takeGig(ready(), FREE.id), 30))
     expect(canTake(done, FREE)).toBe(false)
     expect(takeBlockers(done, FREE)).toContain('이미 납품한 일감입니다')
     expect(openGigs(done).map((g) => g.id)).not.toContain(FREE.id)
@@ -164,13 +203,17 @@ describe('⚠️ 불변식 — 외주가 물가를 이기지 못한다', () => {
    * 같은 장치). 마지막 물가 구간에서 "가장 좋은 일감만 계속 돌린다"고 해도 하루 수입이
    * 그때의 생활비를 압도하지 않아야 판이 끝난다.
    */
-  const best = GIGS.reduce((a, g) => (g.pay / g.workload > a.pay / a.workload ? g : a))
-  const perTurn = best.pay / best.workload
-  const lastLiving = ECONOMY_TIERS[ECONOMY_TIERS.length - 1].living
+  /* 회당 보수 = 보수 ÷ **최소 세션 수**(등급 하나에 필요한 보강 횟수 × 개수). 실력이
+     최고여도 이보다 빨리는 못 끝낸다. */
+  const minSessions = (g: (typeof GIGS)[number]) =>
+    Math.max(1, Math.ceil(RANK_ORDER.indexOf(g.wants.rank) / (BASE_GAIN + SKILL_GAIN)) * g.wants.count)
+  const best = GIGS.reduce((a, g) => (g.pay / minSessions(g) > a.pay / minSessions(a) ? g : a))
+  const perTurn = best.pay / minSessions(best)
+  const ceiling = BASE_LIVING_COST * INCOME_CAP_RATIO.gig
 
-  it('가장 좋은 일감도 회당 보수가 마지막 물가 생활비의 두 배를 넘지 않는다', () => {
+  it('가장 좋은 일감도 하루 수입이 생활비 8배를 넘지 않는다', () => {
     // 하루는 슬롯 둘이므로 "회당 보수 × 2"가 하루 최대 수입이다.
-    expect(perTurn * 2).toBeLessThan(lastLiving * 2.2)
+    expect(perTurn * 2).toBeLessThan(ceiling)
   })
 
   it('보수는 물가 배율을 타지 않는다 — 도구 활동이 돈을 한 푼도 안 준다', () => {
@@ -187,9 +230,11 @@ describe('⚠️ 불변식 — 외주가 물가를 이기지 못한다', () => {
         `${g.id}의 도구 ${g.tool}을 켤 활동이 없다`,
       ).toBe(true)
       expect(findGig(g.id)).toBeDefined()
-      expect(g.workload).toBeGreaterThan(0)
-      // ⚠️ 기한은 업무량보다 넉넉해야 한다 — 받자마자 실패가 확정되면 선택지가 아니다.
-      expect(g.days, `${g.id}의 기한이 업무량보다 짧다`).toBeGreaterThanOrEqual(g.workload)
+      expect(g.wants.count).toBeGreaterThan(0)
+      expect(RANK_ORDER).toContain(g.wants.rank)
+      /* ⚠️ 기한은 **최소 세션 수의 절반**(하루 두 슬롯)보다 넉넉해야 한다 — 최고 실력으로도
+         못 끝내는 기한이면 그 일감은 선택지가 아니라 함정이다. */
+      expect(g.days, `${g.id}의 기한이 너무 짧다`).toBeGreaterThanOrEqual(minSessions(g) / 2)
     }
   })
 

@@ -1,4 +1,7 @@
-import { getLivingCost, getWageMultiplier } from './economy'
+import { DAY_END, DAY_START, DEFAULT_ACTIVITY_MIN, NOON, sleepBonusFor } from '../data/clock'
+import { minutesOf } from '../data/activities'
+import { timeFactorOf } from '../data/internet'
+import { getLivingCost } from './economy'
 import { burnoutKeyOf, getBurnoutPenalty, pushActivity } from './burnout'
 import { markAttended } from './careerLog'
 import { weekendCallOn } from './drive'
@@ -18,7 +21,18 @@ import { isWeekend, weekdayOf } from '../data/calendar'
 import { WEEKEND_WAGE_BONUS } from '../data/economy'
 import { DEFAULT_HOUSING_ID, findHousing } from '../data/housing'
 import { PAYOUT_INTERVAL_DAYS } from '../data/artworks'
-import { WORK_PER_SESSION, findGig } from '../data/gigs'
+import { findGig } from '../data/gigs'
+import { WORK_TOOLS } from '../data/works'
+import {
+  createWork,
+  findWork,
+  isTopRank,
+  meetsRank,
+  personalWorks,
+  refineWork,
+  worksForGig,
+} from './works'
+import type { WorkTool } from '../data/works'
 import { OUTFIT_BONUS, PHONE_BONUS, PHONE_ID, PHONE_STAT, outfitsFor, requiredItemIds } from '../data/items'
 import { FINAL_DAYS, isWorkWeekday } from '../data/careers'
 import { GROWTH_STAT_KEYS, INITIAL_STATS } from '../types/game'
@@ -74,10 +88,30 @@ export function growthCap(key: GrowthStatKey): number {
 /** 멘탈 상한. 소모 자원이므로 성장 스탯과 성격이 달라 0~100을 유지한다. */
 export const MENTAL_CAP = 100
 
+/**
+ * 그 시각이 오전인가 오후인가. **`slot`은 이 함수의 결과일 뿐 저장된 사실이 아니다** —
+ * 예약·메시지 편성·근무가 아직 이 단위로 말하므로 남겨 둔 다리다(`data/clock.ts`).
+ */
+/**
+ * **그 활동이 실제로 잡아먹는 시간(분).** = 활동의 시간 × 인터넷 요금제 배율.
+ *
+ * ⚠️ **시간을 읽는 모든 곳이 이 함수를 지나야 한다** — 실행(`runActivity`)과 미리보기
+ * (`activityPreview`)가 갈리면 확인창이 거짓 시간을 적는다(생활비의 `getLivingCost`와
+ * 같은 규칙). 최소 10분은 남긴다: 배율이 아무리 낮아도 활동이 공짜가 되면 안 된다.
+ */
+export function activityMinutes(state: GameState, activity: Activity): number {
+  return Math.max(10, Math.round(minutesOf(activity) * timeFactorOf(state)))
+}
+
+export function slotOf(minute: number): Slot {
+  return minute < NOON ? 'morning' : 'afternoon'
+}
+
 export function createInitialState(playerName: string): GameState {
   return {
     playerName,
     day: 1,
+    minute: DAY_START,
     slot: 'morning',
     stats: { ...INITIAL_STATS },
     recentActivities: [],
@@ -293,9 +327,11 @@ function applyEffects(
     const statKey = key as keyof Stats
     let value = rawValue
     if (statKey === 'money' && value > 0 && activity.scalesWithWage) {
-      /* ⚠️ 주말 할증도 **여기 한 곳에서** 곱한다 — 미리보기(`activityPreview.ts`)가 같은
-         두 배율을 읽으므로, 한쪽에만 넣으면 확인창이 거짓 금액을 적는다. */
-      value *= getWageMultiplier(day) * (isWeekend(day) ? WEEKEND_WAGE_BONUS : 1)
+      /* ⚠️ 주말 할증은 **여기 한 곳에서** 곱한다 — 미리보기(`activityPreview.ts`)가 같은
+         배율을 읽으므로, 한쪽에만 넣으면 확인창이 거짓 금액을 적는다.
+         ⚠️ **물가 배율(옛 `getWageMultiplier`)은 없다**(2026-08-22): 생활비가 주기적으로
+         오르지 않으므로 알바비도 따라 오를 이유가 없다. 남은 배율은 요일 하나뿐이다. */
+      value *= isWeekend(day) ? WEEKEND_WAGE_BONUS : 1
     }
     const bonus = outfitBonus + statBonusFor(state, statKey)
     next[statKey] += value > 0 ? value * efficiency + outfitBoost(statKey, value, bonus) : value
@@ -346,7 +382,13 @@ function housingMentalCost(state: GameState): number {
  * `nightPayoutPending`이 `employment.ts`를 import하지 않는 것과 같은 규칙이다 —
  * 의존은 계속 한 방향이다(housing → turn).
  */
-function sleep(stats: Stats, state: GameState, ill: Illness | undefined): Stats {
+function sleep(
+  stats: Stats,
+  state: GameState,
+  ill: Illness | undefined,
+  /** 잔 시간이 만드는 회복 배율(`sleepBonusFor`). 1이 기준(자정 취침 = 8시간)이다. */
+  sleepBonus = 1,
+): Stats {
   /* ⚠️ **아픈 밤은 회복이 반이다**(`ILL_RECOVERY_RATIO`) — 그것이 아픔이 하는 일의 전부이고,
      활동을 막지 않는 이유이기도 하다(`data/illness.ts`). 집이 갉는 멘탈에는 곱하지 않는다:
      그 방에서 자는 대가는 병과 아무 상관이 없다. */
@@ -367,10 +409,13 @@ function sleep(stats: Stats, state: GameState, ill: Illness | undefined): Stats 
   const chance = chanceNightDelta(state, afterMalware + cat.money)
   return {
     ...stats,
-    stamina: stats.stamina + SLEEP_RECOVERY * recovery + chance.stamina,
+    /* ⚠️ **잔 시간이 회복량을 정한다**(2026-08-22 취침 시각 선택) — 일찍 자면 더 돌아오고
+       밤을 넘기면 덜 돌아온다. 아픔 배율(`recovery`)과 **곱해서** 얹는다: 둘은 서로 다른
+       사실이고(얼마나 잤나 / 아픈가) 한쪽을 다른 쪽에 접으면 설명이 불가능해진다. */
+    stamina: stats.stamina + Math.round(SLEEP_RECOVERY * sleepBonus) * recovery + chance.stamina,
     mental:
       stats.mental +
-      SLEEP_MENTAL_RECOVERY * recovery -
+      Math.round(SLEEP_MENTAL_RECOVERY * sleepBonus) * recovery -
       housingMentalCost(state) +
       cat.mental +
       chance.mental,
@@ -379,39 +424,54 @@ function sleep(stats: Stats, state: GameState, ill: Illness | undefined): Stats 
 }
 
 /**
- * 슬롯을 넘기고, 오후였다면 취침 정산까지 처리한다.
+ * **시계를 `minutes`분 밀고, 자정을 넘겼으면 취침 정산까지 처리한다**(2026-08-22 분 단위 전환).
  *
- * ⚠️ **아픔 판정이 여기 하나뿐이다**(`nextIllness`). 슬롯마다 물으면 같은 하루에 앓고
+ * ⚠️ **시간이 움직이는 자리는 이 함수 하나다.** 활동 실행·건너뛰기·강제 종료가 전부
+ * 여기를 지나므로, 하루의 경계 규칙(밤 정산·병 판정·회복 카운트)을 한 곳에서만 지킨다.
+ *
+ * ⚠️ **아픔 판정이 여기 하나뿐이다**(`nextIllness`). 활동마다 물으면 같은 하루에 앓고
  * 낫는 일이 생기고, 무엇보다 근거가 "무리해서 하루를 끝냈다"이므로 그 하루가 끝나는
  * 자리에서만 물어야 뜻이 맞다. 넘겨주는 행동력은 **취침 회복을 얹기 전** 값이다.
  *
+ * ⚠️ **하루를 여러 번 넘기지 않는다** — 24시간을 통째로 미는 강제 종료(`crash`)도
+ * "하루의 끝"을 한 번만 지나야 생활비가 두 번 빠지지 않는다.
+ *
  * ⚠️ **주저앉은 날도 여기서 하루씩 준다**(`tickRecovery`). 회복이 밤에만 줄어야
- * "며칠"이라는 말이 뜻을 갖는다 — 슬롯마다 깎으면 하루 반이면 풀린다.
+ * "며칠"이라는 말이 뜻을 갖는다.
  */
 function advance(
   state: GameState,
   stats: Stats,
+  minutes: number = DEFAULT_ACTIVITY_MIN,
+  /** 눕는 시각(분). 안 주면 시계가 멈춘 그 시각에 눕는다(활동이 자정을 넘겨 뻗은 판). */
+  bedMinute?: number,
 ): {
   day: number
+  minute: number
   slot: Slot
   stats: Stats
   illness: Illness | undefined
   recovery: Recovery | null
 } {
-  if (state.slot === 'morning') {
+  const end = state.minute + minutes
+  if (end < DAY_END) {
     return {
       day: state.day,
-      slot: 'afternoon',
+      minute: end,
+      slot: slotOf(end),
       stats,
       illness: state.illness,
       recovery: state.recovery,
     }
   }
+  /* 자정을 넘겼다 — 그 자리에서 하루가 끝난다. **넘긴 만큼을 다음 날로 이월하지 않는다**:
+     이월하면 늦게 시작한 날이 짧아져 "밤을 새웠다"가 다음 날의 벌이 된다. */
   const illness = nextIllness(state.illness, stats.stamina, state.day)
   return {
     day: state.day + 1,
-    slot: 'morning',
-    stats: sleep(stats, state, illness),
+    minute: DAY_START,
+    slot: slotOf(DAY_START),
+    stats: sleep(stats, state, illness, sleepBonusFor(bedMinute ?? end)),
     illness,
     recovery: tickRecovery(state.recovery),
   }
@@ -588,63 +648,69 @@ function stampArtwork(state: GameState, activity: Activity): Artwork[] | undefin
 }
 
 /**
- * 도구를 한 번 켠 결과를 반영한다 — **업무량이 오르고, 다 채우면 그 자리에서 납품된다.**
+ * 도구를 한 번 켠 결과 — **작업물이 생기거나 보강된다**(2026-08-22 재설계).
  *
- * ⚠️ **`systems/gigs.ts`가 아니라 여기 있다**(그쪽이 재수출한다). 이유는 `owns`가
- * `delivery.ts`에서 옮겨 온 것과 같다: 반영이 `runActivity` 밖에 있으면 활동 실행 통로 넷
- * 중 하나(스케줄러 예약)가 샌다. 규칙의 나머지(수주·마감·포기)는 전부 `gigs.ts`에 있다.
+ * ⚠️ 예전에는 계약의 업무량 숫자만 올렸고 **계약이 없으면 아무 일도 없었다**. 지금은
+ * 도구를 켤 때마다 파일이 남는다(`systems/works.ts`) — 그것이 "도구를 켤 이유"다.
  *
- * ⚠️ **받아 둔 일이 없거나 도구가 다르면 아무 일도 없다** — 도구는 계약 없이도 켤 수 있고
- * 그때는 스탯만 오르는 연습이다(게이트를 늘리지 않는다).
+ * 대상을 고르는 순서는 하나뿐이다:
+ *  1. **받아 둔 일감의 도구면 그 일이 먼저다.** 아직 요구 등급에 못 닿은 작업물을 보강하고,
+ *     없으면 요구 개수까지 새로 만든다.
+ *  2. 그 외에는 **가장 최근 개인 작업물을 보강**하고, 하나도 없으면 새로 만든다.
  *
- * ⚠️ **보수는 밤으로 미루지 않는다.** 미루면 `nightPayoutPending`에 원천이 하나 더 생기고
- * "다 했는데 그날 밤 굶어 죽는" 판이 난다 — 즉시 지급이면 그 위험 자체가 없다.
- * ⚠️ **물가 배율을 타지 않는다**(`scalesWithWage`를 안 쓴다) — 정규직 급여와 같은 장치다.
+ * ⚠️ **여기서 납품하지 않는다.** 다 채워도 돈은 안 들어온다 — 회신(`deliverGig`)은
+ * 그몽 화면에서 플레이어가 누르는 별도의 동작이다(설계자 지시). 그래서 이 함수는
+ * 돈을 한 푼도 안 만지고, `nightPayoutPending`에 원천이 늘지 않는다.
+ *
+ * ⚠️ **대상을 지정한 보강은 `refineWork`가 따로 받는다**(도구 앱에서 고른 파일) —
+ * 이 함수는 통로 넷(바탕화면·스케줄러·바로 가기·카톡)이 지나는 **기본 경로**다.
  */
-export function applyToolSession(state: GameState, tool: string): GameState {
-  const prev = state.gigs
-  const contract = prev?.active
-  if (!prev || !contract) return state
-  const gig = findGig(contract.gigId)
-  // 없는 일감을 가리키는 계약은 조용히 닫는다(일감을 지워도 화면이 안 깨진다).
-  if (!gig) return { ...state, gigs: { ...prev, active: undefined } }
-  if (gig.tool !== tool) return state
+export function applyToolSession(state: GameState, tool: string, targetId?: string): GameState {
+  const kind = tool as WorkTool
+  if (!WORK_TOOLS.includes(kind)) return state
 
-  const progress = contract.progress + WORK_PER_SESSION
-  if (progress < gig.workload) {
-    return { ...state, gigs: { ...prev, active: { ...contract, progress } } }
+  /* 도구 앱에서 **파일을 골라** 켠 경우. 고른 것이 그 도구의 것일 때만 받는다 —
+     아니면 아래 기본 순서로 떨어진다(고른 것이 사라져도 턴이 헛돌지 않는다). */
+  const picked = targetId ? findWork(state, targetId) : undefined
+  if (picked && picked.tool === kind) return refineWork(state, picked.id)
+
+  const contract = state.gigs?.active
+  const gig = contract ? findGig(contract.gigId) : undefined
+  // 없는 일감을 가리키는 계약은 조용히 닫는다(일감을 지워도 화면이 안 깨진다).
+  if (contract && !gig) return { ...state, gigs: { ...state.gigs!, active: undefined } }
+
+  if (gig && gig.tool === tool) {
+    const mine = worksForGig(state, gig.id)
+    const pending = mine.find((w) => !meetsRank(w, gig.wants.rank))
+    if (pending) return refineWork(state, pending.id)
+    if (mine.length < gig.wants.count) return createWork(state, kind, gig.id)
   }
-  return {
-    ...state,
-    stats: clampStats({ ...state.stats, money: state.stats.money + gig.pay }),
-    gigs: {
-      active: undefined,
-      done: [...prev.done, gig.id],
-      missed: prev.missed,
-      earned: prev.earned + gig.pay,
-    },
-  }
+
+  const personal = personalWorks(state, kind)
+  const last = personal[personal.length - 1]
+  return last && !(isTopRank(last) && last.progress >= 1)
+    ? refineWork(state, last.id)
+    : createWork(state, kind)
 }
 
 /** 활동을 실행하고 다음 슬롯 상태를 반환한다. 원본은 변경하지 않는다. */
-export function runActivity(state: GameState, activity: Activity): GameState {
+export function runActivity(state: GameState, activity: Activity, targetWorkId?: string): GameState {
   // 주저앉은 판에서는 활동이 통째로 거절된다(`canRun`과 같은 판단, 이중 방어).
   if (state.recovery) return state
 
   // 알바 4종은 같은 키를 공유한다 — 종류를 바꿔 가며 일해도 연속 노동은 연속 노동이다.
   const key = burnoutKeyOf(activity)
-  const { efficiency, mentalPenalty } = getBurnoutPenalty(state.recentActivities, key)
-  /* ⚠️ **날씨와 아픔이 번아웃 효율과 정확히 같은 자리에 곱해진다** — 곧 긍정 효과에만
-     붙고 소모량은 안 건드린다. 새 계수를 여기 말고 `applyEffects` 안에 넣지 말 것:
-     그러면 활동 미리보기(`activityPreview.ts`)가 못 보는 두 번째 출처가 생긴다.
-     "오늘만 기회"(`chanceEfficiency`)도 같은 자리·같은 규칙이다. */
+  const { mentalPenalty } = getBurnoutPenalty(state.recentActivities, key)
+  /* ⚠️ **효율 배율은 2026-08-22에 폐지됐다**(설계자 지시) — 반복해도 얻는 것은 그대로이고
+     대가는 멘탈 하나다. 남은 계수(날씨·아픔·오늘만 기회)는 여전히 **긍정 효과에만** 붙고
+     소모량은 안 건드린다. 새 계수를 `applyEffects` 안에 넣지 말 것: 활동 미리보기
+     (`activityPreview.ts`)가 못 보는 두 번째 출처가 생긴다. */
   const withEffects = applyEffects(
     state,
     state.stats,
     activity,
     state.day,
-    efficiency *
-      weatherEfficiency(state.day, activity.id) *
+    weatherEfficiency(state.day, activity.id) *
       illnessEfficiency(state) *
       chanceEfficiency(state, activity.id),
     outfitBonusFor(state, activity.id),
@@ -675,7 +741,8 @@ export function runActivity(state: GameState, activity: Activity): GameState {
   const banded = practiceBand(worn.state, activity)
   const stamped = stampJob(worn.state, activity)
   const artworks = stampArtwork(state, activity)
-  const advanced = advance(state, withEffects)
+  /* 활동마다 걸리는 시간이 다르고(2026-08-22), 인터넷 요금제가 그 시간을 줄인다. */
+  const advanced = advance(state, withEffects, activityMinutes(state, activity))
   const stats = clampStats(advanced.stats)
 
   const advancedState = withRecovery({
@@ -686,6 +753,7 @@ export function runActivity(state: GameState, activity: Activity): GameState {
     ...stamped,
     artworks,
     day: advanced.day,
+    minute: advanced.minute,
     slot: advanced.slot,
     stats,
     illness: advanced.illness,
@@ -695,7 +763,9 @@ export function runActivity(state: GameState, activity: Activity): GameState {
 
   /* ⚠️ **턴을 넘긴 뒤에 반영한다.** 납품 보수는 그 슬롯의 결과이므로 취침 정산(생활비)
      **뒤에** 들어와야 "다 했는데 그날 밤 굶어 죽는" 판이 안 난다. */
-  return activity.toolId ? applyToolSession(advancedState, activity.toolId) : advancedState
+  return activity.toolId
+    ? applyToolSession(advancedState, activity.toolId, targetWorkId)
+    : advancedState
 }
 
 /**
@@ -735,19 +805,51 @@ export function spendMoney(state: GameState, amount: number): GameState {
   return { ...state, stats: clampStats({ ...state.stats, money: state.stats.money - amount }) }
 }
 
+/**
+ * **자러 간다** — 남은 시간을 통째로 보내고 하루를 끝낸다(2026-08-22 분 단위 전환).
+ *
+ * ⚠️ 시간이 분으로 흐르게 되면서 "오후를 넘기면 하루가 끝난다"가 사라졌다. 밤 11시에
+ * 할 일이 없을 때 2시간씩 여러 번 눌러 하루를 마감하게 두면 그건 조작이 아니라 노동이다.
+ * ⚠️ **`advance`를 그대로 지난다** — 밤 정산·병 판정·회복 카운트가 한 자리에서만 돈다.
+ */
+export function sleepNow(state: GameState): GameState {
+  return sleepAt(state, DAY_END)
+}
+
+/**
+ * **정한 시각에 잔다**(2026-08-22 설계자 지시: "자러 가는 거 시간 정할 수 있게").
+ *
+ * ⚠️ **일찍 자는 것은 시간과 회복의 거래다** — 남은 시간을 통째로 버리는 대신 더 많이
+ * 회복한다(`sleepBonusFor`, 상한 1.25배). 상한이 없으면 저녁 8시 취침이 언제나 정답이 된다.
+ * ⚠️ **지금보다 이른 시각은 지금으로 당겨진다**(이미 지난 시각에 누울 수는 없다).
+ * ⚠️ 하루는 어차피 자정에 끝난다 — 고르는 것은 **몇 시에 눕는가**뿐이고, 늦잠은 없다
+ * (기상은 언제나 `DAY_START`).
+ */
+export function sleepAt(state: GameState, bedMinute: number): GameState {
+  const bed = Math.max(state.minute, Math.min(DAY_END, bedMinute))
+  return skipSlot(state, Math.max(1, DAY_END - state.minute), bed)
+}
+
 /** 아무 활동 없이 슬롯만 넘긴다. 'rest' 기록으로 번아웃 연속이 끊긴다. */
-export function skipSlot(state: GameState): GameState {
+export function skipSlot(
+  state: GameState,
+  minutes: number = DEFAULT_ACTIVITY_MIN,
+  bedMinute?: number,
+): GameState {
   /* ⚠️ **회복 중에도 슬롯은 넘어간다.** 여기서 막으면 `daysLeft`를 줄이는 유일한
      통로(취침 정산)가 함께 막혀 **영영 못 일어난다** — 이름만 다른 게임오버다.
      활동(`runActivity`)은 여전히 거절하므로 "쉬는 것 말고는 못 한다"가 그대로 성립한다.
      `recovery.test.ts`가 지키는 불변식이다. */
 
-  const advanced = advance(state, { ...state.stats })
+  /* ⚠️ **건너뛰기는 기본 한 칸(2시간)이다** — 예전에는 슬롯 하나를 통째로 넘겼지만
+     지금은 시계가 분으로 흐르므로, 하루를 통째로 버리게 만들지 않는다. */
+  const advanced = advance(state, { ...state.stats }, minutes, bedMinute)
   const stats = clampStats(advanced.stats)
 
   return withRecovery({
     ...state,
     day: advanced.day,
+    minute: advanced.minute,
     slot: advanced.slot,
     stats,
     illness: advanced.illness,

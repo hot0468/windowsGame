@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { BILLS, MISS_REPUTATION_PENALTY, NOTICE_DAYS } from '../data/bills'
-import { ECONOMY_TIERS } from '../data/economy'
-import { HOUSINGS } from '../data/housing'
+import { BASE_LIVING_COST } from '../data/economy'
 import { advanceBills, billMessages, daysToBill, pendingBills, revivePaidBills } from './bills'
 import { createInitialState } from './turn'
 import type { GameState } from '../types/game'
@@ -71,15 +70,15 @@ describe('목돈 청구', () => {
 
 describe('⚠️ 불변식 — 청구가 파산을 만들지 않는다', () => {
   /*
-   * 금액이 커지면 "예고를 봐도 못 막는 날"이 생기고, 그때 판을 끝내는 것은 물가가 아니라
-   * 이 표가 된다. 상한은 **가장 싼 집의 마지막 물가 구간 생활비 일주일치**다 —
-   * 그만큼이면 대출·중고마켓·정기예금이 다 동원되지만 막을 수는 있다.
+   * 금액이 커지면 "예고를 봐도 못 막는 날"이 생기고, 그때 판을 망치는 것은 사건이 아니라
+   * 이 표가 된다. 상한은 **평시 생활비 열흘치**다 — 예고(`NOTICE_DAYS`) 안에 대출·
+   * 중고마켓·정기예금을 다 동원하면 막을 수 있는 폭이다.
+   * ⚠️ 2026-08-22에 기준이 바뀌었다: 옛 기준은 "마지막 물가 구간(95,000원)의 일주일치"라
+   * 실제로는 지금의 열흘치보다 컸다. 물가가 안 오르게 된 뒤로 그 기준은 존재하지 않는다.
    */
-  const lastTier = ECONOMY_TIERS[ECONOMY_TIERS.length - 1]
-  const cheapestLiving = lastTier.living * Math.min(...HOUSINGS.map((h) => h.rate))
-  const ceiling = cheapestLiving * 7
+  const ceiling = BASE_LIVING_COST * 10
 
-  it('청구 하나하나가 생활비 일주일치를 넘지 않는다', () => {
+  it('청구 하나하나가 생활비 열흘치를 넘지 않는다', () => {
     for (const b of BILLS) expect(b.amount, b.id).toBeLessThan(ceiling)
   })
 

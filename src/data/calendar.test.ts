@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { CALENDAR_PANEL_LAYOUT } from './calendar'
+import { CALENDAR_PANEL_LAYOUT, dayOf, dateOf, monthGrid, weekdayOf } from './calendar'
 import { SHELL } from './shell'
 
 /**
@@ -37,5 +37,35 @@ describe('날짜칸 배치', () => {
     const { width, gap, statPanelReserve } = CALENDAR_PANEL_LAYOUT
     const calLeft = Math.max(8, viewport - statPanelReserve - width - gap)
     expect(calLeft).toBeGreaterThanOrEqual(8)
+  })
+})
+
+/**
+ * 달력 격자. 빈칸이 요일을 맞추지 못하면 날짜가 통째로 한 칸씩 밀려 "지나온 날"이
+ * 엉뚱한 요일에 쌓인다 — 격자를 보는 이유가 사라지는 종류의 어긋남이라 못 박아 둔다.
+ */
+describe('달력 격자', () => {
+  it('빈칸 뒤 첫 칸이 그 달 1일이고, 자기 요일 자리에 앉는다', () => {
+    for (const day of [1, 20, 45, 100, 300]) {
+      const cells = monthGrid(day)
+      const lead = cells.indexOf(cells.find((c) => c !== null)!)
+      expect(cells.slice(0, lead).every((c) => c === null)).toBe(true)
+      const first = cells[lead]!
+      expect(dateOf(first).getDate()).toBe(1)
+      expect(weekdayOf(first)).toBe(lead)
+    }
+  })
+
+  it('그 달 날짜를 하루도 빠짐없이 이어 담는다', () => {
+    const cells = monthGrid(40).filter((c): c is number => c !== null)
+    const d = dateOf(40)
+    expect(cells).toHaveLength(new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate())
+    expect(cells.every((c, i) => c === cells[0] + i)).toBe(true)
+    // 기준일이 이 달 안에 실제로 들어 있어야 오늘 칸을 칠할 수 있다.
+    expect(cells).toContain(40)
+  })
+
+  it('일차와 날짜 환산이 서로의 역함수다', () => {
+    for (const day of [1, 7, 99]) expect(dayOf(dateOf(day))).toBe(day)
   })
 })

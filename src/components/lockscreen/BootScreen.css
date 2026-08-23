@@ -1,0 +1,103 @@
+/*
+ * 부팅 화면. **레퍼런스는 윈도우의 실제 부팅 화면**이다(`BlueScreen`·VS 코드 창과 같은
+ * 부류) — 팔레트를 창작한 것이 아니라 있는 화면을 옮겨 왔다: 검은 판, 파란 로고, 그 아래 점 고리.
+ *
+ * ⚠️ **색을 `--os-*`에서 가져오지 않고 `.boot` 안에 가둔다**(`BlueScreen`과 같은 규칙).
+ * 이 검정은 다른 어디에도 쓰이지 않는다.
+ *
+ * ⚠️ **불투명 단색 위의 단색이라 대비는 계산이 곧 픽셀 값이다**(사유는 `BlueScreen.css`).
+ * 로고 파랑 7.55:1 · 흰 점 21:1 — 둘 다 그래픽 기준(3:1)을 크게 넘는다. 글자는 화면에
+ * 없다(낭독기 전용). 반투명 면이나 그라데이션을 들이면 그때는 실측해야 한다.
+ *
+ * ⚠️ **파랑과 화면 비율(vh)은 토큰이 아니다 — 옮겨 온 화면의 치수이기 때문이다.**
+ * `.boot` 안에 가둬 두는 이유는 `BlueScreen`과 같다: 이 값들은 다른 어디에도 안 쓰인다.
+ */
+.boot {
+  --boot-face: #000000;
+  --boot-ink: #ffffff;
+  /* 실제 부팅 로고의 파랑. 셸의 액센트(--hud-accent)와 **다른 색이어야 한다** —
+     저건 이 게임 UI의 색이고 이건 옮겨 온 화면의 색이다. */
+  --boot-logo: #00a4ef;
+
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* 로고와 점 고리 사이가 넓은 것이 이 화면의 인상이다 — 붙이면 로딩 위젯처럼 보인다.
+     화면 높이에 비례해야 어느 창 크기에서도 같은 그림이 나온다. */
+  gap: 16vh;
+  background: var(--boot-face);
+  color: var(--boot-ink);
+  cursor: pointer;
+}
+
+/* 로고. 단색 글리프라 색을 입혀도 된다(다색 세트에 금지된 그 규칙은 여기 해당 없음). */
+.boot svg {
+  color: var(--boot-logo);
+}
+
+/*
+ * 점 다섯이 도는 고리.
+ *
+ * **도는 것은 고리 전체고, 점은 제자리에 박혀 있다.** 각 `span`은 고리를 덮는 투명한
+ * 판이고 점은 그 판 12시 자리에 ::before로 하나씩 붙는데, 판마다 각도를 다르게
+ * 고정해(`BOOT_DOTS`) 다섯 점이 호를 이룬다. 회전은 부모 하나만 진다.
+ *
+ * ⚠️ **점마다 애니메이션을 걸고 시차로 흩는 방식으로 되돌리지 말 것.** 시차가 고르면
+ * 각도는 고르지 않아 점들이 한자리에 겹친다 — 사유는 `BOOT_DOTS` 주석에 있다.
+ */
+.boot-dots {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  animation: boot-orbit 1.4s linear infinite;
+}
+
+.boot-dots span {
+  position: absolute;
+  inset: 0;
+  /* 각도는 인라인 style이 준다(`BOOT_DOTS`) — 값이 다섯 개뿐이라 CSS에 nth-child로
+     베껴 두면 두 곳이 어긋난다. */
+}
+
+.boot-dots span::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: var(--boot-ink);
+}
+
+@keyframes boot-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 스크린 리더 전용 글자. 화면에는 글자가 없다(실제 부팅 화면과 같다). */
+.boot-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ⚠️ 모션을 줄인 환경에서는 회전만 멈춘다(ux `reduced-motion`). 점 다섯이 시차대로
+   흩어진 채 서 있어 고리 모양은 그대로 남는다 — 화면 자체를 건너뛰지는 않는다. */
+@media (prefers-reduced-motion: reduce) {
+  .boot-dots {
+    /* 회전만 멈춘다. 점의 각도는 애니메이션이 아니라 인라인 style이 쥐고 있어서
+       멈춰도 호 모양이 그대로 남는다. */
+    animation: none;
+  }
+}

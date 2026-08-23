@@ -1,3 +1,4 @@
+import { DAY_END } from '../data/clock'
 import { describe, expect, it } from 'vitest'
 import { ACTIVITIES, findActivity } from '../data/activities'
 import { isWeekend } from '../data/calendar'
@@ -44,7 +45,7 @@ describe('요일 잠금', () => {
   it('어느 요일에도 조건 없는 알바와 멘탈 회복처가 남는다', () => {
     for (const weekend of [true, false]) {
       const s = at(dayOf(weekend))
-      const open = ACTIVITIES.filter((a) => canRun({ ...s, slot: 'afternoon' }, a))
+      const open = ACTIVITIES.filter((a) => canRun({ ...s, minute: DAY_END - 60, slot: 'afternoon' as const }, a))
       expect(open.some((a) => a.id === 'work'), `${weekend ? '주말' : '평일'}에 편의점이 막혔다`).toBe(true)
       expect(
         open.some((a) => (a.effects.mental ?? 0) > 0),

@@ -1,0 +1,288 @@
+/*
+ * 블로그 — 글 한 편이 곧 사이트 하나다.
+ * 레퍼런스는 실제 블로그 본문 페이지: 상단 간판 띠 + **왼쪽 프로필/카테고리 사이드바** +
+ * 좁은 본문, 문단 사이에 눕는 사진, 맨 아래 해시태그·공감 줄.
+ *
+ * ⚠️ **색을 새로 만들지 않는다** — 이 집은 네이놈이 운영하는 블로그라 `--nv-*`를 그대로 쓴다
+ * (사이트마다 자기 팔레트를 갖는 규칙의 예외가 아니라, 같은 브랜드라서 같은 색이다).
+ * 간격·타입·모서리는 전역 토큰.
+ */
+/* 회색 페이지(`.browser-page` = --nv-bg) 위에 뜬 흰 캔버스. 실제 블로그의 그 판이다. */
+.bg {
+  max-width: 1000px;
+  margin: var(--sp-6) auto;
+  border: 1px solid var(--nv-border);
+  border-radius: var(--r-xl);
+  background: var(--nv-surface);
+  overflow: hidden;
+  color: var(--nv-text);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  /* ⚠️ 반응형 판정은 뷰포트가 아니라 **컨테이너**다 — 사이트는 창 안이라 창을 줄여도
+     뷰포트는 그대로고, 미디어쿼리를 쓰면 사이드바가 영영 안 접힌다. */
+  container-type: inline-size;
+}
+
+/* 블로그 상단 띠 = 이 집의 간판. 실제 블로그의 타이틀 바 자리다. */
+.bg-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-5);
+  border-bottom: 1px solid var(--nv-border);
+  background: var(--nv-surface-alt);
+}
+
+.bg-bar-name {
+  font-weight: 700;
+  color: var(--nv-text);
+}
+
+/* 간판 오른쪽의 주소. 이 화면이 **다른 사이트**임을 글자로도 말한다. */
+.bg-bar-url {
+  font-size: var(--fs-sm);
+  color: var(--nv-text-3);
+}
+
+/* 사이드바 180px + 본문. ⚠️ 본문은 `minmax(0, 1fr)`이라야 긴 낱말이 열을 밀지 않는다. */
+.bg-grid {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: var(--sp-6);
+  padding: var(--sp-6);
+}
+
+@container (max-width: 720px) {
+  /* 좁으면 사이드바가 통째로 빠진다 — 프로필은 본문 위 작성자 줄에도 있어 잃는 것이 없다. */
+  .bg-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bg-side {
+    display: none;
+  }
+}
+
+.bg-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  padding-right: var(--sp-5);
+  border-right: 1px solid var(--nv-border);
+}
+
+.bg-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  text-align: center;
+}
+
+/* 프로필 사진 자리. 가짜 인물 사진 대신 블로그 이름 첫 글자다. */
+.bg-avatar {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: var(--nv-green-bg);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--nv-green);
+}
+
+.bg-avatar-sm {
+  width: 28px;
+  height: 28px;
+  font-size: var(--fs-sm);
+}
+
+.bg-profile-name {
+  font-weight: 700;
+  color: var(--nv-text);
+}
+
+.bg-profile-sub {
+  font-size: var(--fs-sm);
+  color: var(--nv-text-3);
+}
+
+.bg-cats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-1);
+}
+
+.bg-side-head {
+  margin: 0 0 var(--sp-2);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--nv-border);
+  width: 100%;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--nv-text);
+}
+
+.bg-cat {
+  padding: var(--sp-1) 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--nv-text-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.bg-cat:hover {
+  color: var(--nv-green);
+  text-decoration: underline;
+}
+
+.bg-main {
+  /* ux `line-length-control`: 사이드바가 접힌 넓은 창에서도 한 줄이 읽을 수 있는 길이로 묶인다. */
+  max-width: 72ch;
+}
+
+.bg-title {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--nv-text);
+}
+
+/* 작성자 줄. 실제 블로그처럼 제목 바로 아래 프로필 + 날짜가 한 줄로 눕는다. */
+.bg-byline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) 0;
+  margin-top: var(--sp-3);
+  border-top: 1px solid var(--nv-border);
+  border-bottom: 1px solid var(--nv-border);
+}
+
+.bg-byline-name {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--nv-text);
+}
+
+.bg-byline-date {
+  font-size: var(--fs-sm);
+  color: var(--nv-text-3);
+}
+
+.bg-body {
+  margin-top: var(--sp-5);
+}
+
+.bg-body p {
+  margin: 0 0 var(--sp-4);
+  font-size: var(--fs-base);
+  line-height: 1.85;
+  color: var(--nv-text-2);
+}
+
+/* 사진은 문단 사이에 눕는다. ⚠️ **가로 폭을 꽉 채우되 높이는 비율로 둔다** —
+   고정 높이를 주면 세로 사진이 잘린다. */
+.bg-photo {
+  margin: 0 0 var(--sp-5);
+}
+
+/* ⚠️ **높이를 묶는다** — 세로 사진이 걸리면 100% 폭이 곧 900px 높이가 되어 글이 사진에
+   밀려 화면 밖으로 나간다(실측으로 잡았다). 잘라서라도 글과 사진이 한 화면에 있어야 한다. */
+.bg-photo img {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: var(--r-lg);
+}
+
+.bg-photo figcaption {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--nv-text-3);
+  text-align: center;
+}
+
+.bg-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-5);
+}
+
+/* 해시태그는 **누르면 진짜로 검색된다** — 그래서 글자가 아니라 버튼이다. */
+.bg-tag {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--nv-border);
+  border-radius: 999px;
+  background: var(--nv-surface-alt);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--nv-text-2);
+  cursor: pointer;
+}
+
+.bg-tag:hover {
+  border-color: var(--nv-green);
+  color: var(--nv-green);
+}
+
+/* 공감·댓글·조회. 버튼이 아니라 글자다(갈 데도 바뀔 것도 없다). */
+.bg-counts {
+  margin: var(--sp-4) 0 0;
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--nv-border);
+  font-size: var(--fs-sm);
+  color: var(--nv-text-3);
+}
+
+.bg-more {
+  margin-top: var(--sp-6);
+  padding: var(--sp-4);
+  border-radius: var(--r-lg);
+  background: var(--nv-surface-alt);
+}
+
+.bg-more-head {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: var(--nv-text);
+}
+
+.bg-more-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: var(--sp-2) 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bg-more-title {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--nv-text);
+}
+
+.bg-more-item:hover .bg-more-title {
+  color: var(--nv-green);
+  text-decoration: underline;
+}
+
+.bg-more-meta {
+  font-size: var(--fs-sm);
+  color: var(--nv-text-3);
+}

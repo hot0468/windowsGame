@@ -26,13 +26,24 @@ describe('첫 실행 안내 투어', () => {
    * 아무도 모른다. 양방향(투어에 있나 / 바탕화면에 있나)을 함께 본다.
    */
   it('바탕화면을 가리키는 단계는 조건 없는 항목만 가리킨다', () => {
-    for (const target of ['browser', 'kakao', 'ledger']) {
+    for (const target of ['browser', 'kakao', 'vscode', 'ledger']) {
       expect(TOUR_STEPS.some((s) => s.target === target), `${target} 단계가 없다`).toBe(true)
       const item = DESKTOP_ITEMS.find((i) => i.id === target)
       expect(item, `${target}이 바탕화면에 없다`).toBeDefined()
       expect(item!.requiresItem, `${target}에 아이템 조건이 붙었다`).toBeUndefined()
       expect(item!.requiresEmployment, `${target}에 재직 조건이 붙었다`).toBeFalsy()
       expect(item!.requiresSubscription, `${target}에 구독 조건이 붙었다`).toBeUndefined()
+    }
+  })
+
+  /*
+   * ⚠️ **규칙이 바뀌면 투어부터 낡는다**(2026-08-22 시간 구조·물가·반복 페널티 전환).
+   * 문구가 좋은지는 못 재지만 **폐지된 규칙을 아직 말하고 있는지**는 잴 수 있다.
+   */
+  it('폐지된 규칙을 말하지 않는다 — 슬롯·반나절·주기적 물가 인상', () => {
+    const all = TOUR_STEPS.map((s) => `${s.title} ${s.text}`).join(' ')
+    for (const dead of ['오전과 오후', '반나절', '물가 인상', '효율']) {
+      expect(all, `투어가 폐지된 말을 쓴다: ${dead}`).not.toContain(dead)
     }
   })
 })

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { formatClock } from '../../data/clock'
 import { formatGameDate } from '../../data/calendar'
 import { UI_ICONS } from '../../data/icons'
 import { START_MENU_ITEMS } from '../../data/startMenu'
@@ -52,8 +53,6 @@ export function Taskbar() {
       kind: TASKMGR_ITEM.kind,
       title: TASKMGR_ITEM.label,
       icon: TASKMGR_ITEM.icon,
-      x: 180,
-      y: 90,
       width: TASKMGR_ITEM.width,
     })
   }, [open])
@@ -85,7 +84,7 @@ export function Taskbar() {
   if (!state) return null
 
   const day = shown.day ?? state.day
-  const isMorning = (shown.slot ?? state.slot) === 'morning'
+  const minute = shown.minute ?? state.minute
 
   return (
     <div
@@ -202,11 +201,13 @@ export function Taskbar() {
             트레이가 mdi-light 라인 글리프로 통일된 마당에 다색 이모지 하나만 남으면
             그 자리가 가장 먼저 눈에 띈다(`icon-style-consistent`).
             실제 윈도우 11 시계도 글리프 없는 텍스트다. */}
+        {/* ⚠️ **시각이 주인공이다**(2026-08-22 설계자 지시: "눈에 잘 띄게 큰 글씨").
+            시간이 분으로 흐르게 되면서 지금 몇 시인지가 하루의 계획을 정하는 값이 됐다 —
+            날짜·일차는 그 아래로 한 단계 물러난다. */}
         <div className="taskbar-clock">
-          {formatGameDate(day)}
-          <br />
+          <span className="taskbar-time">{formatClock(minute)}</span>
           <span className="taskbar-slot">
-            {day}일차 {isMorning ? '오전' : '오후'}
+            {formatGameDate(day)} · {day}일차
           </span>
         </div>
       </div>

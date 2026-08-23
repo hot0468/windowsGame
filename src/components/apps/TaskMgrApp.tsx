@@ -37,11 +37,11 @@ export function TaskMgrApp() {
   const state = useGameStore((s) => s.state)
   if (!state) return null
 
-  /* 번아웃은 활동별 값이라 "마지막으로 한 활동"의 키를 기준으로 본다 —
-     그게 지금 플레이어가 실제로 물고 있는 배율이다(구 SystemApps 판과 같은 판단). */
+  /* 번아웃은 활동별 값이라 "마지막으로 한 활동"의 키를 기준으로 본다.
+     ⚠️ **효율 배율은 폐지됐다**(2026-08-22) — 지금 물고 있는 것은 추가 멘탈 소모뿐이다. */
   const recent = state.recentActivities
   const lastKey = recent[recent.length - 1]
-  const efficiency = lastKey ? getBurnoutPenalty(recent, lastKey).efficiency : 1
+  const mentalPenalty = lastKey ? getBurnoutPenalty(recent, lastKey).mentalPenalty : 0
   const streak = lastKey ? countConsecutive(recent, lastKey) : 0
 
   const subs = activeSubscriptions(state)
@@ -109,9 +109,7 @@ export function TaskMgrApp() {
             <td>번아웃 감시자</td>
             <td>실행 중</td>
             <td className="tm-num">
-              {streak > 0
-                ? `효율 ${Math.round(efficiency * 100)}% · 연속 ${streak}회`
-                : '효율 100%'}
+              {streak > 0 ? `멘탈 −${mentalPenalty} · 연속 ${streak}회` : '이상 없음'}
             </td>
           </tr>
           <tr>

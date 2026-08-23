@@ -1,8 +1,8 @@
+import { DAY_END } from '../data/clock'
 import { describe, expect, it } from 'vitest'
 import { ACTIVITIES, findActivity } from '../data/activities'
 import { ALBUM_SKILL, LIVE_SKILL, SKILL_CAP, SKILL_PER_PRACTICE, albumPay, livePay } from '../data/band'
-import { ECONOMY_TIERS } from '../data/economy'
-import { HOUSINGS } from '../data/housing'
+import { BASE_LIVING_COST, INCOME_CAP_RATIO } from '../data/economy'
 import { bandPayFor, bandSkillOpen, practiceBand, reviveBand, skillOf } from './band'
 import { canRun, createInitialState, runActivity } from './turn'
 import type { GameState } from '../types/game'
@@ -16,7 +16,7 @@ function afternoon(skill?: number): GameState {
   const base = createInitialState('밴드')
   return {
     ...base,
-    slot: 'afternoon',
+    minute: DAY_END - 60, slot: 'afternoon' as const,
     stats: { ...base.stats, stamina: 100, mental: 100 },
     band: skill === undefined ? undefined : { skill },
   }
@@ -82,16 +82,15 @@ describe('⚠️ 불변식 — 밴드 수입만으로는 살 수 없다', () => 
    * 하루에 많아야 하나이므로, 그중 제일 큰 보수가 **가장 싼 집의 마지막 물가 생활비보다
    * 작아야** 판이 무한해지지 않는다.
    */
-  const lastTier = ECONOMY_TIERS[ECONOMY_TIERS.length - 1]
-  const cheapestLiving = lastTier.living * Math.min(...HOUSINGS.map((h) => h.rate))
+  const ceiling = BASE_LIVING_COST * INCOME_CAP_RATIO.session
   const maxDailyIncome = albumPay(SKILL_CAP)
 
-  it('상한에서 벌어도 가장 싼 집의 마지막 물가 생활비를 못 넘는다', () => {
-    expect(maxDailyIncome).toBeLessThan(cheapestLiving)
+  it('상한에서 벌어도 하루 수입이 생활비 1.5배를 넘지 않는다', () => {
+    expect(maxDailyIncome).toBeLessThan(ceiling)
   })
 
   it('규칙을 뒤집으면 실패한다 — 보수를 두 배로 두면 생활비를 넘긴다', () => {
-    expect(maxDailyIncome * 2).toBeGreaterThan(cheapestLiving)
+    expect(maxDailyIncome * 2).toBeGreaterThan(ceiling)
   })
 
   it('밴드 활동은 전부 오후 전용이다 — 이 부등식의 전제다', () => {

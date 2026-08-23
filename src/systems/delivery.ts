@@ -1,3 +1,4 @@
+import { EVENTS } from '../data/events'
 import { findItem } from '../data/items'
 import {
   COUPON_MAIL_ID,
@@ -8,6 +9,7 @@ import {
 import { clampStats, inventoryOf, owns } from './turn'
 import type { GameState, Stats } from '../types/game'
 import type { ShopItem } from '../data/items'
+import type { GameEvent } from '../data/events'
 
 /**
  * 보유 판정은 `turn.ts`가 갖고 있다 — 활동 실행 조건(`canRun`)이 이걸 보게 되면서
@@ -86,6 +88,23 @@ export function recordEvent(state: GameState, id: string): GameState {
   const events = state.events ?? []
   if (events.some((e) => e.id === id)) return state
   return { ...state, events: [...events, { id, day: state.day }] }
+}
+
+/**
+ * 사진첩에 실제로 들어 있는 사진 — **겪은 사건만, 겪은 날과 함께.**
+ *
+ * ⚠️ **판정을 두 벌로 두지 않는다**: 탐색기의 사진첩 폴더와 트위터의 사진 고르기가
+ * 같은 목록을 본다. 안 겪은 칸은 아예 없다(설계자 지시 2026-08-17 — 사진첩이
+ * "안 한 일까지 한 것처럼" 읽혔다).
+ */
+export function albumPhotos(state: GameState): { event: GameEvent; day: number }[] {
+  const log = new Map((state.events ?? []).map((e) => [e.id, e.day]))
+  return EVENTS.filter((e) => log.has(e.id)).map((e) => ({ event: e, day: log.get(e.id)! }))
+}
+
+/** 사진첩의 사진 하나. 없으면 undefined(옛 세이브의 지워진 id를 막는다). */
+export function findPhoto(id: string): GameEvent | undefined {
+  return EVENTS.find((e) => e.id === id)
 }
 
 /** 주문한다. 조건이 안 되면 상태를 그대로 돌려준다(호출부에서 막지 않아도 안전). */

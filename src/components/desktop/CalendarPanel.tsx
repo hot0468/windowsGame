@@ -1,11 +1,27 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { HudPanel } from './HudPanel'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { useShownTime } from './shownTime'
 import { HUD_ICONS } from '../../data/icons'
-import { CALENDAR_PANEL_LAYOUT, formatGameDate } from '../../data/calendar'
+import {
+  BED_TIMES,
+  DAY_END,
+  DEFAULT_ACTIVITY_MIN,
+  formatClock,
+  formatSpan,
+  sleepBonusFor,
+} from '../../data/clock'
+import { seasonOf } from '../../data/season'
+import { daysLeftInSeason } from '../../systems/season'
+import {
+  CALENDAR_PANEL_LAYOUT,
+  WEEKDAY_LABELS,
+  dateOf,
+  formatGameDate,
+  monthGrid,
+} from '../../data/calendar'
 import { weatherOf } from '../../systems/weather'
 
 /**
@@ -22,9 +38,17 @@ import { weatherOf } from '../../systems/weather'
  * 시각 언어는 스탯창과 동일하다: 날짜가 주인공 숫자, 슬롯 칩은 액센트 헤어라인,
  * 구역은 작고 흐린 라벨로 가른다.
  */
+/** 격자 한 칸의 요일 색. 일요일만 붉고 토요일만 파랗다(한국 달력 관례). */
+function weekendClass(weekday: number): string {
+  return weekday === 0 ? ' cal-sun' : weekday === 6 ? ' cal-sat' : ''
+}
+
 export function CalendarPanel() {
   const state = useGameStore((s) => s.state)
   const doSkip = useGameStore((s) => s.doSkip)
+  const sleep = useGameStore((s) => s.doSleep)
+  /* 고른 취침 시각. **게임 상태가 아니다** — 판마다 남을 값이 아니고 창을 닫으면 잊어도 된다. */
+  const [bed, setBed] = useState<number>(DAY_END)
   /*
    * 자동 진행 컨트롤이 **여기** 있는 이유(스케줄러 창이 아니라):
    *  1) 건너뛰기와 같은 동사다 — "한 슬롯 넘기기"와 "멈출 때까지 넘기기"는 규모만 다른
@@ -53,7 +77,7 @@ export function CalendarPanel() {
   /* ⚠️ **날짜·슬롯은 `state`가 아니라 여기서 읽는다** — 결과 창이 떠 있는 동안은 행동
      직전의 시각에 머문다(사유는 `shownTime.ts`). `lagging`이면 턴을 미는 버튼 둘을
      잠근다: 화면이 오전이라고 적는 동안 [오전 건너뛰기]가 오후를 태우면 안 된다. */
-  const { day: shownDay, slot: shownSlot, lagging } = useShownTime()
+  const { day: shownDay, minute: shownMinute, slot: shownSlot, lagging } = useShownTime()
 
   const { width, gap, top } = CALENDAR_PANEL_LAYOUT
   /** 스탯창 바로 왼쪽에 고정한다. 드래그로 옮길 수 없으므로 상태로 들고 있지 않는다. */
@@ -64,11 +88,16 @@ export function CalendarPanel() {
 
   if (!state || !visible) return null
 
+  const season = seasonOf(state.day)
+  const seasonLeft = daysLeftInSeason(state.day)
+
   /* 판이 선 뒤에는 `useShownTime`이 늘 값을 주지만, 타입상 옵셔널이라 실값으로 받친다. */
   const day = shownDay ?? state.day
   const isMorning = (shownSlot ?? state.slot) === 'morning'
+  const minute = shownMinute ?? state.minute
   const slotIcon = isMorning ? HUD_ICONS.slotMorning : HUD_ICONS.slotAfternoon
   const weather = weatherOf(day)
+  const cells = monthGrid(day)
 
   return (
     <HudPanel
@@ -82,15 +111,27 @@ export function CalendarPanel() {
       onActivate={() => raise('calendar')}
       onHeight={reportHeight}
     >
-      {/* 날짜는 이 패널의 주인공이다 — 타입 스케일 최상단(24px) + tabular 숫자로
-          한눈에 잡히게 한다(ux `visual-hierarchy`: 크기로 위계를 만든다).
-          n일차와 슬롯 칩은 그 아래로 한 단계씩 물러난다. */}
-      <div className="cal-date">{formatGameDate(day)}</div>
+      {/* 날짜는 이 패널의 주인공이고 **오전/오후가 그 옆에 같은 크기로 붙는다**(설계자 지시).
+          하루가 두 칸뿐이라 지금이 어느 칸인지가 날짜만큼 중요한 사실인데, 예전에는 아래
+          줄의 작은 칩이라 날짜에 눈이 가면 놓쳤다. n일차만 한 단계 아래로 물러난다. */}
+      <div className="cal-date">
+        {formatGameDate(day)}
+        {/* ⚠️ **시각이 곧 남은 하루다**(2026-08-22 분 단위 전환) — 오전/오후만으로는
+            "오늘 뭘 더 할 수 있는가"를 알 수 없다. 글리프는 오전·오후를 그대로 진다. */}
+        <span className="cal-slot">
+          <AppIcon name={slotIcon} size={18} />
+          {formatClock(minute)}
+        </span>
+      </div>
       <div className="cal-meta">
         <span className="cal-day">{day}일차</span>
-        <span className="cal-slot">
-          <AppIcon name={slotIcon} size={13} />
-          {isMorning ? '오전' : '오후'}
+        {/* ⚠️ **계절이 날짜칸에 있는 이유는 날씨와 같다** — 날짜의 순수 함수이고
+            (`data/season.ts`), 저장되지 않는 파생값이라 스탯창에 두면 스탯처럼 읽힌다.
+            남은 날을 함께 적는 것이 요점이다: "이번 계절이 끝나간다"가 곧 리듬이다. */}
+        <span className="cal-season">
+          <AppIcon name={season.icon} size={13} />
+          {season.label}
+          <span className="cal-season-left">{seasonLeft}일 남음</span>
         </span>
       </div>
 
@@ -106,6 +147,41 @@ export function CalendarPanel() {
         <span className="cal-weather-label">{weather.label}</span>
         <span className="cal-weather-note">{weather.note}</span>
       </p>
+
+      {/*
+       * **이번 달 격자.** 지나온 날은 칠해지고 남은 날은 비어 있다.
+       *
+       * ⚠️ **날짜칸의 다른 줄과 하는 일이 다르다.** 위의 날짜·슬롯·날씨는 전부 "지금이
+       * 언제인가"만 적어서, 3일차 화면과 40일차 화면이 똑같이 생겼다 — 시간이 가는 감각은
+       * 지금을 읽는 데서가 아니라 **되돌아오지 않는 것이 쌓이는 걸 볼 때** 온다.
+       * 여기가 그 누적을 지는 유일한 자리다. 숫자를 하나 더 적는 것으로 대신하지 말 것.
+       *
+       * 주말이 색으로 갈라지는 것도 같은 이유다(일=붉게, 토=파랗게). 요일은 `formatGameDate`가
+       * 글자로 이미 적지만, 글자로는 **일주일이 흘렀다**가 안 읽힌다.
+       *
+       * ⚠️ **스크린 리더에서는 감춘다.** 42칸을 읽히면 소음이고, 이 격자가 나르는 사실
+       * (오늘이 며칠·몇 일차)은 바로 위 두 줄이 이미 글자로 말한다.
+       */}
+      <div className="cal-grid" aria-hidden="true">
+        {WEEKDAY_LABELS.map((label, w) => (
+          <span key={label} className={`cal-cell cal-head${weekendClass(w)}`}>
+            {label}
+          </span>
+        ))}
+        {cells.map((cellDay, i) => (
+          <span
+            key={i}
+            className={
+              cellDay === null
+                ? 'cal-cell'
+                : `cal-cell${weekendClass(i % 7)}` +
+                  (cellDay < day ? ' cal-past' : cellDay === day ? ' cal-today' : '')
+            }
+          >
+            {cellDay === null ? '' : dateOf(cellDay).getDate()}
+          </span>
+        ))}
+      </div>
 
       {/* 구역 라벨도 구분선도 없다(설계자 지시). 아래가 버튼 하나뿐이라 무엇인지는
           버튼 글자가 이미 말하고, 선을 그으면 없는 구역을 있는 척하게 된다. */}
@@ -125,7 +201,44 @@ export function CalendarPanel() {
         }
       >
         <AppIcon name={HUD_ICONS.skipTurn} size={14} />
-        {isMorning ? '오전' : '오후'} 건너뛰기
+        {formatSpan(DEFAULT_ACTIVITY_MIN)} 건너뛰기
+      </button>
+
+      {/* ⚠️ **자러 가기가 하루를 끝내는 유일한 통로다**(2026-08-22 분 단위 전환) —
+          밤 11시에 2시간씩 눌러 하루를 마감하게 두면 그건 조작이 아니라 노동이다.
+          회복 중에도 눌러야 한다(회복은 하루가 끝날 때만 줄어든다).
+
+          ⚠️ **몇 시에 눕는지 고른다**(2026-08-22 설계자 지시). 일찍 누우면 남은 시간을
+          버리는 대신 더 회복한다 — 고르기 판은 **네이티브 `<select>`**다(커스텀 토글을
+          안 만들어야 키보드·스크린 리더가 공짜로 붙는다, O넷 라디오와 같은 판단).
+          ⚠️ **이미 지난 시각은 목록에서 뺀다** — 누를 수 있는데 아무 일도 안 하는 항목이
+          제일 나쁘다. 그래서 자정은 언제나 남는다(늘 고를 수 있는 하나). */}
+      <div className="cal-bed">
+        <label className="cal-bed-label" htmlFor="cal-bed-time">
+          취침
+        </label>
+        <select
+          id="cal-bed-time"
+          className="cal-bed-select"
+          value={bed}
+          onChange={(e) => setBed(Number(e.target.value))}
+          disabled={autoRunning || lagging}
+        >
+          {BED_TIMES.filter((t) => t >= minute || t === DAY_END).map((t) => (
+            <option key={t} value={t}>
+              {t === DAY_END ? '자정' : formatClock(t)} · 회복 {Math.round(sleepBonusFor(t) * 100)}%
+            </option>
+          ))}
+        </select>
+      </div>
+      <button
+        className="cal-skip"
+        onClick={() => sleep(bed)}
+        disabled={autoRunning || lagging}
+        title="고른 시각에 눕고 하루를 끝냅니다"
+      >
+        <AppIcon name={HUD_ICONS.skipTurn} size={14} />
+        자러 가기
       </button>
 
       {/* 자동 진행 ↔ 멈추기. **같은 자리에서 상태만 바뀐다** — 두 버튼을 나란히 두면

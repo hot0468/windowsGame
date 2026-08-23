@@ -1,0 +1,390 @@
+/*
+ * 어도비 도구 셋의 프로그램 창(포토샵·프리미어·오디션).
+ *
+ * ## ⚠️ 팔레트는 레퍼런스가 정한다
+ * 실제 어도비 CC 도구들의 어두운 UI 값이다 — 이 게임의 OS 토큰(`--os-*`)을 쓰지 않는 것은
+ * VS 코드 창·사이트·사내 프로그램과 같은 예외이고, **자기 색을 이 파일 안에 가둔다**는
+ * 규칙도 같다. 감으로 고른 값은 하나도 없다.
+ *
+ * ## ⚠️ 크롬은 셋이 같고 액센트만 갈린다
+ * 실제 어도비 도구들이 그렇게 생겼다 — 판은 전부 같은 회색이고 프로그램을 알아보게 하는
+ * 것은 로고와 강조색뿐이다. 그래서 `.ad-photoshop`/`.ad-premiere`/`.ad-audition`이
+ * **`--ad-accent` 한 줄씩만** 덮어쓴다. 판 색을 프로그램마다 다르게 만들지 말 것.
+ *
+ * ## ⚠️ 대비는 계산이 곧 픽셀 값이다 (두 층이 다 불투명)
+ * 판 #323232 기준: 전경 #f0f0f0 11.4:1 · 흐림 #b4b4b4 6.3:1 · 상태 줄 글자 6.3:1.
+ * 액센트 위의 흰 글자: 포토샵 #0f6cbd 5.4:1 · 프리미어 #7b3fa8 7.4:1 · 오디션 #1c7a4a 4.6:1.
+ * ⚠️ **반투명 면이나 그라데이션을 들이면 그때는 실측해야 한다**(`BlueScreen.css`와 같은 규칙).
+ */
+
+.ad {
+  --ad-chrome: #262626; /* 메뉴 줄·상태 표시줄 */
+  --ad-panel: #2b2b2b; /* 패널·도구 상자 */
+  --ad-stage: #323232; /* 무대(문서가 놓이는 판) */
+  --ad-void: #1c1c1c; /* 무대 바깥 — 실제 어도비에서 캔버스 뒤가 더 어둡다 */
+  --ad-line: #3d3d3d; /* 헤어라인 */
+  --ad-fg: #f0f0f0; /* 11.4:1 */
+  --ad-dim: #b4b4b4; /* 6.3:1 */
+  --ad-accent: #0f6cbd;
+
+  display: flex;
+  flex-direction: column;
+  /* 창 본문이 패딩 0이라(Window.css) 모서리는 창이 이미 깎는다.
+     ⚠️ **고정 높이가 아니라 상한과 함께 간다.** 560px만 주면 창이 화면 아래쪽에서 열렸을 때
+     본문이 프레임보다 커져 **상태 표시줄이 스크롤 아래로 밀린다**(실측에서 잡혔다).
+     화면에 맞춰 줄어들면 무대가 대신 좁아진다 — 그쪽은 그림이라 줄어도 읽힌다. */
+  height: 560px;
+  /* ⚠️ **화면에 맞춰 줄어들어야 한다.** 창은 아이콘을 열 때마다 아래로 조금씩 밀려
+     열리므로(계단 배치), 고정 높이만 주면 낮은 화면이나 여러 창을 연 뒤에 **상태 표시줄이
+     작업 표시줄 뒤로 들어간다**(실측에서 잡혔다). 줄어들 때 좁아지는 것은 무대뿐이고,
+     무대는 그림이라 줄어도 읽힌다. */
+  max-height: calc(100vh - 280px);
+  overflow: hidden;
+  background: var(--ad-stage);
+  color: var(--ad-fg);
+  font-size: var(--fs-sm);
+}
+
+/* 프로그램을 알아보게 하는 것은 강조색 하나다(위 주석). */
+.ad-photoshop {
+  --ad-accent: #0f6cbd;
+}
+.ad-premiere {
+  --ad-accent: #7b3fa8;
+}
+.ad-audition {
+  --ad-accent: #1c7a4a;
+}
+
+/* ── 메뉴 줄 ─────────────────────────────────────────────── */
+/* ⚠️ **높이 40px은 캡션 버튼 줄과 같은 값이다**(`.win-title`). 이 창은 `bareTitle`이라
+   최소화·최대화·닫기가 본문 위 40px에 겹쳐 뜨는데, 메뉴 줄이 그보다 낮으면 캡션이
+   **아래 탭 줄까지 덮어** 오른쪽 끝의 ▶가 위쪽 몇 px에서 안 눌린다. 메뉴는 왼쪽 정렬이라
+   캡션과 겹치는 오른쪽은 비어 있다 — 실제 프로그램에서 그 자리를 잡고 창을 끄는 것과 같다. */
+.ad-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex: 0 0 auto;
+  height: 40px;
+  padding: 0 var(--sp-3);
+  border-bottom: 1px solid var(--ad-line);
+  background: var(--ad-chrome);
+  color: var(--ad-dim);
+}
+
+.ad-menu-item {
+  white-space: nowrap;
+}
+
+/* ── 문서 탭 줄 ──────────────────────────────────────────── */
+.ad-tabs {
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+  height: 34px;
+  border-bottom: 1px solid var(--ad-line);
+  background: var(--ad-chrome);
+}
+
+.ad-tab {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sp-4);
+  border-right: 1px solid var(--ad-line);
+  color: var(--ad-dim);
+}
+
+/* 열려 있는 문서. 실제 어도비 탭처럼 **위쪽에 강조색 선**이 얹힌다. */
+.ad-tab-on {
+  box-shadow: inset 0 2px 0 var(--ad-accent);
+  background: var(--ad-stage);
+  color: var(--ad-fg);
+}
+
+.ad-tab-fill {
+  flex: 1;
+}
+
+/*
+ * ⚠️ **이 창에서 유일하게 게임을 움직이는 버튼이다.** 실제 어도비 창에는 ▶가 없지만
+ * (재생은 프리미어·오디션에만 있다) 게임의 행동은 어디선가 시작돼야 하고, 문서 탭 줄의
+ * 오른쪽 끝은 세 프로그램 모두에서 비어 있는 자리다 — VS 코드가 편집기 우상단의 ▶를
+ * 쓴 것과 같은 판단이다(없는 자리에 게임 버튼을 만들면 프로그램으로 안 읽힌다).
+ */
+.ad-run {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-4);
+  border: 0;
+  background: var(--ad-accent);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.ad-run:hover {
+  filter: brightness(1.12);
+}
+
+/* ▶ 글리프. 아이콘을 들이지 않고 삼각형 하나를 테두리로 만든다. */
+.ad-run-glyph {
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid currentColor;
+}
+
+/* ── 본문 3단 ────────────────────────────────────────────── */
+.ad-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 도구 상자. 실제 어도비 창 왼쪽의 세로 띠 — 표시 전용이다. */
+.ad-tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+  padding: var(--sp-3) var(--sp-2);
+  border-right: 1px solid var(--ad-line);
+  background: var(--ad-panel);
+}
+
+.ad-tool {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ad-tool-on {
+  background: var(--ad-accent);
+}
+
+.ad-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  padding: var(--sp-4);
+  background: var(--ad-void);
+}
+
+/* ── 오른쪽 패널 ─────────────────────────────────────────── */
+.ad-panel {
+  flex: 0 0 168px;
+  padding: var(--sp-3);
+  border-left: 1px solid var(--ad-line);
+  background: var(--ad-panel);
+}
+
+.ad-panel-head {
+  margin: 0 0 var(--sp-2);
+  color: var(--ad-dim);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.04em;
+}
+
+.ad-panel-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ad-panel-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-sm);
+  color: var(--ad-dim);
+}
+
+.ad-panel-item-on {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ad-fg);
+}
+
+/* 레이어/클립 미리보기 자리의 작은 네모. */
+.ad-panel-chip {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--ad-line);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* ── 무대 ① 캔버스(포토샵) ──────────────────────────────── */
+.ad-canvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* 문서 한 장. 실제 포토샵처럼 **어두운 판 위에 흰 종이가 떠 있다.** */
+.ad-canvas-sheet {
+  position: relative;
+  width: min(100%, 300px);
+  height: 100%;
+  max-height: 220px;
+  background: #ffffff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.ad-shape {
+  position: absolute;
+  border-radius: 2px;
+}
+
+.ad-shape-a {
+  top: 16%;
+  left: 12%;
+  width: 40%;
+  height: 26%;
+  background: var(--ad-accent);
+}
+
+.ad-shape-b {
+  top: 52%;
+  left: 12%;
+  width: 62%;
+  height: 8%;
+  background: #d0d0d0;
+}
+
+.ad-shape-c {
+  top: 66%;
+  left: 12%;
+  width: 44%;
+  height: 8%;
+  background: #e2e2e2;
+}
+
+/* ── 무대 ② 타임라인(프리미어) ──────────────────────────── */
+.ad-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  width: 100%;
+  height: 100%;
+}
+
+/* 프리뷰 화면. 영상이 없으니 **검은 화면**이 맞다. */
+.ad-preview {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--ad-line);
+  background: #000000;
+}
+
+.ad-tracks {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+
+.ad-track {
+  display: flex;
+  gap: 3px;
+  height: 16px;
+}
+
+.ad-clip {
+  border-radius: 2px;
+}
+
+/* 영상 트랙 둘과 소리 트랙 하나 — 실제 타임라인처럼 색이 갈린다. */
+.ad-clip-0,
+.ad-clip-1 {
+  background: var(--ad-accent);
+}
+
+.ad-clip-2 {
+  background: #3f7f6a;
+}
+
+/* 재생 헤드. 서 있는 세로선 하나다 — 멈춰 있어도 고장으로 안 보인다. */
+.ad-playhead {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: 38%;
+  width: 2px;
+  background: #e05a5a;
+}
+
+/* ── 무대 ③ 파형(오디션) ────────────────────────────────── */
+.ad-wave {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.ad-wave-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  height: 52px;
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--ad-line);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* 막대는 가운데 선을 기준으로 위아래로 벌어진다(소리는 세로로 움직인다). */
+.ad-wave-bar {
+  flex: 1;
+  min-width: 0;
+  border-radius: 1px;
+  background: var(--ad-accent);
+}
+
+/* ── 상태 표시줄 ─────────────────────────────────────────── */
+.ad-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex: 0 0 auto;
+  height: 26px;
+  padding: 0 var(--sp-3);
+  border-top: 1px solid var(--ad-line);
+  background: var(--ad-chrome);
+  color: var(--ad-dim);
+  font-size: var(--fs-xs);
+}
+
+.ad-status-item {
+  white-space: nowrap;
+}
+
+.ad-status-fill {
+  flex: 1;
+}
+
+/*
+ * 포토샵의 작업 영역 = **파일 관리 화면**(2026-08-22 설계자 지시).
+ *
+ * ⚠️ `.ad-stage`는 캔버스를 가운데 세우려고 `flex; align-items:center`인데, 파일 격자는
+ * 그 자리를 **통째로 채워야 한다** — 안 덮으면 타일이 세로 한 줄로 몰린다(실측으로 잡았다).
+ */
+.ad-stage-files {
+  display: block;
+  padding: 0;
+  overflow-y: auto;
+}

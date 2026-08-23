@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react'
 import { dateOf } from '../../data/calendar'
 import { desktopEntries } from '../../data/desktopItems'
-import { EVENTS } from '../../data/events'
 import { fakeSize, findItem } from '../../data/items'
 import { FILMS } from '../../data/media'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
-import { inventoryOf } from '../../systems/delivery'
+import { albumPhotos, inventoryOf } from '../../systems/delivery'
 import { isWorn, usesLeft } from '../../systems/gear'
 import { artFileName, artGrade, artworksOf } from '../../systems/artwork'
 import { postcardsOf } from '../../systems/cinema'
@@ -34,8 +33,11 @@ import './ExplorerApp.css'
  * ## 레퍼런스에서 **덜어낸 것**과 그 이유
  * ⚠️ **동작하지 않는 컨트롤은 그리지 않는다**(이 프로젝트의 규칙). 실제 탐색기의
  * - **탭 줄**: 창 타이틀 바가 이미 폴더 이름을 갖는다(같은 말이 두 번). [+]는 갈 데가 없다.
- * - **뒤로·앞으로·위로·새로 고침**: 이 게임의 폴더는 둘뿐이고 창 안에서 이동하지 않는다.
- *   목록은 항상 지금 상태에서 파생되므로 새로 고칠 것도 없다.
+ * - **앞으로·위로·새로 고침**: 이 게임의 폴더는 평면이라 "위"가 없고, 목록은 항상 지금
+ *   상태에서 파생되므로 새로 고칠 것도 없다. 앞으로는 뒤로 간 뒤에만 뜻이 생기는데
+ *   그 한 걸음을 위해 이력을 양쪽으로 들 만큼 이 창의 이동이 깊지 않다.
+ *   ⚠️ **[뒤로]는 있다**(2026-08-22) — 탐색 창이 **창을 새로 열지 않고 이 창 안에서**
+ *   폴더를 옮기게 되면서 돌아갈 자리가 생겼다(`goTo`·`goBack`).
  * - **새로 만들기·잘라내기·복사·붙여넣기·이름 바꾸기·공유·삭제**: 게임에 뜻이 없다.
  *   플레이어가 인벤토리에서 물건을 지울 수 있으면 그건 UI가 아니라 규칙 변경이다.
  *
@@ -328,16 +330,17 @@ function baseEntriesOf(
    * 뿐이라 겪은 칸과 구분이 안 됐고, 사진첩이 "안 한 일까지 한 것처럼" 읽혔다. 안 채운 칸을
    * 되살리려면 표시부터 새로 만들어야 한다.
    */
-  const log = new Map((state.events ?? []).map((e) => [e.id, e.day]))
-  return EVENTS.filter((e) => log.has(e.id)).map((e) => ({
-    id: e.id,
-    name: e.name,
-    ext: e.ext,
-    icon: e.icon,
+  /* ⚠️ **목록의 단일 출처는 `albumPhotos`다**(2026-08-22) — 트위터의 사진 고르기가
+     같은 함수를 본다. 두 벌로 두면 한쪽만 고치는 사고가 난다. */
+  return albumPhotos(state).map(({ event, day }) => ({
+    id: event.id,
+    name: event.name,
+    ext: event.ext,
+    icon: event.icon,
     size: '1 KB',
     bytes: 1024,
-    day: log.get(e.id),
-    desc: e.desc,
+    day,
+    desc: event.desc,
     owned: true,
   }))
 }
@@ -372,9 +375,15 @@ function compare(a: Entry, b: Entry, key: SortKey): number {
   }
 }
 
-export function ExplorerApp({ folderId }: { folderId: FolderId }) {
+export function ExplorerApp({ folderId, windowId }: { folderId: FolderId; windowId: string }) {
   const state = useGameStore((s) => s.state)
-  const open = useWindowStore((s) => s.open)
+  const navigate = useWindowStore((s) => s.navigate)
+  /**
+   * 지나온 폴더. **창 안에 산다** — 창을 닫으면 사라지는 것이 맞다(실제 탐색기와 같다).
+   * ⚠️ 지금 폴더는 여기 없다. 창(`OpenWindow.folderId`)이 갖는다: 제목·아이콘과 한 몸이라
+   * 둘로 나누면 뒤로 간 뒤 타이틀 바만 옛 폴더에 남는 상태가 생긴다.
+   */
+  const [back, setBack] = useState<FolderId[]>([])
   /** 보기 방식. 실제 탐색기의 [보기] 메뉴와 같은 역할이고 **실제로 동작한다**. */
   const [view, setView] = useState<'icons' | 'details'>('icons')
   /** [보기] > 숨긴 항목. 기본 꺼짐 — 켜야 숨김 파일(`data/hidden.ts`)이 보인다. */
@@ -430,6 +439,28 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
     setMenu({ kind, x: r.left, y: r.bottom + 2 })
   }
 
+  /**
+   * 이 창 안에서 폴더를 옮긴다. **새 창을 열지 않는다**(2026-08-22) — 예전에는 탐색 창이
+   * 폴더마다 창을 하나씩 띄웠는데, 그러면 [뒤로]가 가리킬 자리가 아예 없었다.
+   * 고른 파일·검색어는 그 폴더의 것이라 함께 비운다.
+   */
+  const goTo = (to: FolderId, remember = true) => {
+    if (to === folderId) return
+    if (remember) setBack((b) => [...b, folderId])
+    const m = metaOf(to, state)
+    navigate(windowId, { folderId: to, title: m.label, icon: m.icon })
+    setSelected(null)
+    setQuery('')
+  }
+
+  /** 뒤로. 지나온 마지막 폴더로 돌아간다(돌아가는 길은 이력에 쌓지 않는다). */
+  const goBack = () => {
+    const prev = back.at(-1)
+    if (!prev) return
+    setBack((b) => b.slice(0, -1))
+    goTo(prev, false)
+  }
+
   /** 열 제목 클릭 = 그 열로 정렬. 같은 열을 다시 누르면 방향이 뒤집힌다(실제 탐색기와 같다). */
   const sortBy = (key: SortKey) =>
     setSort((s) => ({ key, asc: s.key === key ? !s.asc : true }))
@@ -438,6 +469,18 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
     <div className="ex">
       {/* ── 주소 줄: 경로 빵부스러기 + 검색 ─────────────────────── */}
       <div className="ex-bar">
+        {/* 실제 탐색기처럼 주소 줄 **왼쪽**에 선다. 앞으로·위로·새로 고침은 없다:
+            이 게임의 폴더는 평면이라 위가 없고, 목록은 항상 지금 상태에서 파생된다. */}
+        <button
+          type="button"
+          className="ex-back"
+          onClick={goBack}
+          disabled={back.length === 0}
+          aria-label="뒤로"
+          title={back.length ? `${metaOf(back.at(-1)!, state).label}(으)로` : '돌아갈 곳이 없습니다'}
+        >
+          <AppIcon name="mdi:arrow-left" size={16} />
+        </button>
         <div className="ex-crumbs">
           <AppIcon name={meta.icon} size={16} />
           {crumbsOf(meta).map((c, i, arr) => (
@@ -504,19 +547,7 @@ export function ExplorerApp({ folderId }: { folderId: FolderId }) {
               type="button"
               className={`ex-nav-item${id === folderId ? ' ex-nav-item-on' : ''}`}
               aria-current={id === folderId ? 'true' : undefined}
-              onClick={() => {
-                if (id === folderId) return
-                open({
-                  id: `folder-${id}`,
-                  kind: 'folder',
-                  title: metaOf(id, state).label,
-                  icon: metaOf(id, state).icon,
-                  folderId: id,
-                  x: 200,
-                  y: 100,
-                  width: 720,
-                })
-              }}
+              onClick={() => goTo(id)}
             >
               <AppIcon name={metaOf(id, state).icon} size={16} />
               {metaOf(id, state).label}

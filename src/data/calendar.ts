@@ -73,3 +73,24 @@ export const CALENDAR_PANEL_LAYOUT: {
   /** 스탯창이 우상단에서 점유하는 폭(창 폭 + 여백). */
   statPanelReserve: 336,
 }
+
+/** 격자 머리의 요일 라벨. 일요일 시작이다(`Date.getDay()`와 같은 순서라 인덱스가 곧 요일이다). */
+export const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'] as const
+
+/**
+ * **그 날이 속한 달의 날짜 격자.** 앞쪽 `null`은 1일의 요일을 맞추는 빈칸이고,
+ * 값은 실제 날짜가 아니라 **게임 N일차**다 — 화면이 과거·오늘·미래를 가르는 기준이
+ * 일차이므로 환산을 여기서 끝내 두면 컴포넌트가 `dateOf`/`dayOf`를 다시 부르지 않는다.
+ *
+ * ⚠️ **1일차가 달의 1일이라(`GAME_START_DATE`) 0 이하의 일차가 나오지 않는다.**
+ * 시작일을 달 중간으로 옮기면 첫 달 앞부분이 0·음수가 되므로 그때 걸러야 한다.
+ */
+export function monthGrid(day: number): (number | null)[] {
+  const d = dateOf(day)
+  const year = d.getFullYear()
+  const month = d.getMonth()
+  const lastDate = new Date(year, month + 1, 0).getDate()
+  const cells: (number | null)[] = Array(new Date(year, month, 1).getDay()).fill(null)
+  for (let date = 1; date <= lastDate; date++) cells.push(dayOf(new Date(year, month, date)))
+  return cells
+}

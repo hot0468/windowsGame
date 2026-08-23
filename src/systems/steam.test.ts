@@ -49,7 +49,7 @@ describe('게임 켜기', () => {
   it('1턴을 쓰고 플레이 횟수가 오른다', () => {
     const before = state()
     const after = playGame(before, game)
-    expect(after.slot).not.toBe(before.slot) // 오전 → 오후
+    expect(after.minute + after.day * 1440).toBeGreaterThan(before.minute + before.day * 1440) // 오전 → 오후
     expect(sessionsOf(after, game.id)).toBe(1)
     // 활동 `game`의 효과가 실제로 붙는다(수치는 활동 하나가 갖는다).
     expect(after.stats.gaming).toBeGreaterThan(before.stats.gaming)

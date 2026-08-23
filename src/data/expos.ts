@@ -15,6 +15,8 @@
  * 글자로 적는다.
  */
 
+import type { SeasonId } from './season'
+import { seasonOf } from './season'
 import type { Stats } from '../types/game'
 
 /** 참여(부스·무대에 서는 것). 없으면 그 행사는 참관만 받는다. */
@@ -76,6 +78,15 @@ export interface Expo {
   cycle: number
   openDays: number
   offset: number
+  /**
+   * 이 행사가 열리는 계절(2026-08-22). 없으면 **계절을 안 탄다**(사철 같은 주기로 열린다).
+   *
+   * ⚠️ **주기를 대체하지 않고 얹힌다** — 주기가 와도 계절이 아니면 안 연다. 그래서
+   * "이번 여름에 못 간 코미콘은 내년 여름까지 기다린다"가 성립하고, 그 기다림이
+   * 달력에 리듬을 만든다(`data/season.ts`).
+   * ⚠️ **전부에 붙이지 말 것.** 사철 열리는 것이 남아 있어야 계절이 벌이 아니라 색이 된다.
+   */
+  season?: SeasonId
   badge?: string
 }
 
@@ -102,6 +113,7 @@ export const EXPOS: Expo[] = [
       requires: '운동과 매력이 모두 높아야 수상합니다',
       award: { requires: { athletics: 300, charm: 200 }, title: '피지크 부문 입상', reputation: 12 },
     },
+    season: 'summer',
     cycle: 24,
     openDays: 2,
     offset: 13,
@@ -127,6 +139,7 @@ export const EXPOS: Expo[] = [
       requires: '운동이 높아야 입상합니다',
       award: { requires: { athletics: 200 }, title: '10km 부문 입상', reputation: 8 },
     },
+    season: 'autumn',
     cycle: 18,
     openDays: 1,
     offset: 7,
@@ -145,6 +158,7 @@ export const EXPOS: Expo[] = [
       siteId: 'comicon',
       requires: '3장 이상인 작품집이 있어야 합니다',
     },
+    season: 'summer',
     cycle: 12,
     openDays: 3,
     offset: 0,
@@ -164,6 +178,7 @@ export const EXPOS: Expo[] = [
       activityId: 'expo-booth',
       fee: 50_000,
     },
+    season: 'spring',
     cycle: 15,
     openDays: 3,
     offset: 5,
@@ -182,6 +197,7 @@ export const EXPOS: Expo[] = [
       activityId: 'expo-booth',
       fee: 60_000,
     },
+    season: 'autumn',
     cycle: 20,
     openDays: 4,
     offset: 9,
@@ -195,6 +211,7 @@ export const EXPOS: Expo[] = [
     visitActivityId: 'expo-visit',
     fee: 25_000,
     /* ⚠️ 참여가 없다 — 만들어 낼 게임이 이 게임에는 없다(장식 금지). */
+    season: 'winter',
     cycle: 18,
     openDays: 2,
     offset: 3,
@@ -240,15 +257,25 @@ function phaseOf(expo: Expo, day: number): number {
   return ((raw % expo.cycle) + expo.cycle) % expo.cycle
 }
 
-/** 오늘 열려 있는가. **날짜의 순수 함수다** — 저장하지 않는다. */
+/**
+ * 오늘 열려 있는가. **날짜의 순수 함수다** — 저장하지 않는다.
+ * ⚠️ 주기가 와도 **계절이 아니면 안 연다**(`Expo.season`).
+ */
 export function isOpen(expo: Expo, day: number): boolean {
-  return phaseOf(expo, day) < expo.openDays
+  if (phaseOf(expo, day) >= expo.openDays) return false
+  return !expo.season || seasonOf(day).id === expo.season
 }
 
-/** 다음 개최까지 남은 날. 오늘 열려 있으면 0이다. */
+/**
+ * 다음 개최까지 남은 날. 오늘 열려 있으면 0이다.
+ *
+ * ⚠️ **주기 계산만으로는 못 구한다**(2026-08-22 계절 신설) — 계절 행사는 주기가 와도
+ * 건너뛰므로 실제로 열리는 날을 **앞으로 훑어** 찾는다. 화면이 "3일 뒤 개최"라고 적었는데
+ * 그날 안 열리면 그건 거짓말이고, 계절 행사일수록 그 거짓말이 길어진다(최대 1년).
+ */
 export function daysUntilOpen(expo: Expo, day: number): number {
-  if (isOpen(expo, day)) return 0
-  return expo.cycle - phaseOf(expo, day)
+  for (let i = 0; i <= 400; i++) if (isOpen(expo, day + i)) return i
+  return 400
 }
 
 /** 오늘이 이번 회차의 며칠째인가(1부터). 안 열려 있으면 undefined. */

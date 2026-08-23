@@ -41,6 +41,10 @@ import './MobileShell.css'
  * **홈**(앱 그리드) ↔ **앱 뷰**(전체화면). 앱이 열려 있으면 앱 뷰, 아니면 홈이다 —
  * 별도의 `screen` 상태를 두지 않는다(창 목록과 어긋날 수 있는 두 번째 진실이 된다).
  */
+/* ⚠️ **없을 때 돌려줄 배열은 모듈 상수여야 한다** — 셀렉터가 매번 `[]`를 새로 만들면
+   zustand가 값이 바뀐 줄 알고 무한 갱신을 돈다(이 파일의 인벤토리 셀렉터와 같은 함정). */
+const EMPTY_INSTALLED: string[] = []
+
 export function MobileShell() {
   const open = useWindowStore((s) => s.open)
   const windows = useWindowStore((s) => s.windows)
@@ -78,10 +82,12 @@ export function MobileShell() {
   /* 구독은 끊기면 아이콘이 사라진다 — 셀렉터는 원본 참조를 고르고 변환은 useMemo가 한다. */
   const subsActive = useGameStore((s) => s.state?.subscriptions?.active)
   const subscribedIds = useMemo(() => Object.keys(subsActive ?? {}), [subsActive])
+  /* 내려받은 프로그램(줌). 셀렉터는 원본 참조를 고르고 변환은 useMemo가 한다. */
+  const installedIds = useGameStore((s) => s.state?.installed) ?? EMPTY_INSTALLED
 
   const entries = useMemo(
-    () => desktopEntries(shortcutIds, ownedIds, employed, subscribedIds),
-    [shortcutIds, ownedIds, employed, subscribedIds],
+    () => desktopEntries(shortcutIds, ownedIds, employed, subscribedIds, installedIds),
+    [shortcutIds, ownedIds, employed, subscribedIds, installedIds],
   )
 
   /**

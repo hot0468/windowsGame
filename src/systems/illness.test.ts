@@ -1,3 +1,4 @@
+import { DAY_END, DAY_START } from '../data/clock'
 import { describe, it, expect } from 'vitest'
 import {
   healIllness,
@@ -28,7 +29,7 @@ function at(day: number, stamina: number, ill?: GameState['illness']): GameState
   return {
     ...base,
     day,
-    slot: 'afternoon',
+    minute: DAY_END - 60, slot: 'afternoon' as const,
     illness: ill,
     stats: { ...base.stats, stamina, mental: 80, money: 500_000 },
   }
@@ -44,9 +45,10 @@ describe('발병', () => {
     expect(nextIllness(undefined, ILL_STAMINA_FLOOR + 1, 10)).toBeUndefined()
   })
 
-  it('오전에는 판정하지 않는다 — 발병 자리는 취침 하나뿐이다', () => {
-    const morning: GameState = { ...at(10, 0), slot: 'morning' }
-    expect(skipSlot(morning).illness).toBeUndefined()
+  /* ⚠️ 2026-08-22 분 단위 전환: "오전/오후"가 아니라 **자정을 넘겼는가**가 기준이다. */
+  it('하루가 끝나기 전에는 판정하지 않는다 — 발병 자리는 취침 하나뿐이다', () => {
+    const midday: GameState = { ...at(10, 0), minute: DAY_START, slot: 'morning' }
+    expect(skipSlot(midday).illness).toBeUndefined()
   })
 })
 
@@ -99,9 +101,9 @@ describe('앓는 동안', () => {
   it(`활동에서 얻는 것이 ${ILL_EFFICIENCY * 100}%로 줄고 소모량은 그대로다`, () => {
     const study = findActivity('study')!
     const before = at(10, 80)
-    const wellRun = runActivity({ ...before, slot: 'morning' }, study)
+    const wellRun = runActivity({ ...before, minute: DAY_START, slot: 'morning' }, study)
     const sickRun = runActivity(
-      { ...before, slot: 'morning', illness: { startedDay: 9, daysLeft: 3 } },
+      { ...before, minute: DAY_START, slot: 'morning', illness: { startedDay: 9, daysLeft: 3 } },
       study,
     )
     const wellGain = wellRun.stats.knowledge - before.stats.knowledge

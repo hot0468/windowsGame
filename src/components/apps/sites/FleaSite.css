@@ -602,3 +602,24 @@
     transition: none;
   }
 }
+
+/* 직전 지원의 결과 한 줄. 경고(`.flea-alert`)와 달리 **지난 일**이라 색을 쓰지 않는다 —
+   붉게 칠하면 지금 뭔가 잘못된 것으로 읽힌다. */
+.flea-outcome {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid var(--fl-line-soft);
+  background: var(--fl-bg);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+/* ⚠️ flex 안의 아이콘은 **줄어든다** — 글이 길면 15px 글리프가 3px로 눌린다(실측). */
+.flea-outcome svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}

@@ -20,6 +20,60 @@ export interface RestoreBounds {
  */
 export const Z_STEP = 2
 
+/**
+ * **새 창이 서는 자리.** 가로는 화면 한가운데, 세로는 위쪽에 붙는다(설계자 지시 2026-08-21:
+ * "팝업 뜨는 위치를 화면 가운데나 상단으로").
+ *
+ * ## ⚠️ 세로는 가운데가 아니라 상단이다
+ * 창 높이는 **열릴 때 알 수 없다** — 대부분의 창이 내용만큼 자라므로(`.ad`·`.vs`처럼 스스로
+ * 높이를 정하는 것도 있고 글 몇 줄로 끝나는 것도 있다) 세로 가운데를 계산하려면 없는 값이
+ * 필요하다. 위에 붙이면 높이와 무관하게 언제나 같은 자리에서 시작한다.
+ *
+ * ## ⚠️ 부르는 쪽이 좌표를 정하지 않는다
+ * 예전에는 창을 여는 자리마다 `x: 240, y: 96` 같은 값을 손으로 적었다(아홉 곳이었다).
+ * 그래서 같은 규칙이 아홉 벌로 흩어졌고, 화면 폭과 무관한 고정값이라 넓은 화면에서는
+ * 왼쪽에 치우쳐 떴다. **좌표를 만드는 곳은 여기 하나다.**
+ */
+const PLACE = {
+  /** 화면 위에서 이만큼 아래에서 시작한다. */
+  top: 56,
+  /** 창끼리 완전히 겹치지 않게 어긋내는 폭. */
+  step: 26,
+  /** 어긋냄이 이만큼 반복되면 처음 자리로 돌아온다 — 안 그러면 계속 밀려 화면을 벗어난다. */
+  cycle: 5,
+  /** 화면 가장자리에서 최소한 남기는 여백. */
+  margin: 8,
+} as const
+
+/**
+ * 창 하나의 시작 좌표. `openCount`는 지금 열려 있는 창 수(어긋냄에만 쓴다).
+ *
+ * ⚠️ **화면 밖으로 내보내지 않는다** — 좁은 화면에서 폭이 큰 창을 열면 가운데 정렬만으로는
+ * 왼쪽이 음수가 된다(제목 줄을 못 잡아 창을 옮길 수 없게 된다).
+ */
+/**
+ * 창이 줄어들 수 있는 한계.
+ *
+ * ⚠️ **타이틀 바 + 내용 한 줄**이 기준이다. 이보다 작아지면 캡션 버튼이 서로 겹쳐
+ * 창을 닫지도 못하고, 안쪽 화면은 가로 스크롤만 남는다(사이트들은 `container-type`으로
+ * 접히지만 접힘에도 바닥이 있다).
+ */
+export const MIN_WINDOW = { width: 360, height: 220 } as const
+
+export function placeWindow(width: number, openCount: number): { x: number; y: number } {
+  const shift = (openCount % PLACE.cycle) * PLACE.step
+  /* ⚠️ **`window`가 없는 환경에서도 값을 내놔야 한다** — 스토어 테스트는 노드에서 도는데
+     (이 파일은 DOM을 안 쓰던 자리라 jsdom을 켜지 않는다) 여기서 터지면 창을 여는 규칙
+     전체가 테스트에서 막힌다. 폴백은 흔한 창 폭 하나면 충분하다: 좌표만 달라진다. */
+  const viewport = typeof window === 'undefined' ? 1280 : window.innerWidth
+  const centered = (viewport - width) / 2
+  const maxX = Math.max(PLACE.margin, viewport - width - PLACE.margin)
+  return {
+    x: Math.round(Math.min(maxX, Math.max(PLACE.margin, centered + shift))),
+    y: PLACE.top + shift,
+  }
+}
+
 /** 열려 있는 창 하나. kind는 창 종류를 식별하는 키다. */
 export interface OpenWindow {
   id: string
@@ -28,6 +82,11 @@ export interface OpenWindow {
   x: number
   y: number
   width: number
+  /**
+   * 창 높이(px). **없으면 내용이 정한다**(2026-08-22 크기 조절 신설) — 처음 열릴 때는
+   * 내용 높이를 그대로 쓰고, 사람이 한 번 끌면 그때부터 이 값이 진실이 된다.
+   */
+  height?: number
   zIndex: number
   /**
    * 런타임 상태. true면 작업 표시줄을 제외한 전체 화면으로 그린다.
@@ -79,10 +138,16 @@ export interface OpenWindow {
  */
 export type OpenWindowInput = Omit<
   OpenWindow,
-  'zIndex' | 'maximized' | 'minimized' | 'restore'
+  'zIndex' | 'maximized' | 'minimized' | 'restore' | 'x' | 'y'
 > & {
   /** 열자마자 최대화 상태로 시작할지 여부. 이후로는 런타임 상태가 된다. */
   maximized?: boolean
+  /**
+   * 시작 좌표. **생략이 기본이다** — 비우면 `placeWindow`가 가운데·상단에 앉힌다.
+   * ⚠️ 모바일 셸처럼 **화면을 꽉 채우는 창**만 직접 준다(그쪽은 좌표가 늘 0이다).
+   */
+  x?: number
+  y?: number
 }
 
 interface WindowStore {
@@ -108,9 +173,22 @@ interface WindowStore {
   openSite: (siteId: string) => void
   /** 이동 요청을 받아 갔다. `BrowserApp`만 부른다. */
   clearPendingSite: () => void
+  /**
+   * 창이 **자기 안에서** 다른 폴더로 옮겨 간다(탐색기의 탐색 창·뒤로).
+   *
+   * ⚠️ 제목·아이콘을 폴더와 **함께** 간다 — 셋이 따로 놀면 작업 표시줄과 타이틀 바가
+   * 옛 폴더를 가리킨 채로 남는다. 새 창을 여는 `open`과 갈라 둔 이유가 그것이다:
+   * 이쪽은 창을 하나 더 만들지 않는다.
+   */
+  navigate: (id: string, to: { folderId: FolderId; title: string; icon: IconName }) => void
   close: (id: string) => void
   focus: (id: string) => void
   move: (id: string, x: number, y: number) => void
+  /**
+   * 크기 조절. **최소 크기(`MIN_WINDOW`) 아래로는 안 내려간다** — 타이틀 바와 내용
+   * 한 줄이 남지 않으면 창을 다시 잡을 수도, 안을 읽을 수도 없다.
+   */
+  resize: (id: string, width: number, height: number) => void
   /** 최소화. 창은 목록에 남고 렌더링만 멈춘다. */
   minimize: (id: string) => void
   /** 최대화 ↔ 복원 토글. 최대화 시 현재 좌표를 restore에 저장한다. */
@@ -136,8 +214,6 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       id: `${browser.kind}-${browser.id}`,
       title: browser.label,
       icon: browser.icon,
-      x: 120,
-      y: 80,
       width: browser.width,
       maximized: browser.openMaximized,
       kind: browser.kind,
@@ -155,18 +231,28 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       return
     }
     const zIndex = get().topZ + Z_STEP
+    /* 좌표를 안 주면 여기서 정한다(사유는 `placeWindow`). 어긋냄의 기준은 **지금 열려 있는
+       창 수**라, 다 닫고 다시 열면 첫 창은 늘 같은 자리에서 시작한다. */
+    const at =
+      win.x !== undefined && win.y !== undefined
+        ? { x: win.x, y: win.y }
+        : placeWindow(win.width, get().windows.length)
     const opened: OpenWindow = {
       ...win,
+      ...at,
       maximized: win.maximized ?? false,
       minimized: false,
       // 최대화 상태로 열려도 복원 좌표는 남겨 둔다 — 없으면 복원이 0,0으로 튄다.
-      restore: { x: win.x, y: win.y, width: win.width },
+      restore: { ...at, width: win.width },
       zIndex,
     }
     /* 이미 열린 창을 앞으로 가져올 때는 위에서 반환됐다 — **정말 새로 열릴 때만** 소리. */
     playSound('open')
     set({ windows: [...get().windows, opened], topZ: zIndex })
   },
+
+  navigate: (id, to) =>
+    set({ windows: get().windows.map((w) => (w.id === id ? { ...w, ...to } : w)) }),
 
   close: (id) => {
     if (!get().windows.some((w) => w.id === id)) return
@@ -184,6 +270,19 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
 
   move: (id, x, y) =>
     set({ windows: get().windows.map((w) => (w.id === id ? { ...w, x, y } : w)) }),
+
+  resize: (id, width, height) =>
+    set({
+      windows: get().windows.map((w) =>
+        w.id === id
+          ? {
+              ...w,
+              width: Math.max(MIN_WINDOW.width, Math.round(width)),
+              height: Math.max(MIN_WINDOW.height, Math.round(height)),
+            }
+          : w,
+      ),
+    }),
 
   minimize: (id) =>
     set({

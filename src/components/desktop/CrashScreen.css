@@ -1,0 +1,33 @@
+/*
+ * 강제 종료 — 전원이 나간 화면.
+ * ⚠️ **새 팔레트를 만들지 않는다**: 검은 판과 흰 글자뿐이고, 그 뒤의 부팅 화면
+ * (`BootScreen.css`)이 나머지를 그대로 진다.
+ */
+.crash {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  background: #000000;
+  color: #ffffff; /* 검정 위 21:1 */
+  text-align: center;
+}
+
+.crash-line {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+
+.crash-sub {
+  margin: 0;
+  font-size: var(--fs-base);
+  /* 흰색 85% — 검정 위 15:1로 본문보다 한 단계 물러난다. */
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ⚠️ 모션 감소에서도 그대로다 — 움직이는 것이 없다(글자 둘). */

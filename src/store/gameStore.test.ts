@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { migrateSave, pastLifeOf, selectPersistedState } from './gameStore'
+import { migrateSave, pastLifeOf, selectPersistedState, useGameStore } from './gameStore'
 import { createInitialState } from '../systems/turn'
 import { INITIAL_STATS } from '../types/game'
 
@@ -396,5 +396,33 @@ describe('migrateSave — 복권', () => {
     const save = played()
     ;(save.state.lottery.tickets as unknown[]).push({ id: 42, day: 'x', amount: null })
     expect(migrateSave(save).state?.lottery?.tickets).toHaveLength(1)
+  })
+})
+
+/*
+ * ⚠️ **새 판은 부팅 화면부터 시작한다**(2026-08-22 설계자 지시) — 이름을 넣고 로그인한
+ * 순간이 이 컴퓨터를 처음 켜는 순간이다. 이어하기는 이미 켜져 있던 컴퓨터라 안 켠다.
+ */
+describe('새 판의 부팅', () => {
+  it('새 게임을 시작하면 부팅 화면이 켜진다', () => {
+    useGameStore.getState().startGame('부팅')
+    expect(useGameStore.getState().booting).toBe(true)
+    expect(useGameStore.getState().loggedIn).toBe(true)
+  })
+
+  it('부팅이 끝나면 화면만 내린다 — 판은 그대로다', () => {
+    useGameStore.getState().startGame('부팅')
+    const before = useGameStore.getState().state
+    useGameStore.getState().clearBooting()
+    expect(useGameStore.getState().booting).toBe(false)
+    expect(useGameStore.getState().state).toBe(before)
+  })
+
+  it('⚠️ 이어하기는 부팅하지 않는다 — 켜져 있던 컴퓨터를 다시 켜지 않는다', () => {
+    useGameStore.getState().startGame('부팅')
+    useGameStore.getState().clearBooting()
+    useGameStore.getState().logout()
+    useGameStore.getState().continueGame()
+    expect(useGameStore.getState().booting).toBe(false)
   })
 })

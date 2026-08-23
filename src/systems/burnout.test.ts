@@ -20,14 +20,14 @@ describe('countConsecutive', () => {
 })
 
 describe('getBurnoutPenalty', () => {
-  it('처음 하는 활동은 효율 100%에 추가 멘탈 소모가 없다', () => {
-    expect(getBurnoutPenalty([], 'study')).toEqual({ efficiency: 1, mentalPenalty: 0 })
+  /* ⚠️ **효율 감소는 2026-08-22에 폐지됐다**(설계자 지시) — 되살리지 말 것.
+     반복해도 **얻는 것은 그대로**이고 대가는 멘탈 하나다. */
+  it('처음 하는 활동은 추가 멘탈 소모가 없다', () => {
+    expect(getBurnoutPenalty([], 'study')).toEqual({ mentalPenalty: 0 })
   })
 
-  it('연속할수록 효율이 떨어진다', () => {
-    const once = getBurnoutPenalty(['study'], 'study')
-    const twice = getBurnoutPenalty(['study', 'study'], 'study')
-    expect(twice.efficiency).toBeLessThan(once.efficiency)
+  it('⚠️ 반복해도 효율은 안 깎인다 — 배율 자체가 없다', () => {
+    expect('efficiency' in getBurnoutPenalty(Array(20).fill('study'), 'study')).toBe(false)
   })
 
   it('연속할수록 멘탈 추가 소모가 커진다', () => {
@@ -36,9 +36,10 @@ describe('getBurnoutPenalty', () => {
     expect(twice.mentalPenalty).toBeGreaterThan(once.mentalPenalty)
   })
 
-  it('효율은 하한 아래로 떨어지지 않는다', () => {
-    const many = Array(20).fill('study')
-    expect(getBurnoutPenalty(many, 'study').efficiency).toBeGreaterThanOrEqual(0.3)
+  it('연속이 길어져도 멘탈 소모는 계속 커진다 — 대가는 하나뿐이라 상한을 두지 않는다', () => {
+    const many = getBurnoutPenalty(Array(20).fill('study'), 'study')
+    const few = getBurnoutPenalty(Array(3).fill('study'), 'study')
+    expect(many.mentalPenalty).toBeGreaterThan(few.mentalPenalty)
   })
 })
 

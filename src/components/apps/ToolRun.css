@@ -344,6 +344,15 @@
   color: var(--tr-fg);
 }
 
+/* 설치 완료 한 줄. 일감 줄(`.tr-gig`)과 같은 자리·같은 크기이고 **구분선이 없다** —
+   위에 스탯 목록이 없어서 가를 것이 없다. 선을 그으면 없는 구역이 있는 척하게 된다. */
+.tr-note {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--tr-fg);
+}
+
 .tr-close {
   margin-top: auto;
   min-height: 40px;

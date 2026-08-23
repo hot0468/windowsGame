@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { findActivity } from '../../../data/activities'
 import { HERO_TRIP, TRIPS, TRIP_REGIONS, findTrip, tripsOf } from '../../../data/trips'
 import { AppIcon } from '../../../icons/AppIcon'
+import { Cover } from './Cover'
 import { useGameStore } from '../../../store/gameStore'
 import { canRun } from '../../../systems/turn'
 import type { Site } from '../../../data/sites'
 import type { Trip, TripRegion } from '../../../data/trips'
 import type { GameState } from '../../../types/game'
+import { tripActivity, tripDays } from '../../../systems/travel'
 import { previewActivity } from '../activityPreview'
 import { ActivityConfirm } from '../ActivityConfirm'
 import './TravelSite.css'
@@ -15,14 +16,14 @@ const won = (v: number) => `${Math.abs(v).toLocaleString('ko-KR')}원`
 
 /** 이 상품의 값. ⚠️ **활동에서 파생한다** — 상품에 가격을 적으면 두 번째 출처가 된다. */
 function priceOf(state: GameState, trip: Trip): number {
-  const activity = findActivity(trip.activityId)
+  const activity = tripActivity(trip)
   if (!activity) return 0
   return Math.abs(previewActivity(state, activity).rows.find((r) => r.key === 'money')?.value ?? 0)
 }
 
 /** 지금 갈 수 있는가. 판정은 `canRun` 하나가 한다(화면이 두 번째 판정을 만들지 않는다). */
 function affordable(state: GameState, trip: Trip): boolean {
-  const activity = findActivity(trip.activityId)
+  const activity = tripActivity(trip)
   return activity ? canRun(state, activity) : false
 }
 
@@ -48,13 +49,16 @@ function affordable(state: GameState, trip: Trip): boolean {
 export function TravelSite({ site }: { site: Site }) {
   const state = useGameStore((s) => s.state)
   const [region, setRegion] = useState<TripRegion | null>(null)
+  const goOnTrip = useGameStore((s) => s.goOnTrip)
   const [pickedId, setPickedId] = useState<string | null>(null)
   /** 방금 예약한 상품. 목록이 그대로라 결과를 글자로 남긴다. */
   const [booked, setBooked] = useState<string | null>(null)
 
   if (!state) return null
   const picked = pickedId ? findTrip(pickedId) : undefined
-  const pickedActivity = picked ? findActivity(picked.activityId) : undefined
+  /* ⚠️ **하루치 활동이 아니라 일수를 곱한 사본**을 쓴다(2026-08-22) — 미리보기·가격·실행이
+     같은 값을 보게 하는 단일 출처다(`systems/travel.ts`). */
+  const pickedActivity = picked ? tripActivity(picked) : undefined
   /* 지금 갈 수 있는 곳 / 모아야 갈 수 있는 곳. **판정은 `canRun` 하나**가 한다. */
   const ready = TRIPS.filter((t) => affordable(state, t))
   const later = TRIPS.filter((t) => !affordable(state, t))
@@ -210,8 +214,13 @@ export function TravelSite({ site }: { site: Site }) {
           notes={[
             { label: '목적지', value: picked.destination },
             { label: '일정', value: picked.schedule },
+            /* ⚠️ **며칠이 지나가는지 숫자로 적는다** — 여행의 대가는 값이 아니라 잃는 날이다
+               (그몽 마감·회의·출근이 그동안 그대로 지나간다). */
+            { label: '자리를 비우는 기간', value: `${tripDays(picked)}일` },
             { label: '포함', value: picked.includes.join(' · ') },
           ]}
+          /* 첫날은 활동이 확정하고, 남은 날은 스토어가 밤으로 흘려보낸다. */
+          onCommit={() => goOnTrip(picked.id)}
           onCommitted={() => setBooked(picked.title)}
           onClose={() => setPickedId(null)}
         />
@@ -254,13 +263,16 @@ function TripSection({
 
 /**
  * 여행 상품 카드. 레퍼런스처럼 **세로 카드**다(사진 → 지역 태그 → 제목 → 값).
- * ⚠️ 사진 자리는 그라데이션 + 목적지 글자다(오프라인 규칙 — 외부 이미지 금지).
+ * ⚠️ 사진은 리포에 받아 둔 정적 파일이다(`public/img/trip/`, 런타임 CDN 금지).
+ * 없으면 원래의 그라데이션 + 목적지 글자가 그대로 남는다.
  */
 function TripCard({ trip, state, onPick }: { trip: Trip; state: GameState; onPick: () => void }) {
   const ok = affordable(state, trip)
   return (
     <button type="button" className="tv-card" onClick={onPick} title={trip.blurb}>
       <span className="tv-photo" style={{ background: trip.cover }}>
+        {/* 상품 사진. 없으면 원래의 그라데이션 판이 그대로 남는다(`Cover`). */}
+        <Cover src={`/img/trip/${trip.id}.webp`} className="tv-photo-img" />
         <span className="tv-photo-place">{trip.destination}</span>
       </span>
       <span className="tv-body">

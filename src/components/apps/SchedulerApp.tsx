@@ -6,6 +6,7 @@ import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { ownsRequired } from '../../systems/turn'
 import { findPlan } from '../../systems/schedule'
+import { MEETING_HOST } from '../../data/meetings'
 import { GROWTH_STAT_KEYS, STAT_NAMES } from '../../types/game'
 import type { Activity, GameState, Slot, Stats } from '../../types/game'
 import { previewActivity } from './activityPreview'
@@ -78,6 +79,9 @@ export function SchedulerApp() {
   if (!state) return null
 
   const plans = state.plans ?? []
+  /* ⚠️ **회의는 예약이 아니다** — 턴을 안 쓰므로 슬롯을 막지 않고, 같은 칸에 예약과 함께
+     설 수 있다. 그래서 `plans`와 다른 배열을 그대로 읽어 표시만 얹는다. */
+  const meetings = state.meetings ?? []
   const today = dateOf(state.day)
   const shown = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1)
   const year = shown.getFullYear()
@@ -154,6 +158,7 @@ export function SchedulerApp() {
                   const plan = findPlan(plans, c.day, slot)
                   const past = isPast(c.day, slot)
                   const activity = plan && ACTIVITIES.find((a) => a.id === plan.activityId)
+                  const meeting = meetings.find((m) => m.day === c.day && m.slot === slot)
                   return (
                     <button
                       key={slot}
@@ -184,6 +189,16 @@ export function SchedulerApp() {
                           <AppIcon name={activity.icon} size={14} />
                           <span className="sch-slot-name">{activity.label}</span>
                         </>
+                      )}
+                      {/* 잡힌 화상회의. 예약과 **함께** 설 수 있으므로 칸을 뺏지 않고 옆에 붙는다. */}
+                      {meeting && (
+                        <span
+                          className="sch-slot-meet"
+                          title={`화상회의 · ${meeting.topic} (${MEETING_HOST})`}
+                        >
+                          <AppIcon name="fluent-color:people-24" size={14} />
+                          회의
+                        </span>
                       )}
                     </button>
                   )

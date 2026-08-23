@@ -57,8 +57,6 @@ export function StartMenu({ onClose }: { onClose: () => void }) {
                     kind: item.kind,
                     title: item.label,
                     icon: item.icon,
-                    x: 180,
-                    y: 90,
                     width: item.width,
                   })
                 }}

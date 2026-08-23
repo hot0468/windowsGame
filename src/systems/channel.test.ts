@@ -1,3 +1,4 @@
+import { DAY_END } from '../data/clock'
 import { describe, expect, it } from 'vitest'
 import { STREAM_REVIEWS, TWEET_ACCOUNTS } from '../data/tweets'
 import { STREAM_TOPICS } from '../data/videos'
@@ -23,7 +24,7 @@ function state(over: Omit<Partial<GameState>, 'stats'> & { stats?: Partial<Stats
  * ⚠️ **오후여야 한다**(2026-08-08 슬롯 제약 — 오전 방송은 시청자가 없다).
  */
 function ready(over: Parameters<typeof state>[0] = {}): GameState {
-  return state({ slot: 'afternoon', inventory: [{ id: 'streamkit', day: 1 }], ...over })
+  return state({ minute: DAY_END - 60, slot: 'afternoon' as const, inventory: [{ id: 'streamkit', day: 1 }], ...over })
 }
 
 const TOPIC = STREAM_TOPICS[0]
@@ -115,7 +116,7 @@ describe('시청자 반응', () => {
     let s = ready({ stats: { stamina: 999 } })
     s = startStream(s, TOPIC)
     expect(streamReviews(s)).toHaveLength(1)
-    s = startStream({ ...s, slot: 'afternoon' }, TOPIC)
+    s = startStream({ ...s, minute: DAY_END - 60, slot: 'afternoon' as const }, TOPIC)
     expect(streamReviews(s)).toHaveLength(2)
 
     const pool = STREAM_REVIEWS.filter((r) => r.tier === reviewTier(s)).length

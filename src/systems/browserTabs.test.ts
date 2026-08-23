@@ -4,6 +4,7 @@ import {
   closeTab,
   createTabs,
   navigateActive,
+  newTab,
   openTab,
   setActive,
   tabSiteId,
@@ -40,7 +41,15 @@ describe('탭 열기', () => {
   })
 })
 
-describe('탭 안 이동 (주소창)', () => {
+describe('[+] 새 탭', () => {
+  it('같은 사이트가 이미 열려 있어도 탭을 만든다 — 아무것도 안 하는 버튼이 되지 않는다', () => {
+    const s = newTab(createTabs('portal'), 'portal')
+    expect(s.tabs).toHaveLength(2)
+    expect(s.activeId).not.toBe(1)
+  })
+})
+
+describe('탭 안 이동 (주소창·링크)', () => {
   it('새 탭을 만들지 않고 그 탭을 바꾼다', () => {
     const s = navigateActive(createTabs('portal'), 'alba')
     expect(s.tabs).toHaveLength(1)

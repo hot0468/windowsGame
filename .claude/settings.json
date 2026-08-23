@@ -2,5 +2,30 @@
   "enabledPlugins": {
     "superpowers@superpowers-marketplace": false,
     "superpowers@claude-plugins-official": false
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm test:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run icons:*)",
+      "Bash(npm run photos:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node scripts/measure.mjs:*)",
+      "Bash(node --check:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git grep:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(cat:*)",
+      "Bash(sed -n:*)",
+      "Bash(grep:*)",
+      "Bash(curl -s -o /dev/null:*)"
+    ]
   }
 }

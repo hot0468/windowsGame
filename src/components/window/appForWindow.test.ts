@@ -38,6 +38,8 @@ const ALL_KINDS = [
   'minesweeper',
   'steam',
   'settings',
+  'controlpanel',
+  'zoom',
   'callcenter',
   'wish',
   'cat',
@@ -50,6 +52,10 @@ const ALL_KINDS = [
   'clipstudio',
   'excel',
   'vscode',
+  'photoshop',
+  'premiere',
+  'audition',
+  'sysinfo',
   'adware',
 ] as const satisfies readonly WindowKind[]
 

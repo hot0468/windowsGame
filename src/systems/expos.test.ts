@@ -11,6 +11,7 @@ import {
 } from './expos'
 import { EXPOS, daysUntilOpen, findExpo, isOpen, openDayOf, openExpos } from '../data/expos'
 import { createProject, drawIntoProject, openProjects } from './projects'
+import { seasonOf } from '../data/season'
 import { createInitialState } from './turn'
 import { ACTIVITIES, findActivity } from '../data/activities'
 import { findSite } from '../data/sites'
@@ -26,8 +27,8 @@ import type { GameState } from '../types/game'
 
 /** 그 행사가 열려 있는 첫날. 개최 판정을 쓰는 테스트가 날짜를 손으로 안 세게 한다. */
 function openDayFor(expo: Expo): number {
-  for (let d = 1; d <= expo.cycle * 2 + 2; d++) if (isOpen(expo, d)) return d
-  throw new Error(`${expo.id}가 한 주기 안에 한 번도 안 열린다`)
+  for (let d = 1; d <= 400; d++) if (isOpen(expo, d)) return d
+  throw new Error(`${expo.id}가 1년 안에 한 번도 안 열린다`)
 }
 
 /** 그 행사가 닫혀 있는 첫날. */
@@ -59,11 +60,28 @@ describe('개최 판정', () => {
     }
   })
 
-  it('한 주기 안에 반드시 한 번 열리고 한 번 닫힌다', () => {
-    for (const e of EXPOS) {
+  /* ⚠️ 2026-08-22 계절 신설: **주기가 와도 계절이 아니면 안 연다**(`Expo.season`).
+     그래서 "한 주기 안에 한 번"은 사철 행사에만 참이고, 계절 행사는 **1년 안에 한 번**이다. */
+  it('사철 행사는 주기마다 한 번 열리고 한 번 닫힌다', () => {
+    for (const e of EXPOS.filter((x) => !x.season)) {
       const days = Array.from({ length: e.cycle }, (_, i) => isOpen(e, i + 1))
       expect(days.filter(Boolean).length, `${e.id}의 개최일 수`).toBe(e.openDays)
       expect(days.some((x) => !x), `${e.id}가 계속 열려 있다`).toBe(true)
+    }
+  })
+
+  it('계절 행사는 그 계절에만 열린다 — 놓치면 내년까지 기다린다', () => {
+    for (const e of EXPOS.filter((x) => x.season)) {
+      for (let d = 1; d <= 400; d++) {
+        if (isOpen(e, d)) expect(seasonOf(d).id, `${e.id}`).toBe(e.season)
+      }
+    }
+  })
+
+  it('⚠️ 계절 행사도 1년 안에 반드시 한 번은 열린다 — 영영 못 가는 행사를 만들지 않는다', () => {
+    for (const e of EXPOS) {
+      const opens = Array.from({ length: 365 }, (_, i) => isOpen(e, i + 1)).filter(Boolean)
+      expect(opens.length, `${e.id}가 1년 동안 한 번도 안 열린다`).toBeGreaterThan(0)
     }
   })
 
@@ -87,7 +105,7 @@ describe('개최 판정', () => {
   })
 
   it('⚠️ 오프셋이 흩어져 있다 — 목록이 "전부 열림 / 전부 닫힘" 두 상태만 오가지 않는다', () => {
-    const mixed = Array.from({ length: 40 }, (_, i) => openExpos(i + 1).length)
+    const mixed = Array.from({ length: 120 }, (_, i) => openExpos(i + 1).length)
     expect(new Set(mixed).size).toBeGreaterThan(1)
     expect(Math.max(...mixed)).toBeLessThan(EXPOS.length)
   })
@@ -99,7 +117,7 @@ describe('참관', () => {
     const s = ready(day)
     const after = visitExpo(s, VISIT_ONLY.id)
     expect(after).not.toBe(s)
-    expect(after.slot).not.toBe(s.slot)
+    expect(after.minute + after.day * 1440).toBeGreaterThan(s.minute + s.day * 1440)
     // 활동 자체는 돈을 안 만지므로 차액이 곧 입장료다.
     expect(s.stats.money - after.stats.money).toBe(VISIT_ONLY.fee)
   })
@@ -132,7 +150,7 @@ describe('참여', () => {
     const s = ready(openDayFor(BOOTH))
     const after = joinExpo(s, BOOTH.id)
     expect(after).not.toBe(s)
-    expect(after.slot).not.toBe(s.slot)
+    expect(after.minute + after.day * 1440).toBeGreaterThan(s.minute + s.day * 1440)
     expect(s.stats.money - after.stats.money).toBe(BOOTH.join!.fee ?? 0)
     expect(after.stats.reputation).toBeGreaterThan(s.stats.reputation)
   })
@@ -229,7 +247,7 @@ describe('대회 수상', () => {
     expect(willAward(s, MARATHON)).toBe(false)
     const after = joinExpo(s, MARATHON.id)
     expect(after).not.toBe(s)
-    expect(after.slot).not.toBe(s.slot)
+    expect(after.minute + after.day * 1440).toBeGreaterThan(s.minute + s.day * 1440)
     expect(after.stats.reputation).toBe(s.stats.reputation)
     expect(s.stats.money - after.stats.money).toBe(MARATHON.join!.fee ?? 0)
   })

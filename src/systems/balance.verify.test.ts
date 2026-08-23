@@ -153,7 +153,9 @@ function playEmployed(career: Career, maxDays: number, attend = true): EmployedR
   const paydays: number[] = []
   let lowestBeforeFirstPay = Number.POSITIVE_INFINITY
 
-  for (let guard = 0; guard < maxDays * 2 + 10; guard++) {
+  /* ⚠️ 2026-08-22 분 단위 전환: 하루에 들어가는 활동 수가 고정이 아니다(90~480분).
+     가드를 넉넉히 잡지 않으면 400일에 닿기 전에 루프가 먼저 끝난다. */
+  for (let guard = 0; guard < maxDays * 12 + 10; guard++) {
     if (state.day > maxDays) break
 
     let next: GameState
@@ -372,7 +374,9 @@ function playToward(career: Career, maxDays: number): { state: GameState; hiredD
   let state = createInitialState('목표')
   let hiredDay: number | null = null
 
-  for (let guard = 0; guard < maxDays * 2 + 10; guard++) {
+  /* ⚠️ 2026-08-22 분 단위 전환: 하루에 들어가는 활동 수가 고정이 아니다(90~480분).
+     가드를 넉넉히 잡지 않으면 400일에 닿기 전에 루프가 먼저 끝난다. */
+  for (let guard = 0; guard < maxDays * 12 + 10; guard++) {
     if (state.day > maxDays) break
     const earn = canRun(state, tutor) ? tutor : work
 
@@ -677,7 +681,10 @@ describe('엔딩 도달 가능성', () => {
       else state = skipSlot(state)
     }
     expect(reachedDay).not.toBeNull()
-    expect(reachedDay!).toBeGreaterThanOrEqual(25)
+    /* ⚠️ 2026-08-22 분 단위 전환으로 **앞당겨졌다**(옛 구간 25~40일) — 하루가 슬롯 둘이
+       아니라 960분이라, 짧은 활동을 섞으면 하루에 서너 개가 들어간다. 구간을 넓힌 것은
+       봐주는 것이 아니라 **사실을 다시 적은 것**이다. */
+    expect(reachedDay!).toBeGreaterThanOrEqual(15)
     expect(reachedDay!).toBeLessThanOrEqual(40)
   })
   /*

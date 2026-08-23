@@ -5,11 +5,12 @@ import { STAT_META } from '../../data/statMeta'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useWindowStore } from '../../store/windowStore'
-import { activeContract, gigsOf } from '../../systems/gigs'
+import { activeContract, gigsOf, gigProgress } from '../../systems/gigs'
 import { MENTAL_CAP, STAMINA_CAP, growthCap } from '../../systems/turn'
 import { GROWTH_STAT_KEYS, STAT_NAMES } from '../../types/game'
 import { rankOf } from '../../systems/rank'
 import { previewActivity } from './activityPreview'
+import type { Subscription } from '../../data/subscriptions'
 import type {
   Activity,
   GameState,
@@ -166,8 +167,6 @@ export function openToolWindow(state: GameState, activity: Activity): void {
     /* 도구는 프로그램 로고(devicon), 알바는 활동 아이콘 — 둘 다 **다른 자리에서 쓰던
        같은 그림**이라 작업 표시줄에서 무엇이 도는지 바로 읽힌다. */
     icon: activity.toolId ? TOOL_ICONS[activity.toolId] : scene.icon,
-    x: 240,
-    y: 96,
     width: TOOL_WINDOW_WIDTH,
     kind: 'tool',
     /* ⚠️ 종이 판 장면은 **닫기 버튼 없는 시스템 팝업**이다(설계자 지시) — 공부는 프로그램을
@@ -185,6 +184,41 @@ export function openToolWindow(state: GameState, activity: Activity): void {
       mentalPenalty,
       contract: activeContract(state),
       earned: gigsOf(state).earned,
+    },
+  })
+}
+
+/**
+ * **구독 설치 연출을 연다.** 활동이 아니라 **결제**가 여는 유일한 실행 창이다.
+ *
+ * ⚠️ **`openToolWindow`와 한 파일에 둔다** — 창 id 규칙·낡은 창 닫기·`kind: 'tool'` 배선이
+ * 같아서, 나누면 한쪽만 고치는 사고가 난다(그 함수 주석의 사정을 그대로 물려받는다).
+ *
+ * ⚠️ **결제가 성공했는지는 부르는 쪽이 판단한다.** `subscribe`는 잔액이 모자라면 상태를
+ * 그대로 돌려주므로(조용한 실패), 여기서 창부터 띄우면 **돈은 안 나갔는데 설치가 되는**
+ * 화면이 나온다. 부르는 쪽이 `subscribed`로 확인한 뒤에 부른다.
+ */
+export function openInstallWindow(sub: Subscription): void {
+  const scene = sub.install
+  if (!scene) return
+  const id = `install-${sub.id}`
+  const { close, open } = useWindowStore.getState()
+  close(id)
+  open({
+    id,
+    title: scene.title,
+    icon: scene.icon,
+    width: TOOL_WINDOW_WIDTH,
+    kind: 'tool',
+    toolRun: {
+      title: scene.title,
+      steps: scene.steps,
+      accent: scene.accent,
+      /* ⚠️ 스탯도 돈도 안 움직인다. 결제는 이 창이 뜨기 전에 이미 끝났다. */
+      rows: [],
+      mentalPenalty: 0,
+      earned: 0,
+      note: scene.note,
     },
   })
 }
@@ -394,6 +428,9 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
               {title} 완료
             </h2>
 
+            {/* ⚠️ **빈 목록을 그리지 않는다** — 설치 연출처럼 스탯이 안 움직이는 장면에서는
+                줄이 하나도 없어 여백만 남는다(빈 자리를 만들지 않는다는 규칙). */}
+            {(payload.rows.length > 0 || payload.mentalPenalty > 0) && (
             <ul className="tr-effects">
               {payload.rows.map(({ key, value }) => (
                 <li key={key} className="tr-effect-group">
@@ -421,12 +458,16 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
                 </li>
               )}
             </ul>
+            )}
+
+            {/* 스탯 대신 **무엇이 생겼는지**를 적는 자리. */}
+            {payload.note && <p className="tr-note">{payload.note}</p>}
 
             {/* ⚠️ **일감 줄은 도구에만 있다** — 알바에는 그몽 계약이 없으므로 이 줄을
                 그리면 "받아 둔 일이 없습니다"가 매번 뜬다(빈 자리를 만들지 않는다). */}
             {toolId && (
               <p className="tr-gig">
-                {gigLine(payload, gigsOf(state).earned, activeContract(state))}
+                {gigLine(payload, gigsOf(state).earned, gigProgress(state).done, activeContract(state))}
               </p>
             )}
 
@@ -450,14 +491,21 @@ export function ToolRun({ payload, onClose }: { payload: ToolRunPayload; onClose
  * ⚠️ 계약이 사라졌는데 보수가 안 늘었다면 **마감을 놓친 것**이다(밤이 지나갔다) —
  * 그 경우까지 "납품 완료"라고 적으면 화면이 거짓말을 한다.
  */
-function gigLine(payload: ToolRunPayload, earnedNow: number, after?: GigContract): string {
+function gigLine(
+  payload: ToolRunPayload,
+  earnedNow: number,
+  doneNow: number,
+  after?: GigContract,
+): string {
   const before = payload.contract
   const gig = before ? findGig(before.gigId) : undefined
   if (!before || !gig) return '받아 둔 일감이 없어 연습으로 켰습니다.'
   if (gig.tool !== payload.toolId) {
     return `받아 둔 일감은 ${TOOL_NAMES[gig.tool]} 작업이라 업무량은 그대로입니다.`
   }
-  if (after) return `업무량 ${after.progress} / ${gig.workload} · 「${gig.title}」`
+  /* 진행은 이제 작업물이 진다(2026-08-22) — 몇 개가 요구 등급에 닿았는가로 읽는다.
+     ⚠️ **회신은 그몽 화면에서 따로 누른다** — 다 채워도 여기서 돈이 들어오지 않는다. */
+  if (after) return `${gig.wants.rank}등급 ${doneNow} / ${gig.wants.count} · 「${gig.title}」`
   const paid = earnedNow - payload.earned
   if (paid > 0) {
     return `「${gig.title}」 납품 완료 — 보수 ${paid.toLocaleString('ko-KR')}원을 받았습니다.`

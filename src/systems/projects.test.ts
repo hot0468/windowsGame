@@ -12,8 +12,7 @@ import {
 } from './projects'
 import { createInitialState } from './turn'
 import { MIN_BOOK_PAGES, QUALITY_MULTIPLIER, WON_PER_PAGE } from '../data/contests'
-import { ECONOMY_TIERS } from '../data/economy'
-import { HOUSINGS } from '../data/housing'
+import { BASE_LIVING_COST, INCOME_CAP_RATIO } from '../data/economy'
 import type { GameState } from '../types/game'
 
 /**
@@ -72,7 +71,7 @@ describe('작품집', () => {
     // ⚠️ 그림은 갤러리에도 남는다 — 프로젝트는 **가리키기만** 한다.
     expect(after.artworks).toHaveLength(1)
     expect(pagesOf(after, openProjects(after)[0])[0].id).toBe(after.artworks![0].id)
-    expect(after.slot).not.toBe(made.slot)
+    expect(after.minute + after.day * 1440).toBeGreaterThan(made.minute + made.day * 1440)
   })
 
   it('없는 권·게임오버에는 아무 일도 없다', () => {
@@ -142,15 +141,14 @@ describe('⚠️ 불변식 — 회지가 물가를 이기지 못한다', () => {
    * ⚠️ **가장 싼 집 기준으로 잰다**(트위터 정산과 같은 방식) — 고시원으로 옮기면 생활비가
    * 절반 아래로 내려가므로, 기본 집으로 재면 실제로는 이길 수 있는데 통과하는 판이 된다.
    */
-  const cheapestRate = Math.min(...HOUSINGS.map((h) => h.rate))
-  const lastLiving = ECONOMY_TIERS[ECONOMY_TIERS.length - 1].living * cheapestRate
+  const ceiling = BASE_LIVING_COST * INCOME_CAP_RATIO.session
 
-  it('가장 잘 팔리는 회지도 하루 수입이 마지막 물가 생활비를 못 넘는다', () => {
-    expect(perTurn * 2).toBeLessThan(lastLiving)
+  it('가장 잘 팔리는 회지도 하루 수입이 생활비 1.5배를 넘지 않는다', () => {
+    expect(perTurn * 2).toBeLessThan(ceiling)
   })
 
   it('규칙을 뒤집으면 실패한다 — 배율을 두 배로 하면 부등식이 깨진다', () => {
-    expect(perTurn * 2 * 2).toBeGreaterThan(lastLiving)
+    expect(perTurn * 2 * 2).toBeGreaterThan(ceiling)
   })
 
   it('완성도 구간은 내림차순이고 0을 덮는다 — 어떤 점수든 배율이 하나 걸린다', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useWindowStore } from './windowStore'
+import { placeWindow, useWindowStore, MIN_WINDOW } from './windowStore'
 import { LAYERS } from '../data/layers'
 
 const reset = () =>
@@ -220,5 +220,110 @@ describe('windowStore 사이트 이동 요청', () => {
     expect(useWindowStore.getState().pendingSite).toBeNull()
     useWindowStore.getState().openSite('adobe')
     expect(useWindowStore.getState().pendingSite).toBe('adobe')
+  })
+})
+
+/**
+ * 창이 서는 자리. **좌표를 만드는 곳이 여기 하나뿐이라서** 여기서만 지키면 된다
+ * (예전에는 창을 여는 자리마다 손으로 적혀 아홉 벌로 흩어져 있었다).
+ */
+describe('placeWindow — 새 창이 서는 자리', () => {
+  it('가로는 가운데, 세로는 위쪽이다', () => {
+    // 노드에는 window가 없어 폴백 폭 1280을 쓴다(그 사정은 함수 주석에 있다).
+    const { x, y } = placeWindow(900, 0)
+    expect(x).toBe((1280 - 900) / 2)
+    expect(y).toBeLessThan(100)
+  })
+
+  it('창이 늘수록 어긋나되, 몇 개마다 처음 자리로 돌아온다', () => {
+    const first = placeWindow(900, 0)
+    const second = placeWindow(900, 1)
+    expect(second.x).toBeGreaterThan(first.x)
+    expect(second.y).toBeGreaterThan(first.y)
+    // 계속 밀리기만 하면 화면을 벗어난다 — 주기가 있어야 한다.
+    expect(placeWindow(900, 5)).toEqual(first)
+  })
+
+  it('⚠️ 화면보다 넓은 창도 왼쪽이 음수가 되지 않는다', () => {
+    // 음수면 제목 줄을 못 잡아 창을 옮길 수 없게 된다.
+    const { x } = placeWindow(4000, 0)
+    expect(x).toBeGreaterThanOrEqual(0)
+  })
+
+  it('오른쪽으로도 넘치지 않는다', () => {
+    const width = 1200
+    const { x } = placeWindow(width, 4)
+    expect(x + width).toBeLessThanOrEqual(1280)
+  })
+})
+
+/*
+ * ⚠️ **창 안 이동이 지키는 것: 폴더와 이름표는 한 몸이다.**
+ * 탐색기의 [뒤로]·탐색 창은 창을 새로 열지 않고 열려 있는 창의 폴더를 갈아 끼우는데,
+ * 제목·아이콘이 함께 가지 않으면 작업 표시줄과 타이틀 바가 옛 폴더를 가리킨 채 남는다.
+ */
+describe('windowStore 창 안 폴더 이동', () => {
+  beforeEach(reset)
+
+  const nav = (id: string) =>
+    useWindowStore
+      .getState()
+      .navigate(id, { folderId: 'codex', title: '사진첩', icon: 'fluent-color:image-24' })
+
+  it('폴더·제목·아이콘이 함께 바뀐다', () => {
+    useWindowStore.getState().open(stub('folder-inventory', { kind: 'folder', folderId: 'inventory' }))
+    nav('folder-inventory')
+    expect(win('folder-inventory')).toMatchObject({
+      folderId: 'codex',
+      title: '사진첩',
+      icon: 'fluent-color:image-24',
+    })
+  })
+
+  it('창을 하나 더 만들지 않고, 다른 창도 건드리지 않는다', () => {
+    useWindowStore.getState().open(stub('folder-inventory', { kind: 'folder', folderId: 'inventory' }))
+    useWindowStore.getState().open(stub('folder-trash', { kind: 'folder', folderId: 'trash' }))
+    nav('folder-inventory')
+    expect(useWindowStore.getState().windows).toHaveLength(2)
+    expect(win('folder-trash').folderId).toBe('trash')
+  })
+})
+
+/*
+ * ⚠️ **최소 크기는 스토어 하나가 지킨다**(2026-08-22 크기 조절 신설) — 화면이 따로 자르면
+ * 바닥이 둘이 되어 한쪽만 고쳐진다. 타이틀 바와 내용 한 줄이 남지 않으면 창을 다시 잡을
+ * 수도, 안을 읽을 수도 없다.
+ */
+describe('크기 조절', () => {
+  const opened = () => {
+    useWindowStore.getState().closeAll()
+    useWindowStore.getState().open({ id: 'w1', kind: 'stub', title: '창', icon: 'mdi:cog', width: 600 })
+    return useWindowStore.getState().windows[0]
+  }
+
+  it('끈 만큼 커진다', () => {
+    opened()
+    useWindowStore.getState().resize('w1', 800, 500)
+    const w = useWindowStore.getState().windows[0]
+    expect(w.width).toBe(800)
+    expect(w.height).toBe(500)
+  })
+
+  it('⚠️ 최소 크기 아래로는 안 내려간다', () => {
+    opened()
+    useWindowStore.getState().resize('w1', 10, 10)
+    const w = useWindowStore.getState().windows[0]
+    expect(w.width).toBe(MIN_WINDOW.width)
+    expect(w.height).toBe(MIN_WINDOW.height)
+  })
+
+  it('처음 열린 창에는 높이가 없다 — 내용이 정한다', () => {
+    expect(opened().height).toBeUndefined()
+  })
+
+  it('없는 창을 끌어도 아무 일도 없다', () => {
+    opened()
+    useWindowStore.getState().resize('nope', 900, 900)
+    expect(useWindowStore.getState().windows[0].width).toBe(600)
   })
 })

@@ -6,13 +6,22 @@ import { BUYABLE_ITEMS } from '../../../data/items'
 import type { ShopItem } from '../../../data/items'
 import { NEWS_CATEGORIES, SEARCH_SUGGESTIONS, TRENDING_TERMS } from '../../../data/news'
 import type { NewsCategory } from '../../../data/news'
-import { BOOKMARK_SITES, PROMO_SITES, STORE_SITES } from '../../../data/sites'
+import {
+  BOOKMARK_SITES,
+  HOME_SITE_ID,
+  PROMO_SITES,
+  SEARCH_SITE_PREFIX,
+  STORE_SITES,
+  blogSiteId,
+  searchSiteId,
+} from '../../../data/sites'
 import type { Site } from '../../../data/sites'
 import { AppIcon } from '../../../icons/AppIcon'
+import { Cover } from './Cover'
 import { useGameStore } from '../../../store/gameStore'
 import { selectNewsPage } from '../../../systems/news'
 import { search } from '../../../systems/search'
-import { getLivingCost, getNextTier, getWageMultiplier, tierCostFor } from '../../../systems/economy'
+import { activeShock, getLivingCost, nextShock, shockCostFor } from '../../../systems/economy'
 import { AD_BONUS_MONEY, canClaimAdBonus } from '../../../systems/turn'
 import './NeverPortal.css'
 
@@ -75,7 +84,13 @@ function storeSiteIdOf(item: ShopItem): string {
  *
  * 배치: 1) 로고+검색 → 2) 퀵메뉴 + 실시간 검색어 → 3) 뉴스(넓게) + 배너존(좁게).
  */
-export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => void }) {
+export function NeverPortal({
+  site,
+  onNavigate,
+}: {
+  site: Site
+  onNavigate: (siteId: string) => void
+}) {
   const day = useGameStore((s) => s.state?.day ?? 1)
   const slot = useGameStore((s) => s.state?.slot ?? 'morning')
   const money = useGameStore((s) => s.state?.stats.money ?? 0)
@@ -85,7 +100,10 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
    * 하고 여기서는 숫자만 받는다(스탯창·확정 패널과 같은 함수를 본다).
    */
   const living = useGameStore((s) => (s.state ? getLivingCost(s.state) : 0))
-  const nextLiving = useGameStore((s) => (s.state ? tierCostFor(s.state, getNextTier(s.state.day)) : 0))
+  /* 급등이 왔을 때 낼 금액. 지금 흔들리는 중이면 그 사건, 아니면 다음 사건 기준이다. */
+  const shockLiving = useGameStore((s) =>
+    s.state ? shockCostFor(s.state, activeShock(s.state.day) ?? nextShock(s.state.day)) : 0,
+  )
 
   /** 뉴스 분야 탭. null이면 '전체'. */
   const [tab, setTab] = useState<NewsCategory | null>(null)
@@ -98,21 +116,24 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
    * 이 카드가 "게임의 알림 창구"라는 설계(문서 3.4)와도 맞는다.
    * tone은 좋고 나쁨이 아니라 **플레이어에게 유리/불리**를 뜻한다.
    */
-  const next = getNextTier(day)
+  const shock = activeShock(day)
+  const next = nextShock(day)
   const INDICES = [
     {
       label: '생활비',
       value: living.toLocaleString('ko-KR'),
-      // ⚠️ 인상률은 **같은 배율 위의 두 값**으로 잰다(`living`도 `nextLiving`도 집 배율을 탔다).
-      //    한쪽만 기준 금액을 쓰면 이사한 플레이어에게 말이 안 되는 %가 뜬다.
-      delta: `${next.day - day}일 뒤 +${living > 0 ? Math.round((nextLiving / living - 1) * 100) : 0}%`,
-      tone: 'bad',
+      /* ⚠️ 폭은 **같은 배율 위의 두 값**으로 잰다(`living`도 `shockLiving`도 집 배율을 탔다).
+         한쪽만 기준 금액을 쓰면 이사한 플레이어에게 말이 안 되는 %가 뜬다. */
+      delta: shock
+        ? `${shock.shock.name} · ${shock.end - day + 1}일 남음`
+        : `${next.start - day}일 뒤 +${living > 0 ? Math.round((shockLiving / living - 1) * 100) : 0}%`,
+      tone: shock ? 'bad' : 'flat',
     },
     {
-      label: '알바 시급',
-      value: `×${getWageMultiplier(day).toFixed(2)}`,
-      delta: `${next.day - day}일 뒤 ×${next.wageMultiplier.toFixed(2)}`,
-      tone: 'good',
+      label: '물가',
+      value: shock ? `+${Math.round((shock.shock.rate - 1) * 100)}%` : '안정',
+      delta: shock ? shock.shock.name : '평시 기준',
+      tone: shock ? 'bad' : 'good',
     },
     {
       label: '버티는 날',
@@ -129,22 +150,25 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
   const infected = useGameStore((s) => s.state?.malware !== undefined)
   const infect = useGameStore((s) => s.infectMalware)
 
-  const [query, setQuery] = useState('')
   /**
-   * 검색 결과로 넘어간 질의. null이면 홈 화면이다.
+   * 지금 보고 있는 검색어. **주소가 들고 있다**(`search:<검색어>` — `data/sites.ts`).
    *
-   * 실제 포털처럼 **같은 사이트 안에서 화면만 바뀐다** — 결과를 별도 사이트로 만들면
-   * 주소·이력·즐겨찾기까지 얽히는데, 검색은 그 사이트의 한 화면일 뿐이다.
-   * 입력 중인 `query`와 나눠 두는 이유: 글자를 고칠 때마다 결과가 바뀌면 안 된다.
+   * ⚠️ 예전에는 이 컴포넌트의 `useState`였는데, 그러면 탭 제목도 주소창도 뒤로 가기도
+   * 검색 결과를 모른다(검색해 놓고 뒤로 가면 결과가 통째로 사라졌다). 주소가 값을 품으면
+   * 브라우저 크롬이 아무것도 새로 배우지 않고 그대로 동작한다.
    */
-  const [submitted, setSubmitted] = useState<string | null>(null)
+  const submitted = site.id.startsWith(SEARCH_SITE_PREFIX)
+    ? site.id.slice(SEARCH_SITE_PREFIX.length)
+    : null
+  /* 입력 중인 글자. 결과 화면으로 들어오면 그 검색어로 시작한다(실제 포털과 같다).
+     ⚠️ 사이트가 바뀔 때마다 페이지가 통째로 다시 마운트되므로(BrowserApp의 key) 초기값으로 충분하다. */
+  const [query, setQuery] = useState(submitted ?? '')
   /**
    * 검색창을 눌렀는가. **추천 검색어 팝오버**가 이 값으로 뜬다(설계자 지시).
    * ⚠️ 별도 컴포넌트로 빼지 않는다 — 검색어(`query`)·실행(`runSearch`)과 한 덩어리라
    * 나누면 상태를 셋이나 위로 올려야 한다.
    */
   const [suggestOpen, setSuggestOpen] = useState(false)
-
   /**
    * 실시간 검색어는 목록이 아니라 **한 건씩 돌아가며** 뜬다(설계자 지시).
    * 게임 상태가 아니라 화면 장식이므로 컴포넌트 로컬 타이머로 충분하다 —
@@ -159,17 +183,22 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
     return () => clearInterval(id)
   }, [])
 
-  /** 검색 실행. 빈 문자열이면 홈으로 되돌린다. */
-  const runSearch = (term: string) => setSubmitted(term.trim() || null)
+  /** 검색 실행 = **그 검색어의 주소로 이동**. 빈 문자열이면 홈으로 되돌린다. */
+  const runSearch = (term: string) =>
+    onNavigate(term.trim() ? searchSiteId(term) : HOME_SITE_ID)
   const results = submitted ? search(submitted) : null
 
-  /** 실시간 검색어 클릭: 대응 사이트가 있으면 이동, 없으면 검색 안내로 끝난다. */
+  /**
+   * 실시간 검색어 클릭: **언제나 검색한다**(2026-08-22 설계자 지시).
+   *
+   * ⚠️ 예전에는 `siteId`가 있으면 그 사이트로 **바로 튀었다.** 그러면 '어도비'를 눌렀을 때
+   * 결제 화면이 통째로 뜨는데, 정작 그것을 어떻게 쓰는지 적힌 글로 가는 길이 사라진다 —
+   * 실제 포털에서 브랜드를 검색하면 공식 사이트 링크가 **첫 줄에 서고** 그 밑에 후기가 깔린다.
+   * 지금은 그 모양이고, `siteId`는 사이트가 결과 첫 줄에 서게 하는 힌트로만 쓰인다
+   * (판정은 `systems/search.ts`의 `TERM_SHORTCUTS`).
+   */
   const openTerm = (index: number) => {
     const term = TRENDING_TERMS[index]
-    if (term.siteId) {
-      onNavigate(term.siteId)
-      return
-    }
     // 검색창에도 넣어 준다 — 결과만 바뀌면 무엇을 검색했는지 알 수 없다.
     setQuery(term.label)
     runSearch(term.label)
@@ -182,10 +211,7 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
         <button
           type="button"
           className="nv-logo"
-          onClick={() => {
-            setSubmitted(null)
-            setQuery('')
-          }}
+          onClick={() => onNavigate(HOME_SITE_ID)}
         >
           네이놈
         </button>
@@ -243,7 +269,9 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
             <div className="nv-suggest" id="nv-suggest" role="listbox" aria-label="추천 검색어">
               {/* ⚠️ **실시간 검색어가 아니라 검색어 추천이다**(설계자 지시) — 목록도 다르다
                   (`SEARCH_SUGGESTIONS`). 실검은 "지금 화제인 것", 여기는 "여기서 찾을 수
-                  있는 것"이라 대부분 갈 곳이 있고, **어도비 사이트의 유일한 입구**이기도 하다. */}
+                  있는 것"이라 대부분 갈 곳이 있고, **어도비 사이트의 유일한 입구**이기도 하다.
+                  ⚠️ 그래도 **사이트로 바로 튀지 않는다**(`openTerm`과 같은 이유) — 검색 결과
+                  첫 줄이 그 사이트고, 그 밑에 쓰는 법을 적은 글이 깔린다. */}
               <p className="nv-suggest-head">검색어 추천</p>
               {SEARCH_SUGGESTIONS.map((term, i) => (
                 <button
@@ -255,10 +283,7 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
                   onClick={() => {
                     setSuggestOpen(false)
                     setQuery(term.label)
-                    // ⚠️ 대응 사이트가 있으면 거기로 간다 — 실시간 검색어 줄과 같은 규칙이다
-                    //    (같은 단어를 눌렀는데 자리에 따라 다른 데로 가면 안 된다).
-                    if (term.siteId) onNavigate(term.siteId)
-                    else runSearch(term.label)
+                    runSearch(term.label)
                   }}
                 >
                   <span className="nv-suggest-rank">{i + 1}</span>
@@ -281,10 +306,7 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
           query={submitted ?? ''}
           result={results}
           onNavigate={onNavigate}
-          onSearch={(t) => {
-            setQuery(t)
-            runSearch(t)
-          }}
+          onSearch={runSearch}
         />
       ) : (
         <>
@@ -381,11 +403,13 @@ export function NeverPortal({ onNavigate }: { onNavigate: (siteId: string) => vo
             <ul className="nv-news">
               {newsPage.lead.map((item, i) => (
                 <li key={item.id} className={`nv-news-item nv-news-${item.kind}`}>
-                  {/* 레퍼런스의 썸네일 자리. 사진이 없으므로 **매체 머리글자 타일**을 둔다 —
-                      회색 네모를 깔면 "이미지 로딩 실패"로 읽힌다. */}
-                  <span className="nv-thumb" aria-hidden="true">
-                    {(item.source ?? '네').slice(0, 1)}
-                  </span>
+                  {/* 레퍼런스의 썸네일 자리. 사진이 있으면 사진, 없으면 **매체 머리글자 타일**이다
+                      (회색 네모를 깔면 "이미지 로딩 실패"로 읽힌다). */}
+                  <Cover src={`/img/news/${item.id}.webp`} className="nv-thumb nv-thumb-photo">
+                    <span className="nv-thumb" aria-hidden="true">
+                      {(item.source ?? '네').slice(0, 1)}
+                    </span>
+                  </Cover>
                   <span className="nv-news-body">
                     <span className="nv-news-text">
                       {NEWS_TAGS[item.kind] && (
@@ -781,10 +805,12 @@ function ShopStrip({ onNavigate }: { onNavigate: (siteId: string) => void }) {
                 onClick={() => onNavigate(storeSiteIdOf(item))}
                 title={item.desc}
               >
-                {/* 사진이 없으므로 아이콘 판이다(회색 네모를 깔면 "로딩 실패"로 읽힌다). */}
-                <span className="nv-shop-thumb">
-                  <AppIcon name={item.icon} size={44} />
-                </span>
+                {/* 사진이 있으면 사진, 없으면 아이콘 판이다. */}
+                <Cover src={`/img/item/${item.id}.webp`} className="nv-shop-thumb nv-shop-photo">
+                  <span className="nv-shop-thumb">
+                    <AppIcon name={item.icon} size={44} />
+                  </span>
+                </Cover>
                 <span className="nv-shop-name">{item.name}</span>
                 <span className="nv-shop-price">{item.price.toLocaleString('ko-KR')}원</span>
               </button>
@@ -871,6 +897,44 @@ function SearchResults({
         </div>
       )}
 
+      {/* 블로그·카페. 뉴스보다 위인 이유는 **여기만 눌러서 읽을 수 있기 때문**이다
+          (기사는 제목이 전부라 목록 아래에 둔다).
+
+          ⚠️ **사이트 블록 바로 밑이 이 자리인 것이 설계다**(2026-08-22 설계자 지시): 위가
+          "그 기능으로 가는 문"이고 여기가 "그 기능을 어떻게 쓰는지"다. 순서를 바꾸면
+          검색 결과가 링크 모음이 되고, 팁 글은 아무도 안 지나가는 아래로 밀린다.
+
+          ⚠️ 묶음을 카페와 나누는 것은 실제 포털의 모양이다. 판정은 `BlogPost.kind` 하나이므로
+          글을 더할 때 여기 손댈 것이 없다. */}
+      {(['블로그', '카페'] as const).map((head) => {
+        const posts = result.blogs.filter((b) =>
+          head === '카페' ? b.kind === 'cafe' : b.kind !== 'cafe',
+        )
+        if (posts.length === 0) return null
+        return (
+          <div className="nv-rgroup" key={head}>
+            <h2 className="nv-rhead">{head}</h2>
+            {posts.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                className="nv-rblog"
+                onClick={() => onNavigate(blogSiteId(b.id))}
+              >
+                <span className="nv-rblog-body">
+                  <span className="nv-rblog-meta">
+                    {b.blog} · {b.date}
+                  </span>
+                  <span className="nv-rblog-title">{b.title}</span>
+                  <span className="nv-rblog-lead">{b.lead}</span>
+                </span>
+                <Cover src={`/img/blog/${b.id}-1.webp`} className="nv-rblog-thumb" />
+              </button>
+            ))}
+          </div>
+        )
+      })}
+
       {result.news.length > 0 && (
         <div className="nv-rgroup">
           <h2 className="nv-rhead">뉴스</h2>
@@ -900,3 +964,4 @@ function SearchResults({
     </section>
   )
 }
+

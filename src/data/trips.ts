@@ -27,8 +27,22 @@ export interface Trip {
    * 같은 일당인 것과 같은 이유다(화면이 파생시키는 값이 하나여야 표시가 참이 된다).
    */
   activityId: string
-  /** 일정 표기(3박 5일 등). 표시 전용이다 — 게임의 턴은 하나다. */
+  /**
+   * 일정 표기(3박 5일 등). **화면에 뜨는 글자이고, 실제 일수는 `days`가 갖는다.**
+   * ⚠️ 둘이 어긋나면 화면이 거짓말을 한다 — `trips.test.ts`가 표기의 "N일"과 `days`가
+   * 같은지 순회로 지킨다.
+   */
   schedule: string
+  /**
+   * **실제로 지나가는 날 수**(2026-08-22 설계자 지시: "일정만큼 진짜로 날짜를 태운다").
+   *
+   * ⚠️ 예전에는 `schedule`이 표시 전용이었고 여행은 그날 몇 시간으로 끝났다 — "3박 5일"을
+   * 다녀와도 달력이 하루도 안 넘어갔다. 지금은 이 값만큼 밤이 지나가고, 그 사이 생활비·
+   * 청구·마감이 평소대로 흐른다. **여행의 무게는 돈이 아니라 잃는 날이다.**
+   * ⚠️ 활동 효과·값도 이 값을 곱한다(활동은 **하루치**를 갖는다) — 그래서 긴 일정일수록
+   * 비싸고 그만큼 얻는다.
+   */
+  days: number
   /** 카드 배경. */
   cover: string
   /** 포함 사항. 실제 여행 상품 카드의 그 줄이다. */
@@ -48,6 +62,7 @@ export const TRIPS: Trip[] = [
     region: '장거리',
     activityId: 'travel',
     schedule: '3박 5일',
+    days: 5,
     cover: 'linear-gradient(140deg, #0b3a53 0%, #14708c 55%, #0f6f6a 100%)',
     includes: ['왕복 항공', '수하물 20kg', '조식 4회', '스노클링 1회'],
     blurb: '배너에서 본 그 상품이다. 잔여 좌석은 늘 여섯 석이라고 적혀 있다.',
@@ -59,6 +74,7 @@ export const TRIPS: Trip[] = [
     region: '장거리',
     activityId: 'travel',
     schedule: '3박 4일',
+    days: 4,
     cover: 'linear-gradient(140deg, #4a2410 0%, #a1541f 55%, #d9903f 100%)',
     includes: ['왕복 항공', '사막 캠프 1박', '별 관측 가이드'],
     blurb: '낮에는 아무것도 없고 밤에는 전부 있다.',
@@ -70,6 +86,7 @@ export const TRIPS: Trip[] = [
     region: '장거리',
     activityId: 'travel',
     schedule: '5박 7일',
+    days: 7,
     cover: 'linear-gradient(140deg, #3a2a4a 0%, #6b4a7a 55%, #b088c4 100%)',
     includes: ['왕복 항공', '시내 호텔 5박', '도보 투어 3회'],
     blurb: '골목마다 같은 간판이 걸려 있다. 그래도 하나도 안 지겹다.',
@@ -81,6 +98,7 @@ export const TRIPS: Trip[] = [
     region: '장거리',
     activityId: 'travel',
     schedule: '4박 6일',
+    days: 6,
     cover: 'linear-gradient(140deg, #0d1b3a 0%, #1f4a7a 55%, #4fc3a1 100%)',
     includes: ['왕복 항공', '방한복 대여', '오로라 알림 서비스'],
     blurb: '못 볼 수도 있다고 세 번쯤 적혀 있다.',
@@ -92,6 +110,7 @@ export const TRIPS: Trip[] = [
     region: '근거리',
     activityId: 'travel-near',
     schedule: '2박 3일',
+    days: 3,
     cover: 'linear-gradient(140deg, #24303f 0%, #4a6076 55%, #8aa2b8 100%)',
     includes: ['왕복 기차', '료칸 2박', '조·석식', '온천 무제한'],
     blurb: '눈 오는 노천탕 사진 한 장으로 다 팔린다는 상품.',
@@ -103,6 +122,7 @@ export const TRIPS: Trip[] = [
     region: '근거리',
     activityId: 'travel-near',
     schedule: '3박 4일',
+    days: 4,
     cover: 'linear-gradient(140deg, #14532d 0%, #2f7d4f 55%, #6bab7d 100%)',
     includes: ['배편 3구간', '게스트하우스 3박', '자유 일정'],
     blurb: '가장 싼 축이지만 이 게임에서 싼 여행이란 없다.',
@@ -114,6 +134,7 @@ export const TRIPS: Trip[] = [
     region: '근거리',
     activityId: 'travel-near',
     schedule: '2박 3일',
+    days: 3,
     cover: 'linear-gradient(140deg, #4a1a10 0%, #a8451f 55%, #e8a35a 100%)',
     includes: ['왕복 항공', '시내 호텔 2박', '야시장 가이드'],
     blurb: '축제 기간에만 뜨는 상품. 사람이 정말 많다.',
@@ -125,6 +146,7 @@ export const TRIPS: Trip[] = [
     region: '국내',
     activityId: 'travel-near',
     schedule: '1박 2일',
+    days: 2,
     cover: 'linear-gradient(140deg, #123a4a 0%, #2a7a8c 55%, #7ec4cc 100%)',
     includes: ['KTX 왕복', '항구 호텔 1박', '회센터 식사권'],
     blurb: '기차에서 내리면 바로 바다다. 그게 전부이자 장점이다.',
@@ -136,6 +158,7 @@ export const TRIPS: Trip[] = [
     region: '국내',
     activityId: 'travel-near',
     schedule: '1박 2일',
+    days: 2,
     cover: 'linear-gradient(140deg, #1e3a24 0%, #3f6b42 55%, #8ab08a 100%)',
     includes: ['템플스테이 1박', '공양 3식', '새벽 예불'],
     blurb: '새벽 네 시에 깨운다는 말이 굵게 적혀 있다.',
@@ -147,6 +170,7 @@ export const TRIPS: Trip[] = [
     region: '국내',
     activityId: 'travel-near',
     schedule: '2박 3일',
+    days: 3,
     cover: 'linear-gradient(140deg, #2a3a1e 0%, #5e7a34 55%, #a8c471 100%)',
     includes: ['왕복 항공', '게스트하우스 2박', '코스 지도'],
     blurb: '하루에 15km씩 걷는다. 다녀오면 다리가 굵어져 있다.',

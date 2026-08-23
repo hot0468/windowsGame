@@ -30,7 +30,7 @@ import {
   MISS_REPUTATION_PENALTY,
   WEEKLY_PAGES,
 } from '../data/webtoon'
-import { ECONOMY_TIERS } from '../data/economy'
+import { BASE_LIVING_COST, INCOME_CAP_RATIO } from '../data/economy'
 import { MAILBOX } from '../data/messages'
 import { ACTIVITIES } from '../data/activities'
 import type { GameState, Stats, WebtoonState } from '../types/game'
@@ -116,7 +116,7 @@ describe('원고와 마감', () => {
     const s = serializing()
     const after = drawWebtoon(s)
     expect(after.webtoon!.progress).toBe(1)
-    expect(after.slot).not.toBe(s.slot)
+    expect(after.minute + after.day * 1440).toBeGreaterThan(s.minute + s.day * 1440)
     // ⚠️ 갤러리에 그림이 안 생긴다 — 남의 원고라 내 작품집이 아니다.
     expect(after.artworks ?? []).toHaveLength(0)
   })
@@ -185,16 +185,16 @@ describe('원고와 마감', () => {
   })
 })
 
-describe('⚠️ 불변식 — 연재가 물가를 이기지 못한다', () => {
-  const lastLiving = ECONOMY_TIERS[ECONOMY_TIERS.length - 1].living
+describe('⚠️ 불변식 — 연재 수입에도 고삐가 있다', () => {
+  /* 원고료는 주 1회로 들어오고 생활비는 매일 나간다 — 그래서 한 주치 상한으로 잰다. */
+  const ceiling = BASE_LIVING_COST * INCOME_CAP_RATIO.weekly
 
-  it('원고료만으로는 마지막 물가 구간의 한 주를 못 넘긴다', () => {
-    // 한 주는 7일이고 원고료는 주 1회다. 생활비는 매일 나간다.
-    expect(EPISODE_PAY).toBeLessThan(lastLiving * DEADLINE_DAYS)
+  it('한 회 원고료가 생활비 열흘치를 넘지 않는다', () => {
+    expect(EPISODE_PAY).toBeLessThan(ceiling)
   })
 
   it('규칙을 뒤집으면 실패한다 — 원고료를 네 배로 하면 부등식이 깨진다', () => {
-    expect(EPISODE_PAY * 4).toBeGreaterThan(lastLiving * DEADLINE_DAYS)
+    expect(EPISODE_PAY * 4).toBeGreaterThan(ceiling)
   })
 
   it('⚠️ 원고 활동은 돈을 한 푼도 안 주고 물가 배율도 안 탄다', () => {

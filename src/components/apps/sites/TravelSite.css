@@ -291,6 +291,8 @@
 
 /* 사진 자리. 그라데이션 판 + 목적지 글자다(외부 이미지 금지). */
 .tv-photo {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: flex-end;
   aspect-ratio: 4 / 3;
@@ -304,7 +306,26 @@
   box-shadow: var(--el-2);
 }
 
+/* 상품 사진. 판을 꽉 채우고 어둡게 깐다 — 흰 목적지 글자가 그 위에 눕는다. */
+.tv-photo-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 아래쪽만 어둡게 까는 막. 목적지 글자가 **바닥에 붙어 있어서** 사진 전체를 어둡게 할
+   이유가 없다(포스터는 제목이 가운데라 사진 자체를 내린다 — 자리가 규칙을 정한다). */
+.tv-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.78) 100%);
+}
+
 .tv-photo-place {
+  position: relative;
   font-size: var(--fs-sm);
   font-weight: 700;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);

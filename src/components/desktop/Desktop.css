@@ -354,9 +354,9 @@
 }
 
 .taskbar-slot {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
+  display: block;
+  font-size: var(--fs-xs);
+  opacity: 0.85;
 }
 
 /* 시계 왼쪽의 바탕화면 패널 버튼 구역. 열린 창 목록과 성격이 달라
@@ -426,6 +426,10 @@
   font-family: var(--font-date);
   font-weight: 400;
   line-height: 1.15;
+  /* 오전/오후가 같은 줄에 붙는다. 좁은 패널이라 긴 날짜에서는 접혀야 한다. */
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
   letter-spacing: -0.015em;
   color: var(--hud-text);
 }
@@ -443,29 +447,49 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 현재 슬롯(오전/오후) 칩. 액센트 헤어라인 + 거의 투명한 틴트라 카드 표면을 찢지 않는다. */
+/* 현재 슬롯(오전/오후). **날짜 옆에 날짜와 같은 크기로 선다**(설계자 지시).
+   ⚠️ **칩이 아니다** — 예전에는 액센트 틴트를 두른 11px 알약이었다. 24px 옆에 두면
+   알약이 버튼처럼 읽혀 누르려 들게 되고(죽은 컨트롤), 틴트가 날짜 줄을 두 조각으로 자른다.
+   지금은 날짜와 한 줄로 이어지는 같은 서체·같은 크기의 글자이고, 구분은 색이 진다. */
 .cal-slot {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px var(--sp-2);
-  border: 1px solid var(--hud-accent-line);
-  border-radius: 999px;
-  background: var(--hud-accent-wash);
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  color: var(--hud-text);
+  gap: var(--sp-1);
+  /* 긴 날짜("12월 21일 (월)")에서는 다음 줄로 내려간다 — 줄이는 대신 접는다.
+     붙여 두려고 크기를 낮추면 "크게"라는 요구 자체가 사라진다. */
+  margin-left: var(--sp-2);
+  font-size: inherit;
+  color: var(--hud-text-2);
 }
 
 /* 슬롯 글리프만 액센트. 라벨 글자는 잉크로 남긴다 —
    액센트를 글자에 쓰면 반투명 카드 위에서 4.5:1 경계로 떨어진다. */
 .cal-slot svg {
   color: var(--hud-accent);
+  flex: none;
 }
 
 /* 오늘 날씨. **칩이 아니라 한 줄이다** — 슬롯 칩과 같은 모양으로 두면 둘이 같은 종류의
    사실로 읽히는데, 슬롯은 플레이어가 쓰는 자원이고 날씨는 그냥 오늘의 조건이다.
    글리프에만 액센트를 주는 규칙은 슬롯 칩과 같다(반투명 카드 위 대비 때문). */
+/* 계절 줄. 날씨와 같은 급의 보조 정보라 같은 크기·같은 색을 쓴다(새 토큰을 만들지 않는다). */
+.cal-season {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  color: var(--hud-text-3);
+}
+
+.cal-season svg {
+  color: var(--hud-accent);
+  flex: none;
+}
+
+.cal-season-left {
+  opacity: 0.75;
+}
+
 .cal-weather {
   display: flex;
   align-items: baseline;
@@ -495,6 +519,77 @@
    약속이 깨진다(`color-not-only`). */
 .cal-weather-note {
   min-width: 0;
+}
+
+/*
+ * 이번 달 격자. **날짜칸에서 유일하게 "지나온 것"을 지는 구역이다**(사유는 컴포넌트 주석).
+ *
+ * ⚠️ **새 색을 만들지 않는다** — 칠은 전부 기존 HUD 토큰이다. 지난 날은 게이지 트랙과
+ * 같은 홈(`--hud-track`), 오늘은 슬롯 칩과 같은 액센트 한 벌(`--hud-accent*`)을 쓴다.
+ * 그래서 격자가 패널에 얹힌 남의 위젯이 아니라 스탯창과 한 언어로 읽힌다.
+ */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  /* 칸 사이를 1px만 벌린다. 넓히면 칠해진 날들이 서로 떨어져 "쌓였다"가 아니라
+     "흩어졌다"로 읽힌다 — 이 구역이 나르는 것이 바로 그 덩어리감이다. */
+  gap: 1px;
+  margin-top: var(--sp-3);
+}
+
+.cal-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 칸이 정사각에 가까워야 격자로 읽힌다. 패널 폭이 고정(240)이라 1fr ≈ 27px이고,
+     높이를 그보다 낮게 잡아 여섯 줄이 다 들어와도 지갑칸을 밀어내지 않게 한다. */
+  min-height: 22px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--hud-text-3);
+}
+
+/* 요일 머리. 숫자와 같은 크기면 격자의 첫 줄이 날짜처럼 읽힌다. */
+.cal-head {
+  min-height: 18px;
+  font-size: 10px;
+  color: var(--hud-text-2);
+}
+
+/* 주말. 한국 달력 관례대로 일요일만 붉고 토요일만 파랗다.
+   ⚠️ `--hud-danger`를 **경고가 아니라 잉크로** 빌려 쓴다 — 붉은 잉크가 이 팔레트에
+   그것뿐이고, 여기서 새 색을 만들면 HUD 팔레트가 갈라진다. */
+.cal-sun {
+  color: var(--hud-danger);
+}
+
+.cal-sat {
+  color: var(--hud-accent);
+}
+
+/* 지나간 날. **칠이 곧 누적이다** — 쌓인 것을 말하는 것은 면이지 글자가 아니다.
+   ⚠️ **글자를 흐리게 하지 않는다**(`opacity`를 되살리지 말 것). 60%로 죽이면 합성 잉크가
+   회색으로 떠서 AA에 못 미치는데, 지나온 날일수록 칸이 많아 화면의 대부분이 그렇게 된다.
+
+   ⚠️ **칠의 짙기는 실측이 정한 6%다. 위아래 어느 쪽으로도 옮기지 말 것.**
+   칠이 짙을수록 잉크가 아니라 **바탕이 어두워져** 대비가 내려간다 — 게이지 트랙(10%)으로
+   깔았을 때 지나간 일요일이 4.42:1로 AA에 못 미쳤다. 반대로 버튼 기본 면(3%)까지 내리면
+   대비는 남지만 **칠이 눈에 안 보여** 이 구역이 하는 일 자체가 사라진다(실측 스크린샷에서
+   지나간 칸과 남은 칸이 구별되지 않았다). 6%가 둘을 동시에 만족하는 유일한 기존 토큰이다. */
+.cal-past {
+  background: var(--hud-fill-hover);
+}
+
+/* 오늘. 슬롯 칩과 같은 액센트 한 벌이라 "지금"이 패널 안에서 한 목소리로 읽힌다.
+   ⚠️ **글자만 진한 쪽(`--hud-accent-strong`)이다.** 액센트 틴트 위에 같은 액센트를 얹으면
+   실측 4.29:1로 AA에 못 미친다 — 이 칸은 배경이 깔리는 유일한 칸이라 다른 칸과 같은
+   색을 쓸 수 없다. 요일 색(일·토)보다 뒤에 와서 오늘 칸은 언제나 이 색으로 덮인다. */
+.cal-today {
+  background: var(--hud-accent-wash);
+  box-shadow: inset 0 0 0 1px var(--hud-accent-line);
+  color: var(--hud-accent-strong);
+  font-weight: 600;
 }
 
 /* 건너뛰기는 시간을 소모하는 행동이지만 **권장 행동은 아니다**.
@@ -926,4 +1021,52 @@
    면과 테두리를 다시 정의하면 같은 판에 두 가지 경고 스타일이 생긴다. */
 .stat-down .stat-ill-title {
   color: var(--hud-danger);
+}
+
+/* 작업 표시줄 시계 — **시각이 주인공이다**(2026-08-22 분 단위 전환).
+   시간이 분으로 흐르게 되면서 "지금 몇 시인가"가 하루의 계획을 정하는 값이 됐다. */
+.taskbar-time {
+  display: block;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 취침 시각 고르기 (2026-08-22 설계자 지시) ──
+   ⚠️ **네이티브 `<select>`다** — 커스텀 토글을 안 만들어야 키보드·스크린 리더가 공짜로
+   붙는다. 색은 이 패널의 `--hud-*`만 쓴다(새 팔레트 금지). */
+.cal-bed {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+
+.cal-bed-label {
+  flex: 0 0 auto;
+  font-size: var(--fs-xs);
+  color: var(--hud-text-3);
+}
+
+.cal-bed-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 28px;
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--hud-border);
+  border-radius: var(--r-sm);
+  background: var(--hud-fill);
+  color: var(--hud-text);
+  font: inherit;
+  font-size: var(--fs-xs);
+}
+
+.cal-bed-select:disabled {
+  opacity: 0.5;
+}
+
+/* 고르기 판 바로 아래에 붙으므로 버튼 위 여백을 줄인다(둘이 한 덩어리로 읽혀야 한다). */
+.cal-bed + .cal-skip {
+  margin-top: var(--sp-2);
 }

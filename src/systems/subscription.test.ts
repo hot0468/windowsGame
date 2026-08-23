@@ -3,12 +3,14 @@ import {
   advanceSubscriptions,
   daysToBilling,
   subscribe,
+  subscriptionMessages,
   subscriptionsOf,
   unsubscribe,
 } from './subscription'
 import { canRun, createInitialState, subscribed } from './turn'
 import { BILLING_INTERVAL_DAYS, SUBSCRIPTIONS, findSubscription } from '../data/subscriptions'
 import { ACTIVITIES, findActivity } from '../data/activities'
+import { runSceneOf } from '../data/runScenes'
 import { DESKTOP_ITEMS, desktopEntries } from '../data/desktopItems'
 import { SITES } from '../data/sites'
 import { SEARCH_SUGGESTIONS } from '../data/news'
@@ -142,5 +144,68 @@ describe('구독이 여는 것', () => {
         SEARCH_SUGGESTIONS.some((t) => t.siteId === site!.id)
       expect(reachable, `${sub.id}로 가는 입구가 없다`).toBe(true)
     }
+  })
+})
+
+/**
+ * 영수증 메일. **낸 횟수와 메일 수가 어긋나면 안 된다** — 돈이 움직인 사실을 화면에
+ * 적는 자리이므로, 한 통이 모자라거나 남는 것은 거짓 영수증이다.
+ */
+describe('결제 영수증', () => {
+  it('구독한 적 없으면 한 통도 없다', () => {
+    expect(subscriptionMessages(rich())).toHaveLength(0)
+  })
+
+  it('가입 직후 한 통 — 첫 달치를 그 자리에서 내므로', () => {
+    const mails = subscriptionMessages(subscribe(rich(), ADOBE))
+    expect(mails).toHaveLength(1)
+    expect(mails[0].subject).toContain('1회차')
+    expect(mails[0].text).toContain(FEE.toLocaleString('ko-KR'))
+  })
+
+  it('⚠️ 메일 수 × 요금 = 지금까지 낸 총액 (청구가 여러 번 돌아도)', () => {
+    let s = subscribe(rich(1_000_000), ADOBE)
+    for (let i = 0; i < 3; i++) {
+      s = { ...s, day: s.day + BILLING_INTERVAL_DAYS }
+      s = advanceSubscriptions(s)
+    }
+    const mails = subscriptionMessages(s)
+    expect(mails.length).toBe(4) // 가입 + 청구 3회
+    expect(mails.length * FEE).toBe(subscriptionsOf(s).paid)
+    // 정렬 키가 서로 달라야 사서함에서 순서가 선다.
+    expect(new Set(mails.map((m) => m.turn)).size).toBe(mails.length)
+  })
+
+  it('해지하면 지난 영수증도 사라진다 — 세이브에 안 남기는 대가다(의도된 한계)', () => {
+    const s = subscribe(rich(), ADOBE)
+    expect(subscriptionMessages(unsubscribe(s, ADOBE))).toHaveLength(0)
+  })
+})
+
+/**
+ * 설치 연출. **연출이라 규칙은 안 건드리지만, 이름 하나가 화면을 깨뜨린다.**
+ */
+describe('설치 연출', () => {
+  it('⚠️ 액센트는 실행 장면이 이미 쓰는 이름이라야 한다', () => {
+    /* 'brush'를 넣었다가 창의 오른쪽 절반이 흰 여백이 된 적이 있다 — 그건 액센트가 아니라
+       **그림** 클래스(`.tr-brush`)라 `max-width: 220px`가 판 전체에 걸렸다. 없는 클래스는
+       CSS가 조용히 지나가므로 화면을 보기 전에는 안 잡힌다.
+
+       ⚠️ **CSS 파일을 읽어 검사하지 않는다** — `node:fs`는 앱 빌드(`tsc -b`)를 깨뜨리고
+       `?raw`는 vitest에서 빈 문자열이 된다(둘 다 해 봤다). 대신 **실행 장면이 실제로 쓰는
+       액센트 집합**과 대조한다: 그 이름들은 화면에 매일 그려지므로 CSS에 반드시 있다. */
+    const known = new Set(
+      ACTIVITIES.map((a) => runSceneOf(a)?.accent).filter((v): v is string => !!v),
+    )
+    for (const sub of SUBSCRIPTIONS) {
+      if (!sub.install) continue
+      expect(known).toContain(sub.install.accent)
+    }
+  })
+
+  it('설치 연출은 프로그램을 내려받는 구독에만 있다', () => {
+    // 배율만 파는 구독(트위터 플러스)에 설치 창이 뜨면 거짓말이 된다.
+    expect(findSubscription('adobe')!.install).toBeDefined()
+    expect(findSubscription('twitter-plus')!.install).toBeUndefined()
   })
 })

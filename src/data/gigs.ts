@@ -22,6 +22,7 @@
  */
 export type { ToolId } from '../types/game'
 import type { ToolId } from '../types/game'
+import type { StatRank } from '../systems/rankScale'
 
 export interface Gig {
   id: string
@@ -33,8 +34,15 @@ export interface Gig {
    * "무엇으로 하는 일인가"가 사라지고 도구가 셋일 이유도 없어진다.
    */
   tool: ToolId
-  /** 채워야 할 업무량. **도구를 한 번 켤 때마다 1** 오른다(`WORK_PER_SESSION`). */
-  workload: number
+  /**
+   * 의뢰인이 원하는 것 — **등급과 개수**(2026-08-22 설계자 지시).
+   *
+   * ⚠️ 예전에는 `workload`(도구를 몇 번 켜는가)였다. 그때는 도구를 켜도 **남는 것이 없어**
+   * 숫자만 올랐다 — 지금은 켤 때마다 작업물(`Work`)이 생기거나 보강되고, 그 작업물이
+   * 요구 등급에 닿아야 납품이 열린다. 그래서 **잘하는 사람은 빨리 끝내고 못하는 사람은
+   * 여러 번 손본다**(`systems/works.ts`의 `gainOf`).
+   */
+  wants: { rank: StatRank; count: number }
   /** 수주한 날로부터 며칠 안에 채워야 하는가. */
   days: number
   /** 납품하면 받는 보수(원). ⚠️ 물가 배율을 타지 않는다 — `systems/gigs.ts` 주석 참조. */
@@ -48,12 +56,6 @@ export interface Gig {
   requiresItem?: string
   badge?: string
 }
-
-/**
- * 도구를 한 번 켜면 오르는 업무량. **1이다** — `workload`가 곧 "몇 번 켜야 하는가"라서
- * 화면에 숫자를 따로 설명할 필요가 없다(2/3처럼 그대로 읽힌다).
- */
-export const WORK_PER_SESSION = 1
 
 /**
  * 마감을 놓쳤을 때 깎이는 평판.
@@ -76,7 +78,7 @@ export const GIGS: Gig[] = [
     client: '늘봄속기사무소',
     title: '사무소 소개 페이지 한 장',
     tool: 'vscode',
-    workload: 2,
+    wants: { rank: 'C', count: 1 },
     days: 4,
     pay: 130000,
     tags: ['초보 가능', 'VS 코드', '재택'],
@@ -87,7 +89,7 @@ export const GIGS: Gig[] = [
     client: '물빛공방',
     title: '상세페이지 1종 디자인',
     tool: 'photoshop',
-    workload: 2,
+    wants: { rank: 'C', count: 1 },
     days: 4,
     pay: 145000,
     tags: ['포토샵', '시안 2회', '재택'],
@@ -97,7 +99,7 @@ export const GIGS: Gig[] = [
     client: '한밤물류',
     title: '사내 안내 포스터 리뉴얼',
     tool: 'photoshop',
-    workload: 3,
+    wants: { rank: 'B', count: 1 },
     days: 6,
     pay: 230000,
     tags: ['포토샵', '인쇄용', '장기 가능'],
@@ -108,7 +110,7 @@ export const GIGS: Gig[] = [
     client: '시집이엔터',
     title: '30초 홍보 영상 편집',
     tool: 'premiere',
-    workload: 3,
+    wants: { rank: 'B', count: 1 },
     days: 6,
     pay: 225000,
     tags: ['프리미어', '자막 포함', '납기 엄수'],
@@ -118,7 +120,7 @@ export const GIGS: Gig[] = [
     client: '청람데이터랩',
     title: '문서 자동 분류 스크립트',
     tool: 'vscode',
-    workload: 3,
+    wants: { rank: 'C', count: 2 },
     days: 6,
     pay: 285000,
     tags: ['수료증 필요', 'VS 코드', '요구사항 변경 잦음'],
@@ -129,7 +131,7 @@ export const GIGS: Gig[] = [
     client: '서한리 로컬브랜드',
     title: '작은 가게 브랜딩 한 벌',
     tool: 'photoshop',
-    workload: 4,
+    wants: { rank: 'B', count: 2 },
     days: 8,
     pay: 380000,
     tags: ['수료증 필요', '포토샵', '평판에 남음'],
@@ -146,7 +148,7 @@ export const GIGS: Gig[] = [
     client: '늘봄FM',
     title: '팟캐스트 3화 잡음 정리',
     tool: 'audition',
-    workload: 2,
+    wants: { rank: 'C', count: 1 },
     days: 4,
     pay: 150000,
     tags: ['오디션', '납품 wav', '재택'],
@@ -156,7 +158,7 @@ export const GIGS: Gig[] = [
     client: '물빛공방',
     title: '매장 로고송 15초',
     tool: 'audition',
-    workload: 3,
+    wants: { rank: 'B', count: 1 },
     days: 6,
     pay: 240000,
     tags: ['오디션', '작곡 포함', '수정 2회'],
@@ -167,7 +169,7 @@ export const GIGS: Gig[] = [
     client: '시집이엔터',
     title: '단편 영화 사운드 믹싱',
     tool: 'audition',
-    workload: 4,
+    wants: { rank: 'A', count: 1 },
     days: 8,
     pay: 395000,
     tags: ['수료증 필요', '오디션', '평판에 남음'],

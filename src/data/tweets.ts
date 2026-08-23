@@ -172,6 +172,10 @@ export const TWEETS: Tweet[] = [
     retweets: 402,
     likes: 2211,
     views: '30.2만',
+    image: {
+      gradient: 'linear-gradient(135deg, #3f3d56 0%, #6d6a94 100%)',
+      caption: '저장만 스무 개',
+    },
   },
   {
     id: 't6',
@@ -192,6 +196,10 @@ export const TWEETS: Tweet[] = [
     retweets: 903,
     likes: 5120,
     views: '44.8만',
+    image: {
+      gradient: 'linear-gradient(135deg, #134e4a 0%, #0f766e 100%)',
+      caption: '밝게 찍은 물건 사진',
+    },
   },
   {
     id: 't8',
@@ -236,6 +244,10 @@ export const TWEETS: Tweet[] = [
     retweets: 88,
     likes: 720,
     views: '6.4만',
+    image: {
+      gradient: 'linear-gradient(135deg, #334155 0%, #64748b 100%)',
+      caption: '계약서 보증금 항목',
+    },
   },
   {
     id: 't12',
@@ -362,12 +374,99 @@ export const STREAM_REVIEWS: StreamReview[] = [
 ]
 
 /**
+ * 트윗 한 개의 최대 길이. 실제 X와 같다.
+ * ⚠️ **화면(`maxLength`)과 규칙(`postTweet`)이 같은 값을 본다** — 한쪽만 막으면
+ * 붙여넣기로 넘어간 글이 저장된다.
+ */
+export const TWEET_MAX_LENGTH = 280
+
+/**
+ * 내 글 하나가 받는 반응. **팔로워에서 파생하고 저장하지 않는다** —
+ * 저장하면 팔로워가 늘어도 옛 글의 숫자가 굳어 "계정이 커졌는데 반응은 그대로"가 된다.
+ *
+ * ⚠️ **돈을 만들지 않는다.** 정산은 여전히 `totalFollowers × WON_PER_FOLLOWER` 하나이고
+ * 글을 올려도 팔로워는 안 는다(팔로워를 주는 것은 그림뿐이다 — 그 상한이
+ * "판은 반드시 끝난다"를 지탱한다). 여기 숫자는 **표시 전용**이다.
+ *
+ * ⚠️ 비율은 실제 X의 체감 순서를 따른다: 조회 > 좋아요 > 리트윗 > 답글.
+ * 작은 계정이면 0이 나오는 것이 정상이라 바닥을 깔지 않는다 — 팔로워 128명짜리
+ * 계정의 글에 리트윗이 붙으면 그게 거짓말이다.
+ */
+export function myTweetStats(followers: number): {
+  views: string
+  likes: number
+  retweets: number
+  replies: number
+} {
+  const views = Math.round(followers * 0.62)
+  const likes = Math.floor(views * 0.05)
+  return {
+    views: views.toLocaleString('ko-KR'),
+    likes,
+    retweets: Math.floor(likes * 0.18),
+    replies: Math.floor(likes * 0.09),
+  }
+}
+
+/**
+ * 처음 팔로우하고 있는 계정. **데이터의 `Tweet.following` 플래그에서 뽑는다** —
+ * 목록을 손으로 한 번 더 적으면 플래그와 갈라진다.
+ *
+ * ⚠️ 이건 **씨앗일 뿐이다.** 한 번이라도 [팔로우]를 누르면 `TwitterState.following`이
+ * 정본이 되고, 판정은 `systems/twitter.ts`의 `followedHandles` 하나가 한다.
+ */
+export const DEFAULT_FOLLOWING: string[] = [
+  ...new Set(TWEETS.filter((t) => t.following).map((t) => t.handle)),
+]
+
+/**
  * 트윗 시각. **배열 인덱스에서 파생한다** — `new Date()`를 쓰면 결정성이 깨진다.
  * 위쪽이 최신이라 인덱스가 커질수록 오래된 글이 된다.
  */
 export function tweetAge(index: number): string {
   if (index === 0) return '32분'
   return index < 8 ? `${index * 2 + 1}시간` : `${index - 6}일`
+}
+
+/**
+ * 한 스레드에 그릴 답글 수의 상한.
+ *
+ * ⚠️ **실제 답글 수와 다르다** — 트윗 하나에 41개가 달려 있어도 41줄을 그리면 스레드가
+ * 타임라인을 밀어낸다. 실제 X도 전부 펼치지 않는다. 숫자는 그대로 두고 **보여 주는 것만**
+ * 자른다(숫자를 줄이면 화면이 거짓을 말한다).
+ */
+export const REPLIES_SHOWN = 4
+
+/**
+ * 답글 문구 풀.
+ *
+ * ⚠️ **계정마다 말투를 따로 두지 않았다** — 계정이 36개라 계정당 답글을 쓰면 데이터가
+ * 열 배가 되고, 답글은 원래 짧아 말투가 잘 드러나지도 않는다. 대신 **한 스레드에 같은
+ * 문구가 두 번 나오지 않게** 뽑는 쪽(`systems/twitter.ts`)이 인덱스를 어긋내며 집는다.
+ * ⚠️ 문구는 **무엇에 대한 답인지 몰라도 말이 되는 것**만 쓴다 — 어느 트윗 밑에나 붙는다.
+ */
+export const REPLY_LINES: string[] = [
+  '이거 진짜 공감돼요',
+  'ㅋㅋㅋㅋ 저만 그런 게 아니었네',
+  '와 이건 좀 저장해 둬야겠다',
+  '어제 저도 똑같은 생각 했어요',
+  '음… 저는 좀 다르게 봅니다',
+  '자세히 좀 알려주실 수 있나요',
+  '이런 글 자주 올려주세요',
+  '알고리즘이 여기로 데려왔습니다',
+  '맞말 그 자체',
+  '오늘 하루도 고생 많으셨어요',
+  '보다가 스크롤 멈췄네요',
+  '이 계정 팔로우 안 할 이유가 없다',
+]
+
+/**
+ * 내 글의 시각. **남의 트윗과 다른 규칙이다** — 저쪽은 인덱스 파생이지만 내 글은
+ * 실제로 올린 날(`MyPost.day`)을 안다.
+ */
+export function postAge(postDay: number, today: number): string {
+  const diff = Math.max(0, today - postDay)
+  return diff === 0 ? '방금' : `${diff}일`
 }
 
 /**

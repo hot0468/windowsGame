@@ -17,11 +17,13 @@ import { STAT_META } from '../../../data/statMeta'
 import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
 import {
+  JOB_NOTICE_LABELS,
   STAGE_COUNT,
   STAGE_LABELS,
   applyBlockers,
   attendedToday,
   isWorkday,
+  lastOutcome,
   shortfalls,
   stageIndex,
 } from '../../../systems/employment'
@@ -101,6 +103,9 @@ export function FleaSite({ site }: { site: Site }) {
   const job = state.employment
   const career = job ? findCareer(job.careerId) : undefined
   const app = state.application
+  /* 직전에 **끝난** 지원의 결과(탈락·불참). 급여·근태 소식은 여기 오지 않는다.
+     ⚠️ 새 상태가 아니라 `jobNotices` 파생이다 — 사유 문장도 메일과 같은 값을 그대로 쓴다. */
+  const outcome = lastOutcome(state)
   const applied = app ? findCareer(app.careerId) : undefined
   const picked = pickedId ? findCareer(pickedId) : undefined
   const blockers = applyBlockers(state)
@@ -256,11 +261,29 @@ export function FleaSite({ site }: { site: Site }) {
                   ))}
               </div>
             ) : (
-              /* ux `Empty States`: 빈 화면 대신 무엇을 하면 되는지 적는다. */
-              <p className="flea-empty">
-                아직 지원한 곳이 없습니다. 아래 공고를 골라 지원해 보세요. 서류 심사와 면접을
-                거쳐 합격하면 급여를 받게 됩니다.
-              </p>
+              /* ux `Empty States`: 빈 화면 대신 무엇을 하면 되는지 적는다.
+                 ⚠️ **직전 결과를 그 위에 남긴다** — 탈락하면 `application`이 지워져 이 카드가
+                 "지원한 곳이 없습니다"로 되돌아가는데, 토스트는 지나가고 메일은 열어야 보인다.
+                 지원했던 화면이 아무 말도 안 하면 통보가 없었던 것으로 읽힌다. */
+              <>
+                {outcome && (
+                  <p className="flea-outcome" role="status">
+                    <AppIcon name="fluent-color:mail-24" size={15} />
+                    <span>
+                      <b>
+                        {formatGameDate(outcome.day)} · {findCareer(outcome.careerId)?.company}{' '}
+                        {JOB_NOTICE_LABELS[outcome.kind]}
+                      </b>
+                      {outcome.reason && <span className="flea-dim"> — {outcome.reason}</span>}
+                      <span className="flea-dim"> · 자세한 내용은 아웃룩 메일에 있습니다.</span>
+                    </span>
+                  </p>
+                )}
+                <p className="flea-empty">
+                  아직 지원한 곳이 없습니다. 아래 공고를 골라 지원해 보세요. 서류 심사와 면접을
+                  거쳐 합격하면 급여를 받게 됩니다.
+                </p>
+              </>
             )}
 
             {receipt && (

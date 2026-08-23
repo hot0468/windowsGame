@@ -27,14 +27,23 @@
   pointer-events: auto;
   overflow: hidden;
   /* 아래에서 밀려 올라온다 — 방향이 "작업 표시줄 쪽에서 왔다"를 말해 준다
-     (ux `hierarchy-motion`). transform/opacity만 움직여 리플로우가 없다. */
-  animation: toast-in 180ms ease-out;
+     (ux `hierarchy-motion`). transform/opacity만 움직여 리플로우가 없다.
+
+     ⚠️ **8px/180ms로 되돌리지 말 것**(2026-08-21 설계자 지시: "아래에서 위로 올라오는
+     토스트 액팅"). 그 값은 눈에 페이드로만 읽혔다 — 8px은 토스트 한 장 높이의 1/10이라
+     방향이 안 보인다. 자기 높이만큼 아래에서 출발해야 **올라온 것**이 된다.
+
+     ⚠️ 감속 곡선이 이 연출의 절반이다. `ease-out`은 끝까지 미끄러져 밋밋한데,
+     이 곡선은 초반에 확 올라왔다 끝에서 붙듯 멎어서 "얹혔다"로 읽힌다. */
+  animation: toast-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    /* 자기 높이 + 사이 간격만큼 아래. 작업 표시줄 뒤에서 올라오는 것처럼 보인다
+       (토스트 층이 작업 표시줄보다 위라 지나가는 동안 잠깐 겹친다 — 실제 윈도우와 같다). */
+    transform: translateY(calc(100% + var(--sp-2)));
   }
 }
 

@@ -27,6 +27,30 @@
   padding: var(--sp-3) var(--sp-4);
 }
 
+/* 뒤로. 윈도우 11의 주소 줄 왼쪽 원형 글리프 버튼이다(테두리 없는 면). */
+.ex-back {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--os-text-2);
+  cursor: pointer;
+}
+
+.ex-back:hover:not(:disabled) {
+  background: var(--os-fill);
+}
+
+/* ux `disabled-states`: 갈 곳이 없으면 흐리게 + 커서도 함께 바꾼다(사유는 title에 적었다). */
+.ex-back:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
 .ex-crumbs {
   display: flex;
   align-items: center;

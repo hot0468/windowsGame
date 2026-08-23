@@ -17,10 +17,12 @@ import {
   visibleThreadsOf,
 } from '../../systems/messages'
 import { weekendCallMessages } from '../../systems/drive'
+import { MEETING_CHANNEL } from '../../data/meetings'
+import { meetingRequestMessages, pendingRequest } from '../../systems/meeting'
 import { rankEventMessages } from '../../systems/rankEvents'
 import { webtoonReviewMessages } from '../../systems/webtoon'
 import { offerUnlockedByRank } from '../../systems/rankEvents'
-import { STAT_NAMES } from '../../types/game'
+import { SLOT_NAMES, STAT_NAMES } from '../../types/game'
 import type { GameState, Stats } from '../../types/game'
 import './ChatApp.css'
 
@@ -79,6 +81,9 @@ const RAIL_ICONS = {
 function derivedMessages(state: GameState) {
   return [
     ...weekendCallMessages(state),
+    /* 화상회의 요청(2026-08-22). 주말 호출과 같은 부류다 — 재직 중일 때 날짜가 정하는 말이라
+       편성표에 넣을 수 없다. 받아들이는 [확인]은 아래 대화창이 그린다. */
+    ...meetingRequestMessages(state),
     ...webtoonReviewMessages(state),
     ...rankEventMessages(state),
     /* 관계 단계에 따라 바뀌는 말(2026-08-14). 편성표에 못 넣는 이유는 위 셋과 같다 —
@@ -126,8 +131,6 @@ export function ChatListApp({ appId }: { appId: string }) {
       title: name,
       icon: app.icon,
       threadId: id,
-      x: 240,
-      y: 110,
       width: 400,
     })
 
@@ -329,8 +332,11 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
   const person = personOfThread(threadId)
   const meetup = person ? findActivity(person.activityId) : undefined
   const acceptOffer = useGameStore((s) => s.acceptOffer)
+  const acceptMeeting = useGameStore((s) => s.acceptMeeting)
 
   if (!state || !thread) return null
+  /** 지금 받아들일 수 있는 화상회의 요청. 없으면 카드를 안 그린다. */
+  const invite = pendingRequest(state)
 
   /* ⚠️ **주말 호출은 편성표에 없다** — 상태에서 파생되는 사실이라 (day, slot)만으로는
      만들 수 없다(`MailApp`이 `examMessages`를 합치는 것과 같은 자리). */
@@ -399,6 +405,27 @@ export function ChatThreadApp({ threadId, onDone }: { threadId: string; onDone: 
         오픈채팅의 제안. 데이터(`Thread.offer`)가 문구·금액·활동을 전부 들고 있고
         여기서는 그리기만 한다 — 컴포넌트에 금액을 적으면 밸런스가 두 곳으로 갈라진다.
       */}
+      {/*
+        화상회의 요청. **대화창에서만 받을 수 있다** — 요청 메시지와 [확인]이 떨어져 있으면
+        무엇을 확인하는지가 화면에서 끊긴다. 카드는 `pendingRequest`가 있을 때만 뜨고,
+        누르는 순간 요청이 일정으로 바뀌므로 스스로 사라진다(같은 회의가 두 번 안 잡힌다).
+      */}
+      {invite && thread.id === MEETING_CHANNEL && (
+        <div className="chat-action">
+          <p className="chat-offer-q">
+            {invite.day}일차 {SLOT_NAMES[invite.slot]} · {invite.topic}
+          </p>
+          <button
+            type="button"
+            className="chat-offer chat-offer-go"
+            onClick={() => acceptMeeting()}
+          >
+            <span className="chat-offer-label">확인</span>
+            <span className="chat-offer-desc">일정에 넣습니다. 회의는 줌으로 참여합니다.</span>
+          </button>
+        </div>
+      )}
+
       {thread.offer && (
         <div className="chat-action">
           <p className="chat-offer-q">{thread.offer.question}</p>

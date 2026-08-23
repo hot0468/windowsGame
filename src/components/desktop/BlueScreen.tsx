@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { findActivity } from '../../data/activities'
 import { playSound } from '../../sound'
-import { EFFICIENCY_FLOOR, getBurnoutPenalty } from '../../systems/burnout'
+import { BURNOUT_WARN_STREAK, countConsecutive } from '../../systems/burnout'
 import { useGameStore } from '../../store/gameStore'
 import './BlueScreen.css'
 
@@ -22,7 +22,7 @@ const SHOW_MS = 3000
  *
  * ## 언제 뜨는가
  * **효율이 하한에 닿은 순간 딱 한 번.** 임계를 여기서 다시 적지 않고
- * `efficiency <= EFFICIENCY_FLOOR` 한 줄로 묻는다 — 연속 횟수를 적어 두면
+ * `countConsecutive >= BURNOUT_WARN_STREAK` 한 줄로 묻는다 — 임계를 여기 적어 두면
  * `EFFICIENCY_STEP`을 손볼 때 이 화면만 낡는다.
  *
  * ⚠️ **자동 진행 중에는 뜨지 않는다**(`Daybreak`와 같은 규칙): 120ms마다 슬롯이 넘어가는
@@ -55,7 +55,9 @@ export function BlueScreen() {
 
     const id = recent[recent.length - 1]
     if (!id) return
-    if (getBurnoutPenalty(recent, id).efficiency > EFFICIENCY_FLOOR) return
+    /* ⚠️ **효율이 아니라 연속 횟수로 묻는다**(2026-08-22 효율 배율 폐지) — 임계는
+       `BURNOUT_WARN_STREAK` 하나이고 화면에 다시 적지 않는다. */
+    if (countConsecutive(recent, id) < BURNOUT_WARN_STREAK) return
     playSound('error')
     setFailed(id)
     const timer = setTimeout(() => setFailed(null), SHOW_MS)

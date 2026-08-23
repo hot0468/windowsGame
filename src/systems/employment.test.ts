@@ -1,3 +1,4 @@
+import { DAY_END } from '../data/clock'
 import { describe, it, expect } from 'vitest'
 import { findActivity, plannableOf } from '../data/activities'
 import { weekdayOf } from '../data/calendar'
@@ -18,6 +19,7 @@ import {
   applyTo,
   attendedToday,
   canApply,
+  lastOutcome,
   noticeMail,
   noticeMessages,
   passes,
@@ -32,6 +34,7 @@ import {
   runActivity,
   settleRecovery,
   skipSlot,
+  sleepNow,
 } from './turn'
 import { livingCostForDay } from './economy'
 import { weekendCallOn } from './drive'
@@ -53,11 +56,11 @@ function qualified(overrides: Partial<GameState> = {}): GameState {
   }
 }
 
-/** 하루를 통째로 넘긴다(오전·오후 두 슬롯). 정산을 매 턴 돌린다. */
+/** 하루를 통째로 넘긴다(자정까지). 정산을 매 턴 돌린다. */
 function passDays(state: GameState, days: number): GameState {
   let s = state
-  for (let i = 0; i < days * 2; i++) {
-    s = advanceEmployment(skipSlot(s)).state
+  for (let i = 0; i < days; i++) {
+    s = advanceEmployment(sleepNow(s)).state
   }
   return s
 }
@@ -393,7 +396,7 @@ describe('밤 정산의 순서 — 급여가 우선한다', () => {
     const base = employedAt(eve, eve)
     return {
       ...base,
-      slot: 'afternoon',
+      minute: DAY_END - 60, slot: 'afternoon' as const,
       employment: { ...base.employment!, paydayDay: payday },
       // 생활비를 내고 나면 0 이하가 되는 잔고.
       stats: { ...base.stats, money: livingCostForDay(eve) - 1000 },
@@ -450,7 +453,7 @@ describe('밤 정산의 순서 — 급여가 우선한다', () => {
     const base = createInitialState('무직')
     const broke: GameState = {
       ...base,
-      slot: 'afternoon',
+      minute: DAY_END - 60, slot: 'afternoon' as const,
       stats: { ...base.stats, money: livingCostForDay(base.day) - 1000 },
     }
     expect(nightPayoutPending(broke)).toBe(false)
@@ -475,5 +478,39 @@ describe('소식은 사서함을 탄다', () => {
     expect(mails[0].subject).toBeTruthy()
     // 정렬 키(턴 번호)가 붙어 있어야 편성표 메일과 시간순으로 합칠 수 있다.
     expect(Number.isFinite(mails[0].turn)).toBe(true)
+  })
+})
+
+/*
+ * ⚠️ **탈락하면 `application`이 지워진다** — 벼룩장터가 "지원한 곳이 없습니다"로 되돌아가므로
+ * 무슨 일이 있었는지 말해 주는 것은 이 파생값 하나뿐이다(토스트는 지나가고 메일은 열어야 본다).
+ */
+describe('lastOutcome — 직전에 끝난 지원', () => {
+  const base = createInitialState('측정')
+
+  it('지원한 적이 없으면 없다', () => {
+    expect(lastOutcome(base)).toBeUndefined()
+  })
+
+  it('가장 최근의 탈락을 준다', () => {
+    const state: GameState = {
+      ...base,
+      jobNotices: [
+        { id: 'a', kind: 'screening-fail', careerId: CAREERS[0].id, day: 3, slot: 'morning' },
+        { id: 'b', kind: 'final-fail', careerId: CAREERS[1].id, day: 9, slot: 'afternoon' as const, reason: '매력 12 이상' },
+      ],
+    }
+    expect(lastOutcome(state)?.id).toBe('b')
+  })
+
+  it('급여·근태는 지원 결과가 아니다 — 탈락을 덮지 않는다', () => {
+    const state: GameState = {
+      ...base,
+      jobNotices: [
+        { id: 'a', kind: 'screening-fail', careerId: CAREERS[0].id, day: 3, slot: 'morning' },
+        { id: 'p', kind: 'payday', careerId: CAREERS[0].id, day: 10, slot: 'afternoon' as const, amount: 1 },
+      ],
+    }
+    expect(lastOutcome(state)?.id).toBe('a')
   })
 })

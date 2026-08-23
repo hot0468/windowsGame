@@ -4,13 +4,14 @@ import { MAILBOX, MESSAGE_SCHEDULE } from '../data/messages'
 import { chanceToday, noticeTextOf } from './chance'
 import { getLivingCost } from './economy'
 import { checkAchievementEnding } from './ending'
+import { JOB_NOTICE_LABELS } from './employment'
 import { turnIndex } from './messages'
 import { findPlan } from './schedule'
 import { GROWTH_STAT_KEYS, STAT_NAMES } from '../types/game'
 import type { Message } from '../data/messages'
 import type { ShopItem } from '../data/items'
 import type { SkippedPlan } from './schedule'
-import type { GameState, JobNotice, JobNoticeKind, Slot, Stats } from '../types/game'
+import type { GameState, JobNotice, Slot, Stats } from '../types/game'
 
 /**
  * 자동 진행 — **무엇이 흐름을 멈춰 세우는가**와 **그동안 무슨 일이 있었는가**.
@@ -87,17 +88,6 @@ const slotName = (slot: Slot) => (slot === 'morning' ? '오전' : '오후')
 
 const won = (v: number) => `${Math.round(v).toLocaleString('ko-KR')}원`
 
-/** 회사 소식 한 줄 요약. 문구 전문은 메일이 갖는다(`systems/employment.ts`). */
-const JOB_NOTICE_LABELS: Record<JobNoticeKind, string> = {
-  'screening-pass': '서류 합격',
-  'screening-fail': '서류 탈락',
-  'interview-miss': '면접 불참 처리',
-  hired: '최종 합격',
-  'final-fail': '최종 탈락',
-  payday: '급여 입금',
-  'absence-warning': '근태 경고',
-  fired: '해고',
-}
 
 /**
  * 지금 소지금이 이 아래면 위험 구간이다. 근거는 `data/autoAdvance.ts` 주석 참조.

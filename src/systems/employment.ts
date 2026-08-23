@@ -457,6 +457,38 @@ export function noticeMail(n: JobNotice): { from: string; subject: string; text:
 }
 
 /**
+ * 회사 소식 한 줄 이름.
+ *
+ * ⚠️ **문구 전문은 메일이 갖는다**(`noticeMail`) — 여기는 목록·요약에 쓰는 이름뿐이다.
+ * ⚠️ 자동 진행 요약과 벼룩장터가 **같은 이름을 본다**(예전엔 `autoAdvance.ts`에만 있었다) —
+ * 두 벌로 적으면 한쪽만 고쳐진다.
+ */
+export const JOB_NOTICE_LABELS: Record<JobNotice['kind'], string> = {
+  'screening-pass': '서류 합격',
+  'screening-fail': '서류 탈락',
+  'interview-miss': '면접 불참 처리',
+  hired: '최종 합격',
+  'final-fail': '최종 탈락',
+  payday: '급여 입금',
+  'absence-warning': '근태 경고',
+  fired: '해고',
+}
+
+/** 지원을 **끝낸** 소식들. 급여·근태처럼 재직 중에 오는 것과 갈라 둔다. */
+const OUTCOME_KINDS: JobNotice['kind'][] = ['screening-fail', 'final-fail', 'interview-miss']
+
+/**
+ * 직전에 끝난 지원의 결과. 없으면 undefined.
+ *
+ * ⚠️ **상태를 새로 만들지 않는다** — 탈락하면 `application`이 지워져 벼룩장터가 "지원한 곳이
+ * 없습니다"로 되돌아가는데, 무슨 일이 있었는지는 이미 `jobNotices`가 들고 있다.
+ * 토스트는 지나가고 메일은 열어야 보이므로, **지원했던 화면에도 흔적을 남긴다**.
+ */
+export function lastOutcome(state: GameState): JobNotice | undefined {
+  return (state.jobNotices ?? []).filter((n) => OUTCOME_KINDS.includes(n.kind)).at(-1)
+}
+
+/**
  * 사서함에 실을 정규직 메일.
  *
  * ⚠️ **새 알림 창구를 만들지 않는다.** 이미 아웃룩이 있고 토스트가 있으므로 채널을

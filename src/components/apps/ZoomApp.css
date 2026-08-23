@@ -1,0 +1,377 @@
+/*
+ * 줌 — **앱 창(`.zm`)과 다운로드 사이트(`.zs`)가 한 파일을 쓴다.**
+ * 브랜드 색을 두 파일에 적으면 반드시 어긋나기 때문이고(같은 프로그램이다),
+ * 사이트 CSS가 이 파일을 import한다.
+ *
+ * ⚠️ **팔레트를 이 두 스코프 안에 가둔다** — 사이트·사내 프로그램의 규칙 그대로다
+ * (`--cc-*`·`--tc-*`와 같은 자리). `--os-*`는 창틀의 것이고 여기서 쓰지 않는다.
+ *
+ * 어두운 화상회의 화면은 이 게임에서 유일하게 **영상 회의 판형**이라 자기 색이 필요하다:
+ * 딥 네이비 바탕 + 파랑 하나(참여·강조) + 빨강 하나(나가기). 그 외의 색은 없다.
+ */
+.zm,
+.zs {
+  --zm-bg: #0f172a; /* 회의 화면 바탕 */
+  --zm-bar: #111827; /* 위·아래 띠 */
+  --zm-tile: #1e293b; /* 참여자 타일 */
+  --zm-line: rgba(255, 255, 255, 0.1);
+  --zm-text: #e6e6e6; /* 대비 11.8:1 on #1e293b */
+  --zm-text-2: #94a3b8; /* 보조. 대비 6.4:1 on #0f172a */
+  --zm-accent: #2563eb;
+  --zm-accent-hover: #1d4ed8;
+  --zm-danger: #dc2626;
+  --zm-danger-hover: #b91c1c;
+}
+
+/* ── 앱 창 ─────────────────────────────────────────────────────────── */
+
+.zm {
+  display: flex;
+  flex-direction: column;
+  /* 창 본문 여백을 밀어내고 프로그램이 창을 통째로 쓴다(탐색기와 같은 처리). */
+  margin: calc(var(--sp-5) * -1);
+  height: min(520px, calc(var(--vh, 100vh) - 200px));
+  background: var(--zm-bg);
+  color: var(--zm-text);
+}
+
+.zm-bar {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--zm-bar);
+}
+
+.zm-top {
+  border-bottom: 1px solid var(--zm-line);
+}
+
+.zm-topic {
+  flex: 1 1 auto;
+  font-size: var(--fs-base);
+  font-weight: 600;
+}
+
+.zm-count {
+  font-size: var(--fs-sm);
+  color: var(--zm-text-2);
+}
+
+.zm-stage {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+}
+
+.zm-tiles {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: auto;
+}
+
+.zm-tile {
+  position: relative;
+  display: flex;
+  min-height: 96px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  border: 2px solid transparent;
+  border-radius: var(--r-md);
+  background: var(--zm-tile);
+}
+
+/* 말하는 사람. 실제 줌의 초록 테두리 자리인데, **색만으로 알리지 않는다**
+   (ux `color-not-only`) — 이름 옆의 "· 호스트"가 누구인지 글자로 말한다. */
+.zm-tile-speaking {
+  border-color: #22c55e;
+}
+
+.zm-avatar,
+.zm-cam {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: #334155;
+  font-size: var(--fs-lg);
+  color: var(--zm-text);
+}
+
+.zm-name {
+  max-width: 100%;
+  padding: 0 var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--zm-text);
+  text-align: center;
+  word-break: keep-all;
+}
+
+.zm-muted-mark {
+  position: absolute;
+  top: var(--sp-2);
+  right: var(--sp-2);
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.5);
+  font-size: var(--fs-xs);
+  color: var(--zm-text-2);
+}
+
+.zm-chat {
+  display: flex;
+  flex: 0 0 220px;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--zm-bar);
+}
+
+.zm-chat-head {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.zm-chat-list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: auto;
+}
+
+.zm-chat-line {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--zm-text);
+}
+
+.zm-chat-note {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--zm-text-2);
+}
+
+.zm-tools {
+  justify-content: center;
+  border-top: 1px solid var(--zm-line);
+}
+
+.zm-tool,
+.zm-leave,
+.zm-join {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 36px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--zm-line);
+  border-radius: var(--r-md);
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--zm-text);
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.zm-tool:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 꺼진 도구. 색만으로 알리지 않으므로 버튼 글자가 이미 "음소거 해제"로 바뀐다. */
+.zm-tool-off {
+  color: var(--zm-text-2);
+}
+
+.zm-tool:focus-visible,
+.zm-leave:focus-visible,
+.zm-join:focus-visible {
+  outline: 2px solid var(--zm-accent);
+  outline-offset: 2px;
+}
+
+.zm-leave {
+  margin-left: var(--sp-4);
+  border-color: transparent;
+  background: var(--zm-danger);
+  color: #fff;
+}
+
+.zm-leave:hover {
+  background: var(--zm-danger-hover);
+}
+
+/* ── 대기실 · 빈 화면 ──────────────────────────────────────────────── */
+
+.zm-lobby,
+.zm-empty {
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-8) var(--sp-5);
+  text-align: center;
+}
+
+.zm-lobby-topic {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--zm-text-2);
+}
+
+.zm-lobby-title,
+.zm-empty-title {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  color: var(--zm-text);
+  word-break: keep-all;
+}
+
+.zm-lobby-text,
+.zm-empty-text,
+.zm-lobby-note {
+  margin: 0;
+  max-width: 40ch;
+  font-size: var(--fs-md);
+  line-height: 1.6;
+  color: var(--zm-text-2);
+  word-break: keep-all;
+}
+
+.zm-join {
+  min-height: 40px;
+  padding: 0 var(--sp-6);
+  border-color: transparent;
+  background: var(--zm-accent);
+  font-size: var(--fs-base);
+  color: #fff;
+}
+
+.zm-join:hover {
+  background: var(--zm-accent-hover);
+}
+
+/* ── 다운로드 사이트 ───────────────────────────────────────────────── */
+
+.zs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  padding: var(--sp-6);
+  background: #fff;
+  color: #111827;
+}
+
+.zs-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.zs-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  color: var(--zm-accent);
+}
+
+.zs-lede {
+  margin: 0;
+  font-size: var(--fs-base);
+  color: #4b5563; /* 대비 7.6:1 on #fff */
+}
+
+.zs-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-5);
+  border: 1px solid #e5e7eb;
+  border-radius: var(--r-lg);
+  background: #f8fafc;
+}
+
+.zs-ver {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: #4b5563;
+}
+
+.zs-get {
+  min-height: 40px;
+  padding: 0 var(--sp-6);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--zm-accent);
+  font: inherit;
+  font-size: var(--fs-base);
+  color: #fff;
+  cursor: pointer;
+}
+
+.zs-get:hover {
+  background: var(--zm-accent-hover);
+}
+
+.zs-get:focus-visible {
+  outline: 2px solid var(--zm-accent);
+  outline-offset: 2px;
+}
+
+.zs-done {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: #15803d; /* 대비 4.8:1 on #f8fafc */
+}
+
+.zs-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.zs-list li {
+  padding-left: var(--sp-4);
+  font-size: var(--fs-md);
+  line-height: 1.6;
+  color: #374151; /* 대비 10.3:1 on #fff */
+  text-indent: calc(var(--sp-4) * -1);
+}
+
+.zs-foot {
+  margin: 0;
+  padding-top: var(--sp-4);
+  border-top: 1px solid #e5e7eb;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: #4b5563;
+}

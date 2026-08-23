@@ -178,6 +178,11 @@ export interface ToolRunPayload {
   mentalPenalty: number
   contract?: GigContract
   earned: number
+  /**
+   * 완료 알림에 적는 한 줄. **스탯이 안 오르는 장면을 위한 자리다**(구독 설치 연출) —
+   * `rows`가 비면 결과 판이 제목과 [확인]만 남아 무슨 일이 있었는지 말하지 않는다.
+   */
+  note?: string
 }
 
 /**
@@ -236,6 +241,15 @@ export interface Activity {
    * 전제로 짜여 있어, 슬롯을 좁히면 그 계산이 통째로 흔들린다.
    */
   requiresSlot?: Slot
+  /**
+   * 이 활동에 걸리는 시간(분). 없으면 `DEFAULT_ACTIVITY_MIN`(2시간).
+   *
+   * ⚠️ **하루는 08:00~24:00, 960분이다.** 여기 적는 값이 곧 "하루에 몇 개를 할 수 있는가"라
+   * 밸런스의 축이다 — 알바처럼 하루를 통째로 먹는 일은 480분, 짧은 것은 60~90분이다.
+   * ⚠️ **자정을 넘기는 활동도 실행된다**(막지 않는다) — 넘긴 그 자리에서 하루가 끝난다.
+   *   막으면 밤 11시에 할 수 있는 일이 없어 "건너뛰기"만 남는다.
+   */
+  minutes?: number
   /**
    * 밴드 숙련도 게이트(`GameState.band.skill` 이상이어야 한다). 판정은 `canRun` 하나가 한다.
    * ⚠️ **문턱 값이 곧 "무엇을 하는 활동인가"의 열쇠다** — `systems/band.ts`의 `bandPayFor`가
@@ -334,6 +348,8 @@ export type WindowKind =
   | 'minesweeper'
   /** 설정 — 지금은 구독 관리 한 구역뿐이다(`SettingsApp`). */
   | 'settings'
+  /** 제어판 — 시스템 도구를 모아 여는 통로다(자기 상태가 없다. `ControlPanelApp`). */
+  | 'controlpanel'
   /** 아이템 인벤토리·이벤트 도감. 파일 탐색기 UI로 그린다. */
   | 'folder'
   | 'scheduler'
@@ -350,6 +366,25 @@ export type WindowKind =
    * 달리 이쪽은 무엇을 하고 있는지 보여 주는 프로그램 자체이고, 실행은 그 안의 ▶가 한다.
    */
   | 'vscode'
+  /**
+   * 어도비 도구 셋의 프로그램 창. **VS 코드와 완전히 같은 부류다**(2026-08-21 설계자 지시)
+   * — 켜면 그 프로그램 화면이 뜨고 그 안의 ▶가 활동을 실행한다. 셋을 한 컴포넌트
+   * (`AdobeApp`)가 그리지만 **kind는 셋으로 나눈다**: 바탕화면 항목·작업 표시줄·창 id가
+   * 전부 kind로 갈리므로, 하나로 묶으면 셋이 같은 창 하나를 다투게 된다.
+   */
+  | 'photoshop'
+  | 'premiere'
+  | 'audition'
+  /**
+   * 줌 — 화상회의 프로그램. **내려받아야 생기고**(`GameState.installed`), 회의일이
+   * 아니면 들어갈 방이 없다고 말한다. 규칙은 `systems/meeting.ts`.
+   */
+  | 'zoom'
+  /**
+   * 시스템 속성(컴퓨터 사양). 바탕화면 빈 자리를 오른쪽 클릭해 연다.
+   * **읽기 전용 창이고 게임 상태를 안 만진다** — 사양은 `data/systemSpec.ts`에 있다.
+   */
+  | 'sysinfo'
   /**
    * 콜센터 업무 프로그램. **출근(`commute`)이 여는 창이고 바탕화면 아이콘이 없다** —
    * 회사 자리에 앉아야 뜨는 사내 프로그램이라 아무 때나 켤 수 있으면 뜻이 무너진다.
@@ -462,6 +497,12 @@ export interface DesktopItem {
    * `desktopEntries`가 거르며, 조건부이므로 **자기 열의 맨 뒤**에 둔다.
    */
   requiresSubscription?: string
+  /**
+   * **이 프로그램을 내려받아야 바탕화면에 나타나는 항목**(생략 = 항상 보인다).
+   * ⚠️ 줌이 쓴다 — 구독·장비와 같은 규칙이되 **대가가 없다**: 공짜로 받는 프로그램이라
+   * 판정 재료가 `GameState.installed` 한 배열뿐이고, 한 번 받으면 사라지지 않는다.
+   */
+  requiresInstall?: string
 }
 
 /**
@@ -509,10 +550,28 @@ export interface GridCell {
 }
 
 /** 물가 구간. day 이상일 때 해당 구간이 적용된다. */
-export interface EconomyTier {
-  day: number
-  living: number
-  wageMultiplier: number
+/**
+ * 물가 급등 사건 하나(2026-08-22). **주기적 인상표(`EconomyTier`)를 대체했다** —
+ * 사유는 `data/economy.ts`에 있고, 되살리지 말 것.
+ */
+export interface PriceShock {
+  id: string
+  /** 스탯창·지갑이 적는 짧은 이름. */
+  name: string
+  /** 뉴스 머리기사 문장. */
+  headline: string
+  /** 생활비에 곱해지는 배율. 평시는 1이다. */
+  rate: number
+  /** 며칠 가는가. */
+  days: number
+}
+
+/** 그 사건이 걸쳐 있는 날들. 시작·끝은 `systems/economy.ts`가 날짜에서 파생한다. */
+export interface ShockWindow {
+  shock: PriceShock
+  start: number
+  /** 마지막 날(포함). */
+  end: number
 }
 
 /**
@@ -523,6 +582,23 @@ export interface Plan {
   day: number
   slot: Slot
   activityId: string
+}
+
+/**
+ * 잡아 둔 화상회의 한 건. 정의가 `systems/meeting.ts`가 아니라 여기 있는 이유는
+ * `Plan`과 같다 — 세이브에 들어가는 모양이라 types가 정본이어야 한다.
+ *
+ * ⚠️ **`joined`는 "들어갔다"이지 "지나갔다"가 아니다.** 회의일이 지났는데 이 값이
+ * 없으면 빠진 것이고, 그 판정을 밤 정산이 한 번만 한다(`checked`).
+ */
+export interface Meeting {
+  day: number
+  slot: Slot
+  topic: string
+  /** 회의실에 들어갔는가. 들어간 순간 켜진다. */
+  joined?: boolean
+  /** 결석 감사를 마쳤는가. 같은 회의로 성과를 두 번 깎지 않는 커서다. */
+  checked?: boolean
 }
 
 /**
@@ -942,6 +1018,36 @@ export interface BandState {
  * **평판에서 온 몫 + 그림으로 번 몫**을 더해 쓴다. 합치는 곳은
  * `systems/twitter.ts`의 `totalFollowers` 하나다.
  */
+/**
+ * 내가 올린 트윗 한 개.
+ *
+ * ⚠️ **본문을 저장하는 것이 규칙이 바뀐 자리다**(2026-08-22 설계자 지시). 원래 트위터
+ * 작성창에는 입력칸이 없었다 — 받은 글이 게임 어디에도 안 쓰여 장식이었기 때문이다.
+ * 이제 **내 글이 타임라인에 그대로 남으므로** 쓰이는 값이 됐다.
+ *
+ * ⚠️ **반응 수(좋아요·리트윗·조회수)는 저장하지 않는다** — 팔로워에서 파생한다
+ * (`myTweetStats`). 저장하면 팔로워가 늘어도 옛 글의 반응이 그대로 굳는다.
+ */
+export interface MyPost {
+  id: string
+  /** 올린 날. 타임라인의 시각이 여기서 나온다. */
+  day: number
+  /** 본문. 빈 글은 만들 수 없다(사진이나 그림이 붙어 있으면 예외). */
+  body: string
+  /** 사진첩(`data/events.ts`)에서 고른 사진의 `GameEvent.id`. 겪은 것만 고를 수 있다. */
+  photoId?: string
+  /** 그림 업로드였으면 그 `Artwork.id`. 첨부 자리에 등급과 제목이 뜬다. */
+  artworkId?: string
+  /**
+   * 답글이면 원본 트윗의 id. **답글도 글이라 같은 배열에 담는다** — 목록을 두 벌로
+   * 나누면 저장·복원·길이 제한을 두 곳에서 관리하게 된다.
+   *
+   * ⚠️ **답글은 홈 타임라인에 안 뜬다**(실제 X와 같다) — 스레드를 열어야 보인다.
+   * 그래서 화면이 `posts`를 그릴 때는 이 값이 없는 것만 고른다.
+   */
+  replyTo?: string
+}
+
 export interface TwitterState {
   /** 그림 업로드로 얻은 팔로워 누적. 평판에서 오는 몫은 여기 안 들어간다. */
   gained: number
@@ -965,6 +1071,33 @@ export interface TwitterState {
    * **정산금이 들어오기 직전 밤에 굶어 죽는다.**
    */
   paidDay: number
+  /**
+   * 내가 팔로우한 계정 핸들. **'팔로잉' 탭이 실제로 보는 목록이다.**
+   *
+   * ⚠️ 원래 `Tweet.following`(데이터에 박힌 플래그)이 탭을 갈랐다. 그 플래그는 이제
+   * **처음 팔로우 상태의 씨앗**이고(`DEFAULT_FOLLOWING`), 한 번이라도 팔로우를 누르면
+   * 이 배열이 정본이 된다 — 두 출처가 겹치지 않게 판정은 `followedHandles` 하나가 한다.
+   */
+  following?: string[]
+  /** 내가 좋아요한 트윗 id. 누적 좋아요(`likes`)와 다른 것이다 — 이쪽은 남의 글이다. */
+  liked?: string[]
+  /** 내가 리트윗한 트윗 id. */
+  retweeted?: string[]
+  /**
+   * 알림을 어디까지 봤나(개수). 안 읽은 알림 뱃지가 이 값과 알림 총 개수의 차이다.
+   *
+   * ⚠️ **알림 자체는 저장하지 않는다** — 올린 그림에서 전부 파생된다(`tweetNotices`).
+   * 저장하면 그림 등급이 정하는 수치와 알림 내용이 갈라질 수 있다.
+   */
+  seenNotices?: number
+  /**
+   * 내가 올린 글. **최신이 뒤다**(배열에 밀어 넣은 순서 그대로 — 화면이 뒤집어 그린다).
+   *
+   * ⚠️ **그림 업로드도 여기 한 줄을 남긴다** — 타임라인에서 "내가 올린 것"은 한 종류로
+   * 읽혀야 한다. 같은 그림을 두 번 못 올리게 막는 것은 여전히 `postedIds`다(두 목록이
+   * 하는 일이 다르다: 이쪽은 화면, 저쪽은 판정).
+   */
+  posts?: MyPost[]
 }
 
 /* ── 주식 (2026-08-08 네이놈증권) ─────────────────────────────────────────
@@ -1048,9 +1181,10 @@ export interface GigContract {
   takenDay: number
   /** 이 날까지 채워야 한다. 지나면 실패다(`advanceGigs`). */
   dueDay: number
-  /** 지금까지 채운 업무량. 도구를 한 번 켜면 `WORK_PER_SESSION`만큼 오른다. */
-  progress: number
 }
+
+/* ⚠️ **계약에 진척이 없다**(2026-08-22) — 진척은 계약이 아니라 **작업물**(`Work`)이 갖는다.
+   여기 숫자를 되살리면 같은 사실이 두 곳에 생기고 한쪽만 갱신되는 사고가 난다. */
 
 /**
  * 그몽 상태. **옵셔널이다** — 받은 적 없으면 없다(`courses`·`exams`와 같은 규칙).
@@ -1058,6 +1192,29 @@ export interface GigContract {
  * ⚠️ **납품한 일감 id를 남긴다**(`done`) — 같은 일감을 무한히 되받아
  * 무한히 벌 수 없게 하는 유일한 장치다(복권의 `serial`·트위터의 `postedIds`와 같은 역할).
  */
+/**
+ * 작업물 한 개 — **도구 넷이 남기는 결과물**(2026-08-22). 규칙은 `systems/works.ts`,
+ * 수치는 `data/works.ts`. 여기에는 모양만 적는다.
+ *
+ * ⚠️ **등급을 저장하는 것이 그림(`Artwork`)과의 차이다** — 보강해서 올리는 물건이라
+ * 매번 계산하면 올린 것이 사라진다.
+ */
+export interface Work {
+  id: string
+  /** 만든 도구. `Activity.toolId`·`Gig.tool`과 같은 문자열이다. */
+  tool: 'vscode' | 'photoshop' | 'premiere' | 'audition'
+  /** 파일 이름. 등급은 안 박는다 — 나중에 오르기 때문이다. */
+  title: string
+  /** 만든 날. */
+  day: number
+  /** 지금 등급(`RANK_ORDER`의 인덱스, 0=F … 5=SS). */
+  rankIndex: number
+  /** 지금 등급 안에서의 진척(0~1). 1이 되면 등급이 오른다. */
+  progress: number
+  /** 이 작업물을 요구한 일감. 없으면 **내가 만들고 싶어서 만든 것**이다. */
+  gigId?: string
+}
+
 export interface GigState {
   /** 지금 받아 둔 일. 없으면 놀고 있는 것이다. */
   active?: GigContract
@@ -1188,6 +1345,18 @@ export interface GameState {
    */
   seed?: number
   day: number
+  /**
+   * 지금 시각(그날의 분, 0~1439). **시간의 단일 출처다**(2026-08-22 분 단위 전환).
+   *
+   * 하루는 `DAY_START`(08:00)에 시작해 `DAY_END`(자정)에 끝나고, 활동은 저마다
+   * `Activity.minutes`만큼 시계를 밀어낸다(`data/clock.ts`).
+   */
+  minute: number
+  /**
+   * 오전/오후. ⚠️ **`minute`에서 파생되는 값이고 직접 고치지 않는다**(`slotOf`) —
+   * 예약·메시지 편성·근무가 여전히 이 단위로 말하기 때문에 남겨 둔 호환 필드다.
+   * 시간을 옮기는 곳은 `turn.ts`의 `advance` 하나이고, 거기서 둘을 함께 갱신한다.
+   */
   slot: Slot
   stats: Stats
   /** 최근 실행한 활동 id 이력. 번아웃 계산에 사용. 최신이 배열 끝. */
@@ -1222,6 +1391,19 @@ export interface GameState {
    */
   malware?: { day: number }
   /**
+   * 인터넷 요금제(2026-08-22). **없으면 기본 회선이다** — 옵셔널이라 옛 세이브가 그대로 산다.
+   * 규칙은 `systems/internet.ts`, 수치는 `data/internet.ts`.
+   */
+  internet?: {
+    planId: string
+    /** 이 요금제를 쓰기 시작한 날. */
+    since: number
+    /** 마지막으로 요금을 낸 날. 없으면 `since`부터 센다(휴대폰 요금과 같은 규칙). */
+    billedDay?: number
+    /** 요금을 못 내 기본 회선으로 내려왔는가. 화면이 "왜 느려졌나"를 적는 근거다. */
+    downgraded?: boolean
+  }
+  /**
    * 앞으로의 계획. 스케줄러가 넣고, 턴이 그 슬롯에 닿으면 자동 실행된다.
    *
    * ⚠️ 옵셔널이다 — 이 필드가 없던 세이브도 그대로 동작한다(빈 배열로 읽는다).
@@ -1229,6 +1411,20 @@ export interface GameState {
    * 턴 규칙이 스케줄러를 모르게 두어야 밸런스 테스트가 스케줄러 없이도 성립한다.
    */
   plans?: Plan[]
+  /**
+   * 내려받은 프로그램 id(`data/meetings.ts`의 `ZOOM_APP_ID` 등).
+   *
+   * ⚠️ 인벤토리(`inventory`)와 **다른 축이다**: 저건 산 물건이고 이건 설치한 소프트웨어라
+   * 가격도 배송도 고장도 없다. 없으면 빈 배열로 읽으므로 마이그레이션이 필요 없다
+   * (`plans`와 같은 규칙).
+   */
+  installed?: string[]
+  /**
+   * 잡아 둔 화상회의. **[확인]을 누른 것만 들어온다** — 요청이 왔다는 사실은 상태가
+   * 아니라 날짜의 함수라(`systems/meeting.ts`) 저장할 것이 없다.
+   * 빈 배열로 읽으면 되므로 마이그레이션이 필요 없다(`plans`와 같은 규칙).
+   */
+  meetings?: Meeting[]
   /**
    * 아래 셋은 전부 옵셔널이다 — 이 필드들이 없던 세이브를 그대로 불러올 수 있다.
    * 빈 배열로 읽으면 되므로 마이그레이션이 필요 없다(`adBonusDay`·`plans`와 같은 규칙).
@@ -1406,6 +1602,8 @@ export interface GameState {
    * 다 채우면 그 자리에서 보수가 들어온다(밤 정산이 아니라 즉시다).
    */
   gigs?: GigState
+  /** 도구로 만든 작업물. 만든 적 없으면 없다(`inventory`와 같은 규칙). */
+  works?: Work[]
   /** 작품집(클립스튜디오 프로젝트). 만든 적 없으면 없다. */
   projects?: ProjectState
   /** 공모전 출품·수상. 낸 적 없으면 없다. */

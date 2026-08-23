@@ -1,0 +1,234 @@
+/*
+ * 제어판. **창틀은 탐색기 것을 그대로 쓴다**(`.ex-*` — 주소 줄·탐색 창·상태 표시줄).
+ * 여기 있는 것은 **본문에만 있는 것**뿐이다: 큰 아이콘 타일, 프로그램 줄, 계정 화면.
+ * OS 창이므로 --os-* 토큰만 쓴다.
+ */
+
+/* 본문 글자는 탐색기(--fs-sm)보다 한 단 크다 — 목록이 아니라 읽는 화면이라서다. */
+.cp {
+  font-size: var(--fs-md);
+}
+
+/* ── 홈: 큰 아이콘 타일 ─────────────────────────────────────── */
+
+/* 실제 제어판의 큰 아이콘 보기 — 폭에 맞춰 칸 수가 알아서 접힌다. */
+.cp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cp-item {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: none;
+  font: inherit;
+  color: var(--os-text);
+  text-align: center;
+  /* 한글은 어절 단위로 접는다 — 없으면 "게임 저장 / 불러오기"가 "불러오 / 기"로 쪼개진다. */
+  word-break: keep-all;
+  cursor: pointer;
+}
+
+.cp-item:hover {
+  border-color: var(--os-border);
+  background: var(--os-fill);
+}
+
+.cp-item:focus-visible {
+  outline: 2px solid var(--os-accent);
+  outline-offset: 2px;
+}
+
+/* ── 프로그램 및 기능 ───────────────────────────────────────── */
+
+.cp-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cp-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-2);
+  border-bottom: 1px solid var(--os-border);
+}
+
+.cp-row-body {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cp-row-name {
+  font-size: var(--fs-base);
+  color: var(--os-text);
+}
+
+.cp-row-note {
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+}
+
+.cp-row-act {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* 확인 문구. 버튼 옆에 붙어야 무엇에 대한 [제거]인지가 읽힌다. */
+.cp-ask {
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+  word-break: keep-all;
+}
+
+.cp-btn {
+  min-height: 30px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-md);
+  background: var(--os-surface);
+  font: inherit;
+  color: var(--os-text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cp-btn:hover:not(:disabled) {
+  background: var(--os-fill);
+}
+
+.cp-btn-go {
+  border-color: transparent;
+  background: var(--os-accent);
+  color: #fff;
+}
+
+.cp-btn-go:hover:not(:disabled) {
+  background: var(--os-accent-hover);
+}
+
+/* ux `disabled-states`: 투명도 + 커서를 함께 준다(SystemApps.css와 같은 처리). */
+.cp-btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+/* ── 사용자 계정 ────────────────────────────────────────────── */
+
+.cp-account-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+}
+
+.cp-account {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--os-fill);
+}
+
+/* 시작 메뉴 아바타와 같은 모양 — 같은 사람을 가리키므로 같게 보여야 한다. */
+.cp-avatar {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--os-accent);
+  font-size: var(--fs-lg);
+  color: #fff;
+}
+
+.cp-field-label {
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+}
+
+.cp-field {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.cp-input {
+  min-width: 0;
+  flex: 1 1 auto;
+  min-height: 30px;
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--os-border-strong);
+  border-radius: var(--r-md);
+  background: var(--os-surface);
+  font: inherit;
+  font-size: var(--fs-base);
+  color: var(--os-text);
+}
+
+.cp-input:focus-visible {
+  outline: 2px solid var(--os-accent);
+  outline-offset: -1px;
+}
+
+.cp-note {
+  margin: 0;
+  color: var(--os-text-3);
+}
+
+/* ── 네트워크 및 인터넷 (2026-08-22) ──
+   ⚠️ 색을 새로 만들지 않는다 — 이 창은 탐색기 창틀(`.ex-*`)을 빌려 입고 있고,
+   여기서도 그 팔레트만 쓴다. */
+.cp-net-now {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+}
+
+.cp-net-due {
+  color: var(--os-text-2);
+}
+
+/* 미납 강등은 사건이므로 본문색으로 한 단계 올린다(색만으로 알리지 않고 문장이 말한다). */
+.cp-net-warn {
+  color: var(--os-text);
+  font-weight: 700;
+}
+
+.cp-net-speed {
+  margin-left: var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--os-text-2);
+}
+
+.cp-net-terms {
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--os-text);
+}
+
+.cp-net-using {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--os-accent);
+}

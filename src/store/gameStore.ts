@@ -6,14 +6,24 @@ import {
   createInitialState,
   runActivity,
   skipSlot,
+  slotOf,
+  sleepNow,
+  sleepAt,
   spendMoney,
 } from '../systems/turn'
+import { DAY_END, DAY_START, NOON } from '../data/clock'
 import { INITIAL_STATS } from '../types/game'
-import { findActivity } from '../data/activities'
+import { ACTIVITIES, findActivity } from '../data/activities'
 import { findItem } from '../data/items'
 import { clearPlan, planWeekly, runPlans, setPlan } from '../systems/schedule'
 import { collect, order, owns, recordEvent } from '../systems/delivery'
 import { advanceEmployment, applyTo, canApply } from '../systems/employment'
+import {
+  acceptMeeting as acceptMeetingOf,
+  advanceMeetings,
+  installApp as installAppOf,
+  joinMeeting as joinMeetingOf,
+} from '../systems/meeting'
 import { creditCall, reviveBonus, worksAtCallCenter } from '../systems/callcenter'
 import { creditPerformance, revivePerformance, worksAtOffice } from '../systems/drive'
 import { healIllness, reviveIllness } from '../systems/illness'
@@ -54,12 +64,32 @@ import {
   settleRankEvents,
 } from '../systems/rankEvents'
 import { useWindowStore } from './windowStore'
+import {
+  CRASH_WAKE_MINUTE,
+  CRASH_WAKE_STAMINA,
+  advanceRansom,
+  shouldCrash,
+} from '../systems/collapse'
+import { advanceInternetBill, changePlan } from '../systems/internet'
+import { tripActivity, tripDays } from '../systems/travel'
+import { findTrip } from '../data/trips'
 import { advanceBank, borrow, deposit, openDeposit, repay, withdraw } from '../systems/bank'
 import { moveTo } from '../systems/housing'
 import { advanceLottery, buyTickets } from '../systems/lottery'
 import { buyStock as buyStockOf, sellStock as sellStockOf } from '../systems/stocks'
 import { findStock } from '../data/stocks'
-import { advanceTwitter, postArtwork as postArtworkOf } from '../systems/twitter'
+import { findWork } from '../systems/works'
+import {
+  advanceTwitter,
+  markNoticesSeen,
+  myPosts,
+  noticeText,
+  postArtwork as postArtworkOf,
+  postTweet as postTweetOf,
+  toggleReaction,
+  tweetNotices,
+} from '../systems/twitter'
+import type { TweetReaction } from '../systems/twitter'
 import {
   advanceSubscriptions,
   subscribe as subscribeOf,
@@ -79,7 +109,7 @@ import {
   declineOffer,
   drawWebtoon as drawWebtoonOf,
 } from '../systems/webtoon'
-import { abandonGig as abandonGigOf, advanceGigs, takeGig as takeGigOf } from '../systems/gigs'
+import { abandonGig as abandonGigOf, advanceGigs, takeGig as takeGigOf, canDeliver, deliverGig as deliverGigOf } from '../systems/gigs'
 import { findGig } from '../data/gigs'
 import { takeCourse as takeCourseOf } from '../systems/courses'
 import { reviveBand } from '../systems/band'
@@ -117,6 +147,7 @@ import type {
   Activity,
   Application,
   Artwork,
+  Work,
   BankEntry,
   BankState,
   Employment,
@@ -418,13 +449,11 @@ function reviveGigs(saved: Partial<GameState>): GigState | undefined {
     c &&
     findGig(c.gigId) &&
     Number.isFinite(c.takenDay) &&
-    Number.isFinite(c.dueDay) &&
-    Number.isFinite(c.progress)
+    Number.isFinite(c.dueDay)
       ? {
           gigId: c.gigId,
           takenDay: Number(c.takenDay),
           dueDay: Number(c.dueDay),
-          progress: Math.max(0, Math.floor(Number(c.progress))),
         }
       : undefined
   return {
@@ -512,7 +541,19 @@ function reviveState(raw: unknown): GameState | null {
     ...reviveJob(saved),
     playerName: defaults.playerName,
     day,
-    slot: saved.slot === 'afternoon' ? 'afternoon' : 'morning',
+    /* ⚠️ **분 단위 전환(2026-08-22) 세이브 이행.** 옛 세이브에는 시각이 없고 슬롯만 있다 —
+       오전이면 08:00, 오후면 정오로 앉힌다. 시각이 있으면 그것이 진실이고 슬롯은
+       거기서 다시 파생한다(두 값이 어긋난 세이브를 그대로 믿지 않는다). */
+    minute: Number.isFinite(saved.minute)
+      ? Math.min(DAY_END - 1, Math.max(0, Math.floor(Number(saved.minute))))
+      : saved.slot === 'afternoon'
+        ? NOON
+        : DAY_START,
+    slot: Number.isFinite(saved.minute)
+      ? slotOf(Number(saved.minute))
+      : saved.slot === 'afternoon'
+        ? 'afternoon'
+        : 'morning',
     stats,
     recentActivities: Array.isArray(saved.recentActivities)
       ? saved.recentActivities.filter((id): id is string => typeof id === 'string')
@@ -537,6 +578,12 @@ function reviveState(raw: unknown): GameState | null {
         ? { day: Number(saved.malware.day) }
         : undefined,
     plans: Array.isArray(saved.plans) ? saved.plans : undefined,
+    /* 내려받은 프로그램·잡아 둔 화상회의. ⚠️ **여기 안 적으면 세이브를 되돌릴 때 조용히
+       사라진다**(바로 위 주석의 그 함정) — 줌 아이콘이 없어지고 회의가 통째로 없던 일이 된다. */
+    installed: Array.isArray(saved.installed)
+      ? saved.installed.filter((id): id is string => typeof id === 'string')
+      : undefined,
+    meetings: Array.isArray(saved.meetings) ? saved.meetings : undefined,
     inventory: Array.isArray(saved.inventory) ? saved.inventory : undefined,
     deliveries: Array.isArray(saved.deliveries) ? saved.deliveries : undefined,
     events: Array.isArray(saved.events) ? saved.events : undefined,
@@ -594,6 +641,31 @@ function reviveState(raw: unknown): GameState | null {
           (p) => p && typeof p.filmId === 'string' && Number.isFinite(p.day),
         ) as Postcard[])
       : undefined,
+    /* ⚠️ **작업물은 등급을 저장한다**(그림과 다른 점) — 보강해서 올린 결과라 잃으면
+       플레이어가 쓴 턴이 사라진다. 그래서 등급·진척까지 숫자로 확인하고 범위를 접는다. */
+    works: Array.isArray(saved.works)
+      ? (saved.works.filter(
+          (w) =>
+            w &&
+            typeof w.id === 'string' &&
+            typeof w.tool === 'string' &&
+            typeof w.title === 'string' &&
+            Number.isFinite(w.rankIndex) &&
+            Number.isFinite(w.progress),
+        ) as Work[])
+      : undefined,
+    /* 요금제는 **모양만** 본다 — 없는 요금제 id는 `planOf`가 기본 회선으로 읽는다. */
+    internet:
+      saved.internet && typeof saved.internet.planId === 'string'
+        ? {
+            planId: saved.internet.planId,
+            since: Number.isFinite(saved.internet.since) ? Number(saved.internet.since) : 1,
+            billedDay: Number.isFinite(saved.internet.billedDay)
+              ? Number(saved.internet.billedDay)
+              : undefined,
+            downgraded: saved.internet.downgraded === true ? true : undefined,
+          }
+        : undefined,
     twitter: reviveTwitter(saved),
     stocks: reviveStocks(saved),
     subscriptions: reviveSubscriptions(saved),
@@ -701,6 +773,22 @@ function chanceNotice(before: GameState, after: GameState): Message[] {
   return [{ id: `chance-${after.day}`, channel: 'chance', from: event.title, text: noticeTextOf(event) }]
 }
 
+/**
+ * 방금 올린 글에 온 반응을 토스트로 내보낸다.
+ *
+ * ⚠️ **트위터 창을 안 보고 있으면 알 길이 없다** — 사이트 안의 [알림] 뱃지는 그 창을
+ * 열어야 보인다. 문구는 알림 목록과 **같은 `noticeText`**를 쓴다(두 곳에 적으면 갈라진다).
+ * ⚠️ **방금 올린 글의 것만** 고른다 — 알림 전체를 띄우면 올릴 때마다 옛 반응이 다시 뜬다.
+ * 답글은 알림을 만들지 않으므로 이 목록이 자연히 빈다.
+ */
+function twitterToast(next: GameState): Message[] {
+  const newest = myPosts(next)[0]
+  if (!newest) return []
+  return tweetNotices(next)
+    .filter((n) => n.id.endsWith(newest.id))
+    .map((n) => ({ id: n.id, channel: 'twitter', from: '트위터', text: noticeText(n) }))
+}
+
 function afterTurn(next: GameState, chain?: number) {
   const ran = runPlans(next, chain)
   const got = collect(ran.state)
@@ -729,9 +817,12 @@ function afterTurn(next: GameState, chain?: number) {
   // ⚠️ **휴대폰 요금도 나가는 돈이라 구독료와 같은 자리다** — 못 내면 회선이 정지되고
   //    기기가 인벤토리에서 빠진다(외상을 만들지 않는다는 구독의 규칙 그대로).
   const phoned = advancePhoneBill(billed)
+  /* ⚠️ **인터넷 요금도 나가는 돈이라 휴대폰 요금 옆자리다** — 못 내면 외상이 아니라
+     기본 회선으로 강등된다(구독·휴대폰과 같은 규칙: 소지금을 음수로 만들지 않는다). */
+  const wired = advanceInternetBill(phoned)
   // ⚠️ **목돈 청구도 나가는 돈이라 구독료 옆자리다.** 못 낸 몫은 평판으로 치르므로
   //    소지금이 음수가 되지 않는다(`systems/bills.ts` 주석 — 파산은 물가의 몫이다).
-  const charged = advanceBills(phoned)
+  const charged = advanceBills(wired)
   const drawn = advanceLottery(charged)
   // ⚠️ **트위터 주간 정산도 밤에 돈을 넣는다**(`nightPayoutPending`의 네 번째 원천).
   //    은행·복권과 같은 자리·같은 이유이고, 셋 다 마지막 줄에서 `settleRecovery`를 부르므로
@@ -745,14 +836,22 @@ function afterTurn(next: GameState, chain?: number) {
   //    제의가 하루 늦게 오고 "입상했는데 아무 일도 안 일어난 밤"이 한 번 생긴다.
   const judged = advanceContests(tweeted)
   const serialized = advanceWebtoon(judged)
-  const banked = advanceBank(serialized)
+  /* ⚠️ **랜섬웨어 굴림은 밤에 한 번**(2026-08-22 설계자 지시: "멘탈이 바닥나면 랜섬웨어에
+     걸릴 확률이 높아짐"). 돈을 만지지 않고 상태만 얹으므로 `nightPayoutPending`에 원천이
+     늘지 않는다 — 실제 손실은 다음 날부터 `MALWARE_DAILY_LOSS`가 새는 것으로 온다. */
+  const ransomed = advanceRansom(serialized)
+  const banked = advanceBank(ransomed)
   // ⚠️ 고용 정산은 **예약 연쇄가 끝난 뒤**에 한 번 돈다. 커서(`checkedDay`)와
   //    급여 루프가 밀린 날짜를 따라잡도록 돼 있어, 며칠이 한 번에 흘러도 새지 않는다.
   // ⚠️ **반드시 마지막이다.** 게임오버는 밤이 다 정산된 뒤 딱 한 번 확정되는데
   //    (설계자 지시: 급여가 우선한다) 그 확정을 `advanceEmployment`의 마지막 줄이 한다.
   //    생활비는 `turn.ts`의 취침 정산이 먼저 빼고 급여는 여기서 들어오므로, 이 호출을
   //    위로 올리면 **월급을 손에 쥔 채 파산하는** 버그가 되돌아온다.
-  const job = advanceEmployment(banked)
+  /* ⚠️ **회의 결석 감사는 고용 정산 바로 앞이다.** 깎는 것이 성과 게이지뿐이라 돈을
+     안 만지지만(파산 판정과 무관하다), 급여일에 야근비로 정산되는 값이라
+     `advanceEmployment`보다 **먼저** 확정돼야 그날 급여에 반영된다. */
+  const met = advanceMeetings(banked)
+  const job = advanceEmployment(met)
   /* ⚠️ **랭크 이벤트 창을 여는 자리가 여기다.** 이 함수의 첫 주석이 그 근거다 —
      턴을 넘기는 통로가 넷이라 호출부마다 적으면 새 통로가 생길 때 하나씩 빠뜨린다.
      스케줄러 예약·자동 진행으로 등급이 오른 판에서도 이벤트가 뜨는 것이 그 값이다.
@@ -971,7 +1070,41 @@ interface GameStore {
   startGame: (name: string) => void
   continueGame: () => void
   logout: () => void
-  doActivity: (activity: Activity) => void
+  doActivity: (activity: Activity, targetWorkId?: string) => void
+  /**
+   * **고른 작업물을 보강한다** — 도구 앱에서 파일을 눌렀을 때의 통로(2026-08-22).
+   *
+   * ⚠️ 별도 규칙이 아니라 **같은 도구 활동 1턴**이다(`doActivity`를 그대로 지난다) —
+   * 여기만 따로 두면 번아웃·날씨·호감도가 이 경로에서만 빠진다.
+   */
+  refineWork: (workId: string) => void
+  /** 그몽 계약에 **회신**해 작업비를 받는다. 턴을 쓰지 않는다(수주와 같은 부류). */
+  deliverGig: () => void
+  /**
+   * **여행을 간다 — 일정만큼 날짜가 지나간다**(2026-08-22 설계자 지시).
+   *
+   * 첫날은 활동(`tripActivity` — 하루치 × 일수)이 확정하고, 남은 날은 **자러 가기와 같은
+   * 통로**로 흘려보낸다. 그래서 여행 중에도 생활비·청구·마감·회복이 평소대로 한 번씩 돈다.
+   */
+  goOnTrip: (tripId: string) => void
+  /** 체력이 바닥났으면 강제 종료(24시간 소실). 활동이 끝난 자리에서 스스로 묻는다. */
+  crashIfExhausted: () => void
+  /** 강제 종료 연출이 끝났음을 알린다. */
+  clearCrash: () => void
+  /**
+   * 새 판을 시작해 **부팅 화면이 도는 중인가**. 휘발 상태다(세이브에 없다).
+   * ⚠️ 강제 종료(`crashing`)와 다른 것이다 — 그쪽은 판 도중이고 이쪽은 판이 열리는 순간이다.
+   */
+  booting: boolean
+  /** 부팅 화면이 끝났음을 알린다. */
+  clearBooting: () => void
+  /**
+   * 인터넷 요금제를 바꾼다. **턴을 쓰지 않고 첫 달 요금을 그 자리에서 낸다**
+   * (판정·금액은 전부 `systems/internet.ts`가 갖는다).
+   */
+  setInternetPlan: (planId: string) => void
+  /** 강제 종료 연출이 도는 중인가. **휘발 상태다**(세이브에 없다). */
+  crashing: boolean
   /** 별똥별 소원 — 고른 성장 스탯을 올린다. 한 번만 된다. */
   makeWish: (key: GrowthStatKey) => void
   /**
@@ -986,6 +1119,14 @@ interface GameStore {
   /** 아침 딜레마에서 하나를 고른다. 턴을 쓰지 않는다(고양이와 같은 통로). */
   resolveDilemma: (choiceIndex: number) => void
   doSkip: () => void
+  /**
+   * **자러 간다** — 남은 시간을 보내고 하루를 끝낸다(2026-08-22 분 단위 전환).
+   *
+   * 인자는 **눕는 시각(분)**이다. 안 주면 자정까지 버틴다. 일찍 누우면 남은 시간을
+   * 버리는 대신 더 회복한다(규칙·상한은 `data/clock.ts`의 `sleepBonusFor`).
+   * ⚠️ `doSkip`과 같은 통로를 지난다(밤 정산·예약·회복 카운트가 한 번씩만 돈다).
+   */
+  doSleep: (bedMinute?: number) => void
   /** 콜센터 미니게임에서 콜 한 건을 마쳤다. 인자는 그 콜의 보너스(원). */
   finishCall: (won: number) => void
   /**
@@ -1102,6 +1243,15 @@ interface GameStore {
    */
   postArtwork: (artworkId: string) => void
   /**
+   * 글을 올린다(1턴). `photoId`는 사진첩(`data/events.ts`)에서 고른 사진이고,
+   * `replyTo`가 있으면 그 트윗에 다는 답글이다.
+   */
+  postTweet: (body: string, photoId?: string, replyTo?: string) => void
+  /** 팔로우·좋아요·리트윗 토글. `key`는 팔로우면 계정 핸들, 나머지는 트윗 id다. */
+  reactTweet: (kind: TweetReaction, key: string) => void
+  /** 트위터 알림을 열었다 — 안 읽은 뱃지를 지운다. */
+  seeTwitterNotices: () => void
+  /**
    * 개인방송을 켠다. **1턴을 쓴다**(`stream` 활동이 비용을 갖는다).
    * ⚠️ `playGame`과 같은 모양 — 활동만으로는 못 넘기는 값(켠 횟수·주제)이 하나 더 있다.
    */
@@ -1190,6 +1340,14 @@ interface GameStore {
   buyStock: (stockId: string, shares: number) => void
   sellStock: (stockId: string, shares: number) => void
   markEndingSeen: (endingId: string) => void
+  /** 계정 이름 바꾸기(제어판 → 사용자 계정). 판의 다른 것은 아무것도 안 건드린다. */
+  renamePlayer: (name: string) => void
+  /** 프로그램을 내려받는다(줌). 공짜라 돈도 턴도 안 쓴다 — `installed`에 id 하나가 는다. */
+  installApp: (appId: string) => void
+  /** 화상회의 요청을 받아들여 일정에 넣는다(너아무튼온의 [확인]). */
+  acceptMeeting: () => void
+  /** 회의실에 들어간다. **턴을 쓰지 않고** 성과만 오른다(사유는 `systems/meeting.ts`). */
+  joinMeeting: () => void
   reset: () => void
 
   /* ── 자동 진행 ──────────────────────────────────────────────────────── */
@@ -1347,6 +1505,10 @@ export const useGameStore = create<GameStore>()(
             autoSlots: 0,
             autoRun: null,
             tourAsk: true,
+            /* ⚠️ **새 판은 부팅 화면부터 시작한다**(2026-08-22 설계자 지시). 이 컴퓨터를
+               처음 켜는 순간이라 잠금화면에서 곧바로 바탕화면이 뜨면 순서가 어긋난다 —
+               이어하기(`continueGame`)에는 안 붙인다(그건 이미 켜져 있던 컴퓨터다). */
+            booting: true,
           })
         },
 
@@ -1384,6 +1546,7 @@ export const useGameStore = create<GameStore>()(
         },
         endTour: () => set({ tourRunning: false }),
 
+        crashing: false,
         jobNotices: [],
         clearJobNotices: () => set({ jobNotices: [] }),
 
@@ -1570,7 +1733,30 @@ export const useGameStore = create<GameStore>()(
           const current = get().state
           if (!current) return
           const next = postArtworkOf(current, artworkId)
-          if (next !== current) set(afterTurn(next))
+          if (next === current) return
+          set({ ...afterTurn(next), feedback: twitterToast(next) })
+        },
+
+        postTweet: (body, photoId, replyTo) => {
+          const current = get().state
+          if (!current) return
+          // `postTweet`이 조건(빈 글·행동력·회복기)을 다 보고 안 되면 상태를 그대로 돌려준다.
+          const next = postTweetOf(current, body, photoId, replyTo)
+          if (next !== current) set({ ...afterTurn(next), feedback: twitterToast(next) })
+        },
+
+        /* ⚠️ **턴도 돈도 안 쓴다**(즐겨찾기·구독과 같은 부류 — "탐색은 무료"). */
+        reactTweet: (kind, key) => {
+          const current = get().state
+          if (!current) return
+          set({ state: toggleReaction(current, kind, key) })
+        },
+
+        seeTwitterNotices: () => {
+          const current = get().state
+          if (!current) return
+          const next = markNoticesSeen(current)
+          if (next !== current) set({ state: next })
         },
 
         startStream: (topic) => {
@@ -1699,10 +1885,78 @@ export const useGameStore = create<GameStore>()(
          * `turn.ts`가 예약을 모르는 것은 의도다 — 턴 규칙이 스케줄러를 모르게 두어야
          * 밸런스 테스트가 스케줄러 없이도 성립한다.
          */
-        doActivity: (activity) => {
+        refineWork: (workId) => {
+          const current = get().state
+          const work = current ? findWork(current, workId) : undefined
+          if (!current || !work) return
+          const activity = ACTIVITIES.find((a) => a.toolId === work.tool)
+          if (!activity || !canRun(current, activity)) return
+          get().doActivity(activity, work.id)
+        },
+
+        /**
+         * **체력이 바닥났으면 강제 종료한다** — 화면이 꺼졌다 켜지고 24시간이 지나 있다.
+         *
+         * ⚠️ **`sleepNow`를 태워 하루를 넘긴다**(직접 날짜를 더하지 않는다) — 그래야
+         * 생활비·병 판정·회복 카운트가 평소와 똑같이 한 번씩 돈다. 잃는 것은 시간이지
+         * 정산이 아니다.
+         * ⚠️ **판을 끝내지 않는다**(완전한 게임오버 없음) — 깨어난 체력은 절반까지만
+         * 채워 준다. 가득 채우면 "쓰러질 때까지 굴리기"가 최적해가 된다.
+         */
+        crashIfExhausted: () => {
+          const current = get().state
+          if (!current || !shouldCrash(current)) return
+          const slept = afterTurn(sleepNow(current))
+          const woken: GameState = {
+            ...slept.state,
+            minute: CRASH_WAKE_MINUTE,
+            slot: slotOf(CRASH_WAKE_MINUTE),
+            stats: {
+              ...slept.state.stats,
+              stamina: Math.max(slept.state.stats.stamina, CRASH_WAKE_STAMINA),
+            },
+          }
+          set({ ...slept, state: woken, crashing: true })
+        },
+        /** 강제 종료 연출이 끝났다. 화면만 지운다(상태는 이미 넘어가 있다). */
+        clearCrash: () => set({ crashing: false }),
+
+        booting: false,
+        clearBooting: () => set({ booting: false }),
+
+        setInternetPlan: (planId) => {
+          const current = get().state
+          if (!current) return
+          const next = changePlan(current, planId)
+          if (next !== current) set({ state: next })
+        },
+
+        goOnTrip: (tripId) => {
+          const trip = findTrip(tripId)
+          const activity = trip ? tripActivity(trip) : undefined
+          const current = get().state
+          if (!trip || !activity || !current || !canRun(current, activity)) return
+          /* 1일차 — 활동은 평소 통로를 그대로 지난다(번아웃·날씨·호감도가 빠지지 않게). */
+          get().doActivity(activity)
+          /* ⚠️ **일정만큼 밤을 넘긴다**(1일차 밤부터) — 5일 상품이면 다녀와서 눈뜨는 날이
+             떠난 날 + 5다. 그 사이 생활비·청구·마감이 하루씩 평소대로 돈다. */
+          for (let i = 0; i < tripDays(trip); i++) {
+            const now = get().state
+            if (!now || now.recovery) break
+            set(afterTurn(sleepNow(now)))
+          }
+        },
+
+        deliverGig: () => {
+          const current = get().state
+          if (!current || !canDeliver(current)) return
+          set({ state: deliverGigOf(current) })
+        },
+
+        doActivity: (activity, targetWorkId) => {
           const current = get().state
           if (!current || !canRun(current, activity)) return
-          const ran = runActivity(current, activity)
+          const ran = runActivity(current, activity, targetWorkId)
           /* ⚠️ **진료는 활동이 비용을, 여기가 완치를 맡는다**(`data/activities.ts`의 `clinic`).
              활동 효과에 상태 변경을 섞을 자리가 없어서 이렇게 갈렸다 — 낫는 판정 자체는
              `healIllness` 하나가 갖는다(안 아프면 상태를 그대로 돌려준다).
@@ -1725,6 +1979,9 @@ export const useGameStore = create<GameStore>()(
               ...feedbackFor(current, result.state, activity),
             ],
           })
+          /* ⚠️ **체력이 바닥나면 컴퓨터가 꺼진다**(2026-08-22 설계자 지시). 활동 결과가
+             확정된 **뒤에** 묻는다 — 먼저 물으면 방금 한 일이 없던 일이 된다. */
+          get().crashIfExhausted()
           openCallCenterIfWorking(current, activity.id)
           openDriveIfWorking(current, activity.id)
           openMinesweeperIfPlaying(activity.id)
@@ -1815,6 +2072,16 @@ export const useGameStore = create<GameStore>()(
           const current = get().state
           if (!current) return
           const result = afterTurn(skipSlot(current))
+          /* 건너뛴 아침에도 돌발 사건은 알린다 — `doActivity`와 같은 자리·같은 이유. */
+          set({ ...result, feedback: chanceNotice(current, result.state) })
+        },
+
+        doSleep: (bedMinute) => {
+          const current = get().state
+          if (!current) return
+          const result = afterTurn(
+            bedMinute === undefined ? sleepNow(current) : sleepAt(current, bedMinute),
+          )
           /* 건너뛴 아침에도 돌발 사건은 알린다 — `doActivity`와 같은 자리·같은 이유. */
           set({ ...result, feedback: chanceNotice(current, result.state) })
         },
@@ -1919,6 +2186,40 @@ export const useGameStore = create<GameStore>()(
           if (!current) return
           const next = sellStockOf(current, stockId, shares)
           if (next !== current) set({ state: next })
+        },
+
+        /**
+         * 이름만 바꾼다. ⚠️ **잠금화면과 같은 제한**(앞뒤 공백 제거·빈 이름 거부)을 여기서
+         * 한 번 더 건다 — 화면이 막아 주더라도 store가 유일하게 확실한 자리다.
+         * 12자 제한은 입력칸(`maxLength`)의 몫이다: 자르면 사용자가 모르는 사이에 이름이
+         * 바뀌므로, 넘치는 입력은 애초에 들어오지 않게 막는 쪽이 맞다.
+         */
+        installApp: (appId) => {
+          const current = get().state
+          if (!current) return
+          const next = installAppOf(current, appId)
+          if (next !== current) set({ state: next })
+        },
+
+        acceptMeeting: () => {
+          const current = get().state
+          if (!current) return
+          const next = acceptMeetingOf(current)
+          if (next !== current) set({ state: next })
+        },
+
+        joinMeeting: () => {
+          const current = get().state
+          if (!current) return
+          const next = joinMeetingOf(current)
+          if (next !== current) set({ state: next })
+        },
+
+        renamePlayer: (name) => {
+          const current = get().state
+          const trimmed = name.trim()
+          if (!current || !trimmed || trimmed === current.playerName) return
+          set({ state: { ...current, playerName: trimmed } })
         },
 
         markEndingSeen: (endingId) => {

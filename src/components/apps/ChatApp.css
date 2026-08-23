@@ -604,6 +604,25 @@
   background: var(--os-fill);
 }
 
+/* 회의 요청의 [확인] — 이 카드에는 선택지가 하나뿐이라 그 하나가 주 버튼이다
+   (ux `primary-action`: 한 화면의 주 동작은 하나). */
+.chat-offer-go {
+  border-color: transparent;
+  background: var(--os-accent);
+  /* ⚠️ 버튼 자신에게도 흰색을 준다 — 자식 span에만 주면 상속된 검정이 남아 실측이
+     "액센트 위 검정 글자"로 잡는다(실제로 그렇게 걸렸다). */
+  color: #fff;
+}
+
+.chat-offer-go:hover:not(:disabled) {
+  background: var(--os-accent-hover);
+}
+
+.chat-offer-go .chat-offer-label,
+.chat-offer-go .chat-offer-desc {
+  color: #fff;
+}
+
 /* ux `disabled-states`: 투명도 + 커서 + 의미론적 속성을 함께 준다. */
 .chat-offer:disabled {
   opacity: 0.38;

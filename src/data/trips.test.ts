@@ -1,3 +1,4 @@
+import { tripActivity } from '../systems/travel'
 import { describe, expect, it } from 'vitest'
 import { HERO_TRIP, TRIPS, TRIP_REGIONS, findTrip, tripsOf } from './trips'
 import { findActivity } from './activities'
@@ -61,20 +62,35 @@ describe('여행 두 종류의 성격', () => {
     expect(far.effects.mental!).toBeGreaterThan(near.effects.mental!)
   })
 
-  it('⚠️ 근거리는 행동력을 덜 먹는다 — 값만 싼 하위 호환이면 고를 이유가 없다', () => {
+  /* ⚠️ 2026-08-22부터 **활동은 하루치**이고 상품이 일수를 곱한다(`systems/travel.ts`).
+     그래서 성격 비교도 하루 단위로 한다. */
+  it('⚠️ 근거리는 하루에 행동력을 덜 먹는다 — 값만 싼 하위 호환이면 고를 이유가 없다', () => {
     // 음수라 "더 큰 값"이 덜 먹는 것이다.
     expect(near.effects.stamina!).toBeGreaterThan(far.effects.stamina!)
   })
 
-  it('둘 다 이 게임에서 가장 큰 멘탈 회복 축이다 (게임보다 크다)', () => {
-    const game = findActivity('game')!
-    expect(far.effects.mental!).toBeGreaterThan(game.effects.mental!)
+  it('⚠️ 근거리 상품이 자리를 덜 비운다 — 짧게 다녀오는 것이 근거리의 값어치다', () => {
+    const farDays = Math.min(...TRIPS.filter((t) => t.activityId === 'travel').map((t) => t.days))
+    const nearDays = Math.min(
+      ...TRIPS.filter((t) => t.activityId === 'travel-near').map((t) => t.days),
+    )
+    expect(nearDays).toBeLessThanOrEqual(farDays)
   })
 
-  it('requires가 effects의 비용과 어긋나지 않는다', () => {
+  it('둘 다 이 게임에서 가장 큰 멘탈 회복 축이다 (상품 단위로 게임보다 크다)', () => {
+    const game = findActivity('game')!
+    const longest = TRIPS.reduce((a, b) => (a.days >= b.days ? a : b))
+    expect(tripActivity(longest)!.effects.mental!).toBeGreaterThan(game.effects.mental!)
+  })
+
+  it('requires가 effects의 비용과 어긋나지 않는다 (하루치·상품 둘 다)', () => {
     for (const a of [near, far]) {
       expect(a.requires?.money, a.id).toBe(Math.abs(a.effects.money!))
       expect(a.requires?.stamina, a.id).toBe(Math.abs(a.effects.stamina!))
+    }
+    for (const t of TRIPS) {
+      const scaled = tripActivity(t)!
+      expect(scaled.requires?.money, t.id).toBe(Math.abs(scaled.effects.money!))
     }
   })
 })

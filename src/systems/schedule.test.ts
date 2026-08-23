@@ -1,3 +1,4 @@
+import { DAY_END } from '../data/clock'
 import { describe, it, expect } from 'vitest'
 import {
   clearPlan,
@@ -41,7 +42,7 @@ describe('예약 목록', () => {
   it('지나간 예약은 버린다 — 달력이 과거로 더러워지지 않게', () => {
     const plans = [
       { day: 1, slot: 'morning' as const, activityId: 'study' },
-      { day: 1, slot: 'afternoon' as const, activityId: 'work' },
+      { day: 1, minute: DAY_END - 60, slot: 'afternoon' as const, activityId: 'work' },
       { day: 3, slot: 'morning' as const, activityId: 'study' },
     ]
     expect(prunePast(plans, 1, 'afternoon').map((p) => p.day * 2 + (p.slot === 'afternoon' ? 1 : 0)))
@@ -61,7 +62,8 @@ describe('runPlans', () => {
   it('현재 슬롯의 예약을 실행하고 턴을 넘긴다', () => {
     const s = base({ plans: [{ day: 1, slot: 'morning', activityId: 'study' }] })
     const r = runPlans(s)
-    expect(r.state.slot).toBe('afternoon')
+    /* ⚠️ 예약은 여전히 오전/오후 단위이고(시계에서 파생된다) 실행하면 시계가 나아간다. */
+    expect(r.state.minute).toBeGreaterThan(s.minute)
     expect(r.state.stats.knowledge).toBeGreaterThan(s.stats.knowledge)
     // 쓴 예약은 남지 않는다.
     expect(r.state.plans).toEqual([])
@@ -71,15 +73,17 @@ describe('runPlans', () => {
     const s = base({
       plans: [
         { day: 1, slot: 'morning', activityId: 'study' },
-        { day: 1, slot: 'afternoon', activityId: 'study' },
+        { day: 1, slot: 'afternoon' as const, activityId: 'study' },
       ],
     })
     const r = runPlans(s)
-    expect(r.state.day).toBe(2)
-    // ⚠️ +12가 아니라 +11이다 — 같은 활동을 연달아 하면 번아웃 효율(90%)이 걸려
-    // 두 번째 공부가 +6이 아니라 +5가 된다. 스케줄러가 번아웃을 우회하지 않는다는 뜻이고,
-    // 이게 깨지면 달력을 한 활동으로 도배하는 것이 최적해가 된다.
-    expect(r.state.stats.knowledge).toBe(s.stats.knowledge + 11)
+    /* ⚠️ 2026-08-22 분 단위 전환: 오전 예약을 마쳐도 **정오 전이면 아직 오전이다** —
+       오후 예약은 시계가 정오를 넘을 때 실행된다(예약이 사라지지 않는 것이 요점이다). */
+    expect(r.state.day).toBe(1)
+    expect(r.state.minute).toBeGreaterThan(s.minute)
+    expect(r.state.plans?.some((p) => p.slot === 'afternoon')).toBe(true)
+    // 오전 예약 하나만 실행됐으므로 +6이다(오후 것은 시계가 정오를 넘을 때 실행된다).
+    expect(r.state.stats.knowledge).toBe(s.stats.knowledge + 6)
   })
 
   it('조건이 안 되면 건너뛰고 사유를 돌려준다 — 조용히 사라지지 않는다', () => {
@@ -90,8 +94,8 @@ describe('runPlans', () => {
     const r = runPlans(s)
     expect(r.skipped).toHaveLength(1)
     expect(r.skipped[0].reason).toBe('조건 미달')
-    // 슬롯은 흘러간다 — 여기서 멈추면 플레이어가 갇힌다.
-    expect(r.state.slot).toBe('afternoon')
+    // 시계는 흘러간다 — 여기서 멈추면 플레이어가 갇힌다.
+    expect(r.state.minute).toBeGreaterThan(s.minute)
     // 못 지킨 예약은 남기지 않는다(다음 날에도 같은 자리에서 계속 실패한다).
     expect(r.state.plans).toEqual([])
   })

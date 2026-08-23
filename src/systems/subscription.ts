@@ -1,6 +1,9 @@
 import { BILLING_INTERVAL_DAYS, SUBSCRIPTIONS, findSubscription } from '../data/subscriptions'
+import { MAILBOX } from '../data/messages'
+import { messageTime, turnIndex } from './messages'
 import { clampStats, settleRecovery, subscribed } from './turn'
 import type { Subscription } from '../data/subscriptions'
+import type { TimedMessage } from './messages'
 import type { GameState, SubscriptionState } from '../types/game'
 
 /**
@@ -129,5 +132,53 @@ export function advanceSubscriptions(state: GameState): GameState {
     ...state,
     stats: clampStats({ ...state.stats, money }),
     subscriptions: { active, paid: prev.paid + paid },
+  })
+}
+
+/**
+ * **결제 영수증 메일.** 가입한 달치부터 마지막 청구까지 한 통씩 사서함에 쌓인다.
+ *
+ * ⚠️ **새 알림 창구를 만들지 않는다** — 아웃룩(`MAILBOX.id`)을 그대로 탄다
+ * (`gearMessages`·`billMessages`와 같은 규칙).
+ *
+ * ## 왜 세이브에 안 남기나
+ * 영수증은 `active[id]`의 **가입일과 마지막 청구일만으로 다시 계산된다** — 청구가 30일
+ * 간격으로만 도니까(`advanceSubscriptions`) 그 사이의 날짜가 전부 정해진다. 다시 만들 수
+ * 없는 사실(정규직 소식·시험 발표)만 세이브에 남긴다는 규칙의 반대편이다.
+ *
+ * ⚠️ **해지하면 지난 영수증도 사라진다**(키가 통째로 지워지므로). 실제 메일함이라면
+ * 남아 있어야 맞지만, 남기려면 영수증 기록을 세이브에 새로 두고 복원 검증까지 붙여야 한다.
+ * — ponytail: 지난 결제 이력을 화면이 실제로 물어보게 되면 그때 `SubscriptionState`에
+ *   영수증 목록을 만든다. 지금은 "구독 중인 것의 영수증"만 필요하다.
+ */
+export function subscriptionMessages(state: GameState): TimedMessage[] {
+  const book = state.subscriptions
+  if (!book) return []
+
+  return Object.entries(book.active).flatMap(([id, rec]) => {
+    const sub = findSubscription(id)
+    if (!sub) return []
+    const mails: TimedMessage[] = []
+    /* ⚠️ **가입일부터 센다.** 가입 그 자리에서 첫 달치를 내므로(`subscribe`) 영수증도
+       그날이 첫 장이다. `billedDay`는 30일 배수로만 움직여 마지막 장에서 정확히 멎는다. */
+    for (let day = rec.startedDay, nth = 1; day <= rec.billedDay; day += BILLING_INTERVAL_DAYS, nth++) {
+      const turn = turnIndex(day, 'morning')
+      mails.push({
+        id: `sub-receipt-${id}-${day}`,
+        channel: MAILBOX.id,
+        from: `${sub.name} 결제팀`,
+        subject: `[영수증] ${sub.name} ${nth}회차 결제`,
+        /* ⚠️ **줄바꿈을 넣지 않는다** — 읽기 창이 본문을 한 문단으로 흘려서(`MailApp`)
+           `
+`이 그냥 공백이 된다. 소스에만 있는 줄바꿈은 다음 사람을 속인다. */
+        text:
+          `${sub.name} 이용료 ${sub.monthlyFee.toLocaleString('ko-KR')}원이 결제되었습니다. ` +
+          `결제일 ${day}일차 · ${nth}회차 · 다음 청구는 ${BILLING_INTERVAL_DAYS}일 뒤입니다. ` +
+          '해지는 언제든 가능하며, 이미 결제된 기간의 요금은 환불되지 않습니다.',
+        time: messageTime(turn, nth),
+        turn,
+      })
+    }
+    return mails
   })
 }

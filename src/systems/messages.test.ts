@@ -70,7 +70,7 @@ describe('selectThread', () => {
 describe('방이 나타나는 조건', () => {
   it('첫 판의 카톡에는 오픈채팅만 있다 — 아는 사람 방은 아직 없다', () => {
     const shown = visibleThreadsOf('kakao', state())
-    expect(shown.map((t) => t.id)).toEqual(['gym', 'salon', 'hotel-lounge'])
+    expect(shown.map((t) => t.id)).toEqual(['gym', 'salon', 'job-study-room', 'hotel-lounge'])
     // 오픈채팅에는 조건을 걸지 않는다(초반 선택지가 통째로 사라진다).
     for (const t of shown) expect(t.open).toBe(true)
   })

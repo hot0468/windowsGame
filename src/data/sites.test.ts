@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest'
+import { BLOG_POSTS } from './blogs'
 import {
   BOOKMARK_SITES,
+  blogSiteId,
   findSite,
   HOME_SITE_ID,
   PROMO_SITES,
   resolveUrl,
+  searchSiteId,
   SITES,
   STORE_SITES,
 } from './sites'
@@ -226,6 +229,35 @@ describe('문화 사이트 콘텐츠', () => {
     expect(BOOKS.length).toBeGreaterThanOrEqual(3)
     expect(FILMS.length).toBeGreaterThanOrEqual(3)
     expect(WRITING_PROMPTS.length).toBeGreaterThanOrEqual(3)
+  })
+})
+
+/*
+ * ⚠️ **주소가 값을 품는 사이트 둘**(블로그 글·검색 결과)은 `SITES`에 없다. 여기가 깨지면
+ * 탭 제목·주소창·뒤로 가기가 그 화면을 통째로 모르게 된다.
+ */
+describe('blog: · search: — 목록에 없는 사이트', () => {
+  it('블로그 글은 그 글의 사이트가 된다', () => {
+    const site = findSite(blogSiteId(BLOG_POSTS[0].id))!
+    expect(site.render).toBe('blog')
+    expect(site.title).toBe(BLOG_POSTS[0].blog)
+    expect(site.url).toContain(BLOG_POSTS[0].id)
+  })
+
+  it('없는 글은 사이트가 아니다 (오류 페이지로 간다)', () => {
+    expect(findSite('blog:없는글')).toBeUndefined()
+  })
+
+  it('검색 결과는 네이놈의 한 화면이다 — render가 portal이다', () => {
+    const site = findSite(searchSiteId('맛집'))!
+    expect(site.render).toBe('portal')
+    expect(site.title).toContain('맛집')
+  })
+
+  it('주소를 쳐서도 닿는다 (주소창과 이력이 같은 값을 읽는다)', () => {
+    const post = BLOG_POSTS[0]
+    expect(resolveUrl(`https://blog.neinom.com/${post.id}`)).toBe(blogSiteId(post.id))
+    expect(resolveUrl(findSite(searchSiteId('맛집'))!.url)).toBe(searchSiteId('맛집'))
   })
 })
 

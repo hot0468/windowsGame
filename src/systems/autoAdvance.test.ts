@@ -1,3 +1,4 @@
+import { DAY_END } from '../data/clock'
 import { describe, expect, it } from 'vitest'
 import {
   AUTO_STOPPED_BY_PLAYER,
@@ -10,7 +11,7 @@ import {
 } from './autoAdvance'
 import { AUTO_MAX_SLOTS, MONEY_DANGER_DAYS } from '../data/autoAdvance'
 import { SHOP_ITEMS } from '../data/items'
-import { livingCostForDay } from './economy'
+import { nextShock, livingCostForDay } from './economy'
 import { createInitialState } from './turn'
 import { setPlan } from './schedule'
 import type { StopContext } from './autoAdvance'
@@ -125,19 +126,22 @@ describe('소지금 위험선', () => {
     expect(findStop(ctx({ state: poor }))).toBeNull()
   })
 
-  it('⚠️ 물가 구간이 바뀌는 날에도 경고가 사라지지 않는다', () => {
-    // 20일차 위험선 < 21일차 위험선(생활비가 10일마다 오른다). 20일차 기준으로는 안전하고
-    // 21일차 기준으로는 위험한 금액을 들고 하룻밤을 넘기면 **반드시 경고해야 한다**.
-    expect(lineOn(21)).toBeGreaterThan(lineOn(20))
-    const money = lineOn(20) + 16000
-    expect(money).toBeLessThan(lineOn(21))
+  it('⚠️ 물가 급등이 시작되는 날에도 경고가 사라지지 않는다', () => {
+    /* 급등 전날의 위험선 < 급등 첫날의 위험선(생활비가 며칠 오른다). 전날 기준으로는
+       안전하고 급등 기준으로는 위험한 금액을 들고 하룻밤을 넘기면 **반드시 경고해야 한다**.
+       ⚠️ 2026-08-22 전에는 이 자리가 "10일 주기 물가 구간"이었다 — 그 계단은 폐지됐다. */
+    const shockDay = nextShock(1).start
+    const prev = shockDay - 1
+    expect(lineOn(shockDay)).toBeGreaterThan(lineOn(prev))
+    const money = lineOn(prev) + 16000
+    expect(money).toBeLessThan(lineOn(shockDay))
 
-    const before = base({ day: 20, slot: 'afternoon', stats: { ...base().stats, money } })
+    const before = base({ day: prev, minute: DAY_END - 60, slot: 'afternoon' as const, stats: { ...base().stats, money } })
     const after = base({
-      day: 21,
+      day: shockDay,
       slot: 'morning',
-      plans: setPlan([], 21, 'morning', 'study'),
-      stats: { ...base().stats, money: money - livingCostForDay(20) },
+      plans: setPlan([], shockDay, 'morning', 'study'),
+      stats: { ...base().stats, money: money - livingCostForDay(prev) },
     })
     expect(findStop(ctx({ before, state: after }))?.id).toBe('money')
   })
@@ -148,7 +152,7 @@ describe('진행 기록', () => {
     const before = base({ plans: setPlan([], 1, 'morning', 'study') })
     const after = base({
       day: 1,
-      slot: 'afternoon',
+      minute: DAY_END - 60, slot: 'afternoon' as const,
       stats: { ...before.stats, money: before.stats.money - 5000, knowledge: 20 },
     })
     let run = startRun(before)
@@ -165,7 +169,7 @@ describe('진행 기록', () => {
 
   it('⚠️ 오후 슬롯의 생활비를 되돌려 더한다 — 상계된 차액을 그대로 쓰면 "지출 0원"이 된다', () => {
     const living = livingCostForDay(1)
-    const before = base({ slot: 'afternoon', plans: setPlan([], 1, 'afternoon', 'work') })
+    const before = base({ minute: DAY_END - 60, slot: 'afternoon' as const, plans: setPlan([], 1, 'afternoon', 'work') })
     // 알바로 60,000 벌고 밤에 생활비가 나갔다 → 차액은 60,000 − living뿐이다.
     const after = base({
       day: 2,
@@ -181,7 +185,7 @@ describe('진행 기록', () => {
 
   it('못 지킨 예약은 사유가 남고 활동 이름은 없다', () => {
     const before = base({ plans: setPlan([], 1, 'morning', 'work') })
-    const after = base({ day: 1, slot: 'afternoon' })
+    const after = base({ day: 1, minute: DAY_END - 60, slot: 'afternoon' as const })
     const run = appendStep(
       startRun(before),
       ctx({

@@ -4,7 +4,7 @@ import { meetMentalBonus } from '../../systems/affection'
 import { illnessEfficiency, isIll } from '../../systems/illness'
 import { ILLNESS_DAYS, ILL_EFFICIENCY, ILL_STAMINA_FLOOR } from '../../data/illness'
 import { weatherEfficiency } from '../../systems/weather'
-import { getLivingCost, getWageMultiplier } from '../../systems/economy'
+import { getLivingCost } from '../../systems/economy'
 import { canRun, jobStageOpen, outfitFor, ownsRequired, statBonusFor, subscribed } from '../../systems/turn'
 import { findSubscription } from '../../data/subscriptions'
 import { applyBlockers, attendedToday, isWorkday } from '../../systems/employment'
@@ -54,7 +54,6 @@ export interface ActivityPreview {
   /** 화면에 그릴 증감 줄. 순서는 `activity.effects`의 정의 순서를 그대로 따른다. */
   rows: { key: keyof Stats; value: number }[]
   /** 번아웃 효율(1 = 정상). */
-  efficiency: number
   /** 번아웃 누적으로 추가로 깎이는 멘탈. 0이면 표시하지 않는다. */
   mentalPenalty: number
   /** 효율이 깎였는가 = 경고를 띄워야 하는가. */
@@ -68,10 +67,7 @@ export interface ActivityPreview {
 
 export function previewActivity(state: GameState, activity: Activity): ActivityPreview {
   // 키는 `burnoutKeyOf`가 정한다 — 실행(turn.ts)과 미리보기가 다른 키를 보면 거짓 숫자가 뜬다.
-  const { efficiency, mentalPenalty } = getBurnoutPenalty(
-    state.recentActivities,
-    burnoutKeyOf(activity),
-  )
+  const { mentalPenalty } = getBurnoutPenalty(state.recentActivities, burnoutKeyOf(activity))
 
   // ⚠️ TPO 옷 보너스도 **실행과 같은 함수**로 뽑는다(`runActivity` → `applyEffects`).
   //    여기서 비율을 다시 적으면 화면과 실제 결과가 갈린다.
@@ -81,10 +77,8 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
   /* ⚠️ **날씨·아픔도 실행과 같은 함수로 뽑아 곱한다**(`runActivity`와 같은 자리).
      여기서 빠뜨리면 확인창이 "예술 +12"라고 적어 놓고 비 오는 날 실제로는 10만 오른다.
      "오늘만 기회"(`chanceEfficiency`)도 같은 자리·같은 규칙이다.
-     ⚠️ **`efficiency`에 합치지 않는 것이 규칙이다** — 아래 `isBurnedOut`이 그 값을 보므로
-     합치면 비만 와도 번아웃 경고가 뜬다(둘은 서로 다른 사실이다). */
+     ⚠️ **효율 배율(번아웃)은 2026-08-22에 폐지됐다** — 반복해도 얻는 것은 그대로다. */
   const applied =
-    efficiency *
     weatherEfficiency(state.day, activity.id) *
     illnessEfficiency(state) *
     chanceEfficiency(state, activity.id)
@@ -92,10 +86,10 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
   const rows = Object.entries(activity.effects).map(([key, raw]) => {
     const statKey = key as keyof Stats
     let value = raw
-    // 알바비는 물가와 함께 오른다. 정의된 값만 보여 주면 실제 입금액과 어긋난다.
+    // 주말 알바는 할증이 붙는다. 정의된 값만 보여 주면 실제 입금액과 어긋난다.
     if (statKey === 'money' && value > 0 && activity.scalesWithWage) {
-      // ⚠️ 주말 할증도 실행(`applyEffects`)과 **같은 두 배율**을 곱한다.
-      value *= getWageMultiplier(state.day) * (isWeekend(state.day) ? WEEKEND_WAGE_BONUS : 1)
+      // ⚠️ 실행(`applyEffects`)과 **같은 배율**을 곱한다.
+      value *= isWeekend(state.day) ? WEEKEND_WAGE_BONUS : 1
     }
     // 효율은 **이득에만** 곱한다(손해까지 줄여 주면 번아웃이 이득이 된다).
     if (value <= 0) return { key: statKey, value: Math.round(value) }
@@ -127,7 +121,7 @@ export function previewActivity(state: GameState, activity: Activity): ActivityP
     else rows.push({ key: 'money', value: moneyBack })
   }
 
-  return { rows, efficiency, mentalPenalty, isBurnedOut: efficiency < 1, outfit: outfit?.name }
+  return { rows, mentalPenalty, isBurnedOut: mentalPenalty > 0, outfit: outfit?.name }
 }
 
 /** 확정 전에 반드시 보여 줘야 하는 경고 한 줄. */
@@ -149,13 +143,13 @@ export interface ActivityWarning {
  * 생활비는 `getLivingCost`가 정하고 여기서는 **문장으로 옮기기만** 한다.
  */
 export function previewWarnings(state: GameState, activity: Activity): ActivityWarning[] {
-  const { efficiency } = previewActivity(state, activity)
+  const { mentalPenalty } = previewActivity(state, activity)
   const warnings: ActivityWarning[] = []
 
-  if (efficiency < 1) {
+  if (mentalPenalty > 0) {
     warnings.push({
       id: 'burnout',
-      text: `같은 일을 반복하고 있습니다. 효율이 ${Math.round(efficiency * 100)}%입니다.`,
+      text: `같은 일을 반복하고 있습니다. 멘탈이 ${mentalPenalty} 더 깎입니다.`,
     })
   }
 

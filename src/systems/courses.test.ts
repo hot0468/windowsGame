@@ -160,7 +160,7 @@ describe('수강', () => {
     const after = takeCourse(before, course)
     // 활동 자체의 돈 효과가 없는 강의라 수강료만큼만 줄어야 한다.
     expect(after.stats.money).toBe(before.stats.money - course.price)
-    expect(after.slot).not.toBe(before.slot)
+    expect(after.minute + after.day * 1440).toBeGreaterThan(before.minute + before.day * 1440)
   })
 
   it('조건이 안 되면 상태를 그대로 돌려준다 — 반쪽 상태를 남기지 않는다', () => {

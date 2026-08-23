@@ -210,7 +210,9 @@ function TourAsk() {
         <h2 className="tour-title" id="tour-ask-title">
           튜토리얼 보시겠습니까?
         </h2>
-        <p className="tour-text">이 컴퓨터를 쓰는 법을 일곱 걸음으로 안내합니다.</p>
+        {/* ⚠️ **걸음 수를 글자로 박지 않는다** — 단계를 하나 더하면 이 문장이 조용히
+            거짓이 된다(2026-08-22에 실제로 여덟이 됐다). 목록에서 세어 적는다. */}
+        <p className="tour-text">이 컴퓨터를 쓰는 법을 {TOUR_STEPS.length}걸음으로 안내합니다.</p>
         <div className="tour-foot">
           <button type="button" className="tour-btn" onClick={() => answerTour(false)}>
             건너뛰기

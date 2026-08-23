@@ -84,11 +84,25 @@ export function SaveApp() {
  * 게임 상태를 바꾸는 명령은 넣지 않는다: 여기서 스탯을 고칠 수 있으면 게임이 아니게 된다.
  */
 const COMMANDS: Record<string, (ctx: { day: number; slot: string }) => string[]> = {
-  help: () => ['사용할 수 있는 명령: help, date, stats, activities, scan, clean, defrag, ver, cls'],
+  help: () => [
+    '사용할 수 있는 명령: help, date, ipconfig, stats, activities, scan, clean, defrag, ver, cls',
+  ],
   date: (c) => [`${c.day}일차 ${c.slot === 'afternoon' ? '오후' : '오전'}`],
   activities: () => ACTIVITIES.map((a) => `${a.id.padEnd(10)} ${a.label} — ${a.description}`),
   /* ⚠️ 배너와 **같은 한 줄**을 쓴다 — 버전을 두 곳에 적으면 반드시 어긋난다. */
   ver: () => [OS_VERSION],
+  /* 고정된 사설망 한 벌이다 — 이 게임에 네트워크 상태라는 것이 없으므로 굴리지 않는다.
+     값이 매번 바뀌면 없는 시스템이 있는 척하게 된다. */
+  ipconfig: () => [
+    '네이놈 OS IP 구성',
+    '',
+    '이더넷 어댑터 이더넷:',
+    '',
+    '   연결별 DNS 접미사. . . . :',
+    '   IPv4 주소 . . . . . . . . : 192.168.0.7',
+    '   서브넷 마스크 . . . . . . : 255.255.255.0',
+    '   기본 게이트웨이 . . . . . : 192.168.0.1',
+  ],
 }
 
 /**

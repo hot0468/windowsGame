@@ -1,3 +1,4 @@
+import { DAY_END } from '../data/clock'
 import { describe, it, expect } from 'vitest'
 import {
   DEPOSIT_MIN,
@@ -334,7 +335,7 @@ describe('밤 정산의 순서 — 만기 원리금이 우선한다', () => {
   /** 잔고가 그날 생활비보다 적은, 만기 전날 밤. */
   function brokeOnMaturityEve(): GameState {
     const day = 20
-    const base = fresh({ day, slot: 'afternoon' })
+    const base = fresh({ day, minute: DAY_END - 60, slot: 'afternoon' as const })
     // 생활비를 내고 나면 0 이하가 되는 잔고 + 오늘 밤 만기가 오는 정기예금.
     return {
       ...base,
@@ -402,7 +403,7 @@ describe('밤 정산의 순서 — 만기 원리금이 우선한다', () => {
   it('은행 거래가 없으면 미루지 않는다 — 밸런스 시뮬레이션이 이 성질에 기대고 있다', () => {
     // `balance.verify.test.ts`의 기존 시뮬레이션은 `runActivity`/`skipSlot`만 부른다.
     // 미루기가 은행을 안 쓴 판에까지 번지면 그 시뮬레이션이 영원히 안 끝난다.
-    const base = fresh({ day: 20, slot: 'afternoon' })
+    const base = fresh({ day: 20, minute: DAY_END - 60, slot: 'afternoon' as const })
     const broke: GameState = {
       ...base,
       stats: { ...base.stats, money: livingCostForDay(20) - 1000 },

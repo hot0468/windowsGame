@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { findActivity } from '../../data/activities'
 import { DEFAULT_ICON_CELLS, DESKTOP_ICON_ORDER } from '../../data/desktopIcons'
-import { DESKTOP_ITEMS, desktopEntries } from '../../data/desktopItems'
+import { desktopEntries } from '../../data/desktopItems'
 import { DESKTOP_GRID } from '../../data/shell'
 import { UI_ICONS } from '../../data/icons'
 import {
@@ -30,9 +30,9 @@ import { CatPet } from './CatPet'
 import { StatPanel } from './StatPanel'
 import { WalletPanel } from './WalletPanel'
 import { Taskbar } from './Taskbar'
-import { Daybreak } from './Daybreak'
 import { useShownTime } from './shownTime'
 import { BlueScreen } from './BlueScreen'
+import { CrashScreen } from './CrashScreen'
 import { Tour } from './Tour'
 import { ToastHost } from './ToastHost'
 import './Desktop.css'
@@ -55,6 +55,10 @@ interface DragState {
  * 끌어다 놓은 뒤 손이 떨려 두 번 눌리면 옮기려던 것이 열려 버린다.
  */
 const DRAG_CLICK_GUARD = 300
+
+/* ⚠️ **없을 때 돌려줄 배열은 모듈 상수여야 한다** — 셀렉터가 매번 `[]`를 새로 만들면
+   zustand가 값이 바뀐 줄 알고 무한 갱신을 돈다(이 파일의 인벤토리 셀렉터와 같은 함정). */
+const EMPTY_INSTALLED: string[] = []
 
 export function Desktop() {
   const open = useWindowStore((s) => s.open)
@@ -87,8 +91,6 @@ export function Desktop() {
       kind: 'autolog',
       title: '자동 진행 기록',
       icon: UI_ICONS.autoLog,
-      x: 180,
-      y: 90,
       width: 520,
     })
   }, [autoRun, autoRunning, open])
@@ -101,7 +103,10 @@ export function Desktop() {
   const removeShortcut = useShortcutStore((s) => s.remove)
 
   /** 열려 있는 오른쪽 클릭 메뉴(한 번에 하나). */
-  const [menu, setMenu] = useState<{ x: number; y: number; entry: DesktopEntry } | null>(null)
+  /* `entry`가 없으면 **바탕화면 빈 자리**에서 연 메뉴다(2026-08-21). 상태를 둘로 쪼개지
+     않는 이유: 둘 다 한 번에 하나만 떠야 하는데 따로 두면 "아이콘 메뉴와 바탕화면 메뉴가
+     동시에 열린" 조합이 생긴다. */
+  const [menu, setMenu] = useState<{ x: number; y: number; entry?: DesktopEntry } | null>(null)
   /** 실행 여부를 묻는 중인 활동. 바로 가기를 더블클릭하면 여기 들어온다. */
   const [confirming, setConfirming] = useState<Activity | null>(null)
 
@@ -131,10 +136,12 @@ export function Desktop() {
   /* 구독은 끊기면 아이콘이 사라진다 — 셀렉터는 원본 참조를 고르고 변환은 useMemo가 한다. */
   const subsActive = useGameStore((s) => s.state?.subscriptions?.active)
   const subscribedIds = useMemo(() => Object.keys(subsActive ?? {}), [subsActive])
+  /* 내려받은 프로그램(줌). 셀렉터는 원본 참조를 고르고 변환은 useMemo가 한다. */
+  const installedIds = useGameStore((s) => s.state?.installed) ?? EMPTY_INSTALLED
 
   const entries = useMemo(
-    () => desktopEntries(shortcutIds, ownedIds, employed, subscribedIds),
-    [shortcutIds, ownedIds, employed, subscribedIds],
+    () => desktopEntries(shortcutIds, ownedIds, employed, subscribedIds, installedIds),
+    [shortcutIds, ownedIds, employed, subscribedIds, installedIds],
   )
   /** 실제로 그려지는 바로 가기만 칸을 차지한다(없는 활동을 가리키는 것은 빠진다). */
   const shortcutEntryIds = useMemo(
@@ -159,17 +166,13 @@ export function Desktop() {
   const [dragPos, setDragPos] = useState<{ id: string; x: number; y: number } | null>(null)
 
   const openItem = (item: DesktopItem) => {
-    const i = DESKTOP_ITEMS.indexOf(item)
+    /* ⚠️ **여는 자리를 여기서 정하지 않는다**(2026-08-21) — 예전에는 항목 순번만큼
+       어긋내 `x: 120 + i * 28`로 앉혔는데, 화면 폭과 무관한 고정값이라 넓은 화면에서
+       왼쪽에 치우쳐 떴다. 지금은 `windowStore`의 `placeWindow` 하나가 정한다. */
     open({
       id: `${item.kind}-${item.id}`,
       title: item.label,
       icon: item.icon,
-      // 창끼리 겹치지 않게 순번만큼 어긋나게 배치한다.
-      // 최대화 상태로 열리는 창도 이 좌표를 그대로 받는다 —
-      // 최대화 중에는 무시되지만 복원하면 여기로 돌아오므로 0,0을 주면 안 된다.
-      // ⚠️ 아이콘을 어디로 옮겼든 창이 열리는 자리는 바뀌지 않는다(설계자 요구).
-      x: 120 + i * 28,
-      y: 80 + i * 28,
       width: item.width,
       maximized: item.openMaximized,
       kind: item.kind,
@@ -206,6 +209,28 @@ export function Desktop() {
    * 옮겨 둔 칸까지 기억돼 있어 같은 자리로 돌아온다. 예약 취소는 다시 짜야 하지만
    * 이건 아니다.
    */
+  /**
+   * 바탕화면 빈 자리 메뉴. **항목이 속성 하나뿐이다.**
+   *
+   * ⚠️ 실제 윈도우의 그 메뉴에는 '새로 고침'·'보기'·'정렬 기준'이 함께 있지만, 이 게임에는
+   * 대응하는 동작이 없다 — 넣으면 눌러도 아무 일 없는 항목이 셋 생긴다(죽은 컨트롤 금지).
+   * 할 수 있는 일이 늘면 그때 여기 한 줄씩 붙는다.
+   */
+  const desktopMenuItems = (): ContextMenuItem[] => [
+    {
+      id: 'props',
+      label: '속성',
+      onSelect: () =>
+        open({
+          id: 'sysinfo',
+          title: '시스템 속성',
+          icon: UI_ICONS.sysinfo,
+          width: 460,
+          kind: 'sysinfo',
+        }),
+    },
+  ]
+
   const menuItems = (entry: DesktopEntry): ContextMenuItem[] => [
     { id: 'open', label: entry.shortcut ? '실행' : '열기', onSelect: () => openEntry(entry) },
     ...(entry.shortcut
@@ -289,7 +314,18 @@ export function Desktop() {
       {/* 아이콘은 **격자 칸에 절대 배치**된다(실제 윈도우의 "자동 정렬 끔 + 격자에 맞춤").
           기본 배치는 data/desktopIcons.ts, 옮긴 위치는 desktopIconStore, 계산은
           systems/desktopGrid.ts가 나눠 갖는다. */}
-      <div className="desktop-icons">
+      {/* ⚠️ **빈 자리 판정은 `target === currentTarget`이다.** 이 판이 격자 전체를 덮으므로
+          (아이콘을 어디로든 끌어다 놓을 수 있어야 한다) 아이콘 위에서 누른 것과 빈 자리에서
+          누른 것을 좌표로는 가를 수 없다. 아이콘은 자기 `onContextMenu`가 이미 받아 가므로
+          여기 올라오는 것은 판 자신에게 떨어진 것뿐이다. */}
+      <div
+        className="desktop-icons"
+        onContextMenu={(e) => {
+          if (e.target !== e.currentTarget) return
+          e.preventDefault()
+          setMenu({ x: e.clientX, y: e.clientY })
+        }}
+      >
         {entries.map((entry) => {
           const cell = layout[entry.id]
           if (!cell) return null
@@ -376,10 +412,11 @@ export function Desktop() {
       {/* 알림은 작업 표시줄 위·엔딩 모달 아래에 뜬다. 턴이 넘어갈 때만 나타난다. */}
       <ToastHost />
       {/* 날이 바뀌면 해가 뜨는 화면이 잠깐 덮는다(설계자 지시). 두 셸이 같이 쓴다. */}
-      <Daybreak />
       {/* 번아웃이 바닥에 닿으면 화면이 뻗는다. **데스크톱 셸에만 있다** — 폰이 블루스크린을
           띄우면 그 자체가 말이 안 되고, 모바일 셸은 이 컴포넌트를 마운트하지 않는다. */}
       <BlueScreen />
+      {/* 강제 종료 — 체력이 바닥나면 화면이 꺼졌다 다시 켜진다(상태는 이미 넘어가 있다). */}
+      <CrashScreen />
       {/* 첫 실행 안내 투어. **데스크톱 셸에만 있다** — 가리키는 대상이 전부 데스크톱
           DOM(아이콘·HUD 패널·작업 표시줄)이라 폰에서는 가리킬 것이 없다(`BlueScreen`과
           같은 규칙). 화면을 덮으므로 여기 마운트 순서가 곧 형제들 위에 서는 순서다. */}
@@ -390,8 +427,8 @@ export function Desktop() {
         <ContextMenu
           x={menu.x}
           y={menu.y}
-          label={`${menu.entry.label} 메뉴`}
-          items={menuItems(menu.entry)}
+          label={menu.entry ? `${menu.entry.label} 메뉴` : '바탕화면 메뉴'}
+          items={menu.entry ? menuItems(menu.entry) : desktopMenuItems()}
           onClose={() => setMenu(null)}
         />
       )}

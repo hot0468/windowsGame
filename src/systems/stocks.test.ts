@@ -18,8 +18,7 @@ import {
 } from './stocks'
 import { createInitialState, growthCap } from './turn'
 import { STOCKS, TRADE_FEE, findStock } from '../data/stocks'
-import { ECONOMY_TIERS } from '../data/economy'
-import { HOUSINGS } from '../data/housing'
+import { BASE_LIVING_COST, INCOME_CAP_RATIO } from '../data/economy'
 import type { GameState } from '../types/game'
 
 /**
@@ -41,20 +40,19 @@ describe('⚠️ 불변식 — 주식만으로는 물가를 못 이긴다', () =
    * 시세가 `base × (1 ± volatility)` 안에 갇혀 있으므로(파형 계수 합이 1) 이 값이
    * 실제로 상한이다 — 소지금이 아무리 많아도 `maxShares` 위로는 못 산다.
    */
-  const lastTier = ECONOMY_TIERS[ECONOMY_TIERS.length - 1]
-  const cheapestLiving = lastTier.living * Math.min(...HOUSINGS.map((h) => h.rate))
+  const ceiling = BASE_LIVING_COST * INCOME_CAP_RATIO.session
   const maxDailyGain = STOCKS.reduce(
     (sum, s) => sum + s.base * (1 + s.volatility) * s.maxShares * (2 * s.volatility),
     0,
   )
 
   it('완벽한 타이밍으로 매매해도 가장 싼 집의 마지막 물가 생활비를 못 넘는다', () => {
-    expect(maxDailyGain).toBeLessThan(cheapestLiving)
+    expect(maxDailyGain).toBeLessThan(ceiling)
   })
 
   it('규칙을 뒤집으면 실패한다 — 보유 상한을 두 배로 두면 생활비를 넘긴다', () => {
     // 이 줄이 통과해야 위 부등식이 "우연히 맞는 값"이 아님이 증명된다.
-    expect(maxDailyGain * 2).toBeGreaterThan(cheapestLiving)
+    expect(maxDailyGain * 2).toBeGreaterThan(ceiling)
   })
 
   it('시세는 기준가 ±변동폭 안에 갇혀 있다 — 이 경계가 위 계산의 근거다', () => {

@@ -1,3 +1,4 @@
+import { DAY_START } from '../data/clock'
 import { describe, it, expect } from 'vitest'
 import { FILMS, SHOWN_PER_SECTION } from '../data/media'
 import { filmsForWeek, hasPostcard, heroFilm, postcardsOf, watchFilm } from './cinema'
@@ -56,7 +57,7 @@ describe('포스트카드', () => {
     expect(postcardsOf(after)[0].filmId).toBe(film.id)
     // 날짜는 **턴이 넘어가기 전** 것이어야 한다(오후에 보면 날이 바뀐다).
     expect(postcardsOf(after)[0].day).toBe(before.day)
-    expect(after.slot).not.toBe(before.slot)
+    expect(after.minute + after.day * 1440).toBeGreaterThan(before.minute + before.day * 1440)
     expect(after.stats.money).toBeLessThan(before.stats.money)
   })
 
@@ -69,7 +70,7 @@ describe('포스트카드', () => {
     /* ⚠️ 한 편 보면 턴이 넘어가 오후가 된다 — 영화는 **조조라 오전 전용**이므로
        (2026-08-08 슬롯 제약) 다시 오전으로 옮겨 두 번째를 본다. */
     const first = watchFilm(rich(), film)
-    const two = watchFilm({ ...first, slot: 'morning' }, NOW_POOL[1])
+    const two = watchFilm({ ...first, minute: DAY_START, slot: 'morning' }, NOW_POOL[1])
     expect(postcardsOf(two).map((p) => p.filmId)).toEqual([film.id, NOW_POOL[1].id])
     expect(hasPostcard(two, NOW_POOL[1].id)).toBe(true)
   })

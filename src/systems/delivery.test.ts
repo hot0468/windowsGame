@@ -1,8 +1,9 @@
+import { DAY_END } from '../data/clock'
 import { describe, expect, it } from 'vitest'
 import { SHOP_ITEMS, buyableFor, findItem, storeNameOf } from '../data/items'
 import { COUPON_MAX_DISCOUNT, COUPON_RATE } from '../data/messages'
 import { canOrder, collect, couponDay, couponDiscount, order, recordEvent } from './delivery'
-import { canRun, createInitialState, skipSlot } from './turn'
+import { canRun, createInitialState, sleepNow } from './turn'
 import { findActivity } from '../data/activities'
 import type { GameState } from '../types/game'
 
@@ -51,7 +52,7 @@ describe('collect', () => {
   it('다음 날 도착하며 그때 효과가 적용된다', () => {
     const ordered = order(rich(), item)
     // 오전 → 오후 → 다음 날 오전
-    const next = skipSlot(skipSlot(ordered))
+    const next = sleepNow((ordered))
     const got = collect(next)
     expect(got.arrived.map((i) => i.id)).toEqual([item.id])
     expect(got.state.inventory).toEqual([{ id: item.id, day: 2 }])
@@ -61,7 +62,7 @@ describe('collect', () => {
 
   it('두 번 받아도 효과가 두 배가 되지 않는다', () => {
     const ordered = order(rich(), item)
-    const next = skipSlot(skipSlot(ordered))
+    const next = sleepNow((ordered))
     const once = collect(next).state
     const twice = collect(once)
     expect(twice.arrived).toEqual([])
@@ -69,7 +70,7 @@ describe('collect', () => {
   })
 
   it('첫 택배가 도감에 남는다', () => {
-    const next = skipSlot(skipSlot(order(rich(), item)))
+    const next = sleepNow((order(rich(), item)))
     const got = collect(next).state
     expect(got.events?.map((e) => e.id)).toContain('first-delivery')
   })
@@ -148,7 +149,7 @@ describe('회원권 잠금 해제 고리', () => {
   it('다음 날 도착하면 열린다', () => {
     // 하루를 보낸다(오전 → 오후 → 다음 날 오전). 도착 판정은 collect가 한다.
     let s = order(rich(), pass)
-    s = skipSlot(skipSlot(s))
+    s = sleepNow((s))
     const got = collect(s)
     expect(got.arrived.map((i) => i.id)).toContain('gym-pass')
     expect(canRun(got.state, gymMember)).toBe(true)
@@ -156,7 +157,7 @@ describe('회원권 잠금 해제 고리', () => {
 
   it('회원권은 두 번 살 수 없다 — 두 번째 결제는 아무 일도 하지 않는다', () => {
     let s = order(rich(), pass)
-    s = collect(skipSlot(skipSlot(s))).state
+    s = collect(sleepNow((s))).state
     expect(canOrder(s, pass)).toBe(false)
     expect(order(s, pass)).toBe(s)
   })
@@ -268,13 +269,13 @@ describe('방송 장비 잠금 해제 고리', () => {
 
   it('다음 날 도착하면 열린다', () => {
     let s = order(rich(), kit)
-    s = skipSlot(skipSlot(s))
+    s = sleepNow((s))
     const got = collect(s)
     expect(got.arrived.map((i) => i.id)).toContain('streamkit')
     /* ⚠️ 방송은 **오후 전용**이다(2026-08-08 슬롯 제약) — 하루를 보내면 오전이라
        그 상태로 물으면 장비가 있어도 false다. 여기서 재는 것은 **장비 잠금**이므로
        슬롯을 맞춘 뒤 묻는다(슬롯 규칙은 `turn.test.ts`가 따로 지킨다). */
-    expect(canRun({ ...got.state, slot: 'afternoon' }, stream)).toBe(true)
+    expect(canRun({ ...got.state, minute: DAY_END - 60, slot: 'afternoon' as const }, stream)).toBe(true)
   })
 })
 

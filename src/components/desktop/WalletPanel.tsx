@@ -2,7 +2,7 @@ import { HudPanel } from './HudPanel'
 import { ResourceRow } from './StatPanel'
 import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
-import { getLivingCost, getNextTier, tierCostFor } from '../../systems/economy'
+import { activeShock, getLivingCost, nextShock, shockCostFor } from '../../systems/economy'
 import { CALENDAR_PANEL_LAYOUT } from '../../data/calendar'
 
 /**
@@ -47,7 +47,10 @@ export function WalletPanel() {
   if (!state || !visible) return null
 
   const { day } = state
-  const nextTier = getNextTier(day)
+  /* 물가는 평소에 고정이고 가끔 며칠 흔들린다(2026-08-22). 지금 흔들리는 중이면 남은 날을,
+     아니면 다음 사건이 며칠 뒤인지를 적는다 — 둘 다 없으면 이 줄이 장식이 된다. */
+  const shock = activeShock(day)
+  const next = nextShock(day)
 
   return (
     <HudPanel
@@ -64,8 +67,8 @@ export function WalletPanel() {
       onActivate={() => raise('wallet')}
     >
       <ResourceRow statKey="money" value={state.stats.money} suffix="원" warn={state.stats.money <= 100000} />
-      {/* ⚠️ 두 줄 다 **지금 사는 집의 배율**을 탄 금액이다(`getLivingCost`/`tierCostFor`).
-          한쪽만 기준 금액을 적으면 이사한 플레이어에게 "오늘 21,600원 → 5일 후 60,000원"처럼
+      {/* ⚠️ 두 줄 다 **지금 사는 집의 배율**을 탄 금액이다(`getLivingCost`/`shockCostFor`).
+          한쪽만 기준 금액을 적으면 이사한 플레이어에게 "오늘 21,600원 → 45,000원"처럼
           말이 안 되는 예고가 뜬다. */}
       <div className="stat-note">
         <span className="stat-note-row">
@@ -73,9 +76,9 @@ export function WalletPanel() {
           <span className="stat-note-num">{getLivingCost(state).toLocaleString('ko-KR')}원</span>
         </span>
         <span className="stat-note-row">
-          <span>{nextTier.day - day}일 후 인상</span>
+          <span>{shock ? `${shock.shock.name} · ${shock.end - day + 1}일 남음` : `${next.start - day}일 뒤 ${next.shock.name}`}</span>
           <span className="stat-note-num">
-            {tierCostFor(state, nextTier).toLocaleString('ko-KR')}원
+            {shockCostFor(state, shock ?? next).toLocaleString('ko-KR')}원
           </span>
         </span>
       </div>

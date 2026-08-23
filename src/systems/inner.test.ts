@@ -1,3 +1,4 @@
+import { DAY_END } from '../data/clock'
 import { describe, expect, it } from 'vitest'
 import { innerLine } from './inner'
 import { createInitialState } from './turn'
@@ -47,7 +48,7 @@ describe('같은 말이 연달아 나오지 않는다', () => {
   it('턴이 넘어가면 다른 문장이 나온다', () => {
     const s = base()
     const morning = innerLine(s, study)
-    const afternoon = innerLine({ ...s, slot: 'afternoon' }, study)
+    const afternoon = innerLine({ ...s, minute: DAY_END - 60, slot: 'afternoon' as const }, study)
     expect(morning).not.toBe(afternoon)
   })
 })

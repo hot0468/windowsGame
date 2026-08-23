@@ -114,8 +114,16 @@
   flex-direction: column;
 }
 
-.win-max .win-body > * {
+.win-max .win-body > *,
+.win-sized .win-body > * {
   flex: 1 1 auto;
+  min-height: 0;
+  /* ⚠️ **앱 자신의 고정 높이를 여기서 푼다.** 앱 루트들은 저마다 `height`·`max-height`를
+     들고 있는데(예: `.ad`는 560px + `calc(100vh - 280px)`), 그 값이 남아 있으면 창을
+     키워도 내용은 그대로고 **아래에 빈 띠가 남는다**(실측으로 잡았다).
+     창 크기를 사람이 정한 순간부터 높이의 주인은 창이다. */
+  height: auto;
+  max-height: none;
 }
 
 /* 플랫 컬러 아이콘은 자체 색을 가지므로 color로 덧칠하지 않는다. */
@@ -288,9 +296,14 @@
  */
 /* 파일 탐색기도 같은 이유다 — 목록 창이라 세로로 커야 하고, 실제 높이는 `.ex`가 정한다. */
 /* 솔리테어도 같다 — 작업 더미가 13장까지 쌓이는 판이라 60vh에서 잘리면 아랫장이 안 보인다. */
-/* ⚠️ 증기는 여기 없다 — `bareTitle` 창이라 아래 `.win-bare .win-body`가 상한을 따로 쥔다. */
+/* ⚠️ 증기·VS 코드·어도비 셋은 여기 없다 — `bareTitle` 창이라 아래 `.win-bare .win-body`가
+   여백과 상한을 함께 쥔다. */
+/* 시스템 속성도 같다 — 사양 열한 줄이 **한눈에 다 보여야** 하는 목록이라, 60vh에 걸리면
+   마지막 줄(OS 빌드)이 스크롤 아래로 잘린다(실측에서 잡혔다). 여백은 그대로 둔다: 이 창은
+   프로그램이 아니라 **윈도우 자신의 대화 상자**라 OS 여백이 붙는 것이 맞다. */
 .win-body:has(> .sch),
 .win-body:has(> .ex),
+.win-body:has(> .sys),
 .win-body:has(> .sol) {
   max-height: none;
 }
@@ -410,3 +423,42 @@
 .win-dark .win-maximize:hover .win-glyph-restore::after {
   background: #3a3a3a;
 }
+
+/*
+ * 크기 조절 손잡이 — 오른쪽 아래 모서리(2026-08-22 설계자 지시).
+ *
+ * ⚠️ **네 변·네 모서리를 다 만들지 않았다**: 핸들 여덟이면 타이틀 바·스크롤바와 서로
+ * 먹고, 창 안의 사이트들이 이미 `container-type`으로 접히므로 가로만 줄이는 조작이
+ * 따로 필요하지 않다. 실제 윈도우도 이 모서리가 가장 많이 쓰인다.
+ * ⚠️ **최소 크기는 CSS가 아니라 스토어가 지킨다**(`MIN_WINDOW`) — 두 곳에서 자르면
+ * 바닥이 둘이 된다.
+ */
+.win-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  /* 손잡이 자국. 실제 윈도우처럼 **빗금 두 줄**이고 색은 창 테두리를 그대로 쓴다. */
+  background:
+    linear-gradient(135deg, transparent 45%, var(--os-border) 45%, var(--os-border) 55%, transparent 55%),
+    linear-gradient(135deg, transparent 70%, var(--os-border) 70%, var(--os-border) 80%, transparent 80%);
+  touch-action: none;
+}
+
+/*
+ * 크기를 끈 창은 **본문이 안에서 스크롤한다** — 안 그러면 내용이 창 높이를 밀고 나간다.
+ * ⚠️ 최대화 창(`.win-max .win-body`)과 같은 처리를 크기를 끈 창에도 준다: 자식이
+ * 남은 높이를 채우고, 넘치면 자기 안에서 스크롤한다.
+ */
+.win-sized .win-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+

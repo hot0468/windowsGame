@@ -45,6 +45,12 @@ const CHANCE_CHANNEL = 'chance'
  */
 const CAT_CHANNEL = 'cat'
 
+/**
+ * 트위터 반응 토스트(팔로우·리트윗·좋아요). 기록·감상과 같은 수법이고 **누를 데가 없다** —
+ * 브라우저를 특정 사이트로 열어 주는 통로가 없어, 만들면 엉뚱한 탭이 뜬다.
+ */
+const TWITTER_CHANNEL = 'twitter'
+
 /** 기록 갱신 토스트 아이콘. 트로피가 아니라 **올라가는 그래프**다 — 기록은 거울이지 상이 아니다. */
 const RECORD_ICON = 'fluent-color:arrow-trending-lines-24'
 /** 내면 감상 아이콘. 혼잣말이라 말풍선 하나. */
@@ -55,6 +61,9 @@ const CHANCE_ICON = 'fluent-color:alert-24'
 
 /** 길고양이 아이콘. 만남 창·이벤트 도감과 같은 발자국이다. */
 const CAT_ICON = 'fluent-color:paw-24'
+
+/** 트위터 알림 아이콘. 사이트 아이콘과 같은 것이라 어디서 온 알림인지 한눈에 읽힌다. */
+const TWITTER_ICON = 'fluent-color:chat-multiple-24'
 
 /** 택배 알림·인벤토리 폴더 공용 아이콘. */
 const DELIVERY_ICON = 'fluent-color:document-folder-24'
@@ -160,12 +169,33 @@ export function ToastHost() {
         const inner = t.message.channel === INNER_CHANNEL
         const chance = t.message.channel === CHANCE_CHANNEL
         const cat = t.message.channel === CAT_CHANNEL
-        if (record || inner || chance || cat) {
+        const twitter = t.message.channel === TWITTER_CHANNEL
+        if (record || inner || chance || cat || twitter) {
           return (
             <ToastCard
               key={t.id}
-              title={cat ? '고양이' : chance ? '오늘의 사건' : record ? '기록 갱신' : '문득'}
-              icon={cat ? CAT_ICON : chance ? CHANCE_ICON : record ? RECORD_ICON : INNER_ICON}
+              title={
+                twitter
+                  ? '트위터 알림'
+                  : cat
+                    ? '고양이'
+                    : chance
+                      ? '오늘의 사건'
+                      : record
+                        ? '기록 갱신'
+                        : '문득'
+              }
+              icon={
+                twitter
+                  ? TWITTER_ICON
+                  : cat
+                    ? CAT_ICON
+                    : chance
+                      ? CHANCE_ICON
+                      : record
+                        ? RECORD_ICON
+                        : INNER_ICON
+              }
               from={t.message.from}
               text={t.message.text}
               onDismiss={() => dismiss(t.id)}
@@ -198,8 +228,6 @@ export function ToastHost() {
                   title: '아이템 인벤토리',
                   icon: DELIVERY_ICON,
                   folderId: 'inventory',
-                  x: 200,
-                  y: 100,
                   width: 720,
                 })
                 return
@@ -213,8 +241,6 @@ export function ToastHost() {
                   title: thread.name,
                   icon,
                   threadId: thread.id,
-                  x: 220,
-                  y: 100,
                   width: 400,
                 })
                 return
@@ -225,8 +251,6 @@ export function ToastHost() {
                 title: MAILBOX.label,
                 icon: MAILBOX.icon,
                 appId: MAILBOX.id,
-                x: 160,
-                y: 120,
                 width: 660,
               })
             }}

@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { findActivity } from '../../data/activities'
-import { WORK_PER_SESSION, findGig } from '../../data/gigs'
+import { findGig } from '../../data/gigs'
+import { WORK_KINDS } from '../../data/works'
+import { isTopRank, rankOfWork, worksOf } from '../../systems/works'
 import { projectFor } from '../../data/vscode'
 import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
-import { activeContract, daysLeft } from '../../systems/gigs'
+import { activeContract, daysLeft, gigProgress } from '../../systems/gigs'
 import { ActivityConfirm } from './ActivityConfirm'
 import type { CodeSpan, VsFile } from '../../data/vscode'
 import './VsCodeApp.css'
@@ -56,6 +58,9 @@ const RAIL = [
 export function VsCodeApp() {
   const state = useGameStore((s) => s.state)
   const [confirming, setConfirming] = useState(false)
+  /** 확인창이 무엇을 확정할지 — 고른 작업물 id. 없으면 새로 만들기다. */
+  const [target, setTarget] = useState<string | undefined>(undefined)
+  const refine = useGameStore((s) => s.refineWork)
   /* ⚠️ **훅은 전부 조기 반환보다 위에 있어야 한다**(리액트 훅 규칙) — 아래에 두면
      `state`가 null이었다가 생기는 순간 훅 개수가 달라진다. 그래서 빈 문자열로 열어 두고,
      실제로 열린 파일은 아래 `shown`이 파생시킨다. */
@@ -70,7 +75,14 @@ export function VsCodeApp() {
      엉뚱한 진행도가 뜬다. 도구가 하나뿐인 것은 `Gig.tool`이 정한 규칙이다. */
   const mine = gig?.tool === 'vscode' ? gig : undefined
   const project = projectFor(mine?.id)
-  const left = mine && contract ? Math.max(0, mine.workload - contract.progress) : 0
+  /* 의뢰 진행은 계약이 아니라 **작업물**이 갖는다(2026-08-22). 남은 개수가 곧 배지 숫자다. */
+  const progress = gigProgress(state)
+  /* 이 창이 그리는 작업물 = VS 코드로 만든 것 전부(의뢰 것이 위). 목록을 만드는 규칙은
+     `systems/works.ts`가 갖고 여기서는 순서만 정한다. */
+  const works = worksOf(state)
+    .filter((w) => w.tool === 'vscode')
+    .sort((a, b) => (a.gigId ? 0 : 1) - (b.gigId ? 0 : 1) || b.day - a.day)
+  const left = mine ? Math.max(0, progress.total - progress.done) : 0
   const due = mine ? daysLeft(state) : undefined
 
   /* 열린 파일은 프로젝트가 바뀌면 따라 바뀐다 — 일감을 새로 받으면 이전 파일 이름이 남아
@@ -123,6 +135,70 @@ export function VsCodeApp() {
                 </button>
               </li>
             ))}
+          </ul>
+
+          {/*
+            ⚠️ **작업물이 탐색기 안에 있다**(2026-08-22 설계자 지시). 창 아래 별도 줄에
+            띄우던 것을 옮겼다 — VS 코드에서 "내가 만든 것"은 **파일**이고, 파일이 사는
+            자리는 탐색기다. 머리줄의 [+]가 새 작업물이고, 줄을 누르면 그것을 보강한다.
+            ⚠️ **여기서 턴을 쓰지 않는다** — 부모가 확인창(`ActivityConfirm`)을 연다.
+          */}
+          <div className="vs-works-head">
+            <span>작업물</span>
+            <button
+              type="button"
+              className="vs-works-add"
+              onClick={() => {
+                setTarget(undefined)
+                setConfirming(true)
+              }}
+              title="새 작업물을 만듭니다 (1회 작업)"
+              aria-label="새 작업물 만들기"
+            >
+              +
+            </button>
+          </div>
+          <ul className="vs-tree vs-works">
+            {works.length === 0 ? (
+              /* ux `empty-states`: 없다는 말만 하지 않고 무엇을 하면 되는지 적는다. */
+              <li className="vs-works-empty">[+]로 새 작업물을 만듭니다</li>
+            ) : (
+              works.map((w) => (
+                <li key={w.id}>
+                  <button
+                    type="button"
+                    className="vs-file vs-work"
+                    onClick={() => {
+                      setTarget(w.id)
+                      setConfirming(true)
+                    }}
+                    disabled={isTopRank(w) && w.progress >= 1}
+                    title={`${w.title} · ${rankOfWork(w)}등급 · 진척 ${Math.round(w.progress * 100)}%`}
+                  >
+                    <span className="vs-ext vs-ext-ts">TS</span>
+                    <span className="vs-work-name">
+                      {w.title}.{WORK_KINDS.vscode.ext}
+                    </span>
+                    {/* 등급 뱃지 — 스탯창(`.stat-rank`)과 **같은 문법**이다: 테두리 + 옅은 면,
+                        상위 둘(S·SS)만 채운다. 등급별 색은 만들지 않는다(글자가 순서를 말한다). */}
+                    <span
+                      className={`vs-work-rank${
+                        rankOfWork(w) === 'S' || rankOfWork(w) === 'SS' ? ' vs-work-rank-top' : ''
+                      }`}
+                    >
+                      {rankOfWork(w)}
+                    </span>
+                    {/* 게이지 옆에 숫자를 적는다 — 색·길이만으로 알리지 않는다. */}
+                    <span className="vs-work-bar" aria-hidden="true">
+                      <span
+                        className="vs-work-fill"
+                        style={{ width: `${Math.round(w.progress * 100)}%` }}
+                      />
+                    </span>
+                  </button>
+                </li>
+              ))
+            )}
           </ul>
         </div>
 
@@ -191,7 +267,7 @@ export function VsCodeApp() {
       <div className="vs-status">
         <span className="vs-status-item">⎇ {mine ? mine.id : 'scratch'}</span>
         <span className="vs-status-item">
-          남은 작업 {left} · 한 번 켜면 {WORK_PER_SESSION}
+          {mine ? `${mine.wants.rank}등급 ${progress.done}/${progress.total}` : '개인 작업'}
         </span>
         {due !== undefined && (
           <span className="vs-status-item">
@@ -214,7 +290,10 @@ export function VsCodeApp() {
         <ActivityConfirm
           activity={activity}
           kicker="VS 코드"
+          title={target ? '이 작업물을 보강할까요?' : '새 작업물을 만들까요?'}
+          actionLabel={target ? '보강하기' : '만들기'}
           onClose={() => setConfirming(false)}
+          onCommit={target ? () => refine(target) : undefined}
         />
       )}
     </div>

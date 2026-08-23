@@ -33,7 +33,7 @@
  *    요소 상자 안의 **최빈 픽셀 = 배경**으로 잡고 글자색과의 대비를 낸다.
  */
 
-import { spawn } from 'node:child_process'
+import { execSync, spawn } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 
 const CHROME_PATHS = [
@@ -78,9 +78,28 @@ async function chromeAlive() {
   }
 }
 
+/**
+ * CDP 포트가 죽었는데 옛 헤드리스 크롬이 살아 있으면 죽인다.
+ *
+ * ⚠️ **이게 없으면 스크립트가 4분씩 매달린다**(실제로 하루 두 번 났다): 이전 실행이 남긴
+ * 크롬이 프로필 잠금과 포트를 쥔 채 뻗어 있으면, 새 크롬은 못 뜨고 `until`은 영원히 기다린다.
+ * 우리 프로필(`windowsgame-cdp`)을 쓰는 크롬만 골라 죽인다 — 사용자 크롬은 절대 안 건드린다.
+ */
+function killStaleChrome() {
+  try {
+    execSync(
+      `powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='chrome.exe'\" | Where-Object { $_.CommandLine -like '*windowsgame-cdp*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"`,
+      { stdio: 'ignore', timeout: 10000 },
+    )
+  } catch {
+    /* PowerShell이 없거나 실패해도 진행한다 — 어차피 아래 spawn이 다시 시도한다. */
+  }
+}
+
 /** 크롬을 띄운다. 이미 떠 있으면 그대로 쓴다. */
 async function ensureChrome(width, height) {
   if (await chromeAlive()) return
+  killStaleChrome()
   const exe = CHROME_PATHS.find(existsSync)
   if (!exe) throw new Error(`크롬을 못 찾았다: ${CHROME_PATHS.join(' / ')}`)
   const child = spawn(
@@ -102,7 +121,9 @@ async function ensureChrome(width, height) {
 
 /** CDP 연결. `send`(원시 메서드)와 `evalJs`(페이지 안 평가)를 준다. */
 async function connect() {
-  const targets = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json()
+  const targets = await (
+    await fetch(`http://127.0.0.1:${PORT}/json/list`, { signal: AbortSignal.timeout(5000) })
+  ).json()
   const page = targets.find((t) => t.type === 'page')
   if (!page) throw new Error('page 타깃이 없다')
   const ws = new WebSocket(page.webSocketDebuggerUrl)
@@ -190,6 +211,10 @@ async function realClick(d, sel) {
 
 /** 잠금화면을 통과해 바탕화면까지 간다. 새 판이면 이름을 넣고, 세이브가 있으면 그대로 들어간다. */
 async function login(d, name) {
+  /* ⚠️ **부팅 화면이 먼저 지나간다**(`BootScreen`, 1.6초). 그동안은 `.lock`이 DOM에 아예
+     없어서, 기다리지 않으면 아래 한 줄이 "세이브가 있어 바로 들어간 판"으로 착각하고
+     로그인을 통째로 건너뛴다 — 그 뒤의 모든 --click이 조용히 "없음"이 된다. */
+  await until(() => d.evalJs(`!document.querySelector('.boot')`), { label: '부팅 완료' })
   if (!(await d.evalJs(`!!document.querySelector('.lock')`))) return
   // ⚠️ React 제어 input이라 네이티브 setter + input 이벤트가 필요하다.
   await d.evalJs(`(() => {

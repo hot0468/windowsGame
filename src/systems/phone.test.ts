@@ -1,3 +1,4 @@
+import { DAY_END } from '../data/clock'
 import { describe, expect, it } from 'vitest'
 import { findActivity } from '../data/activities'
 import { PHONE_BONUS, PHONE_FEE, PHONE_ID, PHONE_STAT, findItem } from '../data/items'
@@ -32,7 +33,7 @@ describe('휴대폰 — 가지고 있으면 친화력이 잘 오른다', () => {
 
   it('실제 실행에서도 친화력만 더 오른다', () => {
     const club = findActivity('club')!
-    const base = { ...createInitialState('비교'), slot: 'afternoon' as const }
+    const base = { ...createInitialState('비교'), minute: DAY_END - 60, slot: 'afternoon' as const }
     const rich = { ...base, stats: { ...base.stats, money: 500000 } }
     const bare = runActivity(rich, club)
     const withIt = runActivity({ ...rich, inventory: [{ id: PHONE_ID, day: 1 }] }, club)

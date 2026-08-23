@@ -1,0 +1,77 @@
+/*
+ * 시스템 속성 창.
+ *
+ * ⚠️ **자기 팔레트를 만들지 않는다** — 사이트·프로그램 창들이 자기 색을 갖는 것과 반대다.
+ * 이 창은 **윈도우 자신의 화면**이라 OS 크롬 토큰(`--os-*`)을 그대로 쓴다. 여기에 새 색을
+ * 들이면 "가짜 OS 위에 얹힌 게임"이라는 인상이 이 창에서만 깨진다.
+ */
+
+.sys {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+/* 머리 — 로고 + 컴퓨터 이름. 실제 '정보' 화면의 맨 윗줄과 같은 자리다. */
+.sys-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--os-border);
+}
+
+.sys-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+.sys-sub {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+}
+
+.sys-sec-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--os-text-2);
+}
+
+.sys-list {
+  margin: 0;
+}
+
+/*
+ * 한 줄 = 이름 + 값. **라벨 폭을 고정한다** — 값이 왼쪽 끝을 공유해야 표로 읽히고,
+ * 자동 폭으로 두면 줄마다 값의 시작점이 달라져 목록이 흔들린다.
+ */
+.sys-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--os-border);
+}
+
+.sys-row:last-child {
+  border-bottom: 0;
+}
+
+.sys-label {
+  flex: 0 0 116px;
+  font-size: var(--fs-sm);
+  color: var(--os-text-3);
+}
+
+/* 값은 길다(펜 및 터치 한 줄이 특히). 좁은 창에서 접히게 두고 자르지 않는다. */
+.sys-value {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--os-text);
+  overflow-wrap: anywhere;
+}

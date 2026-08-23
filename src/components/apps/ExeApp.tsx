@@ -35,7 +35,7 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
 
   const runnable = canRun(state, activity)
   // 증감 계산은 브라우저 사이트의 확정 패널과 **같은 함수**를 쓴다(activityPreview 주석 참조).
-  const { rows, efficiency, mentalPenalty, isBurnedOut } = previewActivity(state, activity)
+  const { rows, mentalPenalty, isBurnedOut } = previewActivity(state, activity)
 
   /**
    * ⚠️ **장면이 있는 활동은 이 창을 닫고 자기 창을 연다**(설계자 지시). 도구 앱이
@@ -76,7 +76,7 @@ export function ExeApp({ activityId, onDone }: { activityId: string; onDone: () 
         <div className="exe-warn">
           <AppIcon name={WARN_ICON} size={15} className="exe-warn-icon" />
           <span>
-            같은 일을 반복하고 있습니다. 효율이 {Math.round(efficiency * 100)}%로 떨어졌습니다.
+            같은 일을 반복하고 있습니다. 멘탈이 {mentalPenalty} 더 깎입니다.
           </span>
         </div>
       )}

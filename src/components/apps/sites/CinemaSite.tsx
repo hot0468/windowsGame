@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { findActivity } from '../../../data/activities'
 import { findShowtime } from '../../../data/media'
 import { AppIcon } from '../../../icons/AppIcon'
+import { Cover } from './Cover'
 import { useGameStore } from '../../../store/gameStore'
 import { filmsForWeek, hasPostcard, heroFilm } from '../../../systems/cinema'
 import type { Film, FilmSection } from '../../../data/media'
@@ -113,7 +114,9 @@ export function CinemaSite({ site }: { site: Site }) {
         <div
           className="cine-hero"
           style={{
-            background: `linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%), ${main.poster}`,
+            /* ⚠️ 사진은 **가운데 층**이다 — 위는 글자를 읽히게 하는 어두운 막, 아래는 사진이
+               없을 때 드러나는 원래 그라데이션이다(파일이 없으면 그 층만 빠진다). */
+            background: `linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%), url(/img/film/${main.id}.webp) center / cover, ${main.poster}`,
           }}
         >
           <span className="cine-hero-rating">{main.rating} 관람가</span>
@@ -267,6 +270,8 @@ function FilmCard({
       onClick={onToggle}
     >
       <span className="cine-poster" style={{ background: film.poster }}>
+        {/* 포스터 사진. 없으면 원래의 그라데이션 판이 그대로 남는다(`Cover`). */}
+        <Cover src={`/img/film/${film.id}.webp`} className="cine-poster-img" />
         <span className="cine-poster-title">{film.title}</span>
         <span className="cine-rank">{rank}</span>
       </span>

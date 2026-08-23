@@ -90,6 +90,9 @@ export const TRENDING_TERMS: TrendingTerm[] = [
  */
 export const SEARCH_SUGGESTIONS: TrendingTerm[] = [
   { label: '어도비', siteId: 'adobe' },
+  /* 줌도 어도비와 같은 부류다 — 즐겨찾기에 없는 사이트라 **여기가 유일한 지름길**이다
+     (직접 '화상회의'·'zoom'을 쳐도 닿는다. 판정은 `systems/search.ts`). */
+  { label: '화상회의', siteId: 'zoom' },
   { label: '공모전', siteId: 'contest' },
   { label: '행사', siteId: 'expo' },
   { label: '부업 외주', siteId: 'gmong' },

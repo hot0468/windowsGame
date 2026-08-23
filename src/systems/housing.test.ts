@@ -1,3 +1,4 @@
+import { DAY_END } from '../data/clock'
 import { describe, it, expect } from 'vitest'
 import {
   canMove,
@@ -209,7 +210,7 @@ describe('밤마다 치르는 대가', () => {
   })
 
   it('⚠️ 취침 정산이 실제로 멘탈을 깎는다 — 화면 표시만이 아니다', () => {
-    const base = withMoney(5_000_000, { slot: 'afternoon' })
+    const base = withMoney(5_000_000, { minute: DAY_END - 60, slot: 'afternoon' as const })
     const cheap = moveTo(base, gosiwon)
     const plainNight = skipSlot({ ...base, stats: { ...base.stats, mental: 50 } })
     const cheapNight = skipSlot({ ...cheap, stats: { ...cheap.stats, mental: 50 } })
@@ -218,7 +219,7 @@ describe('밤마다 치르는 대가', () => {
 
   it('⚠️ 사치 칸은 밤마다 멘탈을 더한다 — 음수 대가가 실제 보너스다', () => {
     const luxury = HOUSINGS.find((h) => h.rate > 1)!
-    const base = withMoney(9_000_000, { slot: 'afternoon' })
+    const base = withMoney(9_000_000, { minute: DAY_END - 60, slot: 'afternoon' as const })
     const rich = moveTo(base, luxury)
     expect(rich).not.toBe(base) // 이사가 실제로 됐는지부터 — 안 되면 아래 비교가 헛돈다.
     const plainNight = skipSlot({ ...base, stats: { ...base.stats, mental: 50 } })
@@ -227,20 +228,20 @@ describe('밤마다 치르는 대가', () => {
   })
 
   it('그래도 하룻밤 순회복은 양수다 — 시간 자체가 사형선고면 안 된다', () => {
-    const s = moveTo(withMoney(5_000_000, { slot: 'afternoon' }), gosiwon)
+    const s = moveTo(withMoney(5_000_000, { minute: DAY_END - 60, slot: 'afternoon' as const }), gosiwon)
     const night = skipSlot({ ...s, stats: { ...s.stats, mental: 50 } })
     expect(night.stats.mental).toBeGreaterThan(50)
   })
 
   it('생활비 차감도 집 배율을 탄다 — 정산과 표시가 같은 함수를 본다', () => {
-    const s = moveTo(withMoney(5_000_000, { slot: 'afternoon' }), gosiwon)
+    const s = moveTo(withMoney(5_000_000, { minute: DAY_END - 60, slot: 'afternoon' as const }), gosiwon)
     const night = skipSlot(s)
     expect(night.stats.money).toBe(s.stats.money - getLivingCost(s))
   })
 
   it('활동으로 밤을 넘겨도 같다 (통로가 둘이라 둘 다 확인한다)', () => {
     const study = findActivity('study')!
-    const s = moveTo(withMoney(5_000_000, { slot: 'afternoon' }), gosiwon)
+    const s = moveTo(withMoney(5_000_000, { minute: DAY_END - 60, slot: 'afternoon' as const }), gosiwon)
     const night = runActivity(s, study)
     const spent = study.effects.money ?? 0
     expect(night.stats.money).toBe(s.stats.money + spent - getLivingCost(s))

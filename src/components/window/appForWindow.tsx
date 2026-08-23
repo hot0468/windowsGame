@@ -15,6 +15,7 @@ import { ExplorerApp } from '../apps/ExplorerApp'
 import { AutoLogApp } from '../apps/AutoLogApp'
 import { ExcelApp } from '../apps/ExcelApp'
 import { ExeApp } from '../apps/ExeApp'
+import { ControlPanelApp } from '../apps/ControlPanelApp'
 import { SettingsApp } from '../apps/SettingsApp'
 import { PaintApp } from '../apps/PaintApp'
 import { SolitaireApp } from '../apps/SolitaireApp'
@@ -22,6 +23,9 @@ import { MinesweeperApp } from '../apps/MinesweeperApp'
 import { SteamApp } from '../apps/SteamApp'
 import { ToolRun } from '../apps/ToolRun'
 import { ClipStudioApp } from '../apps/ClipStudioApp'
+import { AdobeApp } from '../apps/AdobeApp'
+import { SystemPropsApp } from '../apps/SystemPropsApp'
+import { ZoomApp } from '../apps/ZoomApp'
 import { VsCodeApp } from '../apps/VsCodeApp'
 import { StubApp } from '../apps/StubApp'
 import type { OpenWindow } from '../../store/windowStore'
@@ -66,6 +70,8 @@ export const WINDOW_APP_KINDS = [
   'minesweeper',
   'steam',
   'settings',
+  'controlpanel',
+  'zoom',
   'callcenter',
   'wish',
   'cat',
@@ -75,6 +81,10 @@ export const WINDOW_APP_KINDS = [
   'clipstudio',
   'excel',
   'vscode',
+  'photoshop',
+  'premiere',
+  'audition',
+  'sysinfo',
   'adware',
 ] as const satisfies readonly WindowKind[]
 
@@ -122,7 +132,7 @@ export function appForWindow(w: OpenWindow, { onClose }: AppSlots): ReactNode {
     case 'scheduler':
       return <SchedulerApp />
     case 'folder':
-      return w.folderId ? <ExplorerApp folderId={w.folderId} /> : null
+      return w.folderId ? <ExplorerApp folderId={w.folderId} windowId={w.id} /> : null
     case 'autolog':
       return <AutoLogApp />
     /* 탭의 ✕가 창을 닫는다 — 크롬도 마지막 탭을 닫으면 창이 닫힌다. */
@@ -131,6 +141,12 @@ export function appForWindow(w: OpenWindow, { onClose }: AppSlots): ReactNode {
     /* 이 가짜 OS의 시스템 앱. 지금 관리하는 것은 구독 하나뿐이다. */
     case 'settings':
       return <SettingsApp />
+    /* 화상회의. 회의 시간이 아니면 스스로 "들어갈 방이 없다"고 말한다(턴을 쓰지 않는다). */
+    case 'zoom':
+      return <ZoomApp />
+    /* 도구를 모아 여는 통로. 자기 상태가 없어 셸의 다른 진입점과 같은 창을 연다. */
+    case 'controlpanel':
+      return <ControlPanelApp />
     /* 판이 컴포넌트 안에서만 산다 — 창을 닫으면 끝난다(실제 윈도우 솔리테어와 같다). */
     case 'solitaire':
       return <SolitaireApp />
@@ -165,6 +181,14 @@ export function appForWindow(w: OpenWindow, { onClose }: AppSlots): ReactNode {
     case 'clipstudio':
       return <ClipStudioApp />
     /* VS 코드. 받아 둔 일감을 파일·배지·상태 표시줄로 옮겨 보여 준다. */
+    /* 어도비 셋은 한 컴포넌트가 그린다 — 갈리는 것은 무대 하나뿐이다
+       (사유는 `data/adobeApps.ts` 머리말). */
+    case 'sysinfo':
+      return <SystemPropsApp />
+    case 'photoshop':
+    case 'premiere':
+    case 'audition':
+      return <AdobeApp program={w.kind} />
     case 'vscode':
       return <VsCodeApp />
     /* 악성코드 광고 팝업. 감염 중이면 매 턴 저절로 뜬다 — 창 id를 넘겨 광고를 고른다
@@ -202,8 +226,19 @@ export function windowChrome(w: { kind: WindowKind; toolRun?: ToolRunPayload }):
        창 꼭대기까지 올라와야 뒤집힌 글리프가 얹힐 바닥이 생긴다. */
     /* ⚠️ VS 코드는 **자기 메뉴 줄이 창 꼭대기까지 올라온다**(레퍼런스=실제 VS 코드).
        그래서 `bareTitle`이고, 아래 `dark`와 짝으로 간다. */
+    /* ⚠️ 어도비 셋도 **자기 메뉴 줄이 창 꼭대기까지 올라온다**(2026-08-21 설계자 지시:
+       "기존 팝업에 넣지 말고 프로그램창 단독으로"). 타이틀 바가 따로 얹히고 본문에 여백이
+       남으면 "밝은 창 안에 놓인 어두운 상자"가 되어 프로그램이 아니라 카드로 읽힌다.
+       ⚠️ 캡션 버튼(위 40px)에 가리지 않는 것은 앱의 몫이라 `.ad-menu`가 딱 그 높이다. */
     bareTitle:
-      kind === 'chat' || kind === 'thread' || kind === 'cmd' || kind === 'steam' || kind === 'vscode',
+      kind === 'chat' ||
+      kind === 'thread' ||
+      kind === 'cmd' ||
+      kind === 'steam' ||
+      kind === 'vscode' ||
+      kind === 'photoshop' ||
+      kind === 'premiere' ||
+      kind === 'audition',
     /* 어두운 프로그램. 캡션 글리프까지 밝게 뒤집어야 타이틀 바에서 안 보이지 않는다. */
     /* ⚠️ 도구 앱도 어둡다 — 창이 곧 그 프로그램이라 **실제 타이틀 바가 프로그램 이름표**를
        진다(그래서 가짜 프로그램 띠를 따로 그리지 않는다). `bareTitle`은 안 준다:
@@ -214,6 +249,9 @@ export function windowChrome(w: { kind: WindowKind; toolRun?: ToolRunPayload }):
       kind === 'cmd' ||
       kind === 'steam' ||
       kind === 'vscode' ||
+      kind === 'photoshop' ||
+      kind === 'premiere' ||
+      kind === 'audition' ||
       (kind === 'tool' && w.toolRun?.look !== 'paper'),
   }
 }

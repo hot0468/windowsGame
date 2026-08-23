@@ -15,6 +15,7 @@ export function WindowManager() {
   const close = useWindowStore((s) => s.close)
   const minimize = useWindowStore((s) => s.minimize)
   const toggleMaximize = useWindowStore((s) => s.toggleMaximize)
+  const resize = useWindowStore((s) => s.resize)
 
   return (
     <>
@@ -34,7 +35,10 @@ export function WindowManager() {
             x={w.x}
             y={w.y}
             width={w.width}
+            height={w.height}
             zIndex={w.zIndex}
+            /* 크기 조절(2026-08-22). 최소 크기는 스토어가 지킨다(`MIN_WINDOW`). */
+            onResize={(width, height) => resize(w.id, width, height)}
             maximized={w.maximized}
             ornament={chrome.ornament}
             bareTitle={chrome.bareTitle}

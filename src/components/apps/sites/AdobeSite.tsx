@@ -3,6 +3,7 @@ import { AppIcon } from '../../../icons/AppIcon'
 import { useGameStore } from '../../../store/gameStore'
 import { daysToBilling, subscriptionsOf } from '../../../systems/subscription'
 import { subscribed } from '../../../systems/turn'
+import { openInstallWindow } from '../ToolRun'
 import type { Subscription } from '../../../data/subscriptions'
 import type { Site } from '../../../data/sites'
 import type { GameState } from '../../../types/game'
@@ -52,7 +53,15 @@ export function AdobeSite({ site }: { site: Site }) {
             key={sub.id}
             sub={sub}
             state={state}
-            onSubscribe={() => subscribeTo(sub.id)}
+            onSubscribe={() => {
+              subscribeTo(sub.id)
+              /* ⚠️ **결제가 실제로 됐는지 확인한 뒤에 연출을 연다.** `subscribe`는 잔액이
+                 모자라면 상태를 그대로 돌려주는 조용한 실패라, 바로 열면 돈은 안 나갔는데
+                 설치가 되는 화면이 나온다. 스토어에서 다시 읽는 이유는 위 `state`가
+                 이 클릭 이전 값이기 때문이다. */
+              const after = useGameStore.getState().state
+              if (after && subscribed(after, sub.id)) openInstallWindow(sub)
+            }}
             onCancel={() => unsubscribeFrom(sub.id)}
           />
         ))}

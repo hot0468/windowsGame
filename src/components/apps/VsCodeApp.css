@@ -389,3 +389,96 @@
 .vs-status-fill {
   flex: 1;
 }
+
+/* ── 탐색기 안의 작업물 (2026-08-22 설계자 지시) ──
+   ⚠️ 색을 새로 만들지 않는다 — 이 창의 `--vs-*` 팔레트만 쓴다. */
+.vs-works-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  padding: 0 var(--sp-3) 0 var(--sp-4);
+  color: var(--vs-dim);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* [+] — 실제 VS 코드의 새 파일 버튼 자리·같은 모양. */
+.vs-works-add {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--vs-fg);
+  font: inherit;
+  font-size: var(--fs-base);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vs-works-add:hover {
+  background: var(--vs-line);
+}
+
+.vs-works-empty {
+  padding: 3px var(--sp-4);
+  color: var(--vs-dim);
+  font-size: var(--fs-xs);
+}
+
+.vs-work-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 등급 뱃지. **스탯창(`.stat-rank`)과 같은 문법이다** — 테두리 + 옅은 면, 상위 둘만 채움,
+   등급별 색은 없다(글자 F·C·B·A·S·SS가 이미 순서를 말한다).
+   ⚠️ **폭을 고정한다** — SS가 두 글자라 안 잡으면 목록 줄마다 게이지 위치가 흔들린다. */
+.vs-work-rank {
+  flex: 0 0 auto;
+  min-width: 22px;
+  padding: 2px 4px;
+  border: 1px solid var(--vs-line);
+  border-radius: var(--r-sm);
+  background: var(--vs-chrome);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  color: var(--vs-fg);
+}
+
+/* 상위 두 등급만 **같은 액센트를 채운다**(다른 색이 아니라 같은 색의 강도다). */
+.vs-work-rank-top {
+  border-color: transparent;
+  background: var(--vs-accent);
+  color: #ffffff; /* #0f6cbd 위 5.4:1 */
+}
+
+/* 진척 게이지. 파일 이름 오른쪽에 얇게 — 목록의 리듬을 깨지 않는다. */
+.vs-work-bar {
+  flex: 0 0 34px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--vs-line);
+  overflow: hidden;
+}
+
+.vs-work-fill {
+  display: block;
+  height: 100%;
+  background: var(--vs-accent);
+}
+
+.vs-work:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

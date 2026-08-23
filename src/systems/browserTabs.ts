@@ -59,6 +59,14 @@ export function tabSiteId(tab: BrowserTab): string {
 export function openTab(state: TabState, siteId: string): TabState {
   const existing = state.tabs.find((t) => tabSiteId(t) === siteId)
   if (existing) return { ...state, activeId: existing.id }
+  return newTab(state, siteId)
+}
+
+/**
+ * 무조건 새 탭을 만든다 — [+] 버튼의 통로다.
+ * ⚠️ `openTab`을 쓰면 홈이 이미 열려 있을 때 [+]가 **아무것도 하지 않는 버튼**이 된다.
+ */
+export function newTab(state: TabState, siteId: string): TabState {
   const tab: BrowserTab = { id: state.nextId, history: createHistory(siteId) }
   return { tabs: [...state.tabs, tab], activeId: tab.id, nextId: state.nextId + 1 }
 }

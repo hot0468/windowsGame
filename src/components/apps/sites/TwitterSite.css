@@ -114,6 +114,22 @@
   font-weight: 700;
 }
 
+/* 안 읽은 알림 수. 반전(검정 판 + 흰 글자)이라 이 사이트의 검정 액센트 안에 머문다 —
+   ⚠️ 새 색을 들이지 않는다(머리말의 `Minimalist Monochrome`). 글자가 함께 읽힌다. */
+.tw-badge {
+  min-width: 20px;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--tw-accent);
+  color: #ffffff; /* 검정(#0F1419) 위 17.9:1 */
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .tw-me {
   display: flex;
   align-items: center;
@@ -227,30 +243,211 @@
 }
 
 /* 작성창 자리. 누르면 실행 확인창이 뜬다(입력창은 만들지 않는다 — 장식 금지). */
+/* ── 작성창 (2026-08-22: 버튼 하나 → 진짜 입력칸) ───────────
+   ⚠️ 아바타 + 본문 두 열이라 **트윗 한 줄과 같은 판형**이다 — 쓰는 자리와 올라간 자리가
+   같은 모양이어야 "내가 쓴 것"이 이어져 읽힌다(레퍼런스 X도 같다). */
 .tw-compose {
+  display: flex;
+  gap: var(--sp-3);
   padding: var(--sp-3);
   border-bottom: 1px solid var(--tw-line);
 }
 
-/* 레퍼런스의 작성 입력줄과 같은 모양이되 동작은 버튼이다.
-   ux `touch-target-size`: 최소 44px. */
-.tw-compose-btn {
+.tw-compose-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+  flex: 1;
+}
+
+/* ⚠️ `field-sizing: content`를 쓰지 않는다(지원이 갈린다) — 두 줄로 시작해 스크롤한다. */
+.tw-compose-input {
   width: 100%;
-  min-height: 44px;
-  padding: var(--sp-2) var(--sp-3);
+  padding: var(--sp-2) 0;
+  border: none;
+  background: none;
+  color: var(--tw-text);
+  font: inherit;
+  font-size: var(--fs-lg);
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.tw-compose-input::placeholder {
+  color: var(--tw-text-2);
+}
+
+.tw-compose-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--tw-line);
+}
+
+/* 사진첩 열기. 눌린 상태는 반전이다(팔로우 버튼과 같은 규칙 — 새 색을 안 들인다). */
+.tw-compose-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 var(--sp-3);
   border: 1px solid var(--tw-line-strong);
   border-radius: 999px;
   background: none;
+  color: var(--tw-text);
   font: inherit;
-  font-size: var(--fs-base);
-  text-align: left;
-  color: var(--tw-text-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
   cursor: pointer;
 }
 
-.tw-compose-btn:hover {
+.tw-compose-tool:hover {
   background: var(--tw-wash);
+}
+
+.tw-compose-tool-on {
+  border-color: var(--tw-accent);
+  background: var(--tw-accent);
+  color: #ffffff; /* 검정(#0F1419) 위 17.9:1 */
+}
+
+.tw-compose-count {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  color: var(--tw-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ux `touch-target-size`: 최소 44px. */
+.tw-compose-btn {
+  min-height: 36px;
+  padding: 0 var(--sp-4);
+  border: none;
+  border-radius: 999px;
+  background: var(--tw-accent);
+  color: #ffffff; /* 검정(#0F1419) 위 17.9:1 */
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ⚠️ 막힌 버튼은 **왜 막혔는지 title로 함께 알린다**(ux `error-clarity`) — 흐리게만
+   두면 이유를 알 길이 없다. 대비는 3:1 위로 남긴다(비활성도 읽혀야 한다). */
+.tw-compose-btn:disabled {
+  background: var(--tw-accent-soft); /* #E7E9EA */
+  color: var(--tw-text-2); /* #536471 — #E7E9EA 위 5.4:1 */
+  cursor: not-allowed;
+}
+
+/* ── 사진첩 고르기 ──────────────────────────────────────
+   ⚠️ 가로 스크롤인 이유는 그림 고르기(`.tw-art-list`)와 같다 — 사진이 쌓여도
+   타임라인이 화면 밖으로 밀려나지 않아야 한다. */
+.tw-album {
+  display: flex;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0 0 var(--sp-2);
+  list-style: none;
+  overflow-x: auto;
+}
+
+.tw-album-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 92px;
+  padding: var(--sp-2);
+  border: 1px solid var(--tw-line-strong);
+  border-radius: var(--r-md);
+  background: var(--tw-surface);
   color: var(--tw-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tw-album-item:hover {
+  background: var(--tw-wash);
+}
+
+/* 고른 사진. 색이 아니라 **테두리 굵기와 반전 글자**로 알린다(aria-pressed가 함께 간다). */
+.tw-album-on {
+  border-color: var(--tw-accent);
+  box-shadow: inset 0 0 0 1px var(--tw-accent);
+}
+
+.tw-album-name {
+  width: 100%;
+  overflow: hidden;
+  font-size: var(--fs-xs);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 붙인 사진. 뺄 수 있어야 되돌릴 수 있는 선택이 된다. */
+.tw-attach {
+  position: relative;
+}
+
+/* ⚠️ 작성창 안에서는 카드의 위 여백을 없앤다 — 안 그러면 [빼기] 버튼이 카드 위로 떠서
+   판 밖에 걸린다(위치 기준이 여백까지 포함한 `.tw-attach`이기 때문이다). */
+.tw-attach .tw-photo {
+  margin-top: 0;
+}
+
+.tw-attach-off {
+  position: absolute;
+  top: var(--sp-2);
+  right: var(--sp-2);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  background: var(--tw-accent);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+/* ── 첨부 판(사진첩 사진 · 올린 그림) ────────────────────
+   ⚠️ **파일이 아니라 아이콘 + 글자다**(아바타·트윗 첨부와 같은 오프라인 규칙). */
+.tw-photo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--tw-line);
+  border-radius: var(--r-lg);
+  background: var(--tw-wash);
+}
+
+/* 그림 첨부는 작성창의 썸네일 부품을 그대로 쓴다 — 다만 여기서는 한 열이라 폭을 준다. */
+.tw-photo .tw-art-thumb {
+  flex: none;
+  width: 60px;
+  margin-bottom: 0;
+}
+
+.tw-photo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tw-photo-name {
+  font-size: var(--fs-sm);
+}
+
+.tw-photo-desc {
+  font-size: var(--fs-xs);
+  color: var(--tw-text-2);
 }
 
 /* ── 올릴 그림 고르기 (2026-08-08) ─────────────────────────
@@ -390,6 +587,18 @@
 }
 
 /* 첨부 이미지도 파일이 아니라 그라데이션 + 글자다. */
+/* 첨부 사진. 자리(여백·테두리·모서리)는 아래 그라데이션 판과 같게 두고 비율만 정한다 —
+   실제 X처럼 가로로 넓은 한 장이다. */
+.tw-media-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  margin-top: var(--sp-3);
+  border: 1px solid var(--tw-line-strong);
+  border-radius: var(--r-lg);
+}
+
 .tw-media {
   display: grid;
   place-items: center;
@@ -629,4 +838,162 @@
   background: transparent;
   border-color: var(--tw-line-strong);
   color: var(--tw-text);
+}
+
+/* ── 팔로우 · 좋아요 · 리트윗 ─────────────────────────
+ *
+ * ⚠️ **누른 상태를 색으로만 알리지 않는다**(ux `color-not-only`) — 글자가 바뀌고
+ * (`팔로우`→`팔로잉`), 글리프가 채워지고, `aria-pressed`가 붙는다.
+ * ⚠️ **새 색을 만들지 않는다.** 실제 X의 분홍·초록은 이 사이트의 확정된 시각 언어
+ * (검정 하나)를 깨므로 안 들인다 — 파일 머리말의 색 근거가 그대로 유효하다.
+ */
+.tw-follow {
+  margin-left: auto;
+  padding: 3px var(--sp-3);
+  border: 1px solid var(--tw-line-strong);
+  border-radius: 999px;
+  background: var(--tw-surface);
+  color: var(--tw-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.tw-follow:hover {
+  background: var(--tw-accent-soft);
+}
+
+/* 팔로우 중은 반전이다 — 눌린 상태가 한눈에 갈린다. */
+.tw-follow-on {
+  border-color: var(--tw-accent);
+  background: var(--tw-accent);
+  color: #ffffff; /* 검정(#0F1419) 위 17.9:1 */
+}
+
+/* 숫자 줄의 버튼. 생김새는 옆의 `.tw-stat`(숫자)과 같아야 줄이 흐트러지지 않는다. */
+.tw-act {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  transition: color 150ms ease-out;
+}
+
+.tw-act:hover {
+  color: var(--tw-text);
+}
+
+.tw-act-on {
+  color: var(--tw-text);
+  font-weight: 700;
+}
+
+/* ── 알림 목록 ───────────────────────────────────────── */
+.tw-notices {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tw-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border-bottom: 1px solid var(--tw-line);
+}
+
+.tw-notice-icon {
+  display: flex;
+  flex: none;
+  color: var(--tw-text-2);
+}
+
+.tw-notice-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tw-notice-text {
+  font-size: var(--fs-sm);
+  color: var(--tw-text);
+}
+
+/* 무엇에 대한 반응인가. 본문보다 약하게 — 주인공은 위의 문장이다. */
+.tw-notice-about {
+  font-size: var(--fs-xs);
+  color: var(--tw-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tw-notice-day {
+  margin-left: auto;
+  flex: none;
+  font-size: var(--fs-xs);
+  color: var(--tw-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 스레드(답글) ────────────────────────────────────────
+ *
+ * ⚠️ **답글은 트윗과 같은 판형에 아바타만 한 단 작다** — 다른 판형으로 그리면 스레드가
+ * 타임라인과 다른 화면처럼 읽힌다(레퍼런스 X도 같은 줄 모양을 쓴다).
+ */
+.tw-thread-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border-bottom: 1px solid var(--tw-line);
+  font-size: var(--fs-base);
+}
+
+.tw-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 var(--sp-2);
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--tw-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.tw-back:hover {
+  background: var(--tw-accent-soft);
+}
+
+.tw-replies {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tw-reply {
+  display: flex;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border-bottom: 1px solid var(--tw-line);
+}
+
+/* 답글 아바타는 한 단 작다 — 원본이 스레드의 주인이라는 뜻이다. */
+.tw-avatar-sm {
+  width: 34px;
+  height: 34px;
+  font-size: var(--fs-sm);
 }

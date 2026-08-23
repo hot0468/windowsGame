@@ -69,6 +69,15 @@ export const LIKES_BY_GRADE: Record<StatRank, number> = {
 }
 
 /** 정산 주기(일). 설계자 지시: 주 1회. */
+/**
+ * 좋아요 하나당 붙는 리트윗 비율.
+ *
+ * ⚠️ **리트윗은 저장하지 않는다** — 좋아요에서 파생시킨다. 세 번째 축을 만들면
+ * 그림 등급 하나가 정하는 값이 셋으로 갈라져 데이터만 늘고 판정은 아무것도 안 는다
+ * (좋아요가 이미 평가의 축이다). 실제 X에서도 리트윗은 좋아요보다 한참 적다.
+ */
+export const RETWEETS_PER_LIKE = 0.22
+
 export const PAYOUT_INTERVAL_DAYS = 7
 
 /** 팔로워 1명당 한 주에 들어오는 돈. */

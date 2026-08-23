@@ -9,6 +9,7 @@ import { phoneMessages } from '../../systems/phone'
 import { billMessages } from '../../systems/bills'
 import { webtoonMessages } from '../../systems/webtoon'
 import { noticeMessages } from '../../systems/employment'
+import { subscriptionMessages } from '../../systems/subscription'
 import { selectChannel } from '../../systems/messages'
 import type { TimedMessage } from '../../systems/messages'
 import './MailApp.css'
@@ -74,6 +75,8 @@ export function MailApp() {
     ...phoneMessages(state).map((m) => ({ ...m, time: '방금', turn: Number.MAX_SAFE_INTEGER })),
     ...billMessages(state).map((m) => ({ ...m, time: '방금', turn: Number.MAX_SAFE_INTEGER })),
     ...webtoonMessages(state),
+    /* 구독 영수증. 결제일이 정해져 있어 시각을 스스로 갖는다(`turn`을 붙여 돌려준다). */
+    ...subscriptionMessages(state),
   ].sort((a, b) => b.turn - a.turn)
   const mails = all.filter((m) => (folder === 'ad' ? isAd(m) : !isAd(m)))
   /*

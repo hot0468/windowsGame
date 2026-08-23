@@ -1,3 +1,4 @@
+import { BLOG_POSTS } from './blogs'
 import type { IconName } from '../types/game'
 
 /**
@@ -8,6 +9,11 @@ import type { IconName } from '../types/game'
  */
 export type SiteRender =
   | 'portal'
+  /**
+   * 블로그 글 한 편. ⚠️ **`SITES`에 없는 유일한 render다** — 글마다 사이트를 손으로 적을 수
+   * 없으므로 `findSite`가 `blog:<글 id>`를 받아 그 자리에서 만든다(아래 `blogSite`).
+   */
+  | 'blog'
   /** 행사 안내(모두의행사) — 참관·참여 두 축이라 기본 `activityId`가 없다. */
   | 'expo'
   /** 공모전 모음(콘테스트하다) — 출품은 턴을 안 쓴다. */
@@ -45,6 +51,8 @@ export type SiteRender =
    * **매달 나가는 지출과 그것이 여는 둘**(포토샵 아이콘 + 그몽 디자인 일감)이다.
    */
   | 'adobe'
+  /** 줌 — 화상회의 프로그램을 내려받는 곳. 결제도 활동도 없다. */
+  | 'zoom'
   /**
    * O넷 — 자격증 시험. 슬로우캠퍼스('campus')처럼 **고른 종목이 비용을 정한다**
    * (`Cert.fee`). 다만 결과가 즉시 나지 않는다: 응시는 1턴이고 **합격은 발표일에**
@@ -289,6 +297,25 @@ export const SITES: Site[] = [
        뺐다). 즐겨찾기도 소개 카드도 없지만 갈 길은 반드시 있어야 한다 — 그몽이 "어도비
        구독 중이어야 합니다"로 막는데 결제 화면에 못 가면 그 사유가 막다른 골목이 된다.
        `SEARCH_SUGGESTIONS`의 첫 줄이 그 길이고 `subscription.test.ts`가 순회로 지킨다. */
+  },
+  {
+    /*
+     * 줌 — **화상회의 프로그램을 내려받는 곳**. 어도비 옆자리인 것이 자리의 뜻이다:
+     * 둘 다 바탕화면에 프로그램을 앉히는 사이트이고, 다른 점은 **여기는 공짜라는 것**뿐이다
+     * (사유는 `ZoomSite.tsx` — 회의는 회사가 시키는 일이라 대가를 두 겹으로 물리지 않는다).
+     *
+     * ⚠️ **입구는 포털 검색이다**(즐겨찾기도 소개 카드도 없다). 그래서 제목이 "줌"이 아니라
+     * **"줌 화상회의"**여야 한다 — 검색은 제목·주소·안내만 보므로(`systems/search.ts`),
+     * '화상회의'로 찾는 사람이 여기 닿는 길이 이 두 글자에 달려 있다('줌'·'zoom'은
+     * 제목과 주소가 각각 받는다).
+     * ⚠️ **`activityId`가 없다** — 내려받기는 턴을 쓰지 않는다(어도비 결제와 같은 부류).
+     */
+    id: 'zoom',
+    url: 'https://zoom.us/download',
+    title: '줌 화상회의',
+    // ⚠️ 다른 사이트와 겹치지 않는 글리프여야 한다(`sites.test.ts`가 지킨다).
+    icon: 'fluent-color:people-24',
+    render: 'zoom',
   },
   {
     /*
@@ -624,8 +651,61 @@ export const STORE_SITES: Site[] = SITES.filter(
  */
 export const PROMO_SITES: Site[] = SITES.filter((s) => s.promo && !STORE_SITES.includes(s))
 
+/**
+ * **주소가 값을 품는 두 가지 사이트**(2026-08-22 설계자 지시: "블로그는 단독 사이트로").
+ *
+ * 블로그 글과 검색 결과는 목록에 손으로 적을 수 없다(글 14편 × 검색어 무한). 그렇다고
+ * 화면 안의 상태로 두면 **탭 제목도 주소도 뒤로 가기도 그 화면을 모른다** — 실제 브라우저에서
+ * 검색 결과와 블로그 글이 각자 주소를 갖는 것과 어긋난다. 그래서 **id가 곧 주소다**:
+ * `blog:<글 id>` · `search:<검색어>`. `findSite`가 그 자리에서 사이트를 만들어 주므로
+ * 탭 줄·주소창·이력·즐겨찾기가 **아무것도 새로 배우지 않고** 그대로 동작한다.
+ *
+ * ⚠️ **`SITES`에 넣지 않는다** — 목록을 도는 코드(즐겨찾기 줄·퀵메뉴·테스트)가 글 수만큼
+ * 불어나고, 검색어는 애초에 무한하다.
+ */
+export const BLOG_SITE_PREFIX = 'blog:'
+export const SEARCH_SITE_PREFIX = 'search:'
+
+export const blogSiteId = (postId: string) => `${BLOG_SITE_PREFIX}${postId}`
+export const searchSiteId = (query: string) => `${SEARCH_SITE_PREFIX}${query.trim()}`
+
+/** 그 글의 사이트. 없는 글 id면 undefined → 브라우저가 "페이지를 찾을 수 없습니다"를 그린다. */
+function blogSite(id: string): Site | undefined {
+  const post = BLOG_POSTS.find((p) => p.id === id.slice(BLOG_SITE_PREFIX.length))
+  if (!post) return undefined
+  return {
+    id,
+    /* 실제 포털처럼 **블로그는 다른 도메인이다** — 주소창만 봐도 여기가 네이놈 홈이 아니다.
+       ⚠️ 카페 글은 `cafe.` 로 간다: 카페라고 적어 놓고 주소는 블로그면 그 자리가 거짓말이 된다
+       (되읽는 쪽 `resolveUrl`도 두 도메인을 함께 본다). */
+    url: `https://${post.kind === 'cafe' ? 'cafe' : 'blog'}.neinom.com/${post.id}`,
+    title: post.blog,
+    icon: 'fluent-color:document-text-24',
+    render: 'blog',
+  }
+}
+
+/** 검색 결과 화면. ⚠️ **render는 'portal'이다** — 네이놈의 한 화면이지 다른 사이트가 아니다. */
+function searchSite(id: string): Site {
+  const query = id.slice(SEARCH_SITE_PREFIX.length)
+  return {
+    id,
+    /* ⚠️ **퍼센트 인코딩하지 않는다** — 주소창은 사람이 읽는 자리이고 실제 크롬도 한글을
+       풀어서 보여 준다(`%EB%B2%88...`이 뜨면 검색어가 뭔지 알 수가 없다). */
+    url: `https://www.neinom.com/search?query=${query}`,
+    /* 탭 줄에 뜨는 이름. 실제 포털의 검색 탭 제목과 같은 꼴이다. */
+    title: `${query} : 네이놈 검색`,
+    icon: 'fluent-color:globe-24',
+    render: 'portal',
+  }
+}
+
 export function findSite(id: string): Site | undefined {
-  return SITES.find((s) => s.id === id)
+  const fixed = SITES.find((s) => s.id === id)
+  if (fixed) return fixed
+  if (id.startsWith(BLOG_SITE_PREFIX)) return blogSite(id)
+  if (id.startsWith(SEARCH_SITE_PREFIX)) return searchSite(id)
+  return undefined
 }
 
 /** 주소 비교용 정규화: 대소문자·프로토콜·www.·끝 슬래시·공백 차이를 없앤다. */
@@ -649,5 +729,13 @@ function normalizeUrl(url: string): string {
 export function resolveUrl(input: string): string {
   const normalized = normalizeUrl(input)
   if (!normalized) return HOME_SITE_ID
-  return SITES.find((s) => normalizeUrl(s.url) === normalized)?.id ?? input.trim()
+  const fixed = SITES.find((s) => normalizeUrl(s.url) === normalized)
+  if (fixed) return fixed.id
+  /* 주소가 값을 품는 둘은 목록에 없으므로 주소에서 되읽는다 — 이게 없으면 주소창에 블로그
+     주소를 붙여 넣었을 때만 "페이지를 찾을 수 없습니다"가 뜬다(뒤로 가기는 되는데). */
+  const blog = normalized.match(/^(?:blog|cafe)\.neinom\.com\/(.+)$/)
+  if (blog) return blogSiteId(blog[1])
+  const search = normalized.match(/^neinom\.com\/search\?query=(.+)$/)
+  if (search) return searchSiteId(decodeURIComponent(search[1]))
+  return input.trim()
 }

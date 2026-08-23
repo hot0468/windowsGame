@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MISS_REPUTATION_PENALTY, TOOL_NAMES, findGig } from '../../../data/gigs'
 import { AppIcon } from '../../../icons/AppIcon'
+import { rankOfWork } from '../../../systems/works'
 import { useGameStore } from '../../../store/gameStore'
 import {
   activeContract,
@@ -10,6 +11,9 @@ import {
   isDone,
   openGigs,
   takeBlockers,
+  canDeliver,
+  deliverBlockers,
+  gigProgress,
 } from '../../../systems/gigs'
 import type { Gig } from '../../../data/gigs'
 import type { Site } from '../../../data/sites'
@@ -44,6 +48,8 @@ export function GmongSite({ site }: { site: Site }) {
   if (!state) return null
   const book = gigsOf(state)
   const contract = activeContract(state)
+  const progress = gigProgress(state)
+  const deliver = useGameStore((s) => s.deliverGig)
   const current = contract ? findGig(contract.gigId) : undefined
   const list = openGigs(state)
 
@@ -70,20 +76,42 @@ export function GmongSite({ site }: { site: Site }) {
             {current.client} · {current.title}
           </h2>
 
+          {/* 진행 = **요구 등급에 닿은 작업물 개수**(2026-08-22). 계약이 아니라 작업물이
+              진척을 갖는다 — 도구 창의 게이지와 같은 사실을 여기서는 개수로 읽는다. */}
           <div className="gm-progress">
-            <div className="gm-bar" role="img" aria-label={`업무량 ${contract.progress} / ${current.workload}`}>
+            <div
+              className="gm-bar"
+              role="img"
+              aria-label={`${current.wants.rank}등급 ${progress.done} / ${progress.total}`}
+            >
               <span
                 className="gm-bar-fill"
-                style={{ width: `${(contract.progress / current.workload) * 100}%` }}
+                style={{ width: `${(progress.done / progress.total) * 100}%` }}
               />
             </div>
             {/* 색만으로 알리지 않는다 — 숫자가 같은 사실을 말한다(ux `color-not-only`). */}
             <p className="gm-progress-text">
-              업무량 <b>{contract.progress}</b> / {current.workload} ·{' '}
+              <b>{current.wants.rank}등급</b> 작업물 <b>{progress.done}</b> / {progress.total} ·{' '}
               <b>{TOOL_NAMES[current.tool]}</b>
-              {objectParticle(TOOL_NAMES[current.tool])}{' '}
-              {current.workload - contract.progress}번 더 켜면 납품
+              {objectParticle(TOOL_NAMES[current.tool])} 켜서 만들고 보강하세요
             </p>
+            {progress.works.length > 0 && (
+              <ul className="gm-works">
+                {progress.works.map((w) => (
+                  <li key={w.id} className="gm-work">
+                    <span className="gm-work-name">{w.title}</span>
+                    <span
+                      className={`gm-work-rank${
+                        rankOfWork(w) === 'S' || rankOfWork(w) === 'SS' ? ' gm-work-rank-top' : ''
+                      }`}
+                    >
+                      {rankOfWork(w)}
+                    </span>
+                    <span className="gm-work-pct">{Math.round(w.progress * 100)}%</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* ⚠️ 남은 날을 색만으로 알리지 않는다 — 문장 자체가 급한지 아닌지를 말한다. */}
@@ -92,8 +120,22 @@ export function GmongSite({ site }: { site: Site }) {
           </p>
 
           <p className="gm-active-pay">
-            납품하면 <b>{current.pay.toLocaleString('ko-KR')}원</b>
+            회신하면 <b>{current.pay.toLocaleString('ko-KR')}원</b>
           </p>
+
+          {/* ⚠️ **회신은 자동이 아니다**(설계자 지시) — 다 채워도 누르기 전에는 돈이 안 들어온다.
+              더 올려 두고 낼지 지금 낼지 고르는 자리가 여기다. 턴은 안 쓴다(메일 한 통). */}
+          <button
+            type="button"
+            className="gm-deliver"
+            onClick={deliver}
+            disabled={!canDeliver(state)}
+          >
+            클라이언트에게 회신하기
+          </button>
+          {!canDeliver(state) && (
+            <p className="gm-deliver-why">{deliverBlockers(state)[0]}</p>
+          )}
 
           {/*
             ⚠️ **한 번 묻는다**(ux `confirmation-dialogs`). 스케줄러의 예약 취소도 확인을
@@ -224,7 +266,7 @@ function GigCard({ gig, state, onTake }: { gig: Gig; state: GameState; onTake: (
         {/* 계약 조건을 카드에 그대로 적는다 — 받기 전에 알아야 하는 것 셋이다. */}
         <span className="gm-terms">
           {TOOL_NAMES[gig.tool]}
-          {instrumentParticle(TOOL_NAMES[gig.tool])} <b>{gig.workload}</b>번 · 기한{' '}
+          {instrumentParticle(TOOL_NAMES[gig.tool])} <b>{gig.wants.rank}등급 {gig.wants.count}개</b> · 기한{' '}
           <b>{gig.days}</b>일 ·{' '}
           {isDone(state, gig.id) ? '납품 완료' : `보수 ${gig.pay.toLocaleString('ko-KR')}원`}
         </span>

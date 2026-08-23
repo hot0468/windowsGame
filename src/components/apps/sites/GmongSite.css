@@ -402,3 +402,89 @@
   color: var(--gm-lock);
   font-weight: 700;
 }
+
+/* ── 계약 작업물 줄 · 회신 버튼 (2026-08-22) ──
+   진행이 계약 숫자에서 **작업물**로 옮겨 오면서 생긴 자리다. 색은 새로 만들지 않고
+   이 사이트의 `--gm-*`를 그대로 쓴다. */
+.gm-works {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--sp-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gm-work {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-work-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 등급 뱃지 — 스탯창(`.stat-rank`)과 같은 문법(테두리 + 옅은 면, 상위 둘만 채움). */
+.gm-work-rank {
+  min-width: 22px;
+  padding: 2px 4px;
+  border: 1px solid var(--gm-line);
+  border-radius: var(--r-sm);
+  background: var(--gm-bg);
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  color: var(--gm-text);
+}
+
+.gm-work-rank-top {
+  border-color: transparent;
+  background: var(--gm-primary);
+  color: #ffffff; /* 청록 #0e7490 위 5.1:1 */
+}
+
+.gm-work-pct {
+  min-width: 38px;
+  text-align: right;
+  color: var(--gm-text-2);
+}
+
+/* 회신 = 이 계약의 마지막 동작이라 수주 버튼(`.gm-take`)과 같은 무게로 그린다. */
+.gm-deliver {
+  margin-top: var(--sp-3);
+  min-height: 32px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--gm-primary);
+  border-radius: var(--r-md);
+  background: var(--gm-primary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: #ffffff; /* 청록 #0e7490 위 5.1:1 */
+  cursor: pointer;
+}
+
+.gm-deliver:hover:not(:disabled) {
+  background: #0b5f77;
+}
+
+.gm-deliver:disabled {
+  border-color: var(--gm-line);
+  background: var(--gm-bg);
+  color: var(--gm-text-2);
+  cursor: default;
+}
+
+/* 못 누르는 이유는 색이 아니라 글자가 말한다(ux `color-not-only`). */
+.gm-deliver-why {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--gm-text-2);
+}

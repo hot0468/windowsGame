@@ -1,4 +1,6 @@
+import { DAY_END, DAY_START } from '../data/clock'
 import { describe, it, expect } from 'vitest'
+import { isWeekend } from '../data/calendar'
 import {
   createInitialState,
   canRun,
@@ -11,8 +13,11 @@ import {
   AD_BONUS_MONEY,
   canClaimAdBonus,
   claimAdBonus,
+  sleepNow,
+  slotOf,
+  sleepAt,
 } from './turn'
-import { ACTIVITIES, findActivity } from '../data/activities'
+import { ACTIVITIES, findActivity, minutesOf } from '../data/activities'
 import { livingCostForDay } from './economy'
 import { GROWTH_STAT_KEYS, INITIAL_STATS, STAT_NAMES } from '../types/game'
 import type { GameState } from '../types/game'
@@ -131,7 +136,7 @@ describe('runActivity — 스탯 적용', () => {
     // 오후에 활동하면 취침 회복(`SLEEP_RECOVERY`)이 붙는다.
     // 체력이 이미 높으면 상한을 넘겨야 하는데, 클램핑이 이를 막는지 확인한다.
     const s = stateWith({
-      slot: 'afternoon',
+      minute: DAY_END - 60, slot: 'afternoon' as const,
       stats: { ...createInitialState('t').stats, stamina: STAMINA_CAP },
     })
     const after = runActivity(s, findActivity('game')!)
@@ -161,12 +166,19 @@ describe('runActivity — 스탯 적용', () => {
     expect(runActivity(s, exercise).stats.athletics).toBeGreaterThan(s.stats.athletics)
   })
 
-  it('알바비에 물가 배율이 적용된다', () => {
-    const early = runActivity(stateWith({ day: 1 }), work)
-    const late = runActivity(stateWith({ day: 51 }), work)
-    const earlyGain = early.stats.money - 300000
-    const lateGain = late.stats.money - 300000
-    expect(lateGain).toBeGreaterThan(earlyGain)
+  /* ⚠️ **알바비에 물가 배율은 없다**(2026-08-22 주기적 물가 인상 폐지). 남은 배율은
+     주말 할증 하나뿐이다 — 되살리면 여기가 깨진다. */
+  it('알바비는 날짜가 지나도 오르지 않는다', () => {
+    const weekdays = [1, 2, 3, 4, 5, 6, 7].filter((d) => !isWeekend(d))
+    const gains = weekdays.map((day) => runActivity(stateWith({ day }), work).stats.money)
+    expect(new Set(gains).size).toBe(1)
+  })
+
+  it('주말 알바만 할증이 붙는다', () => {
+    const weekday = [1, 2, 3, 4, 5, 6, 7].find((d) => !isWeekend(d))!
+    const weekend = [1, 2, 3, 4, 5, 6, 7].find((d) => isWeekend(d))!
+    const gain = (day: number) => runActivity(stateWith({ day }), work).stats.money
+    expect(gain(weekend)).toBeGreaterThan(gain(weekday))
   })
 })
 
@@ -280,22 +292,27 @@ describe('스탯 상한', () => {
 })
 
 describe('runActivity — 슬롯과 날짜 전환', () => {
-  it('오전 활동 후 오후로 넘어가고 날짜는 그대로다', () => {
-    const after = runActivity(createInitialState('t'), study)
-    expect(after.slot).toBe('afternoon')
+  /* ⚠️ 2026-08-22 분 단위 전환: 하루가 슬롯 둘이 아니라 **08:00~자정의 시계**다.
+     활동은 저마다 걸리는 시간이 다르고, 시계는 그만큼만 나아간다. */
+  it('활동을 하면 그 활동에 걸리는 시간만큼 시계가 간다', () => {
+    const before = createInitialState('t')
+    const after = runActivity(before, study)
     expect(after.day).toBe(1)
+    expect(after.minute).toBe(before.minute + minutesOf(study))
+    expect(after.slot).toBe(slotOf(after.minute))
   })
 
-  it('오후 활동 후 다음 날 오전이 된다', () => {
-    const after = runActivity(stateWith({ slot: 'afternoon' }), study)
-    expect(after.slot).toBe('morning')
+  it('자정을 넘기는 활동은 그 자리에서 하루를 끝낸다', () => {
+    const after = runActivity(stateWith({ minute: DAY_END - 60, slot: 'afternoon' as const }), study)
     expect(after.day).toBe(2)
+    expect(after.minute).toBe(DAY_START)
+    expect(after.slot).toBe('morning')
   })
 })
 
 describe('runActivity — 취침 정산', () => {
   it('하루가 끝나면 생활비가 차감된다', () => {
-    const before = stateWith({ slot: 'afternoon' })
+    const before = stateWith({ minute: DAY_END - 60, slot: 'afternoon' as const })
     const after = runActivity(before, study)
     const activityMoney = 0
     expect(after.stats.money).toBe(before.stats.money + activityMoney - livingCostForDay(1))
@@ -303,7 +320,7 @@ describe('runActivity — 취침 정산', () => {
 
   it('하루가 끝나면 체력이 회복된다', () => {
     const before = stateWith({
-      slot: 'afternoon',
+      minute: DAY_END - 60, slot: 'afternoon' as const,
       stats: { ...createInitialState('t').stats, stamina: 50 },
     })
     const after = runActivity(before, study)
@@ -322,15 +339,17 @@ describe('runActivity — 번아웃', () => {
     expect(runActivity(createInitialState('t'), study).recentActivities).toEqual(['study'])
   })
 
-  it('연속 실행하면 효율이 떨어져 스탯 상승폭이 줄어든다', () => {
+  /* ⚠️ **효율 감소는 2026-08-22에 폐지됐다**(설계자 지시: "같은 행동 반복에 따른 효율
+     감소 없애줘"). 되살리지 말 것 — 반복의 대가는 멘탈 하나이고, 잘하는 일을 이어서
+     하는 것이 손해가 되지 않는다. */
+  it('⚠️ 연속 실행해도 스탯 상승폭은 그대로다', () => {
     const fresh = createInitialState('t')
     const firstGain = runActivity(fresh, study).stats.knowledge - fresh.stats.knowledge
 
     const repeated = stateWith({ recentActivities: ['study', 'study', 'study'] })
-    const repeatedGain =
-      runActivity(repeated, study).stats.knowledge - repeated.stats.knowledge
+    const repeatedGain = runActivity(repeated, study).stats.knowledge - repeated.stats.knowledge
 
-    expect(repeatedGain).toBeLessThan(firstGain)
+    expect(repeatedGain).toBe(firstGain)
   })
 
   it('연속 실행하면 멘탈이 추가로 소모된다', () => {
@@ -347,7 +366,7 @@ describe('runActivity — 번아웃', () => {
 describe('runActivity — 게임오버 판정', () => {
   it('소지금이 0 이하가 되면 파산이다', () => {
     const before = stateWith({
-      slot: 'afternoon',
+      minute: DAY_END - 60, slot: 'afternoon' as const,
       stats: { ...createInitialState('t').stats, money: 1000 },
     })
     expect(runActivity(before, study).recovery?.kind).toBe('bankrupt')
@@ -369,10 +388,10 @@ describe('runActivity — 게임오버 판정', () => {
 })
 
 describe('skipSlot', () => {
-  it('스탯 변화 없이 슬롯만 넘긴다', () => {
+  it('스탯 변화 없이 시계만 넘긴다', () => {
     const before = createInitialState('t')
     const after = skipSlot(before)
-    expect(after.slot).toBe('afternoon')
+    expect(after.minute).toBeGreaterThan(before.minute)
     expect(after.stats.knowledge).toBe(before.stats.knowledge)
   })
 
@@ -382,7 +401,7 @@ describe('skipSlot', () => {
   })
 
   it('오후에 넘기면 취침 정산이 일어난다', () => {
-    const before = stateWith({ slot: 'afternoon' })
+    const before = stateWith({ minute: DAY_END - 60, slot: 'afternoon' as const })
     const after = skipSlot(before)
     expect(after.day).toBe(2)
     expect(after.stats.money).toBe(before.stats.money - livingCostForDay(1))
@@ -390,17 +409,16 @@ describe('skipSlot', () => {
 
   // 날짜칸 버튼 라벨이 "오전/오후 건너뛰기"인 근거.
   // 한 번 호출은 하루가 아니라 한 슬롯만 넘기므로 라벨도 슬롯 단위여야 한다.
-  it('오전에 넘기면 하루가 끝나지 않아 생활비가 차감되지 않는다', () => {
+  it('자정 전에 넘기면 하루가 끝나지 않아 생활비가 차감되지 않는다', () => {
     const before = createInitialState('t')
     const after = skipSlot(before)
     expect(after.day).toBe(1)
-    expect(after.slot).toBe('afternoon')
     expect(after.stats.money).toBe(before.stats.money)
   })
 
-  it('두 번 넘겨 하루를 통째로 보내면 생활비는 정확히 한 번만 빠진다', () => {
+  it('자러 가면 생활비는 정확히 한 번만 빠진다', () => {
     const before = createInitialState('t')
-    const after = skipSlot(skipSlot(before))
+    const after = sleepNow((before))
     expect(after.day).toBe(2)
     expect(after.slot).toBe('morning')
     expect(after.stats.money).toBe(before.stats.money - livingCostForDay(1))
@@ -413,7 +431,7 @@ describe('skipSlot', () => {
     const before = stateWith({ recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } })
     const after = skipSlot(before)
     expect(after).not.toBe(before)
-    expect(after.slot).not.toBe(before.slot)
+    expect(after.minute + after.day * 1440).toBeGreaterThan(before.minute + before.day * 1440)
   })
 })
 
@@ -452,5 +470,43 @@ describe('광고 배너 보상', () => {
   it('보상액이 하루 생활비를 흔들 만큼 크지 않다', () => {
     // 클릭이 생계 수단이 되면 "일해서 번다"는 축이 무너진다. 1% 미만을 지킨다.
     expect(AD_BONUS_MONEY).toBeLessThan(livingCostForDay(1) * 0.01)
+  })
+})
+
+/*
+ * ⚠️ **취침 시각을 고를 수 있다**(2026-08-22 설계자 지시) — 일찍 누우면 남은 시간을
+ * 버리는 대신 더 회복한다. 상한이 없으면 저녁 8시 취침이 언제나 정답이 되므로 상·하한을
+ * 데이터가 갖고(`sleepBonusFor`), 여기서는 그것이 실제 회복으로 이어지는지만 본다.
+ */
+describe('취침 시각', () => {
+  const tired = () => {
+    const base = createInitialState('졸림')
+    return { ...base, minute: 20 * 60, stats: { ...base.stats, stamina: 10, mental: 10 } }
+  }
+
+  it('일찍 자면 더 회복한다', () => {
+    const early = sleepAt(tired(), 20 * 60).stats.stamina
+    const late = sleepAt(tired(), DAY_END).stats.stamina
+    expect(early).toBeGreaterThan(late)
+  })
+
+  it('어느 쪽이든 다음 날 아침에 깬다 — 늦잠은 없다', () => {
+    for (const bed of [20 * 60, 22 * 60, DAY_END]) {
+      const after = sleepAt(tired(), bed)
+      expect(after.day).toBe(2)
+      expect(after.minute).toBe(DAY_START)
+    }
+  })
+
+  it('⚠️ 이미 지난 시각을 고르면 지금으로 당겨진다 — 시간을 되돌리지 않는다', () => {
+    const late = { ...tired(), minute: 23 * 60 }
+    expect(sleepAt(late, 20 * 60).stats.stamina).toBe(sleepAt(late, 23 * 60).stats.stamina)
+  })
+
+  it('⚠️ 밤을 넘겨 뻗으면 가장 적게 회복한다 — 늦게 자는 대가다', () => {
+    const nightOwl = { ...tired(), minute: DAY_END - 30 }
+    const crossed = runActivity(nightOwl, study) // 자정을 넘겨 그 자리에서 잠든다
+    const onTime = sleepAt(nightOwl, DAY_END)
+    expect(crossed.stats.stamina).toBeLessThan(onTime.stats.stamina)
   })
 })
