@@ -36,6 +36,7 @@ import type { GameState, JobNotice, Slot, Stats } from '../types/game'
  * `'stopped'`만 규칙이 아니다 — 플레이어가 멈추기를 누른 경우라 판정할 것이 없다.
  */
 export type AutoStopId =
+  | 'settled'
   | 'recovery'
   | 'ending'
   | 'job'
@@ -112,6 +113,16 @@ export function moneyDangerLine(state: GameState): number {
  * 이유는 그것이 가장 흔하고 가장 덜 급한 정지이기 때문이다.
  */
 export const STOP_RULES: StopRule[] = [
+  {
+    /**
+     * ⚠️ **결산이 회복보다 먼저다**(2026-08-24). 1년이 끝난 것은 그 어떤 사정보다
+     * 먼저 알려야 하고, 결산 화면 뒤에서 날짜가 계속 흐르면 안 된다(엔딩 규칙과 같은 판단).
+     * ⚠️ **판이 끝난 것이 아니다** — [이어하기]로 계속 산다. 그래서 `bad`가 아니다.
+     */
+    id: 'settled',
+    bad: false,
+    test: (c) => (c.state.settled ? '1년이 지났습니다. 결산을 확인하세요.' : null),
+  },
   {
     id: 'recovery',
     bad: true,

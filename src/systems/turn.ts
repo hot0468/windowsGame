@@ -10,6 +10,7 @@ import { wearGear } from './gear'
 import { illnessEfficiency, illnessRecoveryRatio, nextIllness } from './illness'
 import { settleRecovery, tickRecovery } from './recovery'
 import { decayAffection, meetMentalBonus } from './affection'
+import { blockedBySettlement } from './settlement'
 import { chanceEfficiency, chanceMoneyBack, chanceNightDelta } from './chance'
 import { catNightDelta } from './cat'
 import { malwareLoss } from './malware'
@@ -273,6 +274,10 @@ export function canRun(state: GameState, activity: Activity): boolean {
      시간이다). 여기서 막으므로 스케줄러 예약·자동 진행으로도 새지 않는다.
      ⚠️ **`skipSlot`은 막지 않는다**: 턴을 못 넘기면 회복이 영영 안 끝난다. */
   if (state.recovery) return false
+  /* ⚠️ **결산 뒤에는 진로를 못 바꾼다**(2026-08-24) — 막히는 것은 새 직장 지원 둘뿐이고
+     공부·운동·관계·출근은 그대로 된다. 여기서 막으므로 스케줄러 예약·바탕화면 바로
+     가기·카톡으로도 새지 않는다(`state.recovery` 게이트와 같은 자리·같은 이유). */
+  if (blockedBySettlement(state, activity)) return false
   if (activity.requiresItem && !ownsRequired(state, activity.requiresItem)) return false
   if (activity.requiresSubscription && !subscribed(state, activity.requiresSubscription))
     return false

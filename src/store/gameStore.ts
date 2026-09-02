@@ -29,6 +29,7 @@ import { creditPerformance, revivePerformance, worksAtOffice } from '../systems/
 import { healIllness, reviveIllness } from '../systems/illness'
 import { reviveRecovery } from '../systems/recovery'
 import { brokenRecords, topStat } from '../systems/records'
+import { reviveSettlement, settleYear } from '../systems/settlement'
 import {
   chanceToday,
   dilemmaDue,
@@ -561,6 +562,9 @@ function reviveState(raw: unknown): GameState | null {
       ? saved.seenEndingIds.filter((id): id is string => typeof id === 'string')
       : [],
     recovery: reviveRecovery(saved.recovery),
+    /* ⚠️ **결산은 반드시 되살린다** — 안 되살리면 새로고침 한 번에 1년이 없던 일이
+       되고 직업·이사 잠금이 통째로 풀린다(`systems/settlement.ts`). */
+    settled: reviveSettlement(saved.settled),
     /* 판 시드. 없던 세이브는 이름 해시로 **결정적으로** 메운다(`nameSeed`) —
        여기서 무작위로 메우면 불러올 때마다 사건이 다시 굴러 세이브 스커밍이 열린다. */
     seed: Number.isFinite(saved.seed) ? Number(saved.seed) : nameSeed(defaults.playerName),
@@ -876,8 +880,12 @@ function afterTurn(next: GameState, chain?: number) {
      ⚠️ **판을 넘어 남겨야 한다**: 세이브의 `careerLog`만 보면 새 게임을 시작하는
      순간 다녀 본 회사가 전부 사라진다. */
   unlockHiredCareers(job.notices)
+  /* ⚠️ **결산은 밤이 다 정산된 뒤에 굳는다**(`settleRecovery`와 같은 자리·같은 이유) —
+     급여·만기·상금이 다 들어온 뒤라야 "1년을 어떻게 살았나"가 정확하다.
+     ⚠️ 회복과 무관하게 돈다: 결산일에 주저앉아 있어도 1년은 끝난다. */
+  const settledState = settleYear(evented)
   return {
-    state: evented,
+    state: settledState,
     skippedPlans: ran.skipped,
     arrivals: [...got.arrived, ...exams.arrived],
     jobNotices: job.notices,

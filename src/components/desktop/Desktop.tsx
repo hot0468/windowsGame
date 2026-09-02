@@ -25,6 +25,7 @@ import type { ContextMenuItem } from '../ContextMenu'
 import { WindowManager } from '../window/WindowManager'
 import { ActivityConfirm } from '../apps/ActivityConfirm'
 import { EndingModal } from '../apps/EndingModal'
+import { SettlementModal } from '../apps/SettlementModal'
 import { CalendarPanel } from './CalendarPanel'
 import { CatPet } from './CatPet'
 import { StatPanel } from './StatPanel'
@@ -439,6 +440,10 @@ export function Desktop() {
       )}
 
       <EndingModal />
+      {/* ⚠️ **엔딩과 별개 화면이다** — 결산은 회복과 무관하게 떠야 하고(363일차에
+          파산한 사람의 1년도 돌아볼 자리가 있어야 한다) 물릴 수도 없다. 사유는
+          `SettlementModal.tsx` 주석에 있다. */}
+      <SettlementModal />
     </div>
   )
 }

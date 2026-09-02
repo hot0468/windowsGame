@@ -24,6 +24,7 @@
 
 | 날짜 | 변경 | 대상 |
 |------|------|------|
+| 2026-08-24 | **1년 결산**(365일차 = 이듬해 2월 말) — 게임오버가 아니라 **진로가 굳는 날**이다. 회복과 독립이고 새 직장·이사만 잠긴다 | calendar(`DEADLINE_DAY`), types(`Settlement`), settlement(systems+test 신규), turn(`canRun`), gameStore(afterTurn·revive), housing, autoAdvance, SettlementModal(tsx+css 신규), UiGallery |
 | 2026-08-24 | **배경 확정**("20대의 딱 1년") + **생활 등급 삭제** — 목표 자리를 1년이 가져갔다. 스탯창 맨 위가 D-day로, 생활 등급이 열던 5종은 스탯 조합으로 재배치 | calendar(`DEADLINE_DAY`·`daysUntilDeadline`), LockScreen(설정 문구+css), tour(문구 2), lifeRank 삭제, rankEvents(`key` 필수화·재배치 5), StatPanel, records, metaStore(`topStat`), ExcelApp |
 | 2026-08-14 | 스탯 칸의 숫자를 **등급 구간 게이지**로 교체 — 꽉 차는 순간이 곧 승급(`rankProgress`) | rank(`rankProgress`+test), StatPanel(칸 2줄·progressbar), Desktop.css(칸 여백 실측 조정·죽은 `.stat-cell-value` 제거) |
 | 2026-08-23 | 트위터 **답글이 죽은 숫자가 아니게** — [답글]을 누르면 스레드가 열리고(원본 + 남의 답글 + 내가 다는 답글, `sns` 1턴) 답글은 타임라인에 안 뜬다. **알림이 글에도 온다**(그림만이 아니라) + 답글 알림 추가 | tweets(`REPLY_LINES`·`REPLIES_SHOWN`), twitter(`Reply`·`repliesTo`·`NoticeKind`·`reactionsFor`로 알림 일반화+test 5), types(`MyPost.replyTo`), TwitterSite(스레드 화면·`ReplyRow`+css), gameStore(`twitterToast` 통합) |
@@ -33,4 +34,3 @@
 | 2026-08-22 | **튜토리얼 문구를 지금 규칙에 맞췄다** — 오전/오후·반나절·물가 인상이 사라지고 시계·급등·작업물이 들어갔다(단계 7 → 8, VS 코드 단계 신설). 폐지된 말을 쓰면 테스트가 잡는다 | tour(문구 전면·`vscode` 단계+test 2), Tour(걸음 수를 목록에서 파생) |
 | 2026-08-22 | **새 판은 부팅 화면부터** — 이름을 넣고 로그인하면 윈도우가 켜지는 화면이 한 번 지나간 뒤 바탕화면이 뜬다(이어하기는 그대로) | gameStore(`booting`·`clearBooting`+test 3), App |
 | 2026-08-22 | **반복 효율 감소 폐지**(설계자 지시) — 같은 일을 이어서 해도 얻는 것은 그대로이고, 대가는 **추가 멘탈**뿐이다(블루스크린은 연속 4회로 경고) + **취업 스터디 오픈채팅**(활동 `job-study`) | burnout(효율 삭제·`BURNOUT_WARN_STREAK`), turn·activityPreview·ExeApp·TaskMgrApp·BlueScreen, activities(`job-study`)·messages(방 5번째), 관련 테스트 |
-| 2026-08-22 | **여행이 일정만큼 날짜를 태운다** — "3박 5일"이면 5일이 지나가고 그 사이 생활비·청구·마감이 흐른다. 활동은 **하루치** 값이고 상품의 `days`가 효과·비용·요구조건을 곱한다 | trips(`days`), activities(여행 2종 하루치), travel(systems+test 신규), gameStore(`goOnTrip`), TravelSite, trips.test(불변식 상품 단위로) |

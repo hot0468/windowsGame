@@ -9,6 +9,7 @@ import { useWindowStore } from '../../store/windowStore'
 import type { Activity, DesktopEntry, DesktopItem } from '../../types/game'
 import { ActivityConfirm } from '../apps/ActivityConfirm'
 import { EndingModal } from '../apps/EndingModal'
+import { SettlementModal } from '../apps/SettlementModal'
 import { Daybreak } from '../desktop/Daybreak'
 import { ToastHost } from '../desktop/ToastHost'
 import { MobileAppView } from './MobileAppView'
@@ -179,6 +180,10 @@ export function MobileShell() {
         <ActivityConfirm activity={confirming} onClose={() => setConfirming(null)} />
       )}
       <EndingModal />
+      {/* ⚠️ **엔딩과 별개 화면이다** — 결산은 회복과 무관하게 떠야 하고(363일차에
+          파산한 사람의 1년도 돌아볼 자리가 있어야 한다) 물릴 수도 없다. 사유는
+          `SettlementModal.tsx` 주석에 있다. */}
+      <SettlementModal />
     </div>
   )
 }

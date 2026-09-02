@@ -6,6 +6,7 @@ CLAUDE.md의 변경 이력 표에서 밀려난 과거 행. CLAUDE.md에는 최�
 
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
+| 2026-08-22 | **여행이 일정만큼 날짜를 태운다** — "3박 5일"이면 5일이 지나가고 그 사이 생활비·청구·마감이 흐른다. 활동은 **하루치** 값이고 상품의 `days`가 효과·비용·요구조건을 곱한다 | trips(`days`), activities(여행 2종 하루치), travel(systems+test 신규), gameStore(`goOnTrip`), TravelSite, trips.test(불변식 상품 단위로) |
 | 2026-08-22 | 작업물이 **각 도구의 파일 자리**로 들어갔다 — VS 코드는 탐색기 목록, 포토샵은 작업 영역의 **파일 아이콘 격자**, 프리미어·오디션은 **왼쪽 파일 영역**. 등급은 **뱃지**(상위 둘만 진하게) + **창 크기 조절**(오른쪽 아래 모서리, 최소 360×220) | WorkList(`variant` 셋+css)·VsCodeApp·AdobeApp(+css)·GmongSite, windowStore(`height`·`resize`·`MIN_WINDOW`+test 4), Window(`onResize`·`.win-resize`·`.win-sized`)·WindowManager |
 | 2026-08-22 | **시간이 분으로 흐른다** — 하루 08:00~24:00, 활동마다 소요 시간이 다르고 자정을 넘기면 취침. 시간 전환 팝업은 없애고 작업 표시줄 시계를 크게. **체력 0 → 강제 종료(24시간 소실)**, **멘탈 20 아래 → 랜섬웨어 확률** | clock(data 신규)·collapse(data·systems+test 신규), types(`minute`·`Activity.minutes`), turn(`advance` 재작성·`slotOf`·`sleepNow`), activities(`minutesOf`), gameStore(세이브 이행·`doSleep`·`crashIfExhausted`), CrashScreen(신규)·Daybreak 제거·Taskbar·CalendarPanel·shownTime, 테스트 30여 파일 이행 |
 | 2026-08-22 | **도구 넷이 작업물을 남긴다** — VS 코드·포토샵·프리미어·오디션을 켜면 파일이 생기고 F~SS 등급이 붙는다. 보강할 때마다 게이지가 차고(상승률=스탯) 차면 등급이 오른다. 그몽은 "업무량 N번"에서 **"요구 등급 M개"**로 바뀌었고, 다 채운 뒤 **회신**해야 작업비가 들어온다 | works(data·systems+test 신규), types(`Work`·`GigContract.progress` 삭제), turn(`applyToolSession` 재작성), gigs(`wants`·`deliverGig`·`gigProgress`+test 재작성), WorkList(tsx+css 신규), VsCodeApp·AdobeApp·GmongSite·ToolRun, gameStore(`refineWork`·`deliverGig`·세이브) |

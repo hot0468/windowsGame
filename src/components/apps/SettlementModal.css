@@ -1,0 +1,131 @@
+/*
+ * 1년 결산 화면(2026-08-24).
+ *
+ * ⚠️ **엔딩 모달(`EndingModal.css`)과 같은 판형을 쓴다** — 스크림 55% + 블러, 고도 3단,
+ * 최상단 레이어. 화면을 가로막는 표면이 게임에 둘 있는데 생김새가 다르면 그 순간
+ * 어느 쪽이 더 중한 일인지 읽을 수 없다.
+ * ⚠️ **토큰만 쓴다**(`--os-*`·`--sp-*`·`--el-*`). 결산 하나 때문에 새 색을 들이면
+ * 그 순간 새 시각 언어다.
+ */
+
+.settle-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 블러는 배경 비활성화의 신호다(style `blur-purpose`). */
+  background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  /* LAYERS.ENDING과 같은 값 — 결산도 엔딩과 같은 층의 사건이다. */
+  z-index: 9500;
+}
+
+.settle-box {
+  width: 440px;
+  max-height: 84vh;
+  overflow-y: auto;
+  padding: var(--sp-8) var(--sp-6) var(--sp-6);
+  border-radius: var(--r-xl);
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  box-shadow: var(--el-3);
+  text-align: center;
+}
+
+.settle-icon {
+  display: block;
+  margin: 0 auto var(--sp-3);
+}
+
+.settle-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  color: var(--os-text);
+}
+
+.settle-lede {
+  margin: 0 0 var(--sp-6);
+  font-size: var(--fs-sm);
+  color: var(--os-text-2);
+}
+
+/* 결산 항목. 왼쪽이 무엇인지, 오른쪽이 그 값이다 — 표가 아니라 목록이라 정렬만 맞춘다. */
+.settle-list {
+  margin: 0 0 var(--sp-5);
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.settle-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--os-border);
+  font-size: var(--fs-sm);
+}
+
+.settle-row:last-child {
+  border-bottom: none;
+}
+
+.settle-row-label {
+  flex: none;
+  color: var(--os-text-2);
+}
+
+/* 값이 주인공이라 진하게. 길면 줄바꿈해서 오른쪽 정렬을 유지한다. */
+.settle-row-value {
+  text-align: right;
+  font-weight: 600;
+  color: var(--os-text);
+}
+
+/* 무엇이 굳는지 미리 알리는 줄. 경고가 아니라 안내라 위험색을 쓰지 않는다. */
+.settle-note {
+  margin: 0 0 var(--sp-5);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  color: var(--os-text-2);
+}
+
+.settle-buttons {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.settle-btn {
+  flex: 1;
+  min-height: 36px;
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--os-border);
+  background: var(--os-fill);
+  color: var(--os-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.settle-btn:hover {
+  background: var(--os-surface-alt);
+}
+
+/* 주 버튼은 [이어하기]다 — 결산은 끝이 아니라 굳는 것이라, 기본 행동이 이어가는 쪽이다. */
+.settle-btn-primary {
+  border-color: transparent;
+  background: var(--os-accent);
+  color: #fff;
+}
+
+.settle-btn-primary:hover {
+  background: var(--os-accent-hover);
+}
+
+.settle-btn-ghost {
+  flex: 0 0 auto;
+}

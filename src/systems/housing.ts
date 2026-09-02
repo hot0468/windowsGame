@@ -1,5 +1,6 @@
 import { DEFAULT_HOUSING_ID, findHousing } from '../data/housing'
 import { clampStats } from './turn'
+import { canMoveAfterSettlement } from './settlement'
 import type { Housing } from '../data/housing'
 import type { GameState, HousingState } from '../types/game'
 
@@ -67,6 +68,10 @@ export function moveCost(state: GameState, target: Housing): number {
  */
 export function canMove(state: GameState, target: Housing): boolean {
   if (state.recovery) return false
+  /* ⚠️ **결산 뒤에는 이사가 막힌다**(2026-08-24) — 1년이 지나면 진로가 굳는다
+     (설계자 지시). 이사는 활동이 아니라 사이트 버튼이라 `canRun`을 안 지나므로
+     같은 규칙을 여기서 한 번 더 진다(`systems/settlement.ts`). */
+  if (!canMoveAfterSettlement(state)) return false
   // 살고 있는 집으로 다시 이사할 수는 없다(수수료만 나가는 무의미한 거래).
   if (currentHousing(state).id === target.id) return false
   const cost = moveCost(state, target)
@@ -76,7 +81,10 @@ export function canMove(state: GameState, target: Housing): boolean {
 
 /** 못 옮기는 이유. 판정은 `canMove`가 하고 여기서는 **문장으로 옮기기만** 한다. */
 export function moveBlockers(state: GameState, target: Housing): string[] {
-  if (state.recovery) return ['게임이 끝나 더 이상 계약할 수 없습니다.']
+  /* ⚠️ 문구가 낡아 있었다 — 게임은 안 끝난다(2026-08-14 게임오버 폐지). 주저앉은
+     동안 못 하는 것이고 며칠 뒤 풀린다. */
+  if (state.recovery) return ['지금은 주저앉아 있어 계약할 수 없습니다.']
+  if (!canMoveAfterSettlement(state)) return ['1년이 지나 더는 이사할 수 없습니다.']
   if (currentHousing(state).id === target.id) return ['이미 이 집에 살고 있습니다.']
   const cost = moveCost(state, target)
   if (cost > 0 && state.stats.money < cost) {

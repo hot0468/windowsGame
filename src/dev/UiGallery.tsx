@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { ACTIVITIES } from '../data/activities'
 import { runSceneOf } from '../data/runScenes'
 import { Daybreak } from '../components/desktop/Daybreak'
+import { SettlementModal } from '../components/apps/SettlementModal'
+import { settleYear } from '../systems/settlement'
+import { DEADLINE_DAY } from '../data/calendar'
 import { ToolRun } from '../components/apps/ToolRun'
 import { Window } from '../components/window/Window'
 import { useGameStore } from '../store/gameStore'
@@ -226,6 +229,29 @@ export function UiGallery() {
           하루 넘기기
         </button>
         {seeded && <Daybreak />}
+      </section>
+
+      <section className="ug-section">
+        <h2 className="ug-h2">1년 결산</h2>
+        <p className="ug-note">
+          결산일(365일차)에 뜨는 화면입니다. ⚠️ **회복 중이어도 뜹니다** — 엔딩 모달과
+          갈라 둔 이유가 그것입니다(`SettlementModal.tsx` 주석).
+        </p>
+        <button
+          type="button"
+          className="ug-btn"
+          disabled={!ready}
+          onClick={() => {
+            const state = useGameStore.getState().state
+            if (!state) return
+            useGameStore.setState({
+              state: settleYear({ ...state, day: DEADLINE_DAY, stats: { ...state.stats, knowledge: 320 } }),
+            })
+          }}
+        >
+          결산 띄우기
+        </button>
+        {seeded && <SettlementModal />}
       </section>
     </div>
   )

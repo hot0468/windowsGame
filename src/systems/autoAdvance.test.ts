@@ -41,8 +41,11 @@ describe('정지 조건', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('주저앉음이 가장 먼저 걸린다 — 모르는 사이 회복이 지나가면 안 된다', () => {
-    expect(STOP_RULES[0].id).toBe('recovery')
+  /* ⚠️ **결산이 그보다 먼저다**(2026-08-24) — 1년이 끝난 것은 그 어떤 사정보다
+     먼저 알려야 한다. 회복은 그다음이고, 나머지 순서는 그대로다. */
+  it('결산 → 주저앉음 순서다 — 둘 다 모르는 사이 지나가면 안 된다', () => {
+    expect(STOP_RULES[0].id).toBe('settled')
+    expect(STOP_RULES[1].id).toBe('recovery')
     const stop = findStop(ctx({ state: base({ recovery: { kind: 'bankrupt', startedDay: 1, daysLeft: 3 } }) }))
     expect(stop?.id).toBe('recovery')
     expect(stop?.bad).toBe(true)
