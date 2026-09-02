@@ -4,7 +4,7 @@ import { AppIcon } from '../../icons/AppIcon'
 import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { STAMINA_CAP, growthCap } from '../../systems/turn'
-import { rankOf, rankRose, toNextRank } from '../../systems/rank'
+import { rankOf, rankProgress, rankRose, toNextRank } from '../../systems/rank'
 import { LIFE_STAT_COUNT, lifeProgress, lifeRankOf } from '../../systems/lifeRank'
 import { nextLifeGoal } from '../../systems/rankEvents'
 import { isIll } from '../../systems/illness'
@@ -158,8 +158,16 @@ export function ResourceRow({
 }
 
 /**
- * 성장 스탯 한 칸. 상한이 999라 게이지는 대부분 빈 막대로 보여 정보가 되지 않으므로,
- * 글리프 + 이름 + 숫자만 담아 2열 그리드에 배치한다.
+ * 성장 스탯 한 칸. **글리프 + 이름 + 등급 + 게이지**를 2열 그리드에 담는다.
+ *
+ * ## ⚠️ 숫자를 지우고 게이지를 넣었다(2026-08-14, 설계자 지시)
+ * 예전에는 **숫자**(`137`)를 적었고, 그 이유가 "상한이 999라 게이지는 대부분 빈 막대"였다.
+ * 그 판단이 뒤집힌 것은 **재는 기준이 바뀌었기** 때문이다: 막대가 상한이 아니라
+ * **지금 등급 구간**을 재면(`rankProgress`) F에서도 움직이고 **꽉 차는 순간이 곧 승급**이다.
+ * 숫자 137은 "어디쯤인가"에 답하지 못했지만 막대는 답한다.
+ *
+ * ⚠️ **정확한 값은 툴팁이 진다**(`rankTitle`) — 숫자가 아예 사라지면 "얼마나 올랐나"를
+ * 확인할 길이 없다. 화면은 위치를, 툴팁은 값을 말한다.
  *
  * ⚠️ 칸에 **옅은 배경**이 깔린다(설계자 지시. 예전의 "배경도 테두리도 없다" 규칙은 뒤집혔다).
  * 색은 전부 같다 — 스탯별 9색을 시험했다가 한 색으로 되돌렸다(Desktop.css의 .stat-cell 주석).
@@ -174,14 +182,29 @@ function GrowthCell({
   fresh?: boolean
 }) {
   const { hudIcon } = STAT_META[statKey]
+  const rank = rankOf(statKey, value)
+  const filled = rankProgress(statKey, value)
   return (
     <div className="stat-cell" title={rankTitle(statKey, value)}>
-      <AppIcon name={hudIcon} size={14} className="stat-icon" />
-      <span className="stat-cell-name">{STAT_NAMES[statKey]}</span>
-      {/* 게이지가 없는 칸이라 **등급이 곧 게이지다** — 999 상한에서 숫자 137이 어디쯤인지
-          말해 주는 것이 여기서는 이 한 글자뿐이다. */}
-      <RankBadge rank={rankOf(statKey, value)} title={rankTitle(statKey, value)} fresh={fresh} />
-      <span className="stat-cell-value">{value}</span>
+      <div className="stat-cell-head">
+        <AppIcon name={hudIcon} size={14} className="stat-icon" />
+        <span className="stat-cell-name">{STAT_NAMES[statKey]}</span>
+        <RankBadge rank={rank} title={rankTitle(statKey, value)} fresh={fresh} />
+      </div>
+      {/* ⚠️ **`aria-label`이 숫자를 말한다** — 막대만 있으면 낭독기에는 아무것도 안 남는다.
+          `role="progressbar"`로 두는 것은 이 막대가 장식이 아니라 값이라서다. */}
+      <span
+        className="stat-bar stat-cell-bar"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(filled * 100)}
+        aria-label={rankTitle(statKey, value)}
+      >
+        {/* 기존 게이지와 **같은 클래스·같은 방식**(scaleX — width는 매 프레임 레이아웃을
+            다시 계산시킨다). 새 채움 스타일을 만들지 않는다. */}
+        <span className="stat-fill" style={{ transform: `scaleX(${filled})` }} />
+      </span>
     </div>
   )
 }
@@ -219,10 +242,12 @@ export function StatPanel() {
       header
       x={pos.x}
       y={pos.y}
-      /* ⚠️ 실측값이다. 성장 스탯 칸이 '예의범절 + 999'를 자르지 않으려면 칸당 135px이
-         필요한데(아이콘 14 + 이름 38 + 등급 22 + 값 27 + 간격 18 + 패딩 16),
-         280px일 때 칸은 115px뿐이라 값이 세 자리가 되는 순간 라벨이 잘렸다.
-         줄이려면 `.stat-cell-value`의 min-width부터 다시 재라.
+      /* ⚠️ 실측값이다. 예전에는 칸에 **숫자**(최대 3자리)가 들어가 그 폭까지 넣어
+         320px을 잡았고, 지금은 숫자 대신 막대가 들어간다(2026-08-14) — 그래도 폭을
+         줄이지 않은 것은 '예의범절'·'감수성' 같은 라벨이 잘리지 않을 최소치가 여기라서다.
+         ⚠️ **세로가 더 빠듯하다**: 칸이 두 줄이 되면서 720px 화면에서 스크롤바가
+         생겼다가 칸 여백을 깎아 되찾았다(`.stat-cell` 주석). 폭·높이 어느 쪽이든
+         그 화면에서 다시 재라.
          ⚠️ `CALENDAR_PANEL_LAYOUT.statPanelReserve`가 이 값 + 16이어야 한다(테스트가 지킨다). */
       width={320}
       zIndex={zIndex}

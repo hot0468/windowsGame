@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { RANK_ORDER, RANK_THRESHOLDS, rankOf, rankOfRatio, rankRose, toNextRank } from './rank'
+import {
+  RANK_ORDER,
+  RANK_THRESHOLDS,
+  rankOf,
+  rankOfRatio,
+  rankProgress,
+  rankRose,
+  toNextRank,
+} from './rank'
 import { growthCap } from './turn'
 import { GROWTH_STAT_KEYS } from '../types/game'
 
@@ -105,5 +113,46 @@ describe('rankRose', () => {
     expect(rankRose('C', 'C')).toBe(false)
     // ⚠️ 이 줄이 이 함수의 존재 이유다: 평판은 마감을 놓치면 깎여 실제로 내려간다.
     expect(rankRose('A', 'B')).toBe(false)
+  })
+})
+
+describe('rankProgress — 등급 구간을 채우는 막대 (2026-08-14)', () => {
+  /* ⚠️ **상한이 아니라 등급 구간을 잰다** — 상한 대비로 재면 999짜리 스탯의 막대가
+     대부분 비어 보여, 예전에 게이지를 걷어냈던 그 이유가 그대로 돌아온다. */
+  /* ⚠️ 문턱은 **상한의 비율**이라 딱 떨어지는 정수가 아니다(C = 0.1 × 999 = 99.9).
+     그래서 바닥을 잴 때는 문턱 자체를 계산해서 쓴다 — 100 같은 어림수를 넣으면
+     구간에 살짝 들어간 값이 되어 0이 아니다. */
+  const floorOf = (rank: string) =>
+    RANK_THRESHOLDS.find((t) => t.rank === rank)!.min * growthCap('knowledge')
+
+  it('구간 바닥에서 0, 다음 문턱 직전에 1에 가깝다', () => {
+    expect(rankProgress('knowledge', floorOf('C'))).toBe(0)
+    expect(rankProgress('knowledge', floorOf('B') - 0.01)).toBeCloseTo(1, 2)
+  })
+
+  /* 설계자 지시의 핵심: **꽉 차는 순간이 곧 승급**이다. */
+  it('꽉 찬 다음 값에서 등급이 오르고 막대는 0으로 돌아간다', () => {
+    const b = floorOf('B')
+    expect(rankOf('knowledge', b - 0.01)).toBe('C')
+    expect(rankProgress('knowledge', b - 0.01)).toBeCloseTo(1, 2)
+    expect(rankOf('knowledge', b)).toBe('B')
+    expect(rankProgress('knowledge', b)).toBe(0)
+  })
+
+  it('최고 등급은 꽉 찬 채로 둔다 — 갈 데가 없는데 빈 막대면 거짓이다', () => {
+    expect(rankProgress('knowledge', growthCap('knowledge'))).toBe(1)
+  })
+
+  it('상한이 다른 스탯도 같은 규칙이다', () => {
+    expect(rankProgress('reputation', growthCap('reputation') * 0.1)).toBe(0)
+    expect(rankProgress('reputation', growthCap('reputation'))).toBe(1)
+  })
+
+  it('언제나 0~1 안에 있다', () => {
+    for (const v of [0, 1, 99, 100, 500, 749, 998, 999]) {
+      const p = rankProgress('knowledge', v)
+      expect(p).toBeGreaterThanOrEqual(0)
+      expect(p).toBeLessThanOrEqual(1)
+    }
   })
 })

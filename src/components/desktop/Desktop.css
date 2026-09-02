@@ -859,19 +859,44 @@
  * 구분은 배경이 "있다/없다"로 충분하고, 9색은 정보가 아니라 소음이 된다.
  * 이 패널의 액센트가 하나뿐이라는 규칙과도 다시 맞는다.
  */
+/*
+ * ⚠️ **칸이 두 줄이 됐다**(2026-08-14: 숫자 → 게이지). 머리(글리프·이름·등급) 아래에
+ * 막대가 깔린다.
+ *
+ * ⚠️ **세로 여백은 실측으로 정한 값이다.** 2026-08-05에 칸이 한 줄 늘면서 720px
+ * 화면에서 패널이 상한을 넘겨 스크롤바가 생긴 전례가 있다 — 이번에도 같은 화면에서
+ * 다시 쟀다. 여기를 키우려면 **그 화면에서 다시 재라**(막대 3px + 간격 3px이 지금 여유의 전부다).
+ */
 .stat-cell {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
-  /* ⚠️ 세로 여백은 **실측으로 정한 값이다**(2026-08-05 예의범절 신설).
-     칸이 한 줄 늘면서 세로 720px 화면에서 패널이 상한을 넘겨 스크롤바가 생겼고,
-     칸마다 4px을 덜어 되돌렸다. 여기를 키우려면 그 화면에서 다시 재라. */
-  min-height: 22px;
-  padding: 1px var(--sp-2);
+  flex-direction: column;
+  gap: 2px;
+  /* ⚠️ **1px씩이 15칸이면 15px이다** — 720px 화면에서 그만큼이 스크롤바를 부른다.
+     실측으로 잡은 값이라 감으로 키우지 말 것. */
+  padding: 2px var(--sp-2) 3px;
   border-radius: var(--r-sm);
   background: var(--hud-accent-wash);
   font-size: var(--fs-xs);
   overflow: hidden;
+}
+
+/* 머리 한 줄. 예전 칸의 가로 배치가 그대로 여기로 내려왔다.
+   ⚠️ 높이를 못 박는다 — 등급 뱃지(패딩 포함)가 줄 높이를 밀어 올리기 때문이다. */
+.stat-cell-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 16px;
+}
+
+/*
+ * 칸 안의 막대. ⚠️ **높이를 3px로 줄인다**(자원 줄의 4px이 아니라) — 칸이 열다섯이라
+ * 1px이 15px이 되고, 그만큼이 패널 높이 상한을 넘기느냐 마느냐를 가른다.
+ * `margin-top`은 부모의 `gap`이 이미 준다.
+ */
+.stat-cell-bar {
+  height: 3px;
+  margin-top: 0;
 }
 
 /* hover는 같은 색을 한 단 진하게 — 색을 바꾸면 "다른 것이 됐나" 싶어진다
@@ -888,20 +913,6 @@
   text-overflow: ellipsis;
 }
 
-/* ⚠️ **자리를 미리 잡아 둔다(min-width).** 이름 칸만 `flex: 1`이라 값이 한 자리에서
-   세 자리로 늘면 그만큼을 이름에서 빼앗아 간다 — 스탯이 오를수록 라벨이 조금씩 잘리는
-   셈이라, 같은 화면이 어제와 오늘 다르게 읽힌다. 상한이 999(`growthCap`)이므로 3자리를
-   항상 비워 두면 라벨 폭이 값과 무관하게 고정된다. 3ch는 tabular 숫자 기준 27px이고
-   패널 폭 320px은 그 위에서 계산된 값이다(`StatPanel`의 width 주석). */
-.stat-cell-value {
-  min-width: 3ch;
-  font-size: var(--fs-base);
-  font-weight: 600;
-  color: var(--hud-text);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  transition: color 150ms ease-out;
-}
 
 /* ── 스탯창: 생계 ── */
 

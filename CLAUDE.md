@@ -24,6 +24,7 @@
 
 | 날짜 | 변경 | 대상 |
 |------|------|------|
+| 2026-08-14 | 스탯 칸의 숫자를 **등급 구간 게이지**로 교체 — 꽉 차는 순간이 곧 승급(`rankProgress`) | rank(`rankProgress`+test), StatPanel(칸 2줄·progressbar), Desktop.css(칸 여백 실측 조정·죽은 `.stat-cell-value` 제거) |
 | 2026-08-23 | 트위터 **답글이 죽은 숫자가 아니게** — [답글]을 누르면 스레드가 열리고(원본 + 남의 답글 + 내가 다는 답글, `sns` 1턴) 답글은 타임라인에 안 뜬다. **알림이 글에도 온다**(그림만이 아니라) + 답글 알림 추가 | tweets(`REPLY_LINES`·`REPLIES_SHOWN`), twitter(`Reply`·`repliesTo`·`NoticeKind`·`reactionsFor`로 알림 일반화+test 5), types(`MyPost.replyTo`), TwitterSite(스레드 화면·`ReplyRow`+css), gameStore(`twitterToast` 통합) |
 | 2026-08-22 | **내가 쓴 트윗이 타임라인에 남는다** — 작성창이 버튼에서 진짜 입력칸이 되고(280자), **사진첩**(탐색기의 그 폴더와 같은 목록)에서 사진을 골라 붙인다. 그림 업로드도 같은 줄로 남는다. 반응 수는 팔로워 파생이라 계정이 크면 옛 글도 함께 자란다 | types(`MyPost`), tweets(`TWEET_MAX_LENGTH`·`myTweetStats`·`postAge`), twitter(`postTweet`·`myTweets`+test 7), delivery(`albumPhotos`·`findPhoto` — ExplorerApp과 단일 출처), TwitterSite(+css), gameStore(`postTweet`) |
 | 2026-08-22 | 검색어 추천·실검을 눌러도 **사이트로 바로 안 튄다** — 검색 결과 첫 줄이 그 사이트고 그 밑에 쓰는 법을 적은 블로그·카페 글이 깔린다 | search(`TERM_SHORTCUTS`·양방향 꼬리표+test 묶음), blogs(`kind: 'cafe'`+글 7편), sites(cafe 도메인·`resolveUrl`), NeverPortal(추천/실검 핸들러·결과 묶음 분리), BlogSite |
@@ -33,4 +34,3 @@
 | 2026-08-22 | **반복 효율 감소 폐지**(설계자 지시) — 같은 일을 이어서 해도 얻는 것은 그대로이고, 대가는 **추가 멘탈**뿐이다(블루스크린은 연속 4회로 경고) + **취업 스터디 오픈채팅**(활동 `job-study`) | burnout(효율 삭제·`BURNOUT_WARN_STREAK`), turn·activityPreview·ExeApp·TaskMgrApp·BlueScreen, activities(`job-study`)·messages(방 5번째), 관련 테스트 |
 | 2026-08-22 | **여행이 일정만큼 날짜를 태운다** — "3박 5일"이면 5일이 지나가고 그 사이 생활비·청구·마감이 흐른다. 활동은 **하루치** 값이고 상품의 `days`가 효과·비용·요구조건을 곱한다 | trips(`days`), activities(여행 2종 하루치), travel(systems+test 신규), gameStore(`goOnTrip`), TravelSite, trips.test(불변식 상품 단위로) |
 | 2026-08-22 | 작업물이 **각 도구의 파일 자리**로 들어갔다 — VS 코드는 탐색기 목록, 포토샵은 작업 영역의 **파일 아이콘 격자**, 프리미어·오디션은 **왼쪽 파일 영역**. 등급은 **뱃지**(상위 둘만 진하게) + **창 크기 조절**(오른쪽 아래 모서리, 최소 360×220) | WorkList(`variant` 셋+css)·VsCodeApp·AdobeApp(+css)·GmongSite, windowStore(`height`·`resize`·`MIN_WINDOW`+test 4), Window(`onResize`·`.win-resize`·`.win-sized`)·WindowManager |
-| 2026-08-22 | **인터넷 요금제** — 제어판 [네트워크 및 인터넷]에서 고른다. 비쌀수록 **활동에 드는 시간이 줄어든다**(기본 1 / 기가 0.9 / 10기가 0.8, 월 0·45,000·90,000원). 못 내면 기본 회선으로 강등 | internet(data·systems+test 신규), types(`GameState.internet`), turn(`activityMinutes`), gameStore(밤 청구·세이브·`setInternetPlan`), ControlPanelApp(+css) |

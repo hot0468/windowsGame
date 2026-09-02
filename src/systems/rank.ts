@@ -52,3 +52,26 @@ export function toNextRank(key: GrowthStatKey, value: number): number | undefine
   const min = RANK_THRESHOLDS.find((t) => t.rank === next)!.min
   return Math.max(1, Math.ceil(min * cap - value))
 }
+
+/**
+ * **지금 등급 안에서 얼마나 찼는가**(0~1). 스탯창 게이지가 그리는 값이다(2026-08-14).
+ *
+ * ## ⚠️ 상한 대비가 아니라 **등급 구간 대비**다
+ * 예전에 스탯 칸에 게이지를 뒀다가 걷어낸 적이 있다 — 상한이 999라 대부분 빈 막대였고,
+ * "137이 어디쯤인가"를 말해 주지 못했다(그 자리를 등급 글자 하나가 대신했다).
+ * 이 값은 **지금 등급의 바닥에서 다음 등급 문턱까지**를 재므로 F에서도 막대가 움직이고,
+ * **꽉 차는 순간이 곧 승급**이다 — 설계자 지시가 그 구조다.
+ *
+ * ⚠️ 최고 등급(SS)에서는 **1을 돌려준다.** 더 갈 데가 없으므로 꽉 찬 것이 맞고,
+ * 여기서 0을 주면 만점인 사람의 막대가 빈 채로 남는다.
+ */
+export function rankProgress(key: GrowthStatKey, value: number): number {
+  const cap = growthCap(key)
+  const i = RANK_ORDER.indexOf(rankOf(key, value))
+  if (i === RANK_ORDER.length - 1) return 1
+  const floor = RANK_THRESHOLDS.find((t) => t.rank === RANK_ORDER[i])!.min * cap
+  const ceil = RANK_THRESHOLDS.find((t) => t.rank === RANK_ORDER[i + 1])!.min * cap
+  const p = (value - floor) / (ceil - floor)
+  /* 부동소수 오차로 0에 가까운 음수가 나오면 막대가 100%로 감긴다(`lifeProgress`와 같은 보정). */
+  return Math.min(1, Math.max(0, Math.round(p * 1e9) / 1e9))
+}
