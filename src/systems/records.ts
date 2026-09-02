@@ -1,6 +1,5 @@
 import { artGrade, artRatio, artworksOf } from './artwork'
 import { attendedCount, careerLevel } from './careerLog'
-import { lifeRankOf } from './lifeRank'
 import { rankOf } from './rank'
 import { growthCap } from './turn'
 import { CAREERS } from '../data/careers'
@@ -94,18 +93,6 @@ export function topStat(state: GameState): Record_ {
   }
 }
 
-/** 지금 생활 등급. **평균이라 한 우물만 파서는 안 오른다**(`systems/lifeRank.ts`). */
-export function lifeRecord(state: GameState): Record_ {
-  const life = lifeRankOf(state.stats)
-  return {
-    id: 'life-rank',
-    label: '생활 등급',
-    value: life.label,
-    score: GROWTH_STAT_KEYS.reduce((a, k) => a + state.stats[k] / growthCap(k), 0),
-    hint: '여러 스탯을 고루 올리면 갱신된다.',
-  }
-}
-
 /** 가장 오래 다닌 직장(출근 횟수). */
 export function longestJob(state: GameState): Record_ {
   let best: { id: string; days: number } | undefined
@@ -152,7 +139,10 @@ export function moneyRecord(state: GameState): Record_ {
  * 됐나"를 먼저 말해야 하기 때문이다 — 돈은 수단이지 목적이 아니다.
  */
 export function allRecords(state: GameState): Record_[] {
-  return [lifeRecord(state), topStat(state), bestArtwork(state), longestJob(state), moneyRecord(state)]
+  /* ⚠️ **생활 등급 줄이 여기 있었다**(2026-08-24 삭제). 배경이 "20대의 딱 1년"으로
+     정해지면서 그 자리를 남은 날이 가져갔다 — 기록은 "여태 중 제일 좋다"를 말하는
+     자리이고, 남은 날은 줄어들기만 하므로 기록이 될 수 없다. */
+  return [topStat(state), bestArtwork(state), longestJob(state), moneyRecord(state)]
 }
 
 /**

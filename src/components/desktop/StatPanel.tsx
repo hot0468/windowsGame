@@ -5,13 +5,16 @@ import { useGameStore } from '../../store/gameStore'
 import { useDesktopPanelStore } from '../../store/desktopPanelStore'
 import { STAMINA_CAP, growthCap } from '../../systems/turn'
 import { rankOf, rankProgress, rankRose, toNextRank } from '../../systems/rank'
-import { LIFE_STAT_COUNT, lifeProgress, lifeRankOf } from '../../systems/lifeRank'
-import { nextLifeGoal } from '../../systems/rankEvents'
 import { isIll } from '../../systems/illness'
 import { skillLabel } from '../../data/band'
 import { ILL_EFFICIENCY } from '../../data/illness'
 import type { StatRank } from '../../systems/rank'
-import { CALENDAR_PANEL_LAYOUT } from '../../data/calendar'
+import {
+  CALENDAR_PANEL_LAYOUT,
+  DEADLINE_DAY,
+  daysUntilDeadline,
+  formatGameDate,
+} from '../../data/calendar'
 import { STAT_META, GROWTH_STAT_ORDER } from '../../data/statMeta'
 import { HUD_ICONS } from '../../data/icons'
 import { GROWTH_STAT_KEYS, STAT_NAMES } from '../../types/game'
@@ -227,11 +230,12 @@ export function StatPanel() {
   const rankUps = useRankUps(state?.stats)
   if (!state || !visible) return null
 
-  const { stats } = state
+  const { stats, day } = state
   const ill = isIll(state)
-  const life = lifeRankOf(stats)
-  const lifePct = Math.round(lifeProgress(stats) * 100)
-  const lifeGoal = nextLifeGoal(state)
+  const left = daysUntilDeadline(day)
+  /* 1년 중 얼마나 지났는가(0~100). 게이지는 **채워질수록 끝이 가깝다** — 남은 날을
+     채우면 시작이 꽉 찬 상태라 "쓰고 있다"가 안 읽힌다. */
+  const spent = Math.round(((DEADLINE_DAY - left) / DEADLINE_DAY) * 100)
 
   return (
     <HudPanel
@@ -275,36 +279,34 @@ export function StatPanel() {
        * 알 수 없어 다시 장식이 된다. 다음 등급까지의 진행을 눈으로 재게 해야 목표가 된다.
        * ⚠️ 색만으로 알리지 않는다 — 등급 글자와 퍼센트를 함께 적는다.
        */}
+      {/*
+       * **남은 날.** 이 패널의 첫 줄이자 이 게임의 목표가 사는 자리다(2026-08-24).
+       *
+       * ⚠️ **예전에는 생활 등급이 있었다**(성장 스탯 평균 F~SS+n). 배경이 "20대의 딱
+       * 1년"으로 정해지면서 **목표 자리를 1년이 가져갔고**, 등급은 그 자리를 대신할 이유가
+       * 사라져 통째로 걷어냈다(설계자 지시). 스탯 하나하나의 등급은 그대로 남는다.
+       *
+       * ⚠️ **결산일이지 게임오버가 아니다** — 그날 1년을 돌아보고, 이어서 살 수 있다.
+       * ⚠️ 색만으로 알리지 않는다: 남은 날과 날짜를 글자로 함께 적는다.
+       */}
       <div className="stat-life">
         <div className="stat-life-head">
-          {/* ⚠️ "상위 12종"을 라벨이 직접 진다 — 하위 스탯을 올려도 이 게이지는 안
-              움직이는데(면제 규칙, `lifeRank.ts`), 규칙이 안 보이면 버그로 읽힌다. */}
-          <span className="stat-life-label">생활 등급(상위 {LIFE_STAT_COUNT}종)</span>
-          <span className="stat-life-rank">{life.label}</span>
+          <span className="stat-life-label">남은 날</span>
+          <span className="stat-life-rank">D-{left}</span>
         </div>
         <div
           className="stat-bar stat-life-bar"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-valuenow={lifePct}
-          aria-label={`생활 등급 ${life.label} — 다음 등급까지 ${lifePct}%`}
+          aria-valuenow={spent}
+          aria-label={`1년 중 ${spent}% 지남 — 결산까지 ${left}일`}
         >
-          {/* 기존 게이지와 **같은 클래스·같은 방식**이다(scaleX — width는 매 프레임
+          {/* 기존 게이지와 **같은 클래스·같은 방식**(scaleX — width는 매 프레임
               레이아웃을 다시 계산시킨다). 새 채움 스타일을 만들지 않는다. */}
-          <span className="stat-fill" style={{ transform: `scaleX(${lifePct / 100})` }} />
+          <span className="stat-fill" style={{ transform: `scaleX(${spent / 100})` }} />
         </div>
-        <p className="stat-life-note">다음 등급까지 {lifePct}%</p>
-        {/*
-         * **올라서 무엇이 오는가.** 게이지가 "얼마나 남았나"를 말한다면 이 줄이 등급을
-         * 목표로 만든다(2026-08-16) — 문구·문턱의 단일 출처는 `nextLifeGoal` 하나다.
-         * ⚠️ 사다리를 다 오르면 아예 그리지 않는다(빈 자리를 남기지 않는다 — 앓는 배지 규칙).
-         */}
-        {lifeGoal && (
-          <p className="stat-life-note">
-            {lifeGoal.rank}에 닿으면 · {lifeGoal.teaser}
-          </p>
-        )}
+        <p className="stat-life-note">{formatGameDate(DEADLINE_DAY)}에 1년이 끝납니다</p>
       </div>
 
       {/*

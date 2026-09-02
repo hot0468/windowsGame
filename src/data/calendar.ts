@@ -94,3 +94,33 @@ export function monthGrid(day: number): (number | null)[] {
   for (let date = 1; date <= lastDate; date++) cells.push(dayOf(new Date(year, month, date)))
   return cells
 }
+
+/* ── 1년 데드라인 (2026-08-24 설계자 설정) ─────────────────────────────────
+ *
+ * > 20대의 딱 1년, 자유가 주어졌다.
+ *
+ * ⚠️ **이것은 게임오버가 아니라 결산이다.** 파산·번아웃으로 판이 끝나던 장치는
+ * 2026-08-14에 없앴고(`types/game.ts`의 `Recovery`), 그 결정은 그대로다 — 여기서
+ * 생기는 것은 **끝나는 날**이 아니라 **돌아보는 날**이고, 그날 이후로도 이어서 산다
+ * (다만 직업·거주는 굳는다). 되살리지 말라던 그 장치와 혼동하지 말 것.
+ */
+
+/**
+ * 결산일(게임 N일차). 시작이 3월 1일이라 **이듬해 2월 말**이 정확히 이 값이다.
+ *
+ * ⚠️ **`dayOf`로 파생시킨다 — 365를 박지 않는다.** 시작일(`GAME_START_DATE`)을 옮기거나
+ * 윤년에 걸치면 365가 거짓이 되는데, 그때 이 상수만 조용히 낡는다.
+ */
+export const DEADLINE_DAY = dayOf(
+  new Date(GAME_START_DATE.year + 1, GAME_START_DATE.month - 1, GAME_START_DATE.day) ,
+) - 1
+
+/** 결산일까지 남은 날. 지났으면 0이다(음수를 돌려주면 화면이 "-3일 남음"을 적는다). */
+export function daysUntilDeadline(day: number): number {
+  return Math.max(0, DEADLINE_DAY - day)
+}
+
+/** 오늘이 결산일인가. **넘어선 날도 참이다** — 자동 진행으로 건너뛰어도 결산이 새지 않는다. */
+export function isDeadlineReached(day: number): boolean {
+  return day >= DEADLINE_DAY
+}

@@ -1,11 +1,9 @@
 import { RANK_EVENTS, WISH_AMOUNT, findRankEvent } from '../data/rankEvents'
 import { RANK_ORDER } from './rank'
 import { rankOf } from './rank'
-import { lifeRankOf } from './lifeRank'
 import { clampStats } from './turn'
 import { recordEvent } from './delivery'
 import type { RankEvent } from '../data/rankEvents'
-import type { StatRank } from './rank'
 import type { GameState, GrowthStatKey } from '../types/game'
 
 /**
@@ -53,10 +51,9 @@ export function seenRankEvent(state: GameState, id: string): boolean {
  */
 export function rankReached(state: GameState, event: RankEvent): boolean {
   if (event.afterDay !== undefined && state.day < event.afterDay) return false
-  /* ⚠️ **`key`가 없으면 생활 등급을 본다**(성장 스탯 상위 12종 평균). 스탯 하나로는
-     답할 수 없는 "두루 올렸는가"가 조건인 이벤트가 그쪽이다 — 판정을 `lifeRankOf`
-     하나에게 맡기는 것은 `rankOf`에 맡기는 것과 같은 이유다(문턱을 두 곳에 적지 않는다). */
-  const rank = event.key ? rankOf(event.key, state.stats[event.key]) : lifeRankOf(state.stats).rank
+  /* ⚠️ **판정은 `rankOf` 하나다**(2026-08-24). 예전에는 `key`가 없으면 생활 등급
+     (성장 스탯 평균)을 보는 갈래가 있었는데, 생활 등급이 삭제되면서 그 갈래도 사라졌다. */
+  const rank = rankOf(event.key, state.stats[event.key])
   const now = RANK_ORDER.indexOf(rank)
   const need = RANK_ORDER.indexOf(event.rank)
   return event.below ? now <= need : now >= need
@@ -262,21 +259,6 @@ export function rankEventMessages(
     from: lines[e.target].from,
     text: lines[e.target].text,
   }))
-}
-
-/**
- * 스탯창이 적는 **다음 생활 목표** — 아직 안 겪은 생활 등급 이벤트 중 가장 낮은 문턱.
- *
- * ⚠️ 게이지는 "얼마나 남았나"만 말한다. **"올라서 무엇이 오나"를 이 한 줄이 말한다** —
- * 이것이 없던 동안 생활 등급은 아무 데도 끌고 가지 않는 숫자였다(2026-08-16).
- * 문구의 단일 출처는 `RankEvent.teaser`다(방 이름·활동명을 여기서 다시 적으면
- * 같은 사실의 두 번째 출처가 된다). 사다리를 다 오르면 `undefined` — 그때는 게이지만 남는다.
- */
-export function nextLifeGoal(state: GameState): { rank: StatRank; teaser: string } | undefined {
-  const next = RANK_EVENTS.filter((e) => !e.key && e.teaser && !seenRankEvent(state, e.id)).sort(
-    (a, b) => RANK_ORDER.indexOf(a.rank) - RANK_ORDER.indexOf(b.rank),
-  )[0]
-  return next ? { rank: next.rank, teaser: next.teaser! } : undefined
 }
 
 /**

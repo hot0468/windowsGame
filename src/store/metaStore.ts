@@ -13,8 +13,15 @@ export interface PastLife {
   name: string
   /** 며칠을 살았나(접은 날의 day). */
   days: number
-  /** 접을 때의 생활 등급 라벨(`'B'`·`'SS+2'`). */
-  lifeRank: string
+  /**
+   * 그 판에서 **가장 높이 올린 스탯**(`'지식 A'`).
+   *
+   * ⚠️ **예전에는 생활 등급 라벨이었다**(2026-08-24 교체) — 생활 등급이 삭제되면서
+   * "그 삶이 어땠나"를 한 칸으로 말할 것이 필요해졌고, 가장 높이 올린 스탯이 그 답이다.
+   * ⚠️ **옵셔널이다**: 옛 기록에는 이 필드가 없다(`metaStore`에 `migrate`가 없어
+   * 잉여 키는 그대로 남고 새 키는 `undefined`다). 읽는 쪽이 폴백을 지는 것이 규칙.
+   */
+  topStat?: string
   /** 도달한 최고 직장. 비문과 같은 규칙이다 — 접을 때의 직함이 아니라 정점(`peakCareerId`). */
   peakCareerId?: string
 }

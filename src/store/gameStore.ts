@@ -28,7 +28,7 @@ import { creditCall, reviveBonus, worksAtCallCenter } from '../systems/callcente
 import { creditPerformance, revivePerformance, worksAtOffice } from '../systems/drive'
 import { healIllness, reviveIllness } from '../systems/illness'
 import { reviveRecovery } from '../systems/recovery'
-import { brokenRecords } from '../systems/records'
+import { brokenRecords, topStat } from '../systems/records'
 import {
   chanceToday,
   dilemmaDue,
@@ -39,7 +39,6 @@ import {
 } from '../systems/chance'
 import { innerLine } from '../systems/inner'
 import { useMetaStore } from './metaStore'
-import { lifeRankOf } from '../systems/lifeRank'
 import type { PastLife } from './metaStore'
 import {
   buyVaccine as buyVaccineOf,
@@ -1058,7 +1057,7 @@ export function pastLifeOf(state: GameState): PastLife | null {
   return {
     name: state.playerName,
     days: state.day,
-    lifeRank: lifeRankOf(state.stats).label,
+    topStat: topStat(state).value,
     peakCareerId: state.peakCareerId,
   }
 }

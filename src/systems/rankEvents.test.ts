@@ -10,10 +10,9 @@ import {
   threadUnlockedByRank,
   offerUnlockedByRank,
   rankEventMessages,
-  nextLifeGoal,
 } from './rankEvents'
 import { RANK_EVENTS, WISH_AMOUNT, findRankEvent } from '../data/rankEvents'
-import { RANK_THRESHOLDS, RANK_ORDER } from './rank'
+import { RANK_THRESHOLDS } from './rank'
 import { createInitialState, growthCap } from './turn'
 import { rankOf } from './rank'
 import { ACTIVITIES } from '../data/activities'
@@ -88,10 +87,8 @@ describe('이벤트 정의', () => {
 
   it('⚠️ 아무도 볼 수 없는 이벤트가 없다 — 문턱까지 실제로 올릴 활동이 있어야 한다', () => {
     for (const e of RANK_EVENTS) {
-      /* ⚠️ **생활 등급 이벤트(`key` 없음)는 이 잣대로 못 잰다** — 한 활동이 올리는
-         것이 아니라 상위 12종 평균이라 "주 공급원 하나로 며칠"이라는 물음이 성립하지 않는다.
-         그쪽 도달성은 아래 '생활 등급 이벤트' 묶음이 따로 지킨다. */
-      if (!e.key) continue
+      /* ⚠️ 2026-08-24에 `key`가 다시 필수가 됐다(생활 등급 삭제) — 예전에는 `key`가
+         없는 이벤트를 여기서 건너뛰었다. 이제 모든 이벤트가 이 잣대를 지난다. */
       const key = e.key
       const sources = ACTIVITIES.filter((a) => (a.effects[key] ?? 0) > 0)
       expect(sources.length, `${e.id}: ${key}를 올리는 활동이 없다`).toBeGreaterThan(0)
@@ -222,7 +219,6 @@ describe('랭크 이벤트가 스탯을 고르게 덮는다', () => {
 
   it('문턱은 전부 도달 가능한 값이다 — 아무도 못 보는 이벤트는 버그다', () => {
     for (const e of RANK_EVENTS) {
-      if (!e.key) continue // 생활 등급 이벤트는 상한이 스탯 하나가 아니다(위와 같은 이유)
       const key = e.key
       // 그 등급에 딱 닿는 판을 만들어, 상한 안의 값인지 확인한다.
       const need = Math.ceil(RANK_THRESHOLDS.find((t) => t.rank === e.rank)!.min * growthCap(key))
@@ -233,76 +229,6 @@ describe('랭크 이벤트가 스탯을 고르게 덮는다', () => {
         `${key}를 올리는 활동이 없다`,
       ).toBe(true)
     }
-  })
-})
-
-describe('생활 등급 이벤트 — 두루 올린 것의 보상', () => {
-  const lifeEvents = RANK_EVENTS.filter((e) => !e.key)
-
-  it('생활 등급으로 열리는 이벤트가 실재한다', () => {
-    expect(lifeEvents.length).toBeGreaterThan(0)
-  })
-
-  /* ⚠️ **한 스탯만 올려서는 안 열려야 한다** — 열리면 특화 보상과 같은 것이 되어
-     이 축을 따로 둔 이유가 사라진다. */
-  it('한 우물만 파면 안 열린다 — 특화 보상과 다른 축이다', () => {
-    const solo = createInitialState('한우물')
-    const maxed: GameState = {
-      ...solo,
-      stats: { ...solo.stats, knowledge: growthCap('knowledge') },
-    }
-    for (const e of lifeEvents) {
-      expect(dueRankEvents(maxed).some((x) => x.id === e.id), `${e.id}`).toBe(false)
-    }
-  })
-
-  it('두루 올리면 열린다', () => {
-    const base = createInitialState('두루')
-    const wide = { ...base.stats }
-    for (const key of GROWTH_STAT_KEYS) wide[key] = growthCap(key)
-    const rich: GameState = { ...base, stats: wide }
-    for (const e of lifeEvents) {
-      expect(dueRankEvents(rich).some((x) => x.id === e.id), `${e.id}`).toBe(true)
-    }
-  })
-
-  it('가리키는 방이 실재하고 첫 마디도 있다', () => {
-    const threads = new Set(THREADS.map((t) => t.id))
-    let s = createInitialState('등급')
-    s = { ...s, rankEvents: RANK_EVENTS.map((e) => e.id) }
-    const channels = new Set(rankEventMessages(s).map((m) => m.channel))
-    for (const e of lifeEvents.filter((x) => x.kind === 'thread')) {
-      expect(threads, e.id).toContain(e.target)
-      expect(channels, `${e.target} 방에 첫 마디가 없다`).toContain(e.target)
-    }
-  })
-
-  /* ⚠️ **사다리에 빈 등급이 없다**(2026-08-16). 게임오버가 없는 판을 생활 등급이
-     이끄는데, 오르는데 아무것도 안 열리는 구간이 생기면 그 구간 내내 등급이 다시
-     "숫자만 바뀌는 장식"이 된다 — 이 축을 만든 이유의 반대다. */
-  it('C부터 SS까지 등급마다 여는 것이 하나는 있다', () => {
-    for (const rank of RANK_ORDER.filter((r) => r !== 'F')) {
-      expect(
-        lifeEvents.some((e) => e.rank === rank),
-        `생활 ${rank}이 여는 것이 없다`,
-      ).toBe(true)
-    }
-  })
-
-  it('전부 다음 목표 문구(teaser)를 갖는다 — 스탯창이 이것으로 다음 칸을 알린다', () => {
-    for (const e of lifeEvents) {
-      expect(e.teaser, `${e.id}에 teaser가 없다`).toBeTruthy()
-    }
-  })
-
-  it('nextLifeGoal은 안 겪은 가장 낮은 문턱을 가리키고, 겪으면 다음으로 넘어간다', () => {
-    let s = createInitialState('목표')
-    expect(nextLifeGoal(s)!.rank).toBe('C')
-    s = markRankEvent(s, 'mentor-circle')
-    expect(nextLifeGoal(s)!.rank).toBe('B')
-    // 사다리를 다 오르면 목표 줄이 사라진다 — undefined가 그 근거다.
-    s = { ...s, rankEvents: RANK_EVENTS.filter((e) => !e.key).map((e) => e.id) }
-    expect(nextLifeGoal(s)).toBeUndefined()
   })
 })
 

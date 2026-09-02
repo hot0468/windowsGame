@@ -386,7 +386,7 @@ function lifeSheet(pastLives: PastLife[]): Sheet {
   return {
     id: 'life',
     label: '지난 삶',
-    columns: ['이름', '산 날', '생활 등급', '최고 직장'],
+    columns: ['이름', '산 날', '가장 높인 것', '최고 직장'],
     rows: pastLives.map((life, i) => {
       const career = CAREERS.find((c) => c.id === life.peakCareerId)
       return {
@@ -395,11 +395,14 @@ function lifeSheet(pastLives: PastLife[]): Sheet {
         cells: [
           life.name,
           `${life.days}일`,
-          life.lifeRank,
+          /* ⚠️ **옛 기록에는 이 값이 없다**(2026-08-24에 생활 등급을 대체) —
+             `metaStore`에 migrate가 없으므로 읽는 쪽이 폴백을 진다. */
+          life.topStat ?? '기록 없음',
           career ? career.company : '무직',
         ],
         detail:
-          `${i + 1}번째 삶 — ${life.name}. ${life.days}일을 살았고 생활 등급 ${life.lifeRank}에 닿았습니다.` +
+          `${i + 1}번째 삶 — ${life.name}. ${life.days}일을 살았습니다.` +
+          (life.topStat ? ` 가장 높인 것은 ${life.topStat}입니다.` : '') +
           (career ? ` 직장은 ${career.company} ${career.title}까지 갔습니다.` : ' 어디에도 매이지 않고 살았습니다.'),
       }
     }),

@@ -165,3 +165,29 @@
 .lock-sub:hover {
   color: #fff;
 }
+
+/*
+ * 배경 설정 — 이 게임의 첫 문장(2026-08-24).
+ *
+ * ⚠️ **`opacity`가 아니라 실제 색을 준다**(`.lock-date`와 같은 규칙) — opacity는
+ * 그림자까지 흐려 벽지 위 글자 윤곽이 함께 죽는다.
+ * ⚠️ 폭을 묶는다: 벽지 위 한 줄이 화면 끝까지 늘어지면 읽는 눈이 되돌아올 자리를 잃는다
+ * (ux `line-length-control`).
+ */
+.lock-lede {
+  max-width: 30ch;
+  margin: 0 0 var(--sp-6);
+  font-size: var(--fs-lg);
+  line-height: 1.6;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* 두 번째 줄은 한 단 물러난다 — 첫 줄이 전제이고 이쪽은 그 안의 선택지다. */
+.lock-lede-sub {
+  display: block;
+  margin-top: var(--sp-2);
+  font-size: var(--fs-sm);
+  color: rgba(255, 255, 255, 0.86);
+}
